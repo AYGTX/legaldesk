@@ -20,6 +20,7 @@ public class RecipientConfiguration : IEntityTypeConfiguration<Recipient>
         builder.Property(r => r.DelegationNote).HasMaxLength(1000);
         builder.Property(r => r.PrivateMessage).HasMaxLength(2000);
         builder.Property(r => r.Company).HasMaxLength(200);
+        builder.Property(r => r.RoleLabel).HasMaxLength(100);
 
         builder.HasMany(r => r.Signatures)
             .WithOne(s => s.Recipient)

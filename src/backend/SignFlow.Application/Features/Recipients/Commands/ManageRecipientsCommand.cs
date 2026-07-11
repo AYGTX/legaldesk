@@ -16,7 +16,8 @@ public record RecipientInputDto(
     int Order,
     ApprovalType ApprovalType,
     string? PrivateMessage = null,
-    string? Company = null);
+    string? Company = null,
+    string? RoleLabel = null);
 
 public class ManageRecipientsCommandValidator : AbstractValidator<ManageRecipientsCommand>
 {
@@ -29,6 +30,7 @@ public class ManageRecipientsCommandValidator : AbstractValidator<ManageRecipien
             r.RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
             r.RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
             r.RuleFor(x => x.Order).GreaterThan(0);
+            r.RuleFor(x => x.RoleLabel).MaximumLength(100);
         });
     }
 }
@@ -84,7 +86,7 @@ public class ManageRecipientsCommandHandler(
                 if (existing is not null) continue;
             }
 
-            var recipient = Recipient.Create(command.DocumentId, dto.Name, dto.Email, dto.Order, dto.ApprovalType, dto.PrivateMessage, dto.Company, dto.Id);
+            var recipient = Recipient.Create(command.DocumentId, dto.Name, dto.Email, dto.Order, dto.ApprovalType, dto.PrivateMessage, dto.Company, dto.Id, dto.RoleLabel);
             db.Recipients.Add(recipient);
         }
 

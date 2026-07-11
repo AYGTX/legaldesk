@@ -129,10 +129,21 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     <div class="recipient-info">
                       <span class="recipient-name">{{ r.name }}</span>
                       <span class="recipient-email">{{ r.email }}</span>
+                      @if (r.approvalType !== 'Signature' || r.roleLabel) {
+                        <span class="role-chip" [class]="'role-' + r.approvalType.toLowerCase()">
+                          <mat-icon>{{ roleIcon(r.approvalType) }}</mat-icon>
+                          {{ r.roleLabel || (('documents.detail.roles.' + r.approvalType) | translate) }}
+                        </span>
+                      }
                     </div>
+                    @if (r.approvalType === 'ViewOnly') {
+                      <div class="recipient-status rs-viewer">
+                        <mat-icon>visibility</mat-icon> {{ 'documents.detail.roles.ViewOnly' | translate }}
+                      </div>
+                    } @else {
                     <div class="recipient-status" [class]="'rs-' + r.status.toLowerCase()">
                       @switch (r.status) {
-                        @case ('Completed') { <mat-icon>check_circle</mat-icon> {{ 'documents.detail.recipientStatus.signed' | translate }} }
+                        @case ('Completed') { <mat-icon>check_circle</mat-icon> {{ (r.approvalType === 'Review' || r.approvalType === 'Approval' ? 'documents.detail.recipientStatus.approved' : 'documents.detail.recipientStatus.signed') | translate }} }
                         @case ('Rejected') { <mat-icon>cancel</mat-icon> {{ 'documents.detail.recipientStatus.rejected' | translate }} }
                         @case ('InProgress') { <mat-icon>hourglass_top</mat-icon> {{ 'documents.detail.recipientStatus.inProgress' | translate }} }
                         @case ('Skipped') { <mat-icon>skip_next</mat-icon> {{ 'documents.detail.recipientStatus.skipped' | translate }} }
@@ -140,6 +151,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                         @default { <mat-icon>schedule</mat-icon> {{ 'documents.detail.recipientStatus.pending' | translate }} }
                       }
                     </div>
+                    }
                     @if (r.signedAt) {
                       <span class="recipient-time">{{ r.signedAt | date:'MMM d' }}</span>
                     }
@@ -314,7 +326,8 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   }
 
   readonly workflowParticipants = (): WorkflowParticipant[] => {
-    const recipients = this.doc()?.recipients ?? [];
+    // Viewers aren't workflow gates — keep them out of the signing-progress visualizer.
+    const recipients = (this.doc()?.recipients ?? []).filter(r => r.approvalType !== 'ViewOnly');
     if (recipients.length === 0) return [];
     const ordered = [...recipients].sort((a, b) => a.order - b.order);
     const current = ordered.find(r =>
@@ -340,6 +353,16 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   statusLabel(): string { return this.translate.instant(`documents.detail.status.${this.doc()?.status ?? ''}`); }
   initials(name: string): string {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  roleIcon(approvalType: string): string {
+    switch (approvalType) {
+      case 'Review': return 'rate_review';
+      case 'Approval': return 'fact_check';
+      case 'ViewOnly': return 'visibility';
+      case 'Stamp': return 'approval';
+      default: return 'draw';
+    }
   }
 
   ngOnInit(): void {

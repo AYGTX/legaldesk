@@ -29,8 +29,19 @@ public class RejectDocumentCommandHandler(
             .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
             ?? throw new NotFoundException("Signing session not found.");
 
-        if (recipient.Status != WorkflowStepStatus.InProgress)
-            throw new ConflictException("Cannot reject a document that is not awaiting your action.");
+        // Recipient.Status never becomes InProgress (only WorkflowStep.Status does), so the old
+        // guard `Status != InProgress` rejected every decline attempt with a 409.
+        if (recipient.Status == WorkflowStepStatus.Completed)
+            throw new ConflictException("You have already completed this document.");
+
+        if (recipient.Status == WorkflowStepStatus.Rejected)
+            throw new ConflictException("You have already rejected this document.");
+
+        if (recipient.ApprovalType == ApprovalType.ViewOnly)
+            throw new ConflictException("View-only participants can't decline documents.");
+
+        if (recipient.Document.Status is not (DocumentStatus.InProgress or DocumentStatus.Pending))
+            throw new ConflictException("This document is no longer awaiting action.");
 
         await workflowEngine.RejectAsync(recipient.DocumentId, recipient.Id, command.Reason, cancellationToken);
 

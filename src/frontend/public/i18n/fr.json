@@ -359,11 +359,19 @@
       "recipientsTitle": "Destinataires",
       "recipientStatus": {
         "signed": "Signé",
+        "approved": "Approuvé",
         "rejected": "Rejeté",
         "inProgress": "En cours",
         "skipped": "Ignoré",
         "delegated": "Délégué",
         "pending": "En attente"
+      },
+      "roles": {
+        "Signature": "Signataire",
+        "Approval": "Approbateur",
+        "Review": "Relecteur",
+        "ViewOnly": "Observateur",
+        "Stamp": "Tampon"
       },
       "noRecipients": "Aucun destinataire assigné pour le moment",
       "copySigningLink": "Copier le lien de signature",
@@ -477,7 +485,14 @@
       "moveDown": "Descendre",
       "earlierStage": "Étape antérieure",
       "laterStage": "Étape suivante",
-      "remove": "Supprimer"
+      "remove": "Supprimer",
+      "roleLabelPlaceholder": "Libellé du rôle (ex. Équipe juridique)"
+    },
+    "roles": {
+      "Signature": "Signataire",
+      "Approval": "Approbateur",
+      "Review": "Relecteur",
+      "ViewOnly": "Observateur"
     },
     "palette": {
       "droppingFor": "Dépôt pour : {{name}}",
@@ -519,7 +534,9 @@
       "selectRecipientFirst": "Sélectionnez un destinataire dans la barre latérale avant de placer des champs.",
       "addRecipientBeforeSaving": "Ajoutez au moins un destinataire avant d'enregistrer.",
       "savedSuccessfully": "Enregistré avec succès",
-      "saveFailed": "Échec de l'enregistrement"
+      "saveFailed": "Échec de l'enregistrement",
+      "fieldsUnassignedForRole": "Les champs ont été désassignés — ce participant ne signe plus.",
+      "nonSignerNoFields": "Les relecteurs, approbateurs et observateurs ne remplissent pas de champs — sélectionnez d'abord un signataire."
     }
   },
   "legal": {
@@ -923,6 +940,7 @@
       "submitting": "Envoi en cours…",
       "decline": "Refuser",
       "reviewSubmit": "Vérifier et soumettre",
+      "reviewApprove": "Relire et approuver",
       "loadingEllipsis": "Chargement…",
       "slaTooltip": "Temps restant avant l'échéance de cette demande",
       "linkTooltip": "Temps restant avant l'expiration de ce lien de signature",
@@ -947,6 +965,7 @@
       "title": "Résumé du document",
       "unavailable": "Résumé indisponible. Veuillez consulter directement le document après avoir poursuivi.",
       "proceedToSign": "Passer à la signature",
+      "proceedToReview": "Passer à la relecture",
       "gdprTitle": "Avis de traitement des données",
       "gdprText": "En signant, vous reconnaissez que SignFlow enregistrera votre signature électronique, la date et l'heure de signature, votre adresse IP, ainsi que cette piste d'audit, aux fins de validité juridique du document signé (base légale : art. 6(1)(b) du RGPD — exécution d'un contrat).",
       "geoOptIn": "J'accepte de partager ma position approximative afin de renforcer la piste d'audit (facultatif — art. 6(1)(a) du RGPD)."
@@ -972,10 +991,24 @@
       "title": "Vérifiez votre signature",
       "intro": "Veuillez vérifier les valeurs ci-dessous avant d'approuver. Une fois soumise, cette action est irréversible.",
       "notFilled": "Non rempli",
+      "noFieldsRole": "Aucun champ à remplir — approuver enregistre votre décision de relecture dans la piste d'audit.",
       "legalNotice": "En cliquant sur <strong>Approuver et soumettre</strong>, vous signez électroniquement ce document et reconnaissez que votre signature électronique a la même valeur juridique qu'une signature manuscrite."
     },
     "fieldNav": {
       "title": "Champs à compléter"
+    },
+    "roleBanner": {
+      "Review": "Relecture",
+      "Approval": "Approbation"
+    },
+    "roleNav": {
+      "Review": "Vous relisez ce document. Lisez-le, échangez dans les commentaires, puis approuvez ou refusez depuis la barre du haut.",
+      "Approval": "Votre approbation formelle est demandée. Examinez le document, puis approuvez ou refusez depuis la barre du haut."
+    },
+    "viewer": {
+      "title": "Vous avez un accès en lecture",
+      "body": "« {{title}} » a été partagé avec vous. Vous pouvez lire le document et participer à la discussion — aucune action n'est requise de votre part.",
+      "openDocument": "Ouvrir le document (PDF)"
     },
     "errors": {
       "invalidOrExpiredLink": "Ce lien de signature est invalide ou a expiré",

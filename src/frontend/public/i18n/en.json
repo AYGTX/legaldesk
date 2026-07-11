@@ -359,11 +359,19 @@
       "recipientsTitle": "Recipients",
       "recipientStatus": {
         "signed": "Signed",
+        "approved": "Approved",
         "rejected": "Rejected",
         "inProgress": "In Progress",
         "skipped": "Skipped",
         "delegated": "Delegated",
         "pending": "Pending"
+      },
+      "roles": {
+        "Signature": "Signer",
+        "Approval": "Approver",
+        "Review": "Reviewer",
+        "ViewOnly": "Viewer",
+        "Stamp": "Stamp"
       },
       "noRecipients": "No recipients assigned yet",
       "copySigningLink": "Copy signing link",
@@ -477,7 +485,14 @@
       "moveDown": "Move down",
       "earlierStage": "Earlier stage",
       "laterStage": "Later stage",
-      "remove": "Remove"
+      "remove": "Remove",
+      "roleLabelPlaceholder": "Role label (e.g. Legal team)"
+    },
+    "roles": {
+      "Signature": "Signer",
+      "Approval": "Approver",
+      "Review": "Reviewer",
+      "ViewOnly": "Viewer"
     },
     "palette": {
       "droppingFor": "Dropping for: {{name}}",
@@ -519,7 +534,9 @@
       "selectRecipientFirst": "Select a recipient in the sidebar before placing fields.",
       "addRecipientBeforeSaving": "Add at least one recipient before saving.",
       "savedSuccessfully": "Saved successfully",
-      "saveFailed": "Failed to save"
+      "saveFailed": "Failed to save",
+      "fieldsUnassignedForRole": "Fields were unassigned — this participant no longer signs.",
+      "nonSignerNoFields": "Reviewers, approvers and viewers don't fill fields — select a signer first."
     }
   },
   "legal": {
@@ -923,6 +940,7 @@
       "submitting": "Submitting…",
       "decline": "Decline",
       "reviewSubmit": "Review & Submit",
+      "reviewApprove": "Review & Approve",
       "loadingEllipsis": "Loading…",
       "slaTooltip": "Time left before this request's deadline",
       "linkTooltip": "Time left before this signing link expires",
@@ -947,6 +965,7 @@
       "title": "Document Summary",
       "unavailable": "Summary not available. Please review the document directly after proceeding.",
       "proceedToSign": "Proceed to Sign",
+      "proceedToReview": "Proceed to Review",
       "gdprTitle": "Data Processing Notice",
       "gdprText": "By signing, you acknowledge that SignFlow will record your electronic signature, the date and time of signing, your IP address, and this audit trail for the legal validity of the signed document (legal basis: Art. 6(1)(b) GDPR — contract performance).",
       "geoOptIn": "I consent to sharing my approximate location to strengthen the audit trail (optional — Art. 6(1)(a) GDPR)."
@@ -972,10 +991,24 @@
       "title": "Review Your Signature",
       "intro": "Please review the values below before approving. Once submitted, this cannot be undone.",
       "notFilled": "Not filled",
+      "noFieldsRole": "There are no fields for you to fill — approving records your review decision on the audit trail.",
       "legalNotice": "By clicking <strong>Approve &amp; Submit</strong>, you are electronically signing this document and agree that your electronic signature has the same legal effect as a handwritten signature."
     },
     "fieldNav": {
       "title": "Fields to Complete"
+    },
+    "roleBanner": {
+      "Review": "Reviewing",
+      "Approval": "Approving"
+    },
+    "roleNav": {
+      "Review": "You're reviewing this document. Read it, discuss in the comments, then approve or decline from the top bar.",
+      "Approval": "Your formal approval is requested. Examine the document, then approve or decline from the top bar."
+    },
+    "viewer": {
+      "title": "You have view access",
+      "body": "\"{{title}}\" was shared with you. You can read the document and join the discussion — no action is required from you.",
+      "openDocument": "Open Document (PDF)"
     },
     "errors": {
       "invalidOrExpiredLink": "This signing link is invalid or has expired",

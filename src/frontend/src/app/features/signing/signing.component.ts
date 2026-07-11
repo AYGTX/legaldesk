@@ -45,9 +45,13 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
         <div class="doc-info">
           @if (session()) {
             <span class="doc-name">{{ session()!.documentTitle }}</span>
-            <span class="field-progress">
-              {{ fieldsCompletedText() }}
-            </span>
+            @if (isNonSigner()) {
+              <span class="field-progress">{{ roleBannerText() }}</span>
+            } @else {
+              <span class="field-progress">
+                {{ fieldsCompletedText() }}
+              </span>
+            }
           }
         </div>
         @if (remaining(); as r) {
@@ -61,7 +65,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             {{ 'signing.topbar.linkPillLabel' | translate: { time: lr.text } }}
           </span>
         }
-        @if (session() && session()!.isMyTurn && !session()!.isCompleted && !session()!.isRejected && !session()!.isExpired) {
+        @if (session() && session()!.isMyTurn && !session()!.isCompleted && !session()!.isRejected && !session()!.isExpired && session()!.recipient.approvalType !== 'ViewOnly') {
           @if (reviewMode()) {
             <div class="topbar-actions">
               <button mat-stroked-button (click)="reviewMode.set(false)">
@@ -80,7 +84,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               <button mat-flat-button color="primary" (click)="finish()"
                       [disabled]="!allFieldsSigned() || finishing()">
                 <mat-icon>rate_review</mat-icon>
-                {{ (finishing() ? 'signing.topbar.loadingEllipsis' : 'signing.topbar.reviewSubmit') | translate }}
+                {{ (finishing() ? 'signing.topbar.loadingEllipsis' : (isNonSigner() ? 'signing.topbar.reviewApprove' : 'signing.topbar.reviewSubmit')) | translate }}
               </button>
             </div>
           }
@@ -91,7 +95,29 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
         <div class="loading-state"><mat-spinner diameter="48"></mat-spinner><p>{{ 'signing.loadingDocument' | translate }}</p></div>
       } @else if (session()) {
 
-        @if (signingStep() === 'summary' && session()!.isMyTurn && !session()!.isCompleted && !session()!.isRejected && !session()!.isExpired) {
+        @if (session()!.recipient.approvalType === 'ViewOnly') {
+          <!-- Viewer experience: read + comment, never a workflow gate -->
+          <div class="status-screen viewer">
+            <mat-icon>visibility</mat-icon>
+            <h2>{{ 'signing.viewer.title' | translate }}</h2>
+            <p>{{ 'signing.viewer.body' | translate: { title: session()!.documentTitle } }}</p>
+            @if (session()!.isHtmlTemplate && session()!.renderedHtmlContent) {
+              <div class="viewer-doc" [innerHTML]="session()!.renderedHtmlContent"></div>
+            } @else {
+              <button mat-flat-button color="primary" (click)="downloadDocument()" [disabled]="downloading()">
+                <mat-icon>open_in_new</mat-icon>
+                {{ (downloading() ? 'signing.status.downloading' : 'signing.viewer.openDocument') | translate }}
+              </button>
+            }
+            <div class="waiting-flow">
+              <sf-workflow-visualizer [participants]="session()!.participants" [showHeader]="false"></sf-workflow-visualizer>
+            </div>
+            <div class="waiting-comments">
+              <sf-comments-panel [token]="token"></sf-comments-panel>
+            </div>
+          </div>
+
+        } @else if (signingStep() === 'summary' && session()!.isMyTurn && !session()!.isCompleted && !session()!.isRejected && !session()!.isExpired) {
           <!-- Pre-signing Summary Screen -->
           <div class="summary-screen">
             <div class="summary-card">
@@ -150,7 +176,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     <mat-icon>cancel</mat-icon> {{ 'signing.topbar.decline' | translate }}
                   </button>
                   <button mat-flat-button color="primary" (click)="proceedToSign()">
-                    {{ 'signing.summary.proceedToSign' | translate }} <mat-icon>arrow_forward</mat-icon>
+                    {{ (isNonSigner() ? 'signing.summary.proceedToReview' : 'signing.summary.proceedToSign') | translate }} <mat-icon>arrow_forward</mat-icon>
                   </button>
                 </div>
               </div>
@@ -223,6 +249,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             </div>
 
             <div class="review-fields">
+              @if (session()!.fields.length === 0 && isNonSigner()) {
+                <p class="review-empty-note">{{ 'signing.review.noFieldsRole' | translate }}</p>
+              }
               @for (field of session()!.fields; track field.id) {
                 <div class="review-field-card" [class.unsigned]="!field.isSigned">
                   <div class="rfc-meta">
@@ -268,13 +297,20 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               <div class="html-doc-content" [innerHTML]="session()!.renderedHtmlContent"></div>
             </div>
             <div class="html-sig-panel">
-              <div class="html-sig-header">
-                <span class="material-symbols-outlined">draw</span>
-                <div>
-                  <h3>Your signature</h3>
-                  <p>Sign below to complete this request</p>
+              @if (session()!.fields.length > 0) {
+                <div class="html-sig-header">
+                  <span class="material-symbols-outlined">draw</span>
+                  <div>
+                    <h3>Your signature</h3>
+                    <p>Sign below to complete this request</p>
+                  </div>
                 </div>
-              </div>
+              } @else if (isNonSigner()) {
+                <div class="role-info-card">
+                  <mat-icon>{{ session()!.recipient.approvalType === 'Approval' ? 'fact_check' : 'rate_review' }}</mat-icon>
+                  <p>{{ ('signing.roleNav.' + session()!.recipient.approvalType) | translate }}</p>
+                </div>
+              }
               @for (field of session()!.fields; track field.id) {
                 <div class="html-sig-field" [class.signed]="field.isSigned">
                   @if (field.isSigned && field.signedValue) {
@@ -300,12 +336,12 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               }
               <div class="html-sig-actions">
                 <button mat-stroked-button color="warn" (click)="openRejectDialog()">
-                  <mat-icon>cancel</mat-icon> Decline
+                  <mat-icon>cancel</mat-icon> {{ 'signing.topbar.decline' | translate }}
                 </button>
                 <button mat-flat-button color="primary" (click)="finish()"
                         [disabled]="!allFieldsSigned() || finishing()">
                   <mat-icon>rate_review</mat-icon>
-                  {{ finishing() ? 'Submitting…' : 'Review & Submit' }}
+                  {{ (finishing() ? 'signing.topbar.submitting' : (isNonSigner() ? 'signing.topbar.reviewApprove' : 'signing.topbar.reviewSubmit')) | translate }}
                 </button>
               </div>
 
@@ -325,7 +361,13 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                                           orientation="vertical" [showHeader]="false"></sf-workflow-visualizer>
                 </div>
               }
-              <div class="nav-header">
+              @if (session()!.fields.length === 0 && isNonSigner()) {
+                <div class="role-info-card">
+                  <mat-icon>{{ session()!.recipient.approvalType === 'Approval' ? 'fact_check' : 'rate_review' }}</mat-icon>
+                  <p>{{ ('signing.roleNav.' + session()!.recipient.approvalType) | translate }}</p>
+                </div>
+              }
+              <div class="nav-header" [class.nav-hidden]="session()!.fields.length === 0">
                 <h3>{{ 'signing.fieldNav.title' | translate }}</h3>
                 <div class="progress-bar-wrapper">
                   <div class="progress-bar-fill" [style.width.%]="progressPercent()"></div>
@@ -444,6 +486,20 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly downloading = signal(false);
   readonly geoOptIn = signal(false);
   private resolvedLocation: string | undefined = undefined;
+
+  /** Review/Approval participants gate the workflow without filling fields. */
+  readonly isNonSigner = computed(() => {
+    const t = this.session()?.recipient.approvalType;
+    return t === 'Review' || t === 'Approval';
+  });
+
+  /** "Reviewing · Legal team" style topbar text for non-signing participants. */
+  roleBannerText(): string {
+    const s = this.session();
+    if (!s) return '';
+    const base = this.translate.instant('signing.roleBanner.' + s.recipient.approvalType);
+    return s.recipient.roleLabel ? `${base} · ${s.recipient.roleLabel}` : base;
+  }
 
   readonly scale = signal(1.0);
   readonly pageWidth = signal(794);

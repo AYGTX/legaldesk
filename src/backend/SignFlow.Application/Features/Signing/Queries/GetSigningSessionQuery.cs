@@ -31,7 +31,7 @@ public record SigningSessionDto(
     // Expiry of this specific signing link (distinct from the document's overall SLA deadline above)
     DateTime? LinkExpiresAt = null);
 
-public record RecipientSessionDto(Guid Id, string Name, string Email, ApprovalType ApprovalType, WorkflowStepStatus Status);
+public record RecipientSessionDto(Guid Id, string Name, string Email, ApprovalType ApprovalType, WorkflowStepStatus Status, string? RoleLabel = null);
 
 public record WorkflowParticipantDto(int Order, string Name, WorkflowStepStatus Status, bool IsCurrent, bool IsMe, DateTime? SignedAt);
 public record AssignedFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, string? Label, string? Placeholder, bool IsRequired, bool IsSigned, string? DefaultValue, string? Options, string? Tooltip, string? FontFamily, float? FontSize, string? FontColor);
@@ -54,16 +54,18 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
         var allRecipients = await db.Recipients.AsNoTracking()
             .Where(r => r.DocumentId == recipient.DocumentId)
             .OrderBy(r => r.Order)
-            .Select(r => new { r.Id, r.Name, r.Order, r.Status, r.IsRequired, r.SignedAt })
+            .Select(r => new { r.Id, r.Name, r.Order, r.Status, r.IsRequired, r.SignedAt, r.ApprovalType })
             .ToListAsync(cancellationToken);
 
         // Resolve fields for this recipient.
         // Primary: fields explicitly linked by RecipientId.
-        // Fallback: if none found, load fields whose RecipientId is stale/orphaned (i.e. doesn't
-        // correspond to any current recipient). This recovers documents saved before the client-ID
-        // preservation fix was applied.
+        // Fallback (content signers only): if none found, load fields whose RecipientId is
+        // stale/orphaned (i.e. doesn't correspond to any current recipient). This recovers
+        // documents saved before the client-ID preservation fix was applied. Reviewers,
+        // approvers, and viewers never inherit orphaned fields — their session has no fields.
         var assignedFields = recipient.AssignedFields.ToList();
-        if (!assignedFields.Any())
+        var isContentSigner = recipient.ApprovalType is ApprovalType.Signature or ApprovalType.Stamp;
+        if (!assignedFields.Any() && isContentSigner)
         {
             var validIds = allRecipients.Select(r => r.Id).ToHashSet();
             assignedFields = await db.SignatureFields
@@ -86,7 +88,11 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
                 && r.Status != WorkflowStepStatus.Rejected)?.Id;
 
         var hide = recipient.Document.HideRecipientIdentities;
-        var orderedForDisplay = allRecipients.Select((r, idx) => (r, displayOrder: idx + 1)).ToList();
+        // Viewers aren't workflow gates — they don't belong in the signing-progress visualizer.
+        var orderedForDisplay = allRecipients
+            .Where(r => r.ApprovalType != ApprovalType.ViewOnly)
+            .Select((r, idx) => (r, displayOrder: idx + 1))
+            .ToList();
 
         var participants = orderedForDisplay
             .Select(x => new WorkflowParticipantDto(
@@ -136,7 +142,7 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
             recipient.Document.FinalStoragePath ?? recipient.Document.StoragePath,
             recipient.Document.PageCount,
             recipient.Document.Message,
-            new RecipientSessionDto(recipient.Id, recipient.Name, recipient.Email, recipient.ApprovalType, recipient.Status),
+            new RecipientSessionDto(recipient.Id, recipient.Name, recipient.Email, recipient.ApprovalType, recipient.Status, recipient.RoleLabel),
             fields,
             recipient.Status == WorkflowStepStatus.Completed,
             recipient.Status == WorkflowStepStatus.Rejected,

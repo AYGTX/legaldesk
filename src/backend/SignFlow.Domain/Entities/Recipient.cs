@@ -27,12 +27,18 @@ public class Recipient : BaseEntity
     public string? PrivateMessage { get; private set; }
     public string? Company { get; private set; }
 
+    /// <summary>
+    /// Free-text participant label shown in the UI and audit trail (e.g. "Legal team",
+    /// "Compliance officer"). Capabilities come from ApprovalType, never from this label.
+    /// </summary>
+    public string? RoleLabel { get; private set; }
+
     public ICollection<SignatureField> AssignedFields { get; private set; } = [];
     public ICollection<Signature> Signatures { get; private set; } = [];
 
     private Recipient() { }
 
-    public static Recipient Create(Guid documentId, string name, string email, int order, ApprovalType approvalType, string? privateMessage = null, string? company = null, Guid? id = null)
+    public static Recipient Create(Guid documentId, string name, string email, int order, ApprovalType approvalType, string? privateMessage = null, string? company = null, Guid? id = null, string? roleLabel = null)
         => new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -43,6 +49,10 @@ public class Recipient : BaseEntity
             ApprovalType = approvalType,
             PrivateMessage = privateMessage,
             Company = company,
+            RoleLabel = roleLabel,
+            // ViewOnly participants never gate the workflow: they are excluded from
+            // turn-blocking and completion checks (both filter on IsRequired).
+            IsRequired = approvalType != ApprovalType.ViewOnly,
             TokenExpiresAt = DateTime.UtcNow.AddDays(30)
         };
 

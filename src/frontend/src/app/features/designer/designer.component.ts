@@ -25,7 +25,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { VacationService } from '../../core/services/vacation.service';
 import { UserService } from '../../core/services/user.service';
-import { DocumentDetail, FieldDto, RecipientInputDto, FieldType, UserDto, WorkflowType } from '../../core/models';
+import { ApprovalType, DocumentDetail, FieldDto, RecipientInputDto, FieldType, UserDto, WorkflowType } from '../../core/models';
 import { v4 as uuidv4 } from 'uuid';
 
 interface DesignerField {
@@ -243,7 +243,7 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                 @let fieldCount = recipientFieldCounts().get(rc.recipientId) ?? 0;
                 <div class="recipient-chip"
                      [class.selected-recipient]="selectedRecipientId() === rc.recipientId"
-                     [class.no-fields-chip]="fieldCount === 0 && recipients().length > 0"
+                     [class.no-fields-chip]="fieldCount === 0 && recipients().length > 0 && isSignerRole(rc.recipientId)"
                      (click)="selectRecipient(rc.recipientId)"
                      [style.border-left-color]="rc.color">
 
@@ -261,12 +261,14 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
 
                   <!-- Right: field count + controls -->
                   <div class="rc-right" (click)="$event.stopPropagation()">
-                    <span class="field-count" [class.count-zero]="fieldCount === 0">
-                      @if (fieldCount === 0) {
-                        <mat-icon class="warn-icon">warning</mat-icon>
-                      }
-                      {{ fieldCount }}
-                    </span>
+                    @if (isSignerRole(rc.recipientId)) {
+                      <span class="field-count" [class.count-zero]="fieldCount === 0">
+                        @if (fieldCount === 0) {
+                          <mat-icon class="warn-icon">warning</mat-icon>
+                        }
+                        {{ fieldCount }}
+                      </span>
+                    }
                     <div class="rc-actions">
                       @if (workflowType() === 'Sequential') {
                         <button class="rc-btn" [disabled]="first" (click)="moveRecipient(i, -1)" [title]="'designer.recipients.moveUp' | translate">▲</button>
@@ -277,6 +279,20 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                       }
                       <button class="rc-btn rc-btn-delete" (click)="removeRecipient(i)" [title]="'designer.recipients.remove' | translate">✕</button>
                     </div>
+                  </div>
+
+                  <!-- Participant role + free-text label -->
+                  <div class="rc-role-row" (click)="$event.stopPropagation()">
+                    <select class="rc-role-select" [value]="recipientRole(rc.recipientId)"
+                            (change)="setRecipientRole(rc.recipientId, $any($event.target).value)">
+                      @for (role of participantRoles; track role) {
+                        <option [value]="role">{{ ('designer.roles.' + role) | translate }}</option>
+                      }
+                    </select>
+                    <input class="rc-role-label" type="text" maxlength="100"
+                           [placeholder]="'designer.recipients.roleLabelPlaceholder' | translate"
+                           [value]="recipientRoleLabelOf(rc.recipientId)"
+                           (change)="setRecipientRoleLabel(rc.recipientId, $any($event.target).value)" />
                   </div>
                 </div>
               }
@@ -593,7 +609,8 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
           name: r.name,
           email: r.email,
           order: r.order ?? i + 1,
-          approvalType: 'Signature' as const
+          approvalType: r.approvalType ?? ('Signature' as ApprovalType),
+          roleLabel: r.roleLabel
         }));
         this.recipients.set(recipientList);
 
@@ -727,6 +744,17 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // Fields belong to content signers — reviewers, approvers, and viewers act without fields.
+    const activeId = this.selectedRecipientId();
+    if (activeId && !this.isSignerRole(activeId)) {
+      this.snackBar.open(
+        this.translate.instant('designer.notifications.nonSignerNoFields'),
+        this.translate.instant('designer.notifications.ok'),
+        { duration: 4000 }
+      );
+      return;
+    }
+
     const wrapper = this.pdfWrapperRef.nativeElement.getBoundingClientRect();
     const dropPoint = event.dropPoint;
     const x = Math.max(0, (dropPoint.x - wrapper.left) / this.zoomLevel());
@@ -844,6 +872,41 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.recipientForm.reset();
     this.showAddRecipient.set(false);
+  }
+
+  /** Roles a designer-flow participant can hold. Stamp is intentionally omitted (niche). */
+  readonly participantRoles: ApprovalType[] = ['Signature', 'Approval', 'Review', 'ViewOnly'];
+
+  recipientRole(id: string): ApprovalType {
+    return this.recipients().find(r => r.id === id)?.approvalType ?? 'Signature';
+  }
+
+  /** Content signers get fields; reviewers/approvers/viewers gate (or watch) without fields. */
+  isSignerRole(id: string): boolean {
+    const role = this.recipientRole(id);
+    return role === 'Signature' || role === 'Stamp';
+  }
+
+  recipientRoleLabelOf(id: string): string {
+    return this.recipients().find(r => r.id === id)?.roleLabel ?? '';
+  }
+
+  setRecipientRole(id: string, role: ApprovalType): void {
+    this.recipients.update(rs => rs.map(r => r.id === id ? { ...r, approvalType: role } : r));
+
+    if (role !== 'Signature' && role !== 'Stamp' && this.allFields().some(f => f.recipientId === id)) {
+      this.allFields.update(fields =>
+        fields.map(f => f.recipientId === id ? { ...f, recipientId: undefined } : f));
+      this.snackBar.open(
+        this.translate.instant('designer.notifications.fieldsUnassignedForRole'),
+        this.translate.instant('designer.notifications.ok'),
+        { duration: 4000 }
+      );
+    }
+  }
+
+  setRecipientRoleLabel(id: string, label: string): void {
+    this.recipients.update(rs => rs.map(r => r.id === id ? { ...r, roleLabel: label.trim() || undefined } : r));
   }
 
   moveRecipient(index: number, direction: -1 | 1): void {

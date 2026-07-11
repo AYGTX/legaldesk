@@ -1244,6 +1244,10 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("ReminderSent")
                         .HasColumnType("bit");
 
+                    b.Property<string>("RoleLabel")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("SecureToken")
                         .IsRequired()
                         .HasMaxLength(100)

@@ -31,6 +31,8 @@ export interface RecipientSession {
   email: string;
   approvalType: ApprovalType;
   status: WorkflowStepStatus;
+  /** Free-text participant label (e.g. "Legal team") — display only, capabilities come from approvalType. */
+  roleLabel?: string;
 }
 
 export interface AssignedField {

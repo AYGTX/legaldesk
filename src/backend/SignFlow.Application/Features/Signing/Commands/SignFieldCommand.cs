@@ -50,6 +50,9 @@ public class SignFieldCommandHandler(
         if (recipient.Status == WorkflowStepStatus.Rejected)
             throw new ConflictException("You have rejected this document.");
 
+        if (recipient.ApprovalType == ApprovalType.ViewOnly)
+            throw new ConflictException("View-only participants cannot sign fields.");
+
         if (recipient.Document.IsExpired())
         {
             if (recipient.Document.Status == DocumentStatus.InProgress)
@@ -79,16 +82,19 @@ public class SignFieldCommandHandler(
                 throw new ConflictException("It's not your turn yet — a previous signer must complete their part first.");
         }
 
-        // Accept fields assigned directly to this recipient, plus orphaned fields whose
-        // RecipientId doesn't correspond to any current recipient in the document (legacy
-        // documents saved before the client-ID preservation fix).
+        // Accept fields assigned directly to this recipient, plus — for content signers only —
+        // orphaned fields whose RecipientId doesn't correspond to any current recipient in the
+        // document (legacy documents saved before the client-ID preservation fix). Reviewers and
+        // approvers never claim orphans: their role is a gate, not field completion.
+        var canClaimOrphans = recipient.ApprovalType is ApprovalType.Signature or ApprovalType.Stamp;
         var field = await db.SignatureFields
             .FirstOrDefaultAsync(f =>
                 f.Id == command.FieldId &&
                 f.DocumentId == recipient.DocumentId &&
                 (f.RecipientId == recipient.Id ||
-                 f.RecipientId == null ||
-                 !db.Recipients.Any(r => r.DocumentId == recipient.DocumentId && r.Id == f.RecipientId)),
+                 (canClaimOrphans &&
+                  (f.RecipientId == null ||
+                   !db.Recipients.Any(r => r.DocumentId == recipient.DocumentId && r.Id == f.RecipientId)))),
                 cancellationToken)
             ?? throw new NotFoundException(nameof(SignatureField), command.FieldId);
 
@@ -142,11 +148,13 @@ public class SignFieldCommandHandler(
 
     private async Task<bool> CheckAllFieldsSigned(Recipient recipient, CancellationToken cancellationToken)
     {
+        var canClaimOrphans = recipient.ApprovalType is ApprovalType.Signature or ApprovalType.Stamp;
         var requiredFields = await db.SignatureFields
             .Where(f => f.DocumentId == recipient.DocumentId && f.IsRequired &&
                         (f.RecipientId == recipient.Id ||
-                         f.RecipientId == null ||
-                         !db.Recipients.Any(r => r.DocumentId == recipient.DocumentId && r.Id == f.RecipientId)))
+                         (canClaimOrphans &&
+                          (f.RecipientId == null ||
+                           !db.Recipients.Any(r => r.DocumentId == recipient.DocumentId && r.Id == f.RecipientId)))))
             .ToListAsync(cancellationToken);
 
         return requiredFields.All(f => f.IsSigned);

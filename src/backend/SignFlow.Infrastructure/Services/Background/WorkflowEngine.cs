@@ -34,7 +34,13 @@ public class WorkflowEngine(
                 .Include(d => d.Recipients.OrderBy(r => r.Order))
                 .FirstOrDefaultAsync(d => d.Id == documentId, cancellationToken)!;
 
-            var recipients = document.Recipients.OrderBy(r => r.Order).ToList();
+            // ViewOnly participants are not part of the gating workflow: no steps are created
+            // for them. They get notified once at start and keep view/comment access via their
+            // token for the document's whole lifetime.
+            var recipients = document.Recipients
+                .Where(r => r.ApprovalType != ApprovalType.ViewOnly)
+                .OrderBy(r => r.Order)
+                .ToList();
 
             if (workflowType == WorkflowType.Parallel)
             {
@@ -63,6 +69,24 @@ public class WorkflowEngine(
                     }
                     stageOrder++;
                 }
+            }
+
+            foreach (var viewer in document.Recipients.Where(r => r.ApprovalType == ApprovalType.ViewOnly))
+            {
+                await emailService.SendTemplateAsync(
+                    viewer.Email,
+                    "DocumentReceived",
+                    new { viewer.Name, DocumentTitle = document.Title, SigningLink = $"/sign/{viewer.SecureToken}" },
+                    "A document was shared with you",
+                    cancellationToken);
+
+                await notifications.NotifyByEmailAsync(
+                    viewer.Email,
+                    NotificationType.DocumentReceived,
+                    "A document was shared with you",
+                    $"You have view access to \"{document.Title}\".",
+                    documentId,
+                    cancellationToken);
             }
 
             workflow.Start();
@@ -101,15 +125,23 @@ public class WorkflowEngine(
         currentStep?.Complete();
         await db.SaveChangesAsync(cancellationToken);
 
-        // Notify the owner of signing progress
+        // Notify the owner of signing progress (role-aware wording)
         var document = await db.Documents.FindAsync([documentId], cancellationToken);
         if (document is not null)
         {
+            var verb = recipient.ApprovalType switch
+            {
+                ApprovalType.Review => "reviewed and approved",
+                ApprovalType.Approval => "approved",
+                _ => "signed"
+            };
             await notifications.NotifyUserAsync(
                 document.OwnerId,
                 NotificationType.Completed,
-                "A recipient signed",
-                $"{recipient.Name} signed \"{document.Title}\".",
+                recipient.ApprovalType is ApprovalType.Review or ApprovalType.Approval
+                    ? "A participant approved"
+                    : "A recipient signed",
+                $"{recipient.Name} {verb} \"{document.Title}\".",
                 documentId,
                 cancellationToken);
         }
@@ -233,18 +265,28 @@ public class WorkflowEngine(
             {
                 recipient.MarkViewed();
 
+                var (emailSubject, turnTitle, turnBody) = recipient.ApprovalType switch
+                {
+                    ApprovalType.Review => ("Please review your document", "It's your turn to review",
+                        $"\"{docTitle}\" is waiting for your review."),
+                    ApprovalType.Approval => ("Your approval is requested", "It's your turn to approve",
+                        $"\"{docTitle}\" is waiting for your approval."),
+                    _ => ("Please sign your document", "It's your turn to sign",
+                        $"\"{docTitle}\" is waiting for your signature.")
+                };
+
                 await emailService.SendTemplateAsync(
                     recipient.Email,
                     "DocumentReceived",
                     new { recipient.Name, DocumentTitle = docTitle, SigningLink = $"/sign/{recipient.SecureToken}" },
-                    "Please sign your document",
+                    emailSubject,
                     cancellationToken);
 
                 await notifications.NotifyByEmailAsync(
                     recipient.Email,
                     NotificationType.DocumentReceived,
-                    "It's your turn to sign",
-                    $"\"{docTitle}\" is waiting for your signature.",
+                    turnTitle,
+                    turnBody,
                     documentId,
                     cancellationToken);
             }

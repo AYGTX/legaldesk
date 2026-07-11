@@ -77,6 +77,8 @@ export interface RecipientInfo {
   secureToken: string;
   signedAt?: string;
   viewedAt?: string;
+  /** Free-text participant label (e.g. "Legal team") — display only, capabilities come from approvalType. */
+  roleLabel?: string;
 }
 
 export interface SignatureFieldInfo {
@@ -185,5 +187,7 @@ export interface RecipientInputDto {
   approvalType: ApprovalType;
   privateMessage?: string;
   company?: string;
+  /** Free-text participant label (e.g. "Legal team") — display only, capabilities come from approvalType. */
+  roleLabel?: string;
 }
 

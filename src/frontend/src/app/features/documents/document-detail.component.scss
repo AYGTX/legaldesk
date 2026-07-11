@@ -102,3 +102,10 @@
     .summary-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 0; color: #9ca3af; text-align: center; }
     .summary-empty mat-icon { font-size: 28px; width: 28px; height: 28px; }
     .summary-empty p { margin: 0; font-size: 13px; }
+
+.role-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; background: #eef1f5; color: #5f6368; border-radius: 8px; padding: 1px 8px; margin-top: 3px; width: fit-content; }
+.role-chip mat-icon { font-size: 13px; width: 13px; height: 13px; }
+.role-chip.role-review { background: #e8f0fe; color: #1a73e8; }
+.role-chip.role-approval { background: #e6f4ea; color: #1e6b2e; }
+.role-chip.role-viewonly { background: #f3e8fd; color: #7627bb; }
+.recipient-status.rs-viewer { color: #7627bb; }
