@@ -32,5 +32,6 @@ public class Comment : BaseEntity
         };
 
     public void Resolve() => IsResolved = true;
+    public void Unresolve() => IsResolved = false;
     public void SetPosition(int page, float x, float y) { Page = page; X = x; Y = y; }
 }

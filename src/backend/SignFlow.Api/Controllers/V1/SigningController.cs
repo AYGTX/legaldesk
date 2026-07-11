@@ -1,6 +1,9 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Features.Comments;
+using SignFlow.Application.Features.Comments.Commands;
+using SignFlow.Application.Features.Comments.Queries;
 using SignFlow.Application.Features.Documents.Queries;
 using SignFlow.Application.Features.Signing.Commands;
 using SignFlow.Application.Features.Signing.Queries;
@@ -91,6 +94,35 @@ public class SigningController(
         return Ok(result);
     }
 
+    /// <summary>List the document's comments for this signing session (token-authenticated)</summary>
+    [HttpGet("{token}/comments")]
+    [ProducesResponseType(typeof(List<CommentDto>), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<ActionResult<List<CommentDto>>> GetComments(
+        [FromRoute] string token,
+        [FromServices] IQueryHandler<GetSigningCommentsQuery, List<CommentDto>> commentsHandler,
+        CancellationToken ct)
+    {
+        var result = await commentsHandler.HandleAsync(new GetSigningCommentsQuery(token), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Add a comment or a reply as the signing-session participant (token-authenticated)</summary>
+    [HttpPost("{token}/comments")]
+    [ProducesResponseType(typeof(CommentDto), 201)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<ActionResult<CommentDto>> AddComment(
+        [FromRoute] string token,
+        [FromBody] AddSigningCommentRequest request,
+        [FromServices] ICommandHandler<AddSigningCommentCommand, CommentDto> addCommentHandler,
+        CancellationToken ct)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var result = await addCommentHandler.HandleAsync(
+            new AddSigningCommentCommand(token, request.Content, request.ParentCommentId, request.Page, request.X, request.Y, ip), ct);
+        return StatusCode(201, result);
+    }
+
     /// <summary>Reject a document</summary>
     [HttpPost("{token}/reject")]
     [ProducesResponseType(204)]
@@ -103,3 +135,6 @@ public class SigningController(
 
 public record SignFieldRequest(SignFlow.Domain.Enums.SignatureType SignatureType, string? ImageBase64, string? TypedText, string? FontFamily, string? Location);
 public record RejectRequest(string Reason);
+
+/// <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
+public record AddSigningCommentRequest(string Content, Guid? ParentCommentId, int? Page, float? X, float? Y);

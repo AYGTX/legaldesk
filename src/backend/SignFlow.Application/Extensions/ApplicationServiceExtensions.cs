@@ -17,6 +17,9 @@ using SignFlow.Application.Features.Profile.Commands;
 using SignFlow.Application.Features.Profile.Queries;
 using SignFlow.Application.Features.Notifications.Commands;
 using SignFlow.Application.Features.Notifications.Queries;
+using SignFlow.Application.Features.Comments;
+using SignFlow.Application.Features.Comments.Commands;
+using SignFlow.Application.Features.Comments.Queries;
 using SignFlow.Application.Features.Requests.Queries;
 using SignFlow.Application.Features.RequestTypes.Commands;
 using SignFlow.Application.Features.RequestTypes.Queries;
@@ -89,6 +92,14 @@ public static class ApplicationServiceExtensions
         // Notifications
         services.AddScoped<IQueryHandler<GetMyNotificationsQuery, NotificationsResultDto>, GetMyNotificationsQueryHandler>();
         services.AddScoped<ICommandHandler<MarkNotificationsReadCommand>, MarkNotificationsReadCommandHandler>();
+
+        // Comments (collaboration layer)
+        services.AddScoped<ICommandHandler<AddCommentCommand, CommentDto>, AddCommentCommandHandler>();
+        services.AddScoped<ICommandHandler<AddSigningCommentCommand, CommentDto>, AddSigningCommentCommandHandler>();
+        services.AddScoped<ICommandHandler<ResolveCommentCommand>, ResolveCommentCommandHandler>();
+        services.AddScoped<ICommandHandler<DeleteCommentCommand>, DeleteCommentCommandHandler>();
+        services.AddScoped<IQueryHandler<GetDocumentCommentsQuery, List<CommentDto>>, GetDocumentCommentsQueryHandler>();
+        services.AddScoped<IQueryHandler<GetSigningCommentsQuery, List<CommentDto>>, GetSigningCommentsQueryHandler>();
 
         // My Requests (personal workflow tracking)
         services.AddScoped<IQueryHandler<GetMyRequestsQuery, MyRequestsDto>, GetMyRequestsQueryHandler>();

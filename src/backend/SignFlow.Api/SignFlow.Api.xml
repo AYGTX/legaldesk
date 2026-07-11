@@ -61,6 +61,36 @@
         <member name="M:SignFlow.Api.Controllers.V1.AuthController.ResetPassword(SignFlow.Application.Features.Auth.Commands.ResetPasswordCommand,System.Threading.CancellationToken)">
             <summary>Reset password using token</summary>
         </member>
+        <member name="T:SignFlow.Api.Controllers.V1.CommentsController">
+            <summary>Document comments and threaded discussions (collaboration layer)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CommentsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Comments.Queries.GetDocumentCommentsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Comments.CommentDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Comments.Commands.AddCommentCommand,SignFlow.Application.Features.Comments.CommentDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Comments.Commands.ResolveCommentCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Comments.Commands.DeleteCommentCommand})">
+            <summary>Document comments and threaded discussions (collaboration layer)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CommentsController.GetComments(System.Guid,System.Threading.CancellationToken)">
+            <summary>List all comments on a document (owner, admin, or recipient)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CommentsController.AddComment(System.Guid,SignFlow.Api.Controllers.V1.AddCommentRequest,System.Threading.CancellationToken)">
+            <summary>Add a comment or a reply to a document</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CommentsController.Resolve(System.Guid,SignFlow.Api.Controllers.V1.ResolveCommentRequest,System.Threading.CancellationToken)">
+            <summary>Resolve or reopen a comment thread (owner, admin, or comment author)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CommentsController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Delete a comment and, for top-level threads, its replies (owner, admin, or author)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.AddCommentRequest">
+            <summary>Request body for adding a comment; position fields are optional page-anchoring.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AddCommentRequest.#ctor(System.String,System.Nullable{System.Guid},System.Nullable{System.Int32},System.Nullable{System.Single},System.Nullable{System.Single})">
+            <summary>Request body for adding a comment; position fields are optional page-anchoring.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.ResolveCommentRequest">
+            <summary>Request body for resolving or reopening a comment thread.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ResolveCommentRequest.#ctor(System.Boolean)">
+            <summary>Request body for resolving or reopening a comment thread.</summary>
+        </member>
         <member name="T:SignFlow.Api.Controllers.V1.DocumentsController">
             <summary>Document management endpoints</summary>
         </member>
@@ -286,8 +316,20 @@
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetSummary(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
             <summary>Get an AI-generated summary of the document (token-authenticated, no login required)</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetComments(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Comments.Queries.GetSigningCommentsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Comments.CommentDto}},System.Threading.CancellationToken)">
+            <summary>List the document's comments for this signing session (token-authenticated)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.AddComment(System.String,SignFlow.Api.Controllers.V1.AddSigningCommentRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Comments.Commands.AddSigningCommentCommand,SignFlow.Application.Features.Comments.CommentDto},System.Threading.CancellationToken)">
+            <summary>Add a comment or a reply as the signing-session participant (token-authenticated)</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.Reject(System.String,SignFlow.Api.Controllers.V1.RejectRequest,System.Threading.CancellationToken)">
             <summary>Reject a document</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.AddSigningCommentRequest">
+            <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AddSigningCommentRequest.#ctor(System.String,System.Nullable{System.Guid},System.Nullable{System.Int32},System.Nullable{System.Single},System.Nullable{System.Single})">
+            <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.TemplatesController">
             <summary>Document template endpoints</summary>
