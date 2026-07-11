@@ -11,6 +11,7 @@ public class WorkflowConfiguration : IEntityTypeConfiguration<Workflow>
         builder.HasKey(w => w.Id);
 
         builder.Property(w => w.CompletionMessage).HasMaxLength(2000);
+        builder.Property(w => w.RowVersion).IsRowVersion();
 
         builder.HasMany(w => w.Steps)
             .WithOne(s => s.Workflow)

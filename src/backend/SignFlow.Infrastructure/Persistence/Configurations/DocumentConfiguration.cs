@@ -24,6 +24,7 @@ public class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.Property(d => d.WatermarkText).HasMaxLength(200);
         builder.Property(d => d.CreatedBy).HasMaxLength(50);
         builder.Property(d => d.UpdatedBy).HasMaxLength(50);
+        builder.Property(d => d.RowVersion).IsRowVersion();
 
         builder.HasOne(d => d.Owner)
             .WithMany(u => u.Documents)

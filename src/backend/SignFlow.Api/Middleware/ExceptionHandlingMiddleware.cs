@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 
 namespace SignFlow.Api.Middleware;
@@ -54,6 +55,12 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Title = "Conflict",
                 Status = 409,
                 Detail = ce.Message
+            }),
+            DbUpdateConcurrencyException => (HttpStatusCode.Conflict, new ProblemDetails
+            {
+                Title = "Concurrency Conflict",
+                Status = 409,
+                Detail = "The item was changed by someone else while you were working. Please refresh and try again."
             }),
             InvalidOperationException ioe => (HttpStatusCode.BadRequest, new ProblemDetails
             {

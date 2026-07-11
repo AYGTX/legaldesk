@@ -15,4 +15,5 @@ internal sealed class NullPdfService : IPdfService
     public Task<Stream> AddWatermarkAsync(Stream pdfStream, string text, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream());
     public Task<byte[]> GenerateThumbnailAsync(Stream pdfStream, int page = 1, int width = 300, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<byte>());
     public Task<Stream> EmbedSignaturesAsync(Stream pdfStream, IEnumerable<(SignatureField field, Signature signature)> signedFields, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream());
+    public Task<string> ExtractTextAsync(Stream pdfStream, CancellationToken cancellationToken = default) => Task.FromResult(string.Empty);
 }

@@ -63,6 +63,9 @@ public class Document : BaseEntity
     /// </summary>
     public string? HtmlContentSnapshot { get; private set; }
 
+    /// <summary>SQL Server rowversion concurrency token — concurrent updates fail fast instead of last-write-wins.</summary>
+    public byte[] RowVersion { get; private set; } = [];
+
     public Workflow? Workflow { get; private set; }
     public ICollection<DocumentVersion> Versions { get; private set; } = [];
     public ICollection<Recipient> Recipients { get; private set; } = [];

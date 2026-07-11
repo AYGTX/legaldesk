@@ -686,6 +686,12 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid?>("RequestTypeId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("datetime2");
 
@@ -1707,6 +1713,12 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<bool>("RequireAllToSign")
                         .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("datetime2");

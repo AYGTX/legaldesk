@@ -15,6 +15,9 @@ public class Workflow : BaseEntity
     public bool RequireAllToSign { get; private set; } = true;
     public string? CompletionMessage { get; private set; }
 
+    /// <summary>SQL Server rowversion concurrency token — two simultaneous stage advances conflict instead of double-advancing.</summary>
+    public byte[] RowVersion { get; private set; } = [];
+
     public ICollection<WorkflowStep> Steps { get; private set; } = [];
 
     private Workflow() { }
