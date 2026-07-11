@@ -1,0 +1,93 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Features.Documents.Commands;
+using SignFlow.Application.Features.Recipients.Commands;
+using SignFlow.Application.Features.SignatureFields.Commands;
+using SignFlow.Application.Features.Signing.Commands;
+using SignFlow.Infrastructure.Persistence;
+using SignFlow.Infrastructure.Services.Background;
+using SignFlow.Infrastructure.Services.Notifications;
+using SignFlow.IntegrationTests.Stubs;
+
+namespace SignFlow.IntegrationTests.Infrastructure;
+
+/// <summary>
+/// Builds an in-memory service scope with all real command handlers and null stubs for
+/// email / SignalR / storage / PDF / virus scan.  One fixture instance = one isolated DB.
+/// </summary>
+public sealed class ScenarioFixture : IDisposable
+{
+    private readonly ServiceProvider _provider;
+
+    public IApplicationDbContext Db => _provider.GetRequiredService<IApplicationDbContext>();
+
+    public ScenarioFixture(Guid ownerId, string ownerEmail = "owner@test.com")
+    {
+        var services = new ServiceCollection();
+
+        // EF Core InMemory – each fixture gets its own DB so tests don't interfere
+        var dbName = Guid.NewGuid().ToString();
+        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(dbName));
+        services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+        // Real infrastructure services
+        services.AddScoped<IWorkflowEngine>(sp => new WorkflowEngine(
+            sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<IEmailService>(),
+            sp.GetRequiredService<INotificationHub>(),
+            sp.GetRequiredService<INotificationService>(),
+            NullLogger<WorkflowEngine>.Instance));
+
+        services.AddScoped<INotificationService>(sp => new NotificationService(
+            sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<INotificationHub>()));
+
+        // Stubs
+        services.AddSingleton<IEmailService, NullEmailService>();
+        services.AddSingleton<INotificationHub, NullNotificationHub>();
+        services.AddSingleton<IStorageService, NullStorageService>();
+        services.AddSingleton<IPdfService, NullPdfService>();
+        services.AddSingleton<IVirusScanService, NullVirusScanService>();
+        services.AddSingleton<IAuditService, NullAuditService>();
+        services.AddSingleton<ICurrentUserService>(new FakeCurrentUserService(ownerId, ownerEmail));
+
+        // Command handlers
+        services.AddScoped(sp => new UploadDocumentCommandHandler(
+            sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<IStorageService>(),
+            sp.GetRequiredService<IPdfService>(),
+            sp.GetRequiredService<IVirusScanService>(),
+            sp.GetRequiredService<ICurrentUserService>(),
+            sp.GetRequiredService<IAuditService>(),
+            NullLogger<UploadDocumentCommandHandler>.Instance));
+
+        services.AddScoped(sp => new ManageRecipientsCommandHandler(
+            sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<ICurrentUserService>()));
+
+        services.AddScoped(sp => new SaveFieldsCommandHandler(
+            sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<ICurrentUserService>()));
+
+        services.AddScoped(sp => new SendDocumentCommandHandler(
+            sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<IWorkflowEngine>(),
+            sp.GetRequiredService<ICurrentUserService>(),
+            sp.GetRequiredService<IAuditService>(),
+            NullLogger<SendDocumentCommandHandler>.Instance));
+
+        services.AddScoped(sp => new SignFieldCommandHandler(
+            sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<IStorageService>(),
+            sp.GetRequiredService<IAuditService>(),
+            NullLogger<SignFieldCommandHandler>.Instance));
+
+        _provider = services.BuildServiceProvider();
+    }
+
+    public T GetHandler<T>() where T : notnull => _provider.GetRequiredService<T>();
+
+    public void Dispose() => _provider.Dispose();
+}

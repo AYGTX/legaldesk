@@ -1,0 +1,369 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SignFlow.Api</name>
+    </assembly>
+    <members>
+        <member name="T:SignFlow.Api.Controllers.V1.AdminController">
+            <summary>Administration endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.UpdateUserCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.CreateUserCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.DeleteUserCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.ResetUserPasswordCommand},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Administration.Queries.GetUsersQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.Administration.Queries.UserDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Administration.Queries.GetRolesQuery,System.Collections.Generic.List{System.String}})">
+            <summary>Administration endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.GetUsers(System.Int32,System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>List all users</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.GetRoles(System.Threading.CancellationToken)">
+            <summary>List all available roles</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.CreateUser(SignFlow.Api.Controllers.V1.CreateUserRequest,System.Threading.CancellationToken)">
+            <summary>Create a new user</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.UpdateUser(System.Guid,SignFlow.Api.Controllers.V1.UpdateUserRequest,System.Threading.CancellationToken)">
+            <summary>Update user details and roles</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.ResetPassword(System.Guid,SignFlow.Api.Controllers.V1.AdminResetPasswordRequest,System.Threading.CancellationToken)">
+            <summary>Reset a user's password</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.DeleteUser(System.Guid,System.Threading.CancellationToken)">
+            <summary>Delete a user</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.AuditController">
+            <summary>Audit trail endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuditController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.AuditTrail.Queries.GetAuditTrailQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.AuditTrail.Queries.AuditLogDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.AuditTrail.Queries.ExportAuditTrailQuery,System.Byte[]})">
+            <summary>Audit trail endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuditController.GetAudit(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>Get audit trail for a document</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuditController.Export(System.Guid,System.Threading.CancellationToken)">
+            <summary>Export the full audit trail for a document as a CSV file</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.AuthController">
+            <summary>Authentication endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.LoginCommand,SignFlow.Application.Features.Auth.Commands.LoginResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.RegisterCommand,SignFlow.Application.Features.Auth.Commands.LoginResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.RefreshTokenCommand,SignFlow.Application.Features.Auth.Commands.LoginResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.ForgotPasswordCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.ResetPasswordCommand})">
+            <summary>Authentication endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Login(SignFlow.Application.Features.Auth.Commands.LoginCommand,System.Threading.CancellationToken)">
+            <summary>Login with email and password</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Register(SignFlow.Application.Features.Auth.Commands.RegisterCommand,System.Threading.CancellationToken)">
+            <summary>Register a new account</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Refresh(SignFlow.Application.Features.Auth.Commands.RefreshTokenCommand,System.Threading.CancellationToken)">
+            <summary>Refresh access token using refresh token</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.ForgotPassword(SignFlow.Application.Features.Auth.Commands.ForgotPasswordCommand,System.Threading.CancellationToken)">
+            <summary>Request a password reset email</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.ResetPassword(SignFlow.Application.Features.Auth.Commands.ResetPasswordCommand,System.Threading.CancellationToken)">
+            <summary>Reset password using token</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.DocumentsController">
+            <summary>Document management endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.UploadDocumentCommand,SignFlow.Application.Features.Documents.Commands.DocumentUploadResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.SendDocumentCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.DeleteDocumentCommand},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentsQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.Documents.Queries.DocumentSummaryDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentByIdQuery,SignFlow.Application.Features.Documents.Queries.DocumentDetailDto},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDashboardQuery,SignFlow.Application.Features.Documents.Queries.DashboardDto},SignFlow.Application.Common.Interfaces.IStorageService)">
+            <summary>Document management endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDashboard(System.Threading.CancellationToken)">
+            <summary>Get dashboard statistics</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSlaMetrics(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RequestTypes.Queries.GetSlaMetricsQuery,SignFlow.Application.Features.RequestTypes.Queries.SlaMetricsDto},System.Threading.CancellationToken)">
+            <summary>Get SLA metrics for the current user's requests</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Reopen(System.Guid,SignFlow.Api.Controllers.V1.ReopenDocumentRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.ReopenDocumentCommand},System.Threading.CancellationToken)">
+            <summary>Reopen an expired request (administrators only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDocuments(System.Int32,System.Int32,System.String,System.Nullable{SignFlow.Domain.Enums.DocumentStatus},System.String,System.Boolean,System.Nullable{System.Guid},System.Threading.CancellationToken)">
+            <summary>List documents with pagination, filtering and sorting</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDocument(System.Guid,System.Threading.CancellationToken)">
+            <summary>Get document details by ID</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Upload(SignFlow.Api.Controllers.V1.UploadDocumentRequest,System.Threading.CancellationToken)">
+            <summary>Upload a new PDF document</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Send(System.Guid,System.Threading.CancellationToken)">
+            <summary>Send document for signing</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Delete a document</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Download(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentByIdQuery,SignFlow.Application.Features.Documents.Queries.DocumentDetailDto},System.Threading.CancellationToken)">
+            <summary>Download the signed PDF (as attachment)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSummary(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
+            <summary>Get an AI-generated plain-English summary of a document</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Stream(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentByIdQuery,SignFlow.Application.Features.Documents.Queries.DocumentDetailDto},System.Threading.CancellationToken)">
+            <summary>Stream the original PDF inline (for in-browser rendering)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.FieldsController">
+            <summary>Signature field designer endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.FieldsController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.SignatureFields.Commands.SaveFieldsCommand})">
+            <summary>Signature field designer endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.FieldsController.SaveFields(System.Guid,System.Collections.Generic.List{SignFlow.Application.Features.SignatureFields.Commands.FieldDto},System.Threading.CancellationToken)">
+            <summary>Save all signature fields for a document (replaces existing fields)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.GdprController">
+            <summary>GDPR data-subject rights and consent management</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.GdprController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Gdpr.Commands.RecordConsentCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Gdpr.Commands.SubmitDsarCommand,System.Guid},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Gdpr.Queries.ExportUserDataQuery,SignFlow.Application.Features.Gdpr.Queries.UserDataExportDto})">
+            <summary>GDPR data-subject rights and consent management</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.GdprController.RecordConsent(SignFlow.Api.Controllers.V1.RecordConsentRequest,System.Threading.CancellationToken)">
+            <summary>Record user consent for a specific tier (functional / analytics)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.GdprController.SubmitDsar(SignFlow.Api.Controllers.V1.SubmitDsarRequest,System.Threading.CancellationToken)">
+            <summary>Submit a Data Subject Access Request (Art. 15-21 GDPR)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.GdprController.ExportMyData(System.Threading.CancellationToken)">
+            <summary>Export all personal data for the current authenticated user (Art. 15 / Art. 20)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.HtmlTemplatesController">
+            <summary>HTML template management and request submission</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.CreateHtmlTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.UpdateHtmlTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.DeleteHtmlTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.CreateRequestFromHtmlTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.GenerateHtmlTemplateCommand,SignFlow.Application.Features.HtmlTemplates.Commands.GenerateHtmlTemplateResult},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.HtmlTemplates.Queries.GetHtmlTemplatesQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.HtmlTemplates.Queries.HtmlTemplateDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.HtmlTemplates.Queries.GetHtmlTemplateByIdQuery,SignFlow.Application.Features.HtmlTemplates.Queries.HtmlTemplateDetailDto})">
+            <summary>HTML template management and request submission</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.GetAll(System.Int32,System.Int32,System.String,System.Nullable{System.Boolean},System.Threading.CancellationToken)">
+            <summary>List templates (admin/manager see all; others see active only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.GetById(System.Guid,System.Threading.CancellationToken)">
+            <summary>Get template detail including HTML content and fields</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Create(SignFlow.Api.Controllers.V1.CreateHtmlTemplateRequest,System.Threading.CancellationToken)">
+            <summary>Create a new HTML template (admin/manager only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdateHtmlTemplateRequest,System.Threading.CancellationToken)">
+            <summary>Update an existing template (admin/manager only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Soft-delete a template (admin/manager only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Generate(SignFlow.Api.Controllers.V1.GenerateHtmlTemplateRequest,System.Threading.CancellationToken)">
+            <summary>Generate HTML content from plain text using AI (admin/manager only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Submit(System.Guid,SignFlow.Api.Controllers.V1.SubmitFromTemplateRequest,System.Threading.CancellationToken)">
+            <summary>Submit a request from a template (any authenticated user)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.NotificationsController">
+            <summary>In-app notification center for the current user</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.NotificationsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Notifications.Queries.GetMyNotificationsQuery,SignFlow.Application.Features.Notifications.Queries.NotificationsResultDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Notifications.Commands.MarkNotificationsReadCommand})">
+            <summary>In-app notification center for the current user</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.NotificationsController.GetMine(System.Int32,System.Threading.CancellationToken)">
+            <summary>Get recent notifications and the unread count</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.NotificationsController.MarkRead(System.Guid,System.Threading.CancellationToken)">
+            <summary>Mark a single notification as read</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.NotificationsController.MarkAllRead(System.Threading.CancellationToken)">
+            <summary>Mark all notifications as read</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.PdfTemplatesController">
+            <summary>
+            PDF-template request flow: admins upload a base PDF once and map fields to page coordinates;
+            users create signing requests that reuse the stored PDF as their base document.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.CreatePdfTemplateCommand,SignFlow.Application.Features.PdfTemplates.Commands.CreatePdfTemplateResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.UpdatePdfTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.DeletePdfTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.CreateRequestFromPdfTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.PdfTemplates.Queries.GetPdfTemplatesQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.PdfTemplates.Queries.PdfTemplateDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.PdfTemplates.Queries.GetPdfTemplateByIdQuery,SignFlow.Application.Features.PdfTemplates.Queries.PdfTemplateDetailDto},SignFlow.Application.Common.Interfaces.IStorageService)">
+            <summary>
+            PDF-template request flow: admins upload a base PDF once and map fields to page coordinates;
+            users create signing requests that reuse the stored PDF as their base document.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.GetAll(System.Int32,System.Int32,System.String,System.Nullable{System.Boolean},System.Threading.CancellationToken)">
+            <summary>List templates (admins/managers see all; others see active only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.GetById(System.Guid,System.Threading.CancellationToken)">
+            <summary>Get template detail including field configuration</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Stream(System.Guid,System.Threading.CancellationToken)">
+            <summary>Stream the template's base PDF inline (for the field designer and request preview)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Create(SignFlow.Api.Controllers.V1.CreatePdfTemplateRequest,System.Threading.CancellationToken)">
+            <summary>Upload the base PDF for a new template (admin/manager only). Fields are configured afterwards.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdatePdfTemplateRequest,System.Threading.CancellationToken)">
+            <summary>Update metadata/workflow config and replace the field set (admin/manager only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Soft-delete a template (admin/manager only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Submit(System.Guid,SignFlow.Api.Controllers.V1.SubmitFromPdfTemplateRequest,System.Threading.CancellationToken)">
+            <summary>Create a signing request from a template (any authenticated user)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.ProfileController">
+            <summary>Self-service profile endpoints for the currently authenticated user</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Profile.Queries.GetMyProfileQuery,SignFlow.Application.Features.Profile.Queries.ProfileDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.UpdateProfileCommand,SignFlow.Application.Features.Profile.Queries.ProfileDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.ChangePasswordCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.UpdateAvatarCommand,System.String})">
+            <summary>Self-service profile endpoints for the currently authenticated user</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.GetMyProfile(System.Threading.CancellationToken)">
+            <summary>Get the current user's profile</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.UpdateMyProfile(SignFlow.Api.Controllers.V1.UpdateProfileRequest,System.Threading.CancellationToken)">
+            <summary>Update the current user's profile</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.ChangePassword(SignFlow.Api.Controllers.V1.ChangePasswordRequest,System.Threading.CancellationToken)">
+            <summary>Change the current user's password</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.UploadAvatar(SignFlow.Api.Controllers.V1.UploadAvatarRequest,System.Threading.CancellationToken)">
+            <summary>Upload a new avatar image</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.RecipientsController">
+            <summary>Recipient management endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RecipientsController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Recipients.Commands.ManageRecipientsCommand})">
+            <summary>Recipient management endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RecipientsController.ManageRecipients(System.Guid,SignFlow.Api.Controllers.V1.SaveRecipientsRequest,System.Threading.CancellationToken)">
+            <summary>Save all recipients and workflow type for a document (replaces existing recipients)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.RequestsController">
+            <summary>Personal request tracking — workflows the user sent and requests sent to them</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Requests.Queries.GetMyRequestsQuery,SignFlow.Application.Features.Requests.Queries.MyRequestsDto})">
+            <summary>Personal request tracking — workflows the user sent and requests sent to them</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestsController.GetMyRequests(System.Threading.CancellationToken)">
+            <summary>Get the current user's sent workflows and received signing requests</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.RequestTypesController">
+            <summary>
+            Request type configuration — the central source of truth for request categories and their SLAs.
+            Management is restricted to administrators; active types are readable by any authenticated user.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestTypesController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RequestTypes.Queries.GetRequestTypesQuery,System.Collections.Generic.List{SignFlow.Application.Features.RequestTypes.Queries.RequestTypeDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RequestTypes.Queries.GetActiveRequestTypesQuery,System.Collections.Generic.List{SignFlow.Application.Features.RequestTypes.Queries.RequestTypeDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RequestTypes.Commands.CreateRequestTypeCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RequestTypes.Commands.UpdateRequestTypeCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RequestTypes.Commands.SetRequestTypeStatusCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RequestTypes.Commands.DeleteRequestTypeCommand})">
+            <summary>
+            Request type configuration — the central source of truth for request categories and their SLAs.
+            Management is restricted to administrators; active types are readable by any authenticated user.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestTypesController.GetAll(System.Threading.CancellationToken)">
+            <summary>List all request types (administrators only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestTypesController.GetActive(System.Threading.CancellationToken)">
+            <summary>List active request types (for users creating a request)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestTypesController.Create(SignFlow.Api.Controllers.V1.CreateRequestTypeRequest,System.Threading.CancellationToken)">
+            <summary>Create a request type</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestTypesController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdateRequestTypeRequest,System.Threading.CancellationToken)">
+            <summary>Update a request type (affects future requests only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestTypesController.SetStatus(System.Guid,SignFlow.Api.Controllers.V1.SetStatusRequest,System.Threading.CancellationToken)">
+            <summary>Activate or deactivate a request type</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestTypesController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Delete a request type (only if unused)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.SigningController">
+            <summary>External signing endpoints — no authentication required</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Signing.Queries.GetSigningSessionQuery,SignFlow.Application.Features.Signing.Queries.SigningSessionDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.SignFieldCommand,SignFlow.Application.Features.Signing.Commands.SignFieldResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.ApproveSigningCommand,SignFlow.Application.Features.Signing.Commands.ApproveSigningResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.RejectDocumentCommand},SignFlow.Application.Common.Interfaces.IStorageService)">
+            <summary>External signing endpoints — no authentication required</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetSession(System.String,System.Threading.CancellationToken)">
+            <summary>Get the signing session for a recipient</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetDocument(System.String,System.Threading.CancellationToken)">
+            <summary>Stream the document PDF inline for the signing session (token-authenticated)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.SignField(System.String,System.Guid,SignFlow.Api.Controllers.V1.SignFieldRequest,System.Threading.CancellationToken)">
+            <summary>Sign a single field</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.Approve(System.String,System.Threading.CancellationToken)">
+            <summary>Approve signing after reviewing all filled fields — stamps PDF and advances workflow</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetSummary(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
+            <summary>Get an AI-generated summary of the document (token-authenticated, no login required)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.Reject(System.String,SignFlow.Api.Controllers.V1.RejectRequest,System.Threading.CancellationToken)">
+            <summary>Reject a document</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.TemplatesController">
+            <summary>Document template endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TemplatesController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Templates.Commands.CreateTemplateCommand,System.Guid})">
+            <summary>Document template endpoints</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TemplatesController.Create(SignFlow.Api.Controllers.V1.CreateTemplateRequest,System.Threading.CancellationToken)">
+            <summary>Upload a new document template</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.VacationsController">
+            <summary>Vacation scheduling — users on vacation cannot be added as recipients</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VacationsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Vacations.Queries.GetMyVacationsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Vacations.Queries.VacationDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Vacations.Queries.CheckRecipientAvailabilityQuery,SignFlow.Application.Features.Vacations.Queries.RecipientAvailabilityDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Vacations.Commands.ScheduleVacationCommand,SignFlow.Application.Features.Vacations.Queries.VacationDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Vacations.Commands.CancelVacationCommand})">
+            <summary>Vacation scheduling — users on vacation cannot be added as recipients</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VacationsController.GetMyVacations(System.Threading.CancellationToken)">
+            <summary>List the current user's scheduled vacations</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VacationsController.CheckAvailability(System.String,System.Threading.CancellationToken)">
+            <summary>Check whether an email belongs to a user currently on vacation</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VacationsController.Schedule(SignFlow.Api.Controllers.V1.ScheduleVacationRequest,System.Threading.CancellationToken)">
+            <summary>Schedule a new vacation period</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VacationsController.Cancel(System.Guid,System.Threading.CancellationToken)">
+            <summary>Cancel a scheduled vacation</summary>
+        </member>
+        <member name="T:Program">
+            <summary>
+            Auto-generated public partial Program class for top-level statement apps.
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Type)">
+            <summary>
+            Generates a documentation comment ID for a type.
+            Example: T:Namespace.Outer+Inner`1 becomes T:Namespace.Outer.Inner`1
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Reflection.PropertyInfo)">
+            <summary>
+            Generates a documentation comment ID for a property.
+            Example: P:Namespace.ContainingType.PropertyName or for an indexer P:Namespace.ContainingType.Item(System.Int32)
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Type,System.String)">
+            <summary>
+            Generates a documentation comment ID for a property given its container type and property name.
+            Example: P:Namespace.ContainingType.PropertyName
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Reflection.MethodInfo)">
+            <summary>
+            Generates a documentation comment ID for a method (or constructor).
+            For example:
+              M:Namespace.ContainingType.MethodName(ParamType1,ParamType2)~ReturnType
+              M:Namespace.ContainingType.#ctor(ParamType)
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.GetTypeDocId(System.Type,System.Boolean,System.Boolean)">
+            <summary>
+            Generates a documentation ID string for a type.
+            This method handles nested types (replacing '+' with '.'),
+            generic types, arrays, pointers, by-ref types, and generic parameters.
+            The <paramref name="includeGenericArguments"/> flag controls whether
+            constructed generic type arguments are emitted, while <paramref name="omitGenericArity"/>
+            controls whether the generic arity marker (e.g. "`1") is appended.
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.NormalizeDocId(System.String)">
+            <summary>
+            Normalizes a documentation comment ID to match the compiler-style format.
+            Strips the return type suffix for ordinary methods but retains it for conversion operators.
+            </summary>
+            <param name="docId">The documentation comment ID to normalize.</param>
+            <returns>The normalized documentation comment ID.</returns>
+        </member>
+    </members>
+</doc>

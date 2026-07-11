@@ -1,0 +1,107 @@
+version: '3.9'
+
+services:
+  # SQL Server
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: signflow-db
+    environment:
+      SA_PASSWORD: "SignFlow@Dev2026!"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'SignFlow@Dev2026!' -Q 'SELECT 1' -No -C || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: signflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # MailHog (SMTP for dev)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: signflow-mail
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # .NET API
+  api:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: signflow-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:5000"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SignFlowDb;User Id=sa;Password=SignFlow@Dev2026!;TrustServerCertificate=True;"
+      ConnectionStrings__Redis: "redis:6379"
+      JwtSettings__SecretKey: "signflow-super-secret-jwt-key-minimum-32-chars-2026"
+      JwtSettings__Issuer: "SignFlowApi"
+      JwtSettings__Audience: "SignFlowClient"
+      JwtSettings__ExpirationMinutes: "60"
+      JwtSettings__RefreshTokenExpirationDays: "30"
+      Storage__Provider: "Local"
+      Storage__LocalPath: "/app/uploads"
+      Email__Host: "mailhog"
+      Email__Port: "1025"
+      Email__UseSsl: "false"
+      Email__Username: ""
+      Email__Password: ""
+      Email__FromEmail: "noreply@signflow.app"
+      Email__FromName: "SignFlow"
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads-data:/app/uploads
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Angular Frontend
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: signflow-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  sqlserver-data:
+  redis-data:
+  uploads-data:

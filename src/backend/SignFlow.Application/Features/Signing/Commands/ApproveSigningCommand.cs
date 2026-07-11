@@ -1,0 +1,166 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using SignFlow.Application.Common.Exceptions;
+using SignFlow.Application.Common.Interfaces;
+using SignFlow.Domain.Enums;
+
+namespace SignFlow.Application.Features.Signing.Commands;
+
+public record ApproveSigningCommand(
+    string SecureToken,
+    string IpAddress,
+    string UserAgent) : ICommand<ApproveSigningResult>;
+
+public record ApproveSigningResult(bool DocumentCompleted);
+
+public class ApproveSigningCommandHandler(
+    IApplicationDbContext db,
+    IWorkflowEngine workflowEngine,
+    IStorageService storage,
+    IPdfStampService pdfStamp,
+    IHtmlTemplatePdfGenerator htmlPdfGenerator,
+    IAuditService auditService,
+    INotificationHub hub,
+    ILogger<ApproveSigningCommandHandler> logger) : ICommandHandler<ApproveSigningCommand, ApproveSigningResult>
+{
+    public async Task<ApproveSigningResult> HandleAsync(ApproveSigningCommand command, CancellationToken cancellationToken = default)
+    {
+        var recipient = await db.Recipients
+            .Include(r => r.Document)
+            .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
+            ?? throw new NotFoundException("Signing session not found or has expired.");
+
+        if (recipient.Status == WorkflowStepStatus.Completed)
+            throw new ConflictException("You have already approved this document.");
+
+        if (recipient.Status == WorkflowStepStatus.Rejected)
+            throw new ConflictException("You have rejected this document.");
+
+        if (recipient.Document.IsExpired())
+            throw new ConflictException("This request has expired.");
+
+        // Load all fields for this recipient (same orphaned-field logic as the rest of the signing flow)
+        var allFields = await db.SignatureFields
+            .Include(f => f.Signature)
+            .Where(f => f.DocumentId == recipient.DocumentId &&
+                        (f.RecipientId == recipient.Id ||
+                         f.RecipientId == null ||
+                         !db.Recipients.Any(r => r.DocumentId == recipient.DocumentId && r.Id == f.RecipientId)))
+            .ToListAsync(cancellationToken);
+
+        var unsignedRequired = allFields.Where(f => f.IsRequired && !f.IsSigned).ToList();
+        if (unsignedRequired.Count > 0)
+            throw new ConflictException("Not all required fields have been signed.");
+
+        if (recipient.Document.HtmlTemplateId.HasValue)
+        {
+            // For multi-signer HTML templates, only generate the final PDF when this is the
+            // last required recipient. Intermediate approvals just advance the workflow.
+            var hasSubsequentRequired = await db.Recipients
+                .AnyAsync(r => r.DocumentId == recipient.DocumentId
+                            && r.Order > recipient.Order
+                            && r.IsRequired
+                            && r.Status == Domain.Enums.WorkflowStepStatus.Pending, cancellationToken);
+
+            if (!hasSubsequentRequired)
+            {
+                // Last signer — collect ALL signatures across every recipient for this document
+                var allDocFields = await db.SignatureFields
+                    .Include(f => f.Signature)
+                    .Where(f => f.DocumentId == recipient.DocumentId
+                             && f.IsSigned
+                             && f.Signature != null
+                             && f.Signature.ImageUrl != null)
+                    .ToListAsync(cancellationToken);
+
+                // Build a name lookup so each signature block shows the correct signer
+                var recipientNames = await db.Recipients
+                    .Where(r => r.DocumentId == recipient.DocumentId)
+                    .ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken);
+
+                var filledValues = string.IsNullOrEmpty(recipient.Document.FilledValuesJson)
+                    ? []
+                    : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(
+                        recipient.Document.FilledValuesJson) ?? [];
+
+                var sigSummaries = allDocFields
+                    .OrderBy(f => f.Signature!.SignedAt)
+                    .Select(f => new HtmlTemplatePdfSignature(
+                        f.Signature!.ImageUrl!,
+                        f.RecipientId.HasValue && recipientNames.TryGetValue(f.RecipientId.Value, out var n) ? n : recipient.Name,
+                        f.Signature.SignedAt))
+                    .ToList();
+
+                // Render the HTML template from the snapshot taken at request-creation time —
+                // unaffected by the source template being edited or deleted later.
+                var htmlContent = recipient.Document.HtmlContentSnapshot ?? string.Empty;
+                var renderedHtml = System.Text.RegularExpressions.Regex.Replace(
+                    htmlContent, @"\{\{(\w+)\}\}", m =>
+                        filledValues.TryGetValue(m.Groups[1].Value, out var v)
+                            ? System.Net.WebUtility.HtmlEncode(v)
+                            : m.Value);
+                // Strip any remaining unmatched placeholders (approver sig fields, auto-fill keys)
+                renderedHtml = System.Text.RegularExpressions.Regex.Replace(renderedHtml, @"\{\{\w+\}\}", string.Empty);
+
+                var pdfStream = await htmlPdfGenerator.GenerateAsync(
+                    renderedHtml, recipient.Document.Title, sigSummaries, cancellationToken);
+
+                var finalPath = await storage.UploadAsync(
+                    pdfStream,
+                    $"signed_{recipient.Document.FileName}",
+                    "application/pdf",
+                    $"completed/{recipient.DocumentId}",
+                    cancellationToken);
+
+                recipient.Document.SetFinalStoragePath(finalPath);
+            }
+        }
+        else
+        {
+            // Standard PDF: stamp signatures onto the original document
+            var stampDtos = allFields
+                .Where(f => f.IsSigned)
+                .Select(f => new StampFieldDto(
+                    f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height,
+                    f.SignedValue, f.Signature?.ImageUrl))
+                .ToList();
+
+            var stampedStream = await pdfStamp.StampAsync(recipient.Document.StoragePath, stampDtos, cancellationToken);
+            var finalPath = await storage.UploadAsync(
+                stampedStream,
+                $"signed_{recipient.Document.FileName}",
+                "application/pdf",
+                $"completed/{recipient.DocumentId}",
+                cancellationToken);
+
+            recipient.Document.SetFinalStoragePath(finalPath);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Advance workflow (marks recipient Completed → next signer or document Completed)
+        await workflowEngine.AdvanceAsync(recipient.DocumentId, recipient.Id, cancellationToken);
+        var documentCompleted = await workflowEngine.IsCompleteAsync(recipient.DocumentId, cancellationToken);
+
+        await auditService.LogAsync(
+            recipient.DocumentId,
+            AuditAction.WorkflowStepCompleted,
+            command.IpAddress,
+            "Recipient approved and submitted signature",
+            recipientId: recipient.Id,
+            userAgent: command.UserAgent,
+            actorName: recipient.Name,
+            actorEmail: recipient.Email,
+            cancellationToken: cancellationToken);
+
+        await hub.SendToGroupAsync(
+            $"document-{recipient.DocumentId}",
+            "document-progress",
+            new { DocumentId = recipient.DocumentId, RecipientId = recipient.Id, AllSigned = true, DocumentCompleted = documentCompleted },
+            cancellationToken);
+
+        logger.LogInformation("Recipient {RecipientId} approved signing for document {DocumentId}", recipient.Id, recipient.DocumentId);
+
+        return new ApproveSigningResult(documentCompleted);
+    }
+}

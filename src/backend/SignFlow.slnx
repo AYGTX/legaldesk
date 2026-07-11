@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="../../tests/SignFlow.IntegrationTests/SignFlow.IntegrationTests.csproj" />
+  <Project Path="../../tests/SignFlow.UnitTests/SignFlow.UnitTests.csproj" />
+  <Project Path="SignFlow.Api/SignFlow.Api.csproj" />
+  <Project Path="SignFlow.Application/SignFlow.Application.csproj" />
+  <Project Path="SignFlow.Domain/SignFlow.Domain.csproj" />
+  <Project Path="SignFlow.Infrastructure/SignFlow.Infrastructure.csproj" />
+</Solution>

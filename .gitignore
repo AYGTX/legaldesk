@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+artifacts/
+TestResults/
+
+# API runtime output
+src/backend/**/logs/
+src/backend/SignFlow.Api/uploads/
+src/backend/*.log
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-error.log
+
+# Environment / secrets
+*.env
+.env.*
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.swp

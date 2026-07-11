@@ -1,0 +1,109 @@
+using SignFlow.Domain.Enums;
+
+namespace SignFlow.Domain.Entities;
+
+public class SignatureField : BaseEntity
+{
+    public Guid DocumentId { get; private set; }
+    public Document Document { get; private set; } = null!;
+    public Guid? RecipientId { get; private set; }
+    public Recipient? Recipient { get; private set; }
+    public FieldType FieldType { get; private set; }
+    public int Page { get; private set; }
+    public float X { get; private set; }
+    public float Y { get; private set; }
+    public float Width { get; private set; }
+    public float Height { get; private set; }
+    public float? Rotation { get; private set; }
+    public string? Label { get; private set; }
+    public string? Placeholder { get; private set; }
+    public string? DefaultValue { get; private set; }
+    public string? FontFamily { get; private set; }
+    public float? FontSize { get; private set; }
+    public string? FontColor { get; private set; }
+    public string? BorderColor { get; private set; }
+    public string? BackgroundColor { get; private set; }
+    public bool IsRequired { get; private set; } = true;
+    public bool IsReadOnly { get; private set; }
+    public string? ValidationRule { get; private set; }
+    public string? Options { get; private set; }
+    public int ZIndex { get; private set; }
+    public string? VisibilityRules { get; private set; }
+    public string? GroupName { get; private set; }
+    public bool IsSigned { get; private set; }
+    public DateTime? SignedAt { get; private set; }
+    public string? SignedValue { get; private set; }
+    public string? FieldName { get; private set; }
+    public string? Tooltip { get; private set; }
+    public int? MaxLength { get; private set; }
+    public int? MinLength { get; private set; }
+
+    public Signature? Signature { get; private set; }
+
+    private SignatureField() { }
+
+    public static SignatureField Create(
+        Guid documentId,
+        FieldType fieldType,
+        int page,
+        float x, float y,
+        float width, float height,
+        Guid? recipientId = null)
+        => new()
+        {
+            DocumentId = documentId,
+            FieldType = fieldType,
+            Page = page,
+            X = x,
+            Y = y,
+            Width = width,
+            Height = height,
+            RecipientId = recipientId
+        };
+
+    public void UpdatePosition(int page, float x, float y, float width, float height, float? rotation = null)
+    {
+        Page = page;
+        X = x;
+        Y = y;
+        Width = width;
+        Height = height;
+        Rotation = rotation;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateStyle(string? fontFamily, float? fontSize, string? fontColor, string? borderColor, string? backgroundColor)
+    {
+        FontFamily = fontFamily;
+        FontSize = fontSize;
+        FontColor = fontColor;
+        BorderColor = borderColor;
+        BackgroundColor = backgroundColor;
+    }
+
+    public void UpdateProperties(string? label, string? placeholder, string? defaultValue, bool isRequired, bool isReadOnly, string? validationRule, string? tooltip, int? maxLength)
+    {
+        Label = label;
+        Placeholder = placeholder;
+        DefaultValue = defaultValue;
+        IsRequired = isRequired;
+        IsReadOnly = isReadOnly;
+        ValidationRule = validationRule;
+        Tooltip = tooltip;
+        MaxLength = maxLength;
+    }
+
+    public void SetSigned(string value)
+    {
+        IsSigned = true;
+        SignedAt = DateTime.UtcNow;
+        SignedValue = value;
+    }
+
+    public void AssignToRecipient(Guid recipientId) => RecipientId = recipientId;
+
+    public void SetZIndex(int zIndex) => ZIndex = zIndex;
+    public void SetOptions(string options) => Options = options;
+    public void SetGroupName(string groupName) => GroupName = groupName;
+    public void SetVisibilityRules(string rules) => VisibilityRules = rules;
+}
