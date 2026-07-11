@@ -1,0 +1,190 @@
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { HtmlTemplateService } from '../../core/services/html-template.service';
+import { HtmlTemplateDto } from '../../core/models/html-template.models';
+
+@Component({
+  selector: 'sf-html-templates-list',
+  standalone: true,
+  imports: [
+    CommonModule, RouterLink, FormsModule,
+    MatButtonModule, MatIconModule, MatMenuModule,
+    MatProgressSpinnerModule, MatTooltipModule, MatSnackBarModule
+  ],
+  template: `
+    <div class="ht-page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">HTML Templates</h1>
+          <p class="page-sub">Create reusable form templates with pre-fillable fields and signature zones.</p>
+        </div>
+        <a mat-flat-button [routerLink]="['new']" class="create-btn">
+          <mat-icon>add</mat-icon> New Template
+        </a>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input class="search-input" [(ngModel)]="search" (input)="onSearch()" placeholder="Search templates…" />
+        </div>
+        <div class="filter-pills">
+          <button class="pill" [class.active]="activeFilter() === null" (click)="setFilter(null)">All</button>
+          <button class="pill" [class.active]="activeFilter() === true" (click)="setFilter(true)">Active</button>
+          <button class="pill" [class.active]="activeFilter() === false" (click)="setFilter(false)">Inactive</button>
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="loading"><mat-spinner diameter="40"></mat-spinner></div>
+      } @else if (templates().length === 0) {
+        <div class="empty-state">
+          <span class="material-symbols-outlined empty-icon">description</span>
+          <p>No templates found.</p>
+          <a mat-stroked-button [routerLink]="['new']">Create your first template</a>
+        </div>
+      } @else {
+        <div class="list-surface">
+          @for (t of templates(); track t.id; let last = $last) {
+            <div class="template-row" [class.last]="last">
+              <div class="row-icon" [class.inactive]="!t.isActive">
+                <span class="material-symbols-outlined">article</span>
+              </div>
+              <div class="row-body">
+                <div class="row-top">
+                  <span class="tpl-name">{{ t.name }}</span>
+                  @if (!t.isActive) {
+                    <span class="badge-inactive">Inactive</span>
+                  }
+                </div>
+                @if (t.description) {
+                  <p class="tpl-desc">{{ t.description }}</p>
+                }
+                <div class="row-meta">
+                  <span>{{ t.fieldCount }} field{{ t.fieldCount !== 1 ? 's' : '' }}</span>
+                  @if (t.defaultApproverName) {
+                    <span class="sep">·</span>
+                    <span>Default approver: {{ t.defaultApproverName }}</span>
+                  }
+                  <span class="sep">·</span>
+                  <span>Created by {{ t.createdByName }}</span>
+                  <span class="sep">·</span>
+                  <span>{{ t.createdAt | date:'mediumDate' }}</span>
+                </div>
+              </div>
+              <div class="row-actions">
+                <a mat-icon-button [routerLink]="[t.id, 'edit']" matTooltip="Edit template">
+                  <mat-icon>edit</mat-icon>
+                </a>
+                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="More">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <a mat-menu-item [routerLink]="[t.id, 'edit']">
+                    <mat-icon>edit</mat-icon><span>Edit</span>
+                  </a>
+                  <button mat-menu-item (click)="deleteTemplate(t)">
+                    <mat-icon color="warn">delete</mat-icon><span>Delete</span>
+                  </button>
+                </mat-menu>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    .ht-page { padding: 0; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
+    .page-title { font-size: 22px; font-weight: 500; color: #1f1f1f; margin: 0 0 4px; letter-spacing: -0.2px; }
+    .page-sub { font-size: 13px; color: #5f6368; margin: 0; }
+    .create-btn { background: #0b57d0 !important; color: #fff !important; border-radius: 20px !important; }
+
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; color: #5f6368; pointer-events: none; }
+    .search-input { width: 100%; height: 40px; padding: 0 16px 0 40px; border-radius: 20px; border: 1px solid #c7d0dc; background: #fff; font-size: 14px; font-family: inherit; box-sizing: border-box; outline: none; }
+    .search-input:focus { border-color: #0b57d0; box-shadow: 0 0 0 2px rgba(11,87,208,0.15); }
+
+    .filter-pills { display: flex; gap: 6px; }
+    .pill { height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid #c7d0dc; background: #fff; font-size: 13px; font-family: inherit; cursor: pointer; color: #444; }
+    .pill.active { background: #d3e3fd; border-color: #0b57d0; color: #0b57d0; font-weight: 500; }
+
+    .loading { display: flex; justify-content: center; padding: 64px; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 64px; color: #5f6368; }
+    .empty-icon { font-size: 48px; opacity: 0.4; }
+
+    .list-surface { border: 1px solid #c7d0dc; border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .template-row { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #e8edf2; }
+    .template-row.last { border-bottom: none; }
+    .template-row:hover { background: #f8faff; }
+
+    .row-icon { width: 40px; height: 40px; border-radius: 10px; background: #e8f0fe; color: #0b57d0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .row-icon.inactive { background: #f1f3f4; color: #9aa0a6; }
+    .row-icon .material-symbols-outlined { font-size: 20px; }
+
+    .row-body { flex: 1; min-width: 0; }
+    .row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+    .tpl-name { font-size: 14px; font-weight: 500; color: #1f1f1f; }
+    .badge-inactive { font-size: 11px; font-weight: 500; background: #f1f3f4; color: #5f6368; padding: 2px 8px; border-radius: 10px; }
+    .tpl-desc { font-size: 13px; color: #5f6368; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-meta { font-size: 12px; color: #80868b; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .sep { color: #c7d0dc; }
+
+    .row-actions { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .template-row:hover .row-actions { opacity: 1; }
+  `]
+})
+export class HtmlTemplatesListComponent implements OnInit {
+  private readonly svc = inject(HtmlTemplateService);
+  private readonly snack = inject(MatSnackBar);
+
+  templates = signal<HtmlTemplateDto[]>([]);
+  loading = signal(true);
+  activeFilter = signal<boolean | null>(null);
+  search = '';
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  ngOnInit() { this.load(); }
+
+  setFilter(val: boolean | null) {
+    this.activeFilter.set(val);
+    this.load();
+  }
+
+  onSearch() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.load(), 300);
+  }
+
+  load() {
+    this.loading.set(true);
+    this.svc.getAll({
+      search: this.search || undefined,
+      activeOnly: this.activeFilter() === null ? undefined : this.activeFilter()!
+    }).subscribe({
+      next: r => { this.templates.set(r.items); this.loading.set(false); },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  deleteTemplate(t: HtmlTemplateDto) {
+    if (!confirm(`Delete template "${t.name}"?`)) return;
+    this.svc.delete(t.id).subscribe({
+      next: () => {
+        this.snack.open('Template deleted', 'OK', { duration: 3000 });
+        this.load();
+      },
+      error: () => this.snack.open('Failed to delete template', 'OK', { duration: 3000 })
+    });
+  }
+}

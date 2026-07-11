@@ -1,0 +1,62 @@
+.banner-backdrop {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      background: linear-gradient(to top, rgba(0,0,0,0.15), transparent);
+    }
+    .banner {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      padding: 24px 28px;
+      max-width: 680px;
+      width: 100%;
+    }
+    .banner-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .banner-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .cookie-icon { color: #f59e0b; font-size: 26px; width: 26px; height: 26px; }
+    .banner-desc {
+      font-size: 0.875rem;
+      color: #555;
+      margin: 0 0 16px;
+      line-height: 1.5;
+    }
+    .banner-desc a { color: #6d28d9; }
+    .custom-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px 16px;
+      background: #f9fafb;
+    }
+    .opt-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .opt-row strong { display: block; font-size: 0.875rem; }
+    .opt-row span { font-size: 0.8rem; color: #6b7280; }
+    .banner-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }

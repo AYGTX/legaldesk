@@ -1,0 +1,13 @@
+mat-dialog-content { min-width: 460px; padding-top: 8px; }
+    .form { display: flex; flex-direction: column; gap: 4px; }
+    .full { width: 100%; }
+    .sla-row { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
+    .sla-row mat-form-field { width: 100%; }
+    .sla-hint { font-size: 12px; color: #94a3b8; margin: -4px 0 12px; }
+    .picker-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 6px; }
+    .icon-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .icon-btn { width: 40px; height: 40px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #64748b; }
+    .icon-btn.selected { border-color: #6366f1; background: #eef2ff; color: #6366f1; }
+    .color-grid { display: flex; gap: 8px; }
+    .color-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+    .color-btn.selected { border-color: #1e293b; box-shadow: 0 0 0 2px white inset; }

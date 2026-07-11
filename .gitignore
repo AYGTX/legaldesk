@@ -22,6 +22,7 @@ yarn-error.log
 # Environment / secrets
 *.env
 .env.*
+src/frontend/Email Password Role.txt
 
 # OS / editor
 Thumbs.db

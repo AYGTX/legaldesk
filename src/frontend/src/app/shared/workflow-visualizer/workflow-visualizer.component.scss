@@ -1,0 +1,36 @@
+.wf { display: flex; flex-direction: column; gap: 12px; }
+    .wf-header { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #64748b; }
+    .wf-header.hidden { display: none; }
+    .wf-header mat-icon { font-size: 18px; width: 18px; height: 18px; color: #6366f1; }
+
+    /* Horizontal (default) */
+    .wf-track { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 4px; }
+    .wf-step { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 96px; max-width: 140px; text-align: center; }
+    .wf-connector { flex: 1; min-width: 24px; height: 3px; background: #e2e8f0; border-radius: 2px; margin-top: 19px; }
+    .wf-connector.done { background: #22c55e; }
+
+    .wf-node {
+      width: 42px; height: 42px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; flex-shrink: 0;
+    }
+    .wf-node mat-icon { font-size: 22px; width: 22px; height: 22px; }
+    .wf-order { font-size: 16px; }
+    .wf-node.pulse { animation: wfpulse 1.6s infinite; }
+    @keyframes wfpulse {
+      0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
+      70% { box-shadow: 0 0 0 8px rgba(99,102,241,0); }
+      100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+    }
+
+    .wf-label { display: flex; flex-direction: column; }
+    .wf-name { font-size: 13px; font-weight: 500; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+    .you { color: #6366f1; font-weight: 600; margin-left: 2px; }
+    .wf-status { font-size: 11px; font-weight: 600; }
+
+    /* Vertical variant */
+    .wf.vertical .wf-track { flex-direction: column; align-items: stretch; gap: 0; }
+    .wf.vertical .wf-step { flex-direction: row; align-items: center; gap: 12px; text-align: left; max-width: none; min-width: 0; }
+    .wf.vertical .wf-label { align-items: flex-start; }
+    .wf.vertical .wf-name { max-width: none; }
+    .wf.vertical .wf-connector { width: 3px; min-width: 0; height: 22px; margin: 2px 0 2px 19px; align-self: flex-start; }

@@ -1,0 +1,169 @@
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterLink, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslatePipe } from '@ngx-translate/core';
+import { HtmlTemplateService } from '../../core/services/html-template.service';
+import { PdfTemplateService } from '../../core/services/pdf-template.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { TemplateCardComponent } from '../../shared/template-card/template-card.component';
+import { TemplateKind, UnifiedTemplate, fromHtmlTemplate, fromPdfTemplate } from '../../core/models/template-gallery.model';
+
+@Component({
+  selector: 'sf-templates',
+  standalone: true,
+  imports: [
+    CommonModule, RouterLink, FormsModule,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe,
+    TemplateCardComponent
+  ],
+  template: `
+    <div class="templates-page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">{{ 'templates.title' | translate }}</h1>
+          <p class="page-subtitle">{{ 'templates.subtitle' | translate }}</p>
+        </div>
+        @if (canManage()) {
+          <div class="manage-links">
+            <a mat-stroked-button routerLink="/admin/html-templates">
+              <mat-icon>article</mat-icon> {{ 'templates.manageHtml' | translate }}
+            </a>
+            <a mat-stroked-button routerLink="/pdf-templates">
+              <mat-icon>picture_as_pdf</mat-icon> {{ 'templates.managePdf' | translate }}
+            </a>
+          </div>
+        }
+      </div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input class="search-input" [(ngModel)]="search" (input)="onSearch()" [placeholder]="'templates.searchPlaceholder' | translate" />
+        </div>
+        <div class="filter-pills">
+          <button class="pill" [class.active]="kindFilter() === null" (click)="setKindFilter(null)">{{ 'templates.filterAll' | translate }}</button>
+          <button class="pill" [class.active]="kindFilter() === 'html'" (click)="setKindFilter('html')">{{ 'templates.kindHtml' | translate }}</button>
+          <button class="pill" [class.active]="kindFilter() === 'pdf'" (click)="setKindFilter('pdf')">{{ 'templates.kindPdf' | translate }}</button>
+        </div>
+        @if (canManage()) {
+          <div class="filter-pills">
+            <button class="pill" [class.active]="activeFilter() === null" (click)="setActiveFilter(null)">{{ 'templates.filterAllStatus' | translate }}</button>
+            <button class="pill" [class.active]="activeFilter() === true" (click)="setActiveFilter(true)">{{ 'templates.filterActive' | translate }}</button>
+            <button class="pill" [class.active]="activeFilter() === false" (click)="setActiveFilter(false)">{{ 'templates.filterInactive' | translate }}</button>
+          </div>
+        }
+      </div>
+
+      @if (loading()) {
+        <div class="loading"><mat-spinner diameter="40"></mat-spinner></div>
+      } @else if (templates().length === 0) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">description</mat-icon>
+          <p>{{ 'templates.empty' | translate }}</p>
+        </div>
+      } @else {
+        <div class="list-surface">
+          @for (t of templates(); track t.kind + t.id) {
+            <sf-template-card [template]="t" [canManage]="canManage()" (use)="useTemplate($event)" (manage)="manageTemplate($event)" />
+          }
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    .templates-page { padding: 0; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
+    .page-title { font-size: 22px; font-weight: 500; color: #1f1f1f; margin: 0 0 4px; letter-spacing: -0.2px; }
+    .page-subtitle { font-size: 13px; color: #5f6368; margin: 0; }
+    .manage-links { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; height: 18px; width: 18px; color: #5f6368; pointer-events: none; }
+    .search-input { width: 100%; height: 40px; padding: 0 16px 0 38px; border-radius: 20px; border: 1px solid #c7d0dc; background: #fff; font-size: 14px; font-family: inherit; box-sizing: border-box; outline: none; }
+    .search-input:focus { border-color: #0b57d0; box-shadow: 0 0 0 2px rgba(11,87,208,0.15); }
+
+    .filter-pills { display: flex; gap: 6px; }
+    .pill { height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid #c7d0dc; background: #fff; font-size: 13px; font-family: inherit; cursor: pointer; color: #444; }
+    .pill.active { background: #d3e3fd; border-color: #0b57d0; color: #0b57d0; font-weight: 500; }
+
+    .loading { display: flex; justify-content: center; padding: 64px; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 64px; color: #5f6368; }
+    .empty-icon { font-size: 48px; height: 48px; width: 48px; opacity: 0.4; }
+
+    .list-surface { border: 1px solid #c7d0dc; border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  `]
+})
+export class TemplatesComponent implements OnInit {
+  private readonly htmlSvc = inject(HtmlTemplateService);
+  private readonly pdfSvc = inject(PdfTemplateService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  private readonly allTemplates = signal<UnifiedTemplate[]>([]);
+  readonly loading = signal(true);
+  readonly kindFilter = signal<TemplateKind | null>(null);
+  readonly activeFilter = signal<boolean | null>(null);
+  search = '';
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  readonly canManage = computed(() => {
+    const roles = this.auth.user()?.roles ?? [];
+    return roles.includes('Administrator') || roles.includes('Manager');
+  });
+
+  readonly templates = computed(() => {
+    const kind = this.kindFilter();
+    return kind ? this.allTemplates().filter(t => t.kind === kind) : this.allTemplates();
+  });
+
+  ngOnInit() { this.load(); }
+
+  setKindFilter(kind: TemplateKind | null) { this.kindFilter.set(kind); }
+  setActiveFilter(val: boolean | null) { this.activeFilter.set(val); this.load(); }
+
+  onSearch() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.load(), 300);
+  }
+
+  load() {
+    this.loading.set(true);
+    const activeOnly = this.canManage() ? (this.activeFilter() ?? undefined) : true;
+    forkJoin({
+      html: this.htmlSvc.getAll({ search: this.search || undefined, activeOnly, pageSize: 100 }),
+      pdf: this.pdfSvc.getAll({ search: this.search || undefined, activeOnly, pageSize: 100 })
+    }).subscribe({
+      next: ({ html, pdf }) => {
+        const merged = [
+          ...html.items.map(fromHtmlTemplate),
+          ...pdf.items.map(fromPdfTemplate)
+        ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        this.allTemplates.set(merged);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  useTemplate(t: UnifiedTemplate) {
+    if (t.kind === 'html') {
+      this.router.navigate(['/requests/new'], { queryParams: { templateId: t.id } });
+    } else {
+      this.router.navigate(['/pdf-templates', t.id, 'new']);
+    }
+  }
+
+  manageTemplate(t: UnifiedTemplate) {
+    if (t.kind === 'html') {
+      this.router.navigate(['/admin/html-templates', t.id, 'edit']);
+    } else {
+      this.router.navigate(['/pdf-templates', t.id, 'designer']);
+    }
+  }
+}

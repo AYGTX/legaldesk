@@ -1,0 +1,41 @@
+/* ════════════════════════════════════════
+   Shared component-level classes
+   Used by multiple feature components — defined once here
+   instead of being duplicated in each component's stylesheet.
+   Components with a different variant of the same class name
+   keep their own override in their local .scss (it wins via
+   Angular's view-encapsulation specificity).
+   ════════════════════════════════════════ */
+
+/* Page header title/subtitle (bold 28px variant) */
+.page-title { font-size: 28px; font-weight: 700; color: var(--g-text); margin: 0 0 4px; }
+.page-subtitle { color: var(--g-text-3); margin: 0; }
+
+/* Centered spinner container */
+.loading-state { display: flex; justify-content: center; padding: 80px 0; }
+
+/* Empty table/list state */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 64px; color: var(--g-text-muted); text-align: center;
+}
+.empty-state mat-icon { font-size: 48px; width: 48px; height: 48px; }
+.empty-state p { margin: 0; }
+
+/* Inline form error banner */
+.error-banner {
+  display: flex; align-items: center; gap: 8px;
+  background: #fef2f2; color: #dc2626;
+  border: 1px solid #fecaca; border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 12px; font-size: 14px;
+}
+
+/* Full-width form field utility */
+.full-width { width: 100%; }
+
+/* Legal page back-to-app link (component-local overrides win via view-encapsulation specificity) */
+.back-link {
+  display: inline-block; margin-bottom: 24px;
+  color: #6d28d9; font-size: 0.875rem; text-decoration: none;
+}
+.back-link:hover { text-decoration: underline; }

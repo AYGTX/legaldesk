@@ -1,0 +1,13 @@
+.legal-page { max-width: 780px; margin: 0 auto; }
+    
+    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 4px; }
+    .effective { color: #6b7280; font-size: 0.875rem; margin-bottom: 32px; }
+    h2 { font-size: 1.1rem; font-weight: 600; margin-top: 28px; margin-bottom: 8px; color: #111827; }
+    p, li { font-size: 0.9375rem; line-height: 1.7; color: #374151; }
+    a { color: #6d28d9; }
+    .cookie-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin: 12px 0 20px; }
+    .cookie-table th { background: #f3f4f6; padding: 10px 12px; text-align: left; font-weight: 600; border: 1px solid #e5e7eb; }
+    .cookie-table td { padding: 10px 12px; border: 1px solid #e5e7eb; vertical-align: top; }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 3px; font-size: 0.8rem; }
+    .pref-actions { display: flex; gap: 12px; margin: 16px 0; }
+    .current-prefs { font-size: 0.875rem; color: #6b7280; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; }

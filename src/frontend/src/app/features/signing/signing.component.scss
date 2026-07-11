@@ -1,0 +1,294 @@
+.signing-layout { display: flex; flex-direction: column; height: 100vh; background: #f8fafc; }
+
+    /* ── HTML Template Signing View ── */
+    .html-signing-body {
+      flex: 1; display: flex; overflow: hidden; gap: 0;
+    }
+    .html-doc-panel {
+      flex: 1; overflow-y: auto; padding: 40px;
+      background: #f0f4f9;
+    }
+    .html-doc-content {
+      max-width: 760px; margin: 0 auto;
+      background: #fff; border: 1px solid #c7d0dc; border-radius: 12px;
+      padding: 40px 48px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      font-family: 'Google Sans Text', 'Roboto', sans-serif;
+      font-size: 15px; line-height: 1.7; color: #1f1f1f;
+    }
+    .html-sig-panel {
+      width: 320px; flex-shrink: 0; border-left: 1px solid #c7d0dc;
+      background: #fff; display: flex; flex-direction: column; gap: 0;
+      overflow-y: auto;
+    }
+    .html-sig-header {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 20px 20px 16px; border-bottom: 1px solid #e8edf2;
+    }
+    .html-sig-header .material-symbols-outlined { font-size: 24px; color: #0b57d0; margin-top: 2px; }
+    .html-sig-header h3 { font-size: 15px; font-weight: 500; margin: 0 0 2px; color: #1f1f1f; }
+    .html-sig-header p { font-size: 13px; color: #5f6368; margin: 0; }
+
+    .html-sig-field { padding: 16px 20px; border-bottom: 1px solid #e8edf2; }
+    .html-sig-field.signed { background: #f6fef9; }
+    .html-sig-prompt {
+      display: flex; align-items: center; gap: 10px; padding: 20px;
+      border: 2px dashed #c7d0dc; border-radius: 8px; cursor: pointer;
+      color: #5f6368; font-size: 14px; transition: all 0.15s;
+    }
+    .html-sig-prompt:hover { border-color: #0b57d0; color: #0b57d0; background: #e8f0fe; }
+    .html-sig-prompt mat-icon { font-size: 22px; }
+    .html-sig-done { display: flex; flex-direction: column; gap: 8px; }
+    .html-sig-img { max-width: 100%; max-height: 80px; object-fit: contain; border: 1px solid #e8edf2; border-radius: 6px; background: #fff; }
+    .html-sig-done-label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #1e6b2e; font-weight: 500; }
+    .html-sig-done-label mat-icon { font-size: 16px; width: 16px; height: 16px; color: #1e6b2e; }
+
+    .html-doc-message {
+      display: flex; gap: 8px; padding: 16px 20px; border-bottom: 1px solid #e8edf2;
+      background: #f8faff; font-size: 13px; color: #3c4043;
+    }
+    .html-doc-message mat-icon { color: #0b57d0; flex-shrink: 0; }
+    .html-doc-message p { margin: 0; }
+
+    .html-sig-actions {
+      margin-top: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px;
+      border-top: 1px solid #e8edf2;
+    }
+
+    .signing-topbar {
+      display: flex; align-items: center; gap: 16px;
+      background: white; border-bottom: 1px solid #e2e8f0;
+      padding: 0 24px; height: 60px; flex-shrink: 0;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; color: #1e293b; }
+    .brand-icon { color: #6366f1; }
+    .doc-info { flex: 1; display: flex; flex-direction: column; }
+    .doc-name { font-weight: 600; font-size: 15px; color: #1e293b; }
+    .field-progress { font-size: 13px; color: #64748b; }
+    .topbar-actions { display: flex; gap: 8px; align-items: center; }
+    .sla-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 99px; background: #f1f5f9; margin-right: 8px; }
+    .sla-pill mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .sla-pill.link-pill { background: #eef2ff; }
+    .rem-ok { color: #16a34a; }
+    .rem-warning { color: #f59e0b; }
+    .rem-critical { color: #ef4444; }
+    .rem-expired { color: #ef4444; }
+
+    .loading-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      color: #64748b;
+    }
+
+    .status-screen {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; text-align: center; padding: 32px;
+    }
+    .status-screen > mat-icon { font-size: 80px; width: 80px; height: 80px; }
+    .status-actions button mat-icon { font-size: 18px; width: 18px; height: 18px; vertical-align: middle; }
+    .status-screen h2 { font-size: 28px; font-weight: 700; margin: 0; color: #1e293b; }
+    .status-screen p { margin: 0; color: #64748b; font-size: 16px; }
+    .sub { font-size: 14px !important; }
+    .completed mat-icon { color: #22c55e; }
+    .rejected mat-icon { color: #ef4444; }
+    .expired mat-icon { color: #f59e0b; }
+    .waiting mat-icon { color: #6366f1; }
+    .error mat-icon { color: #ef4444; }
+    .status-actions { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+    .waiting-flow { margin-top: 24px; width: 100%; max-width: 420px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
+
+    .nav-workflow { padding: 16px; border-bottom: 1px solid #e2e8f0; }
+
+    .signing-body { flex: 1; display: flex; overflow: hidden; }
+
+    /* Field Navigator */
+    .field-navigator {
+      width: 280px; flex-shrink: 0;
+      background: white; border-right: 1px solid #e2e8f0;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .nav-header { padding: 16px; border-bottom: 1px solid #e2e8f0; }
+    .nav-header h3 { font-size: 15px; font-weight: 600; margin: 0 0 12px; color: #1e293b; }
+    .progress-bar-wrapper { height: 6px; background: #e2e8f0; border-radius: 3px; margin-bottom: 6px; }
+    .progress-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; transition: width 0.3s; }
+    .progress-text { font-size: 13px; color: #64748b; }
+
+    .field-list { flex: 1; overflow-y: auto; padding: 8px; }
+    .field-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      margin-bottom: 4px; border: 1px solid transparent;
+      transition: background 0.15s;
+    }
+    .field-nav-item:hover { background: #f1f5f9; }
+    .field-nav-item.current { background: #eef2ff; border-color: #6366f1; }
+    .field-nav-item.signed .nav-status-icon { color: #22c55e; }
+    .nav-status-icon { font-size: 18px; width: 18px; height: 18px; color: #94a3b8; flex-shrink: 0; }
+    .nav-field-info { flex: 1; }
+    .nav-type { display: block; font-size: 14px; font-weight: 500; color: #1e293b; }
+    .nav-page { font-size: 12px; color: #94a3b8; }
+    .required-badge { font-size: 11px; background: #fef3c7; color: #d97706; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+
+    .doc-message {
+      margin: 8px; padding: 12px; background: #eff6ff;
+      border-radius: 8px; display: flex; gap: 8px;
+      font-size: 13px; color: #3b82f6;
+    }
+    .doc-message mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+    .doc-message p { margin: 0; }
+
+    /* PDF Viewer */
+    .pdf-viewer-area { flex: 1; overflow: hidden; position: relative; background: #64748b; }
+    .pdf-loading {
+      position: absolute; inset: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(100,116,139,0.6);
+    }
+    .pdf-scroll-container { height: 100%; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+    .pdf-page-wrapper { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .page-label { color: rgba(255,255,255,0.7); font-size: 13px; }
+    .pdf-page-canvas-wrapper { position: relative; background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+    .pdf-page-canvas-wrapper canvas { display: block; }
+
+    /* Sign Field Overlays */
+    .sign-field-overlay {
+      position: absolute;
+      border: 2px dashed #6366f1;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(99,102,241,0.06);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .sign-field-overlay:hover { border-color: #4f46e5; background: rgba(99,102,241,0.12); }
+    .sign-field-overlay.current-field { border-color: #f59e0b; border-style: solid; animation: pulse-border 1.5s infinite; }
+    .sign-field-overlay.signed { border-color: #22c55e; border-style: solid; background: rgba(34,197,94,0.05); cursor: default; }
+    @keyframes pulse-border { 0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 0 4px rgba(245,158,11,0); } }
+
+    .sign-field-prompt {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      color: #6366f1; font-size: 11px; text-align: center; pointer-events: none;
+    }
+    .sign-field-prompt mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .field-type-label { font-weight: 600; }
+
+    .signed-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .signed-text { font-size: 14px; color: #1e293b; font-weight: 500; padding: 4px; }
+    .signed-check { position: absolute; bottom: 2px; right: 2px; font-size: 14px; width: 14px; height: 14px; color: #22c55e; }
+
+    /* Pre-signing Summary Screen */
+    .summary-screen {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 32px 16px; background: #f8fafc; overflow-y: auto;
+    }
+    .summary-card {
+      background: white; border: 1px solid #e2e8f0; border-radius: 16px;
+      width: 100%; max-width: 640px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .summary-card-header {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 28px 28px 20px;
+    }
+    .summary-brand-icon {
+      font-size: 40px; width: 40px; height: 40px;
+      color: #6366f1; flex-shrink: 0; margin-top: 2px;
+    }
+    .summary-doc-title {
+      font-size: 22px; font-weight: 700; color: #1e293b; margin: 0 0 4px;
+      line-height: 1.3;
+    }
+    .summary-meta { font-size: 13px; color: #94a3b8; margin: 0; }
+    .summary-divider { height: 1px; background: #e2e8f0; margin: 0 28px; }
+    .summary-body { padding: 24px 28px; }
+    .summary-section-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 700; color: #6366f1;
+      text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 16px;
+    }
+    .summary-section-title mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .summary-text {
+      font-size: 15px; line-height: 1.7; color: #334155; margin: 0;
+    }
+    .summary-unavailable { font-size: 14px; color: #94a3b8; font-style: italic; margin: 0; }
+
+    /* Skeleton loading */
+    .summary-skeleton { display: flex; flex-direction: column; gap: 10px; }
+    .skeleton-line {
+      height: 14px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px; width: 100%;
+    }
+    .skeleton-line.w80 { width: 80%; }
+    .skeleton-line.w90 { width: 90%; }
+    .skeleton-line.w70 { width: 70%; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .summary-message {
+      display: flex; align-items: flex-start; gap: 10px;
+      margin: 0 28px 0; padding: 14px 16px; background: #eff6ff;
+      border-radius: 10px; font-size: 13px; color: #3b82f6;
+    }
+    .summary-message mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+    .summary-message p { margin: 0; }
+
+    .summary-footer {
+      padding: 20px 28px 28px; border-top: 1px solid #f1f5f9; margin-top: 24px;
+    }
+    .summary-legal-note { font-size: 12px; color: #94a3b8; margin: 0 0 16px; line-height: 1.5; }
+    .summary-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    .data-processing-notice {
+      display: flex; gap: 10px; background: #f0f9ff; border: 1px solid #bae6fd;
+      border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;
+    }
+    .notice-icon { color: #0284c7; font-size: 20px; width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; }
+    .notice-title { font-weight: 600; font-size: 0.875rem; color: #0c4a6e; margin: 0 0 4px; }
+    .notice-text { font-size: 0.8125rem; color: #075985; margin: 0 0 10px; line-height: 1.5; }
+    .geo-opt-in { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; font-size: 0.8125rem; color: #075985; }
+    .geo-opt-in input { margin-top: 2px; flex-shrink: 0; cursor: pointer; }
+    .notice-body { flex: 1; }
+
+    /* Review Mode */
+    .review-layout {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+      align-items: center; padding: 32px 24px; gap: 24px; background: #f8fafc;
+    }
+    .review-header {
+      display: flex; align-items: flex-start; gap: 16px;
+      background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 24px; max-width: 720px; width: 100%;
+    }
+    .review-icon { font-size: 40px; width: 40px; height: 40px; color: #6366f1; flex-shrink: 0; margin-top: 4px; }
+    .review-header h2 { font-size: 22px; font-weight: 700; margin: 0 0 6px; color: #1e293b; }
+    .review-header p { margin: 0; color: #64748b; font-size: 14px; }
+
+    .review-fields {
+      display: flex; flex-direction: column; gap: 12px;
+      max-width: 720px; width: 100%;
+    }
+    .review-field-card {
+      background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 16px; display: flex; align-items: center; gap: 16px;
+    }
+    .review-field-card.unsigned { border-color: #fde68a; background: #fffbeb; }
+    .rfc-meta { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+    .rfc-type { font-weight: 600; font-size: 14px; color: #1e293b; }
+    .rfc-page { font-size: 12px; color: #94a3b8; }
+    .rfc-required { font-size: 11px; background: #fef3c7; color: #d97706; padding: 2px 6px; border-radius: 4px; align-self: flex-start; }
+    .rfc-value { flex: 1; display: flex; align-items: center; gap: 10px; }
+    .rfc-sig-img { max-height: 48px; max-width: 200px; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 4px; }
+    .rfc-text-val { font-size: 15px; color: #1e293b; font-weight: 500; }
+    .rfc-check { color: #22c55e; font-size: 20px; width: 20px; height: 20px; margin-left: auto; }
+    .rfc-empty { font-size: 14px; color: #f59e0b; font-style: italic; }
+
+    .review-footer {
+      background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 24px; max-width: 720px; width: 100%;
+    }
+    .review-legal { font-size: 13px; color: #64748b; margin: 0 0 20px; line-height: 1.6; }
+    .review-actions { display: flex; gap: 12px; justify-content: flex-end; }
+
+.nav-comments { margin-top: 16px; border-top: 1px solid #e8edf2; padding-top: 12px; }
+.waiting-comments { width: 100%; max-width: 560px; margin-top: 24px; text-align: left; }

@@ -1,0 +1,104 @@
+.detail-page { }
+    
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
+    .header-left { display: flex; align-items: flex-start; gap: 8px; flex: 1; }
+    .doc-title { font-size: 24px; font-weight: 700; color: var(--g-text); margin: 0 0 8px; }
+    .doc-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .meta-item { display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--g-text-3); }
+    .meta-item mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .status-badge { padding: 3px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+    .type-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+    .type-chip mat-icon { font-size: 15px; width: 15px; height: 15px; }
+    .remaining { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; }
+    .remaining mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .rem-ok { color: var(--g-green); }
+    .rem-warning { color: var(--g-yellow); }
+    .rem-critical { color: var(--g-red); }
+    .rem-expired { color: var(--g-red); font-weight: 600; }
+    .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    .detail-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+    @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
+    .left-column, .right-column { display: flex; flex-direction: column; gap: 16px; }
+
+    .recipients-card mat-card-content { padding-top: 0; }
+    .recipient-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+    .recipient-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--g-blue-container); color: var(--g-blue);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; flex-shrink: 0;
+    }
+    .recipient-info { flex: 1; }
+    .recipient-name { display: block; font-weight: 500; color: var(--g-text); }
+    .recipient-email { font-size: 13px; color: var(--g-text-3); }
+    .recipient-status { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; }
+    .rs-completed { color: var(--g-green); }
+    .rs-rejected { color: var(--g-red); }
+    .rs-inprogress { color: var(--g-blue); }
+    .rs-skipped { color: var(--g-text-muted); }
+    .rs-delegated { color: var(--g-blue); }
+    .rs-pending { color: var(--g-text-muted); }
+    .recipient-time { font-size: 12px; color: var(--g-text-muted); }
+    .copy-link-btn { color: var(--g-text-muted); flex-shrink: 0; }
+    .copy-link-btn:hover { color: var(--g-blue); }
+    .copy-link-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .empty-recipients { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px; color: var(--g-text-muted); }
+    .empty-recipients mat-icon { font-size: 32px; width: 32px; height: 32px; }
+    .empty-recipients p { margin: 0; }
+
+    .progress-card { background: var(--g-blue-container); border: 1px solid var(--g-blue-light); }
+    .progress-info { display: flex; align-items: center; gap: 12px; }
+    .progress-info mat-icon { color: var(--g-blue); }
+    .pulse { animation: spin 1.5s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .progress-steps { display: block; font-size: 13px; color: var(--g-blue); }
+
+    .fields-summary { display: flex; gap: 16px; margin-bottom: 16px; }
+    .field-stat { flex: 1; text-align: center; background: var(--g-surface-variant); border-radius: 8px; padding: 12px; }
+    .field-count { display: block; font-size: 24px; font-weight: 700; color: var(--g-text); }
+    .field-count.signed { color: var(--g-green); }
+    .field-count.pending { color: var(--g-yellow); }
+    .field-label { font-size: 12px; color: var(--g-text-3); }
+    .field-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+    .field-icon { font-size: 18px; width: 18px; height: 18px; color: var(--g-text-muted); }
+    .field-icon.signed-icon { color: #22c55e; }
+    .field-type { font-size: 14px; color: #202124; }
+    .field-page { font-size: 12px; color: #80868b; margin-left: 8px; }
+    .more-fields { font-size: 13px; color: #80868b; margin: 8px 0 0; }
+
+    .completion-banner {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px;
+      padding: 16px 20px; margin-bottom: 24px;
+    }
+    .cb-left { display: flex; align-items: center; gap: 12px; }
+    .cb-icon { color: #16a34a; font-size: 28px; width: 28px; height: 28px; flex-shrink: 0; }
+    .cb-left strong { display: block; color: #15803d; font-size: 15px; }
+    .cb-sub { font-size: 13px; color: #4ade80; color: #166534; }
+    .cb-sub code { background: #dcfce7; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+    .cb-download-btn { background: #16a34a !important; color: #fff !important; flex-shrink: 0; }
+
+    .error-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 80px; color: #ef4444; text-align: center; }
+    .error-state mat-icon { font-size: 48px; width: 48px; height: 48px; }
+    .error-state p { color: #5f6368; margin: 0; }
+
+    .ai-summary-card { border: 1px solid #e8d5f9; background: #faf5ff; }
+    .ai-summary-title { display: flex; align-items: center; gap: 6px; font-size: 15px; }
+    .ai-icon { color: #7c3aed; font-size: 18px; width: 18px; height: 18px; }
+    .summary-text { font-size: 14px; line-height: 1.65; color: #374151; margin: 0 0 8px; }
+    .summary-meta { font-size: 12px; color: #9ca3af; }
+    .summary-skeleton { display: flex; flex-direction: column; gap: 10px; }
+    .skeleton-line {
+      height: 14px; border-radius: 6px;
+      background: linear-gradient(90deg, #e9d8fd 25%, #d8b4fe 50%, #e9d8fd 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      width: 100%;
+    }
+    .skeleton-line.medium { width: 75%; }
+    .skeleton-line.long { width: 90%; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .summary-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 0; color: #9ca3af; text-align: center; }
+    .summary-empty mat-icon { font-size: 28px; width: 28px; height: 28px; }
+    .summary-empty p { margin: 0; font-size: 13px; }
