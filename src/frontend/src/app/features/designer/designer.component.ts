@@ -5,7 +5,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CdkDragDrop, CdkDrag, CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -378,7 +378,7 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                        [style.width.px]="field.width" [style.height.px]="field.height"
                        [style.border-color]="fieldColor(field)"
                        [style.background]="fieldBg(field)"
-                       cdkDrag (cdkDragEnded)="onFieldDragEnd($event, field)"
+                       (mousedown)="startFieldDrag($event, field)"
                        (click)="selectField(field, $event)"
                        [matTooltip]="fieldTooltip(field)">
                     <div class="field-header" [style.background]="fieldColor(field)">
@@ -525,6 +525,7 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
   documentId = '';
   canvasWidth = 794;
   canvasHeight = 1123;
+  private suppressCanvasClick = false;
 
   private pdfDoc: unknown = null;
 
@@ -786,24 +787,47 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectField(newField);
   }
 
-  onFieldDragEnd(event: { source: CdkDrag; distance: { x: number; y: number } }, field: DesignerField): void {
-    const updated = this.allFields().map(f => {
-      if (f.tempId !== field.tempId) return f;
-      return {
-        ...f,
-        xPosition: Math.round(f.xPosition + event.distance.x / this.zoomLevel()),
-        yPosition: Math.round(f.yPosition + event.distance.y / this.zoomLevel())
-      };
-    });
-    this.allFields.set(updated);
-    if (this.selectedField()?.tempId === field.tempId) {
-      this.selectedField.set(updated.find(f => f.tempId === field.tempId) ?? null);
-    }
-    this.pushHistory(updated);
-    event.source.reset();
+  startFieldDrag(event: MouseEvent, field: DesignerField): void {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('.resize-handle, .field-delete-btn')) return;
+    event.preventDefault();
+    this.selectField(field);
+    const wrapper = this.pdfWrapperRef.nativeElement;
+    const startRect = wrapper.getBoundingClientRect();
+    // Grab offset in unscaled field coordinates — the wrapper's client rect is zoom-scaled.
+    const grabX = (event.clientX - startRect.left) / this.zoomLevel() - field.xPosition;
+    const grabY = (event.clientY - startRect.top) / this.zoomLevel() - field.yPosition;
+    let moved = false;
+    const onMove = (e: MouseEvent) => {
+      if (!moved) moved = Math.abs(e.clientX - event.clientX) > 2 || Math.abs(e.clientY - event.clientY) > 2;
+      if (!moved) return;
+      // Re-measure each move so the field stays under the cursor even if the canvas area scrolls mid-drag.
+      const rect = wrapper.getBoundingClientRect();
+      const updated = this.allFields().map(f => f.tempId === field.tempId
+        ? { ...f,
+            xPosition: Math.min(Math.max(0, Math.round((e.clientX - rect.left) / this.zoomLevel() - grabX)), Math.max(0, this.canvasWidth - f.width)),
+            yPosition: Math.min(Math.max(0, Math.round((e.clientY - rect.top) / this.zoomLevel() - grabY)), Math.max(0, this.canvasHeight - f.height)) }
+        : f);
+      this.allFields.set(updated);
+      if (this.selectedField()?.tempId === field.tempId) {
+        this.selectedField.set(updated.find(f => f.tempId === field.tempId) ?? null);
+      }
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (moved) {
+        this.pushHistory(this.allFields());
+        // The click that follows a drag can land on the wrapper (field clamped at an edge) — don't let it deselect.
+        this.suppressCanvasClick = true;
+        setTimeout(() => this.suppressCanvasClick = false);
+      }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }
 
   onCanvasClick(event: MouseEvent): void {
+    if (this.suppressCanvasClick) return;
     if ((event.target as HTMLElement).closest('.placed-field')) return;
     this.selectedField.set(null);
   }

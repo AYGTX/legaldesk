@@ -4,7 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { CdkDragDrop, CdkDrag, DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -133,7 +133,7 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
               <div class="placed-field" [class.selected]="selected()?.tempId === f.tempId"
                    [style.left.px]="f.x" [style.top.px]="f.y" [style.width.px]="f.width" [style.height.px]="f.height"
                    [style.border-color]="roleColor(f)" [style.background]="roleColor(f) + '18'"
-                   cdkDrag (cdkDragEnded)="onFieldDragEnd($event, f)" (click)="selectField(f, $event)"
+                   (mousedown)="startFieldDrag($event, f)" (click)="selectField(f, $event)"
                    [matTooltip]="f.label + ' · ' + (('pdfTemplates.fillRoles.' + f.fillRole) | translate)">
                 <div class="pf-header" [style.background]="roleColor(f)">
                   <mat-icon>{{ iconFor(f.type) }}</mat-icon><span>{{ f.label }}</span>
@@ -257,7 +257,8 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
     .palette-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #80868b; margin-bottom: 8px; }
     .palette-chip { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 8px; background: #fff; margin-bottom: 6px; cursor: grab; font-size: 13px; }
     .palette-chip:hover { border-color: #0b57d0; }
-    .drag-preview { background: #0b57d0; color: #fff; padding: 8px; border-radius: 8px; }
+    /* transition: none keeps CDK's drop animation from flying the preview toward the hidden placeholder. */
+    .drag-preview { background: #0b57d0; color: #fff; padding: 8px; border-radius: 8px; transition: none; }
     .legend { margin-top: 16px; }
     .legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #80868b; margin-bottom: 6px; }
     .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6368; margin-bottom: 4px; }
@@ -266,6 +267,9 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
     .canvas-area { flex: 1; min-height: 0; overflow: auto; padding: 24px; display: flex; justify-content: center; background: #eef1f4; position: relative; }
     .pdf-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
     .pdf-wrap { position: relative; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
+    /* CDK inserts an in-flow placeholder clone of the palette chip while dragging over the drop list;
+       it would render below the canvas and make drops look like they land under the page. */
+    .pdf-wrap .cdk-drag-placeholder { display: none; }
     .pdf-canvas { display: block; }
     .grid-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1;
       background-image: linear-gradient(to right, rgba(11,87,208,0.12) 1px, transparent 1px),
@@ -328,6 +332,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
 
   readonly snapToGrid = signal(true);
   readonly gridSize = 10;
+  private suppressCanvasClick = false;
 
   name = '';
   templateId = '';
@@ -452,16 +457,41 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
     this.selectField(field);
   }
 
-  onFieldDragEnd(event: { source: CdkDrag; distance: { x: number; y: number } }, field: TemplateField): void {
-    this.fields.update(fs => fs.map(f => f.tempId === field.tempId
-      ? { ...f,
-          x: this.clampPos(this.snap(f.x + event.distance.x), f.width, this.canvasWidth()),
-          y: this.clampPos(this.snap(f.y + event.distance.y), f.height, this.canvasHeight()) } : f));
-    this.syncSelected(field.tempId);
-    event.source.reset();
+  startFieldDrag(event: MouseEvent, field: TemplateField): void {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('.resize-handle, .pf-del')) return;
+    event.preventDefault();
+    this.selectField(field);
+    const canvas = this.pdfCanvasRef.nativeElement;
+    const startRect = canvas.getBoundingClientRect();
+    const grabX = event.clientX - startRect.left - field.x;
+    const grabY = event.clientY - startRect.top - field.y;
+    let moved = false;
+    const onMove = (e: MouseEvent) => {
+      if (!moved) moved = Math.abs(e.clientX - event.clientX) > 2 || Math.abs(e.clientY - event.clientY) > 2;
+      if (!moved) return;
+      // Re-measure each move so the field stays under the cursor even if the canvas area scrolls mid-drag.
+      const rect = canvas.getBoundingClientRect();
+      this.fields.update(fs => fs.map(f => f.tempId === field.tempId
+        ? { ...f,
+            x: this.clampPos(this.snap(e.clientX - rect.left - grabX), f.width, this.canvasWidth()),
+            y: this.clampPos(this.snap(e.clientY - rect.top - grabY), f.height, this.canvasHeight()) } : f));
+      this.syncSelected(field.tempId);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (moved) {
+        // The click that follows a drag can land on the wrapper (field clamped at an edge) — don't let it deselect.
+        this.suppressCanvasClick = true;
+        setTimeout(() => this.suppressCanvasClick = false);
+      }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }
 
   onCanvasClick(event: MouseEvent): void {
+    if (this.suppressCanvasClick) return;
     if ((event.target as HTMLElement).closest('.placed-field')) return;
     this.selected.set(null);
   }
