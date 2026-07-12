@@ -208,6 +208,53 @@ public class WorkflowEngine(
         logger.LogInformation("Document {DocumentId} rejected by recipient {RecipientId}", documentId, recipientId);
     }
 
+    /// <summary>
+    /// Non-terminal counterpart of RejectAsync: the requesting participant's step and the whole
+    /// workflow pause in ChangesRequested until the owner uploads a revision, which resets the
+    /// run for a full re-approval round.
+    /// </summary>
+    public async Task RequestChangesAsync(Guid documentId, Guid recipientId, string reason, CancellationToken cancellationToken = default)
+    {
+        var document = await db.Documents
+            .Include(d => d.Recipients)
+            .Include(d => d.Workflow)
+                .ThenInclude(w => w.Steps)
+            .FirstOrDefaultAsync(d => d.Id == documentId, cancellationToken);
+
+        if (document is null) return;
+
+        var recipient = document.Recipients.FirstOrDefault(r => r.Id == recipientId);
+        recipient?.RequestChanges(reason);
+
+        var step = document.Workflow?.Steps.FirstOrDefault(s => s.RecipientId == recipientId);
+        step?.RequestChanges(reason);
+        document.Workflow?.RequestChanges();
+        document.SetStatus(DocumentStatus.ChangesRequested);
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        var owner = await db.Users.FindAsync([document.OwnerId], cancellationToken);
+        if (owner is not null)
+        {
+            await emailService.SendTemplateAsync(
+                owner.Email!,
+                "ChangesRequested",
+                new { document.Title, Reason = reason, RecipientName = recipient?.Name },
+                "Changes requested on your document",
+                cancellationToken);
+        }
+
+        await notifications.NotifyUserAsync(
+            document.OwnerId,
+            NotificationType.ChangesRequested,
+            "Changes requested",
+            $"{recipient?.Name ?? "A participant"} requested changes on \"{document.Title}\": {reason}",
+            documentId,
+            cancellationToken);
+
+        logger.LogInformation("Changes requested on document {DocumentId} by recipient {RecipientId}", documentId, recipientId);
+    }
+
     public async Task CheckExpirationAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
         var document = await db.Documents.FindAsync([documentId], cancellationToken);

@@ -115,6 +115,9 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Upload(SignFlow.Api.Controllers.V1.UploadDocumentRequest,System.Threading.CancellationToken)">
             <summary>Upload a new PDF document</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.UploadRevision(System.Guid,SignFlow.Api.Controllers.V1.UploadRevisionRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.UploadRevisionCommand,SignFlow.Application.Features.Documents.Commands.UploadRevisionResult},System.Threading.CancellationToken)">
+            <summary>Upload a revised PDF after changes were requested — voids field completion and returns the document to Draft for re-send</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Send(System.Guid,System.Threading.CancellationToken)">
             <summary>Send document for signing</summary>
         </member>
@@ -324,6 +327,9 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.Reject(System.String,SignFlow.Api.Controllers.V1.RejectRequest,System.Threading.CancellationToken)">
             <summary>Reject a document</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.RequestChanges(System.String,SignFlow.Api.Controllers.V1.RequestChangesRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.RequestChangesCommand},System.Threading.CancellationToken)">
+            <summary>Request changes on a document (reviewers/approvers) — pauses the workflow instead of rejecting it</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.AddSigningCommentRequest">
             <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>

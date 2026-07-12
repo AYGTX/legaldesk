@@ -9,5 +9,6 @@ public enum WorkflowStepStatus
     Skipped = 4,
     Delegated = 5,
     Escalated = 6,
-    Expired = 7
+    Expired = 7,
+    ChangesRequested = 8
 }

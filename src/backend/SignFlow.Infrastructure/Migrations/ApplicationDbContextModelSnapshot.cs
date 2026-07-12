@@ -1420,8 +1420,7 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("RecipientId");
 
-                    b.HasIndex("SignatureFieldId")
-                        .IsUnique();
+                    b.HasIndex("SignatureFieldId");
 
                     b.ToTable("Signatures");
                 });
@@ -2088,8 +2087,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("SignFlow.Domain.Entities.SignatureField", "SignatureField")
-                        .WithOne("Signature")
-                        .HasForeignKey("SignFlow.Domain.Entities.Signature", "SignatureFieldId")
+                        .WithMany("Signatures")
+                        .HasForeignKey("SignatureFieldId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2216,7 +2215,7 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.SignatureField", b =>
                 {
-                    b.Navigation("Signature");
+                    b.Navigation("Signatures");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Workflow", b =>

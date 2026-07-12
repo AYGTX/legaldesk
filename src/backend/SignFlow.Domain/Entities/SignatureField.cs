@@ -38,7 +38,12 @@ public class SignatureField : BaseEntity
     public int? MaxLength { get; private set; }
     public int? MinLength { get; private set; }
 
-    public Signature? Signature { get; private set; }
+    /// <summary>
+    /// One row per signing act. Usually a single row, but a field re-signed after a
+    /// revision (request-changes loop) accumulates one row per round — earlier rows are
+    /// kept as evidence and never deleted.
+    /// </summary>
+    public ICollection<Signature> Signatures { get; private set; } = [];
 
     private SignatureField() { }
 
@@ -98,6 +103,18 @@ public class SignatureField : BaseEntity
         IsSigned = true;
         SignedAt = DateTime.UtcNow;
         SignedValue = value;
+    }
+
+    /// <summary>
+    /// Voids the field's completion after a revision upload so it must be re-signed.
+    /// The Signature rows themselves are kept — voiding erases completion state, not evidence.
+    /// </summary>
+    public void VoidSignature()
+    {
+        IsSigned = false;
+        SignedAt = null;
+        SignedValue = null;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void AssignToRecipient(Guid recipientId) => RecipientId = recipientId;

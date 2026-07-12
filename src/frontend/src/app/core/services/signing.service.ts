@@ -28,6 +28,11 @@ export class SigningService {
     return this.api.post<void>(`/v1/sign/${token}/reject`, { reason });
   }
 
+  /** Reviewers/approvers only — pauses the workflow for a revision instead of rejecting it. */
+  requestChanges(token: string, reason: string): Observable<void> {
+    return this.api.post<void>(`/v1/sign/${token}/request-changes`, { reason });
+  }
+
   getDocumentSummary(token: string): Observable<AiSummaryDto> {
     return this.api.get<AiSummaryDto>(`/v1/sign/${token}/summary`);
   }

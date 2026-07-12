@@ -24,7 +24,8 @@ const STATUS_COLORS: Record<string, string> = {
   Rejected: '#ef4444',
   Expired: '#f97316',
   Cancelled: '#80868b',
-  WaitingForOthers: '#8b5cf6'
+  WaitingForOthers: '#8b5cf6',
+  ChangesRequested: '#d97706'
 };
 
 @Component({
@@ -278,9 +279,9 @@ export class DocumentsListComponent implements OnInit {
     return `${c}20`;
   }
 
-  /** Remaining SLA time for active requests (hidden for terminal/draft states). */
+  /** Remaining SLA time for active requests (hidden for terminal/draft/paused states). */
   remainingFor(doc: DocumentSummary): RemainingTime | null {
-    if (['Draft', 'Completed', 'Rejected', 'Cancelled'].includes(doc.status)) return null;
+    if (['Draft', 'Completed', 'Rejected', 'Cancelled', 'ChangesRequested'].includes(doc.status)) return null;
     return remainingTime(doc.expiresAt);
   }
 

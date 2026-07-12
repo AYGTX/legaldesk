@@ -73,6 +73,31 @@ public class Recipient : BaseEntity
         DeclineReason = reason;
     }
 
+    /// <summary>Non-terminal counterpart of Reject: pauses the flow until the owner revises.</summary>
+    public void RequestChanges(string reason)
+    {
+        Status = WorkflowStepStatus.ChangesRequested;
+        DeclineReason = reason;
+    }
+
+    /// <summary>
+    /// Puts the recipient back into a fresh full-re-approval round after a revision upload.
+    /// Signature rows and ViewedAt are kept as evidence/history; the signing link is extended
+    /// so round-2 participants aren't locked out by a token minted for round 1.
+    /// </summary>
+    public void ResetForRevision()
+    {
+        Status = WorkflowStepStatus.Pending;
+        SignedAt = null;
+        SignedIp = null;
+        SignedUserAgent = null;
+        SignedLocation = null;
+        DeclineReason = null;
+        ReminderSent = false;
+        LastReminderSentAt = null;
+        TokenExpiresAt = DateTime.UtcNow.AddDays(30);
+    }
+
     public void MarkReminderSent()
     {
         ReminderSent = true;

@@ -112,6 +112,33 @@ public class DocumentsController(
         return CreatedAtAction(nameof(GetDocument), new { id = result.DocumentId }, result);
     }
 
+    /// <summary>Upload a revised PDF after changes were requested — voids field completion and returns the document to Draft for re-send</summary>
+    [HttpPost("{id:guid}/revision")]
+    [RequestSizeLimit(100 * 1024 * 1024)]
+    [ProducesResponseType(typeof(UploadRevisionResult), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<ActionResult<UploadRevisionResult>> UploadRevision(
+        [FromRoute] Guid id,
+        [FromForm] UploadRevisionRequest request,
+        [FromServices] ICommandHandler<UploadRevisionCommand, UploadRevisionResult> revisionHandler,
+        CancellationToken ct)
+    {
+        if (request.File.Length == 0)
+            return BadRequest(new ProblemDetails { Title = "Invalid file", Detail = "File is empty." });
+
+        var command = new UploadRevisionCommand(
+            id,
+            request.File.OpenReadStream(),
+            request.File.FileName,
+            request.File.Length,
+            request.File.ContentType,
+            request.ChangeNote);
+
+        var result = await revisionHandler.HandleAsync(command, ct);
+        return Ok(result);
+    }
+
     /// <summary>Send document for signing</summary>
     [HttpPost("{id:guid}/send")]
     [ProducesResponseType(204)]
@@ -185,3 +212,5 @@ public record UploadDocumentRequest(
     Guid? RequestTypeId = null);
 
 public record ReopenDocumentRequest(int? SlaHours);
+
+public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);

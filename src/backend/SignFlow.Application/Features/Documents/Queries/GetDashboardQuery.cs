@@ -15,7 +15,8 @@ public record DashboardDto(
     int Drafts,
     int TotalDocuments,
     List<RecentActivityDto> RecentActivity,
-    List<DocumentSummaryDto> PendingDocuments);
+    List<DocumentSummaryDto> PendingDocuments,
+    int ChangesRequested = 0);
 
 public record RecentActivityDto(Guid DocumentId, string DocumentTitle, AuditAction Action, string? ActorName, DateTime Timestamp, string? Description);
 
@@ -43,6 +44,7 @@ public class GetDashboardQueryHandler(
         var rejected = await ownedDocs.CountAsync(d => d.Status == DocumentStatus.Rejected, cancellationToken);
         var expired = await ownedDocs.CountAsync(d => d.Status == DocumentStatus.Expired, cancellationToken);
         var drafts = await ownedDocs.CountAsync(d => d.Status == DocumentStatus.Draft, cancellationToken);
+        var changesRequested = await ownedDocs.CountAsync(d => d.Status == DocumentStatus.ChangesRequested, cancellationToken);
         var total = await ownedDocs.CountAsync(cancellationToken);
 
         var recentActivity = await db.AuditLogs.AsNoTracking()
@@ -65,6 +67,6 @@ public class GetDashboardQueryHandler(
                 d.RequestType != null ? d.RequestType.Name : null))
             .ToListAsync(cancellationToken);
 
-        return new DashboardDto(pendingSignatures, waitingForOthers, completed, rejected, expired, drafts, total, recentActivity, pendingDocuments);
+        return new DashboardDto(pendingSignatures, waitingForOthers, completed, rejected, expired, drafts, total, recentActivity, pendingDocuments, changesRequested);
     }
 }

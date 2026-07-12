@@ -20,7 +20,8 @@ const ICONS: Record<NotificationType, string> = {
   Expired: 'event_busy',
   WorkflowFinished: 'verified',
   DelegationRequest: 'forward',
-  CommentMention: 'comment'
+  CommentMention: 'comment',
+  ChangesRequested: 'published_with_changes'
 };
 
 const COLORS: Record<NotificationType, string> = {
@@ -31,7 +32,8 @@ const COLORS: Record<NotificationType, string> = {
   Expired:          '#b3261e',
   WorkflowFinished: '#1e6b2e',
   DelegationRequest:'#6750a4',
-  CommentMention:   '#0b57d0'
+  CommentMention:   '#0b57d0',
+  ChangesRequested: '#b26a00'
 };
 
 @Component({

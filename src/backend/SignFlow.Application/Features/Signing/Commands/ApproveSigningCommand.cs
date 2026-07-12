@@ -42,13 +42,20 @@ public class ApproveSigningCommandHandler(
         if (recipient.ApprovalType == ApprovalType.ViewOnly)
             throw new ConflictException("View-only participants don't approve documents.");
 
+        if (recipient.Document.Status == DocumentStatus.ChangesRequested)
+            throw new ConflictException("Changes have been requested on this document — it is paused until the owner uploads a revision.");
+
+        // Post-revision the document sits in Draft while the owner re-places fields, but the
+        // signing links are already circulating — block approvals until the explicit re-send.
+        if (recipient.Document.Status == DocumentStatus.Draft)
+            throw new ConflictException("This document is being revised by its owner and is not open for signing yet.");
+
         // Load the fields this recipient is responsible for. Content signers also own orphaned
         // fields (legacy documents saved before the client-ID preservation fix); reviewers and
         // approvers gate the workflow without completing fields, so they only validate fields
         // explicitly assigned to them (normally none).
         var canClaimOrphans = recipient.ApprovalType is ApprovalType.Signature or ApprovalType.Stamp;
         var allFields = await db.SignatureFields
-            .Include(f => f.Signature)
             .Where(f => f.DocumentId == recipient.DocumentId &&
                         (f.RecipientId == recipient.Id ||
                          (canClaimOrphans &&
@@ -74,11 +81,10 @@ public class ApproveSigningCommandHandler(
             {
                 // Last signer — collect ALL signatures across every recipient for this document
                 var allDocFields = await db.SignatureFields
-                    .Include(f => f.Signature)
+                    .Include(f => f.Signatures)
                     .Where(f => f.DocumentId == recipient.DocumentId
                              && f.IsSigned
-                             && f.Signature != null
-                             && f.Signature.ImageUrl != null)
+                             && f.Signatures.Any(s => s.ImageUrl != null))
                     .ToListAsync(cancellationToken);
 
                 // Build a name lookup so each signature block shows the correct signer
@@ -91,12 +97,15 @@ public class ApproveSigningCommandHandler(
                     : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(
                         recipient.Document.FilledValuesJson) ?? [];
 
+                // A field re-signed after a revision keeps its old rows as evidence; the
+                // current round's signature is the latest one.
                 var sigSummaries = allDocFields
-                    .OrderBy(f => f.Signature!.SignedAt)
-                    .Select(f => new HtmlTemplatePdfSignature(
-                        f.Signature!.ImageUrl!,
-                        f.RecipientId.HasValue && recipientNames.TryGetValue(f.RecipientId.Value, out var n) ? n : recipient.Name,
-                        f.Signature.SignedAt))
+                    .Select(f => (Field: f, Sig: f.Signatures.Where(s => s.ImageUrl != null).OrderByDescending(s => s.SignedAt).First()))
+                    .OrderBy(x => x.Sig.SignedAt)
+                    .Select(x => new HtmlTemplatePdfSignature(
+                        x.Sig.ImageUrl!,
+                        x.Field.RecipientId.HasValue && recipientNames.TryGetValue(x.Field.RecipientId.Value, out var n) ? n : recipient.Name,
+                        x.Sig.SignedAt))
                     .ToList();
 
                 // Render the HTML template from the snapshot taken at request-creation time —
@@ -130,14 +139,15 @@ public class ApproveSigningCommandHandler(
             // approver's fields, erasing earlier signers' stamps from the final artifact — and a
             // reviewer/approver finishing last would have produced an empty stamp pass.
             var signedDocFields = await db.SignatureFields
-                .Include(f => f.Signature)
+                .Include(f => f.Signatures)
                 .Where(f => f.DocumentId == recipient.DocumentId && f.IsSigned)
                 .ToListAsync(cancellationToken);
 
+            // Latest signature per field = the current round's (older rows are kept evidence).
             var stampDtos = signedDocFields
                 .Select(f => new StampFieldDto(
                     f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height,
-                    f.SignedValue, f.Signature?.ImageUrl))
+                    f.SignedValue, f.Signatures.OrderByDescending(s => s.SignedAt).FirstOrDefault()?.ImageUrl))
                 .ToList();
 
             var stampedStream = await pdfStamp.StampAsync(recipient.Document.StoragePath, stampDtos, cancellationToken);

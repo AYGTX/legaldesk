@@ -48,5 +48,8 @@ public class Workflow : BaseEntity
         CompletedAt = DateTime.UtcNow;
     }
 
+    /// <summary>Pauses the workflow while the owner revises — non-terminal, so no CompletedAt.</summary>
+    public void RequestChanges() => Status = WorkflowStepStatus.ChangesRequested;
+
     public void AdvanceToNextStep() => CurrentStepOrder++;
 }

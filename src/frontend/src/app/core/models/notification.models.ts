@@ -1,6 +1,7 @@
 export type NotificationType =
   | 'DocumentReceived' | 'Reminder' | 'Completed' | 'Rejected'
-  | 'Expired' | 'WorkflowFinished' | 'DelegationRequest' | 'CommentMention';
+  | 'Expired' | 'WorkflowFinished' | 'DelegationRequest' | 'CommentMention'
+  | 'ChangesRequested';
 
 export interface AppNotification {
   id: string;

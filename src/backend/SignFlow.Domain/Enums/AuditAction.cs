@@ -25,5 +25,8 @@ public enum AuditAction
     EscalationTriggered = 20,
     CommentAdded = 21,
     AttachmentUploaded = 22,
-    AuthenticationEvent = 23
+    AuthenticationEvent = 23,
+    ChangesRequested = 24,
+    RevisionUploaded = 25,
+    SignaturesVoided = 26
 }

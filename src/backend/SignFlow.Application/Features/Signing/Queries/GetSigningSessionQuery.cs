@@ -29,7 +29,9 @@ public record SigningSessionDto(
     bool IsHtmlTemplate = false,
     string? RenderedHtmlContent = null,
     // Expiry of this specific signing link (distinct from the document's overall SLA deadline above)
-    DateTime? LinkExpiresAt = null);
+    DateTime? LinkExpiresAt = null,
+    // Lets the signing UI show the paused/changes-requested state to every participant
+    DocumentStatus DocumentStatus = DocumentStatus.InProgress);
 
 public record RecipientSessionDto(Guid Id, string Name, string Email, ApprovalType ApprovalType, WorkflowStepStatus Status, string? RoleLabel = null);
 
@@ -154,6 +156,7 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
             participants,
             isHtmlTemplate,
             renderedHtml,
-            recipient.TokenExpiresAt);
+            recipient.TokenExpiresAt,
+            recipient.Document.Status);
     }
 }

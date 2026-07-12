@@ -30,9 +30,11 @@ public class SignatureFieldConfiguration : IEntityTypeConfiguration<SignatureFie
             .HasForeignKey(f => f.RecipientId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        builder.HasOne(f => f.Signature)
+        // One-to-many: a field re-signed after a revision keeps its round-1 Signature row
+        // as evidence alongside the new one (was 1:1 before the request-changes loop).
+        builder.HasMany(f => f.Signatures)
             .WithOne(s => s.SignatureField)
-            .HasForeignKey<Signature>(s => s.SignatureFieldId)
+            .HasForeignKey(s => s.SignatureFieldId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(f => f.DocumentId);

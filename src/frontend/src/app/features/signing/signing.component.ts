@@ -65,7 +65,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             {{ 'signing.topbar.linkPillLabel' | translate: { time: lr.text } }}
           </span>
         }
-        @if (session() && session()!.isMyTurn && !session()!.isCompleted && !session()!.isRejected && !session()!.isExpired && session()!.recipient.approvalType !== 'ViewOnly') {
+        @if (session() && session()!.isMyTurn && !session()!.isCompleted && !session()!.isRejected && !session()!.isExpired && session()!.documentStatus !== 'ChangesRequested' && session()!.recipient.approvalType !== 'ViewOnly') {
           @if (reviewMode()) {
             <div class="topbar-actions">
               <button mat-stroked-button (click)="reviewMode.set(false)">
@@ -78,6 +78,11 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             </div>
           } @else {
             <div class="topbar-actions">
+              @if (isNonSigner()) {
+                <button mat-stroked-button class="request-changes-btn" (click)="openRequestChangesDialog()">
+                  <mat-icon>published_with_changes</mat-icon> {{ 'signing.topbar.requestChanges' | translate }}
+                </button>
+              }
               <button mat-stroked-button color="warn" (click)="openRejectDialog()">
                 <mat-icon>cancel</mat-icon> {{ 'signing.topbar.decline' | translate }}
               </button>
@@ -112,6 +117,25 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             <div class="waiting-flow">
               <sf-workflow-visualizer [participants]="session()!.participants" [showHeader]="false"></sf-workflow-visualizer>
             </div>
+            <div class="waiting-comments">
+              <sf-comments-panel [token]="token"></sf-comments-panel>
+            </div>
+          </div>
+
+        } @else if (session()!.documentStatus === 'ChangesRequested' || session()!.documentStatus === 'Draft') {
+          <!-- Revision loop: paused after a change request, or back in Draft while the owner revises -->
+          <div class="status-screen changes">
+            <mat-icon>published_with_changes</mat-icon>
+            @if (session()!.recipient.status === 'ChangesRequested') {
+              <h2>{{ 'signing.status.changesRequestedOwnTitle' | translate }}</h2>
+              <p>{{ 'signing.status.changesRequestedOwnBody' | translate }}</p>
+            } @else if (session()!.documentStatus === 'Draft') {
+              <h2>{{ 'signing.status.revisionInProgressTitle' | translate }}</h2>
+              <p>{{ 'signing.status.revisionInProgressBody' | translate }}</p>
+            } @else {
+              <h2>{{ 'signing.status.changesRequestedTitle' | translate }}</h2>
+              <p>{{ 'signing.status.changesRequestedBody' | translate }}</p>
+            }
             <div class="waiting-comments">
               <sf-comments-panel [token]="token"></sf-comments-panel>
             </div>
@@ -172,6 +196,11 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                   </div>
                 </div>
                 <div class="summary-actions">
+                  @if (isNonSigner()) {
+                    <button mat-stroked-button class="request-changes-btn" (click)="openRequestChangesDialog()">
+                      <mat-icon>published_with_changes</mat-icon> {{ 'signing.topbar.requestChanges' | translate }}
+                    </button>
+                  }
                   <button mat-stroked-button color="warn" (click)="openRejectDialog()">
                     <mat-icon>cancel</mat-icon> {{ 'signing.topbar.decline' | translate }}
                   </button>
@@ -335,6 +364,11 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 </div>
               }
               <div class="html-sig-actions">
+                @if (isNonSigner()) {
+                  <button mat-stroked-button class="request-changes-btn" (click)="openRequestChangesDialog()">
+                    <mat-icon>published_with_changes</mat-icon> {{ 'signing.topbar.requestChanges' | translate }}
+                  </button>
+                }
                 <button mat-stroked-button color="warn" (click)="openRejectDialog()">
                   <mat-icon>cancel</mat-icon> {{ 'signing.topbar.decline' | translate }}
                 </button>
@@ -783,6 +817,28 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   finish(): void {
     // Kept for compatibility — entering review mode replaces the old instant-finish flow.
     this.reviewMode.set(true);
+  }
+
+  openRequestChangesDialog(): void {
+    const reason = prompt(this.translate.instant('signing.requestChangesPrompt'));
+    if (reason === null) return; // Cancelled
+    if (!reason.trim()) {
+      this.snackBar.open(
+        this.translate.instant('signing.errors.requestChangesReasonRequired'),
+        this.translate.instant('signing.dismiss'),
+        { duration: 4000 });
+      return;
+    }
+    this.signingService.requestChanges(this.token, reason.trim()).subscribe({
+      next: () => this.session.update(s => s
+        ? { ...s, documentStatus: 'ChangesRequested', recipient: { ...s.recipient, status: 'ChangesRequested' } }
+        : s),
+      error: err => this.snackBar.open(
+        err.error?.detail ?? this.translate.instant('signing.errors.requestChangesFailed'),
+        this.translate.instant('signing.dismiss'),
+        { duration: 4000 }
+      )
+    });
   }
 
   openRejectDialog(): void {

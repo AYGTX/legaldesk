@@ -74,6 +74,15 @@ public class SaveFieldsCommandHandler(
             .Where(f => f.DocumentId == command.DocumentId && !existingIds.Contains(f.Id))
             .ToListAsync(cancellationToken);
 
+        // A document back in Draft after a revision upload can carry Signature rows from the
+        // previous round — deleting their fields would cascade away that evidence. Such fields
+        // can be moved and reassigned, but never removed.
+        var toDeleteIds = toDelete.Select(f => f.Id).ToHashSet();
+        if (toDeleteIds.Count > 0 && await db.Signatures.AnyAsync(s => toDeleteIds.Contains(s.SignatureFieldId), cancellationToken))
+            throw new ConflictException(
+                "Some fields were signed in a previous version of this document and can't be removed. " +
+                "You can reposition or reassign them instead.");
+
         db.SignatureFields.RemoveRange(toDelete);
 
         foreach (var dto in command.Fields)

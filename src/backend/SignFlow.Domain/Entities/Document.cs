@@ -159,6 +159,33 @@ public class Document : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Replaces the document file with a revised upload after changes were requested.
+    /// The document returns to Draft so the owner can re-place fields (page coordinates may
+    /// shift in the new PDF) and explicitly re-send; the SLA clock restarts like on Reopen.
+    /// The previous file is preserved as a DocumentVersion row by the calling command.
+    /// </summary>
+    public void ApplyRevision(string fileName, string storagePath, long fileSizeBytes, int pageCount, string hash)
+    {
+        FileName = fileName;
+        StoragePath = storagePath;
+        FileSizeBytes = fileSizeBytes;
+        PageCount = pageCount;
+        Hash = hash;
+        Version++;
+        FinalStoragePath = null;
+        // The cached summary describes the previous file's content
+        AiSummary = null;
+        AiSummaryGeneratedAt = null;
+        if (SlaHours.HasValue)
+            ExpiresAt = DateTime.UtcNow.AddHours(SlaHours.Value);
+        else if (ExpirationDays.HasValue)
+            ExpiresAt = DateTime.UtcNow.AddDays(ExpirationDays.Value);
+        Status = DocumentStatus.Draft;
+        CompletedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void SetHtmlSource(Guid htmlTemplateId, string filledValuesJson, string htmlContentSnapshot)
     {
         HtmlTemplateId = htmlTemplateId;

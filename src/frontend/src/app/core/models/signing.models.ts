@@ -1,4 +1,4 @@
-import { ApprovalType, FieldType, WorkflowStepStatus } from './document.models';
+import { ApprovalType, DocumentStatus, FieldType, WorkflowStepStatus } from './document.models';
 import { WorkflowParticipant } from './workflow.models';
 
 export type SignatureType = 'Drawn' | 'Typed' | 'Uploaded' | 'Stamp';
@@ -23,6 +23,8 @@ export interface SigningSession {
   renderedHtmlContent?: string;
   /** Expiry of this specific signing link — distinct from the document's overall SLA deadline (expiresAt above). */
   linkExpiresAt?: string;
+  /** Lets the signing UI show the paused state ('ChangesRequested') to every participant. */
+  documentStatus: DocumentStatus;
 }
 
 export interface RecipientSession {

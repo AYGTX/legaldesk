@@ -32,6 +32,8 @@ import { WorkflowParticipant } from '../../core/models';
                 <mat-icon>close</mat-icon>
               } @else if (p.status === 'Skipped') {
                 <mat-icon>redo</mat-icon>
+              } @else if (p.status === 'ChangesRequested') {
+                <mat-icon>published_with_changes</mat-icon>
               } @else {
                 <span class="wf-order">{{ p.order }}</span>
               }
@@ -61,6 +63,7 @@ export class WorkflowVisualizerComponent {
   color(p: WorkflowParticipant): string {
     if (p.status === 'Completed') return '#22c55e';
     if (p.status === 'Rejected') return '#ef4444';
+    if (p.status === 'ChangesRequested') return '#d97706';
     if (p.status === 'Skipped' || p.status === 'Expired') return '#94a3b8';
     if (p.isCurrent) return '#6366f1';
     return '#cbd5e1';
@@ -72,6 +75,7 @@ export class WorkflowVisualizerComponent {
       case 'Rejected': return this.translate.instant('shared.workflowVisualizer.status.declined');
       case 'Skipped': return this.translate.instant('shared.workflowVisualizer.status.skipped');
       case 'Expired': return this.translate.instant('shared.workflowVisualizer.status.expired');
+      case 'ChangesRequested': return this.translate.instant('shared.workflowVisualizer.status.changesRequested');
       default: return p.isCurrent
         ? this.translate.instant('shared.workflowVisualizer.status.signingNow')
         : this.translate.instant('shared.workflowVisualizer.status.waiting');

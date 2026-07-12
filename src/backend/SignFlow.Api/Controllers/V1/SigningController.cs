@@ -131,10 +131,26 @@ public class SigningController(
         await rejectHandler.HandleAsync(new RejectDocumentCommand(token, request.Reason), ct);
         return NoContent();
     }
+
+    /// <summary>Request changes on a document (reviewers/approvers) — pauses the workflow instead of rejecting it</summary>
+    [HttpPost("{token}/request-changes")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<IActionResult> RequestChanges(
+        [FromRoute] string token,
+        [FromBody] RequestChangesRequest request,
+        [FromServices] ICommandHandler<RequestChangesCommand> requestChangesHandler,
+        CancellationToken ct)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        await requestChangesHandler.HandleAsync(new RequestChangesCommand(token, request.Reason, ip), ct);
+        return NoContent();
+    }
 }
 
 public record SignFieldRequest(SignFlow.Domain.Enums.SignatureType SignatureType, string? ImageBase64, string? TypedText, string? FontFamily, string? Location);
 public record RejectRequest(string Reason);
+public record RequestChangesRequest(string Reason);
 
 /// <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
 public record AddSigningCommentRequest(string Content, Guid? ParentCommentId, int? Page, float? X, float? Y);

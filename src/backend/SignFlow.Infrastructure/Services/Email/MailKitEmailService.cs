@@ -82,6 +82,7 @@ public class MailKitEmailService(IOptions<EmailSettings> settings, ILogger<MailK
         "Reminder" => "Reminder: Document awaiting your signature",
         "Completed" => "Document signed successfully",
         "Rejected" => "Document was rejected",
+        "ChangesRequested" => "Changes requested on your document",
         "Expired" => "Document has expired",
         "ForgotPassword" => "Reset your password",
         _ => $"SignFlow Notification"

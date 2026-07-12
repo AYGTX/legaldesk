@@ -54,6 +54,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<SendDocumentCommand>, SendDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteDocumentCommand>, DeleteDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<ReopenDocumentCommand>, ReopenDocumentCommandHandler>();
+        services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
 
         // Document query handlers
         services.AddScoped<IQueryHandler<GetDocumentsQuery, PagedResult<DocumentSummaryDto>>, GetDocumentsQueryHandler>();
@@ -72,6 +73,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<SignFieldCommand, SignFieldResult>, SignFieldCommandHandler>();
         services.AddScoped<ICommandHandler<ApproveSigningCommand, ApproveSigningResult>, ApproveSigningCommandHandler>();
         services.AddScoped<ICommandHandler<RejectDocumentCommand>, RejectDocumentCommandHandler>();
+        services.AddScoped<ICommandHandler<RequestChangesCommand>, RequestChangesCommandHandler>();
         services.AddScoped<IQueryHandler<GetSigningSessionQuery, SigningSessionDto>, GetSigningSessionQueryHandler>();
 
         // Audit

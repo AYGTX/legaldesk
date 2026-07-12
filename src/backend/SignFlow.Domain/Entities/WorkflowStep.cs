@@ -55,6 +55,13 @@ public class WorkflowStep : BaseEntity
 
     public void Skip() { Status = WorkflowStepStatus.Skipped; CompletedAt = DateTime.UtcNow; }
 
+    /// <summary>Non-terminal counterpart of Reject — the round pauses, so no CompletedAt.</summary>
+    public void RequestChanges(string reason)
+    {
+        Status = WorkflowStepStatus.ChangesRequested;
+        DeclineReason = reason;
+    }
+
     public void SetDueDate(DateTime dueAt) => DueAt = dueAt;
     public void SetConditionalExpression(string expression) => ConditionalExpression = expression;
     public void SetEscalation(string email, int days) { EscalationEmail = email; EscalationDays = days; }

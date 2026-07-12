@@ -42,6 +42,14 @@ export class DocumentService {
     return this.api.post<void>(`/v1/documents/${id}/send`);
   }
 
+  /** Owner response to a change request: swaps in a revised PDF and returns the document to Draft. */
+  uploadRevision(id: string, file: File, changeNote?: string): Observable<{ documentId: string; version: number; pageCount: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (changeNote?.trim()) formData.append('changeNote', changeNote.trim());
+    return this.api.upload(`/v1/documents/${id}/revision`, formData);
+  }
+
   /** Admin: reopen an expired request, restarting its SLA clock. */
   reopen(id: string, slaHours?: number): Observable<void> {
     return this.api.post<void>(`/v1/documents/${id}/reopen`, { slaHours: slaHours ?? null });

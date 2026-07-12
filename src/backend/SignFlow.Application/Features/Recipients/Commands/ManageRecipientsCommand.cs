@@ -74,6 +74,21 @@ public class ManageRecipientsCommandHandler(
             .Where(r => r.DocumentId == command.DocumentId && !existingIds.Contains(r.Id))
             .ToListAsync(cancellationToken);
 
+        // A document back in Draft after a revision upload can carry Signature rows from the
+        // previous round — those recipients are signing evidence and can't be removed.
+        var toDeleteIds = toDelete.Select(r => r.Id).ToHashSet();
+        if (toDeleteIds.Count > 0)
+        {
+            var withEvidence = await db.Signatures
+                .Where(s => toDeleteIds.Contains(s.RecipientId))
+                .Select(s => s.Recipient.Email)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+            if (withEvidence.Count > 0)
+                throw new ConflictException(
+                    $"These recipients signed a previous version of this document and can't be removed: {string.Join(", ", withEvidence)}.");
+        }
+
         db.Recipients.RemoveRange(toDelete);
         document.SetWorkflowType(command.WorkflowType);
         document.SetHideRecipientIdentities(command.HideRecipientIdentities);

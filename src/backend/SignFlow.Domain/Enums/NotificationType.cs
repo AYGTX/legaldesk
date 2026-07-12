@@ -9,5 +9,6 @@ public enum NotificationType
     Expired = 4,
     WorkflowFinished = 5,
     DelegationRequest = 6,
-    CommentMention = 7
+    CommentMention = 7,
+    ChangesRequested = 8
 }

@@ -9,5 +9,6 @@ public enum DocumentStatus
     Rejected = 4,
     Expired = 5,
     Cancelled = 6,
-    WaitingForOthers = 7
+    WaitingForOthers = 7,
+    ChangesRequested = 8
 }

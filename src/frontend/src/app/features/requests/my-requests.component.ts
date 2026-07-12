@@ -15,14 +15,14 @@ const STATUS_COLORS: Record<string, string> = {
   Draft: '#5f6368', Pending: '#f59e0b', InProgress: '#1a73e8', Sent: '#1a73e8',
   Completed: '#34a853', Rejected: '#ea4335', Expired: '#f29900',
   Cancelled: '#80868b', WaitingForOthers: '#8430ce', Skipped: '#80868b',
-  Delegated: '#8430ce', Escalated: '#f29900'
+  Delegated: '#8430ce', Escalated: '#f29900', ChangesRequested: '#d97706'
 };
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   Draft: 'draft', Pending: 'pending', InProgress: 'inProgress', Sent: 'sent',
   Completed: 'completed', Rejected: 'rejected', Expired: 'expired',
   Cancelled: 'cancelled', WaitingForOthers: 'waitingForOthers', Skipped: 'skipped',
-  Delegated: 'delegated', Escalated: 'escalated'
+  Delegated: 'delegated', Escalated: 'escalated', ChangesRequested: 'changesRequested'
 };
 
 @Component({
@@ -285,6 +285,7 @@ export class MyRequestsComponent implements OnInit {
       case 'Expired': return 'schedule';
       case 'Skipped': return 'skip_next';
       case 'Delegated': return 'forward';
+      case 'ChangesRequested': return 'published_with_changes';
       default: return 'radio_button_unchecked';
     }
   }
@@ -299,7 +300,8 @@ export class MyRequestsComponent implements OnInit {
   }
 
   remainingForSent(s: SentRequest): RemainingTime | null {
-    if (s.status === 'Completed' || s.status === 'Rejected' || s.status === 'Cancelled') return null;
+    // ChangesRequested pauses the flow (the SLA clock restarts on revision upload) — no countdown.
+    if (s.status === 'Completed' || s.status === 'Rejected' || s.status === 'Cancelled' || s.status === 'ChangesRequested') return null;
     return remainingTime(s.expiresAt);
   }
 

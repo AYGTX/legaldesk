@@ -298,6 +298,16 @@ export class DashboardComponent implements OnInit {
         route: '/documents',
         queryParam: { status: 'Sent' },
       },
+      // Attention state — only surfaces while a revision is being waited on.
+      ...(d.changesRequested > 0 ? [{
+        label: this.translate.instant('dashboard.stats.changesRequested'),
+        value: d.changesRequested,
+        icon: 'published_with_changes',
+        color: '#d97706',
+        bgColor: '#fffbeb',
+        route: '/documents',
+        queryParam: { status: 'ChangesRequested' },
+      }] : []),
       {
         label: this.translate.instant('dashboard.stats.drafts'),
         value: d.drafts,
@@ -344,6 +354,9 @@ export class DashboardComponent implements OnInit {
     CommentAdded: 'dashboard.activity.actions.commentAdded',
     AttachmentUploaded: 'dashboard.activity.actions.attachmentUploaded',
     AuthenticationEvent: 'dashboard.activity.actions.authenticationEvent',
+    ChangesRequested: 'dashboard.activity.actions.changesRequested',
+    RevisionUploaded: 'dashboard.activity.actions.revisionUploaded',
+    SignaturesVoided: 'dashboard.activity.actions.signaturesVoided',
   };
 
   actionKey(action: string): string {

@@ -37,10 +37,13 @@ public record DocumentDetailDto(
     OwnerDto Owner,
     List<RecipientDto> Recipients,
     List<SignatureFieldDto> Fields,
-    WorkflowDto? Workflow);
+    WorkflowDto? Workflow,
+    int Version = 1,
+    List<DocumentVersionDto>? Versions = null);
 
 public record OwnerDto(Guid Id, string FullName, string Email, string? AvatarUrl);
-public record RecipientDto(Guid Id, string Name, string Email, int Order, ApprovalType ApprovalType, WorkflowStepStatus Status, string SecureToken, DateTime? SignedAt, DateTime? ViewedAt, string? RoleLabel = null);
+public record RecipientDto(Guid Id, string Name, string Email, int Order, ApprovalType ApprovalType, WorkflowStepStatus Status, string SecureToken, DateTime? SignedAt, DateTime? ViewedAt, string? RoleLabel = null, string? DeclineReason = null);
+public record DocumentVersionDto(Guid Id, int VersionNumber, long FileSizeBytes, string? ChangeNote, string? ChangedByName, DateTime CreatedAt);
 public record SignatureFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, Guid? RecipientId, string? Label, string? Placeholder, bool IsRequired, bool IsSigned, DateTime? SignedAt, int ZIndex, string? FontFamily, float? FontSize, string? FontColor, string? BackgroundColor, string? BorderColor, string? Options, string? DefaultValue, string? ValidationRule, bool IsReadOnly, string? Tooltip);
 public record WorkflowDto(Guid Id, WorkflowType Type, WorkflowStepStatus Status, int CurrentStepOrder, List<WorkflowStepDto> Steps);
 public record WorkflowStepDto(Guid Id, int Order, string Name, ApprovalType ApprovalType, WorkflowStepStatus Status, Guid RecipientId, bool IsParallel, DateTime? DueAt, DateTime? CompletedAt);
@@ -56,6 +59,7 @@ public class GetDocumentByIdQueryHandler(
             .Include(d => d.RequestType)
             .Include(d => d.Recipients)
             .Include(d => d.SignatureFields)
+            .Include(d => d.Versions)
             .Include(d => d.Workflow)
                 .ThenInclude(w => w.Steps)
             .FirstOrDefaultAsync(d => d.Id == query.DocumentId && !d.IsDeleted, cancellationToken)
@@ -69,6 +73,13 @@ public class GetDocumentByIdQueryHandler(
             if (!isRecipient)
                 throw new ForbiddenAccessException();
         }
+
+        var changerIds = document.Versions.Select(v => v.ChangedById).Distinct().ToList();
+        Dictionary<Guid, string> changerNames = changerIds.Count == 0
+            ? []
+            : await db.Users.AsNoTracking()
+                .Where(u => changerIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.FullName, cancellationToken);
 
         return new DocumentDetailDto(
             document.Id,
@@ -99,7 +110,7 @@ public class GetDocumentByIdQueryHandler(
             new OwnerDto(document.Owner.Id, document.Owner.FullName, document.Owner.Email!, document.Owner.AvatarUrl),
             document.Recipients
                 .OrderBy(r => r.Order)
-                .Select(r => new RecipientDto(r.Id, r.Name, r.Email, r.Order, r.ApprovalType, r.Status, r.SecureToken, r.SignedAt, r.ViewedAt, r.RoleLabel))
+                .Select(r => new RecipientDto(r.Id, r.Name, r.Email, r.Order, r.ApprovalType, r.Status, r.SecureToken, r.SignedAt, r.ViewedAt, r.RoleLabel, r.DeclineReason))
                 .ToList(),
             document.SignatureFields
                 .Select(f => new SignatureFieldDto(f.Id, f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height, f.Rotation, f.RecipientId, f.Label, f.Placeholder, f.IsRequired, f.IsSigned, f.SignedAt, f.ZIndex, f.FontFamily, f.FontSize, f.FontColor, f.BackgroundColor, f.BorderColor, f.Options, f.DefaultValue, f.ValidationRule, f.IsReadOnly, f.Tooltip))
@@ -112,6 +123,14 @@ public class GetDocumentByIdQueryHandler(
                 document.Workflow.Steps
                     .OrderBy(s => s.Order)
                     .Select(s => new WorkflowStepDto(s.Id, s.Order, s.Name, s.ApprovalType, s.Status, s.RecipientId, s.IsParallel, s.DueAt, s.CompletedAt))
-                    .ToList()));
+                    .ToList()),
+            document.Version,
+            document.Versions
+                .OrderByDescending(v => v.VersionNumber)
+                .Select(v => new DocumentVersionDto(
+                    v.Id, v.VersionNumber, v.FileSizeBytes, v.ChangeNote,
+                    changerNames.TryGetValue(v.ChangedById, out var name) ? name : null,
+                    v.CreatedAt))
+                .ToList());
     }
 }

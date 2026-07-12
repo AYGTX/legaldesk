@@ -53,6 +53,14 @@ public class SignFieldCommandHandler(
         if (recipient.ApprovalType == ApprovalType.ViewOnly)
             throw new ConflictException("View-only participants cannot sign fields.");
 
+        if (recipient.Document.Status == DocumentStatus.ChangesRequested)
+            throw new ConflictException("Changes have been requested on this document — it is paused until the owner uploads a revision.");
+
+        // Post-revision the document sits in Draft while the owner re-places fields, but the
+        // signing links are already circulating — block signing until the explicit re-send.
+        if (recipient.Document.Status == DocumentStatus.Draft)
+            throw new ConflictException("This document is being revised by its owner and is not open for signing yet.");
+
         if (recipient.Document.IsExpired())
         {
             if (recipient.Document.Status == DocumentStatus.InProgress)

@@ -235,7 +235,8 @@
       "totalDocuments": "Total Documents",
       "completed": "Completed",
       "pending": "Pending",
-      "drafts": "Drafts"
+      "drafts": "Drafts",
+      "changesRequested": "Changes Requested"
     },
     "activity": {
       "title": "Recent Activity",
@@ -266,7 +267,10 @@
         "escalationTriggered": "Escalation triggered",
         "commentAdded": "Comment added",
         "attachmentUploaded": "Attachment uploaded",
-        "authenticationEvent": "Authentication event"
+        "authenticationEvent": "Authentication event",
+        "changesRequested": "Changes requested",
+        "revisionUploaded": "Revision uploaded",
+        "signaturesVoided": "Signatures voided"
       }
     },
     "sla": {
@@ -310,7 +314,8 @@
         "Rejected": "Rejected",
         "Expired": "Expired",
         "Cancelled": "Cancelled",
-        "WaitingForOthers": "Waiting"
+        "WaitingForOthers": "Waiting",
+        "ChangesRequested": "Changes requested"
       },
       "noDocumentsFound": "No documents found",
       "documentCountSingular": "{{count}} document",
@@ -340,7 +345,8 @@
         "Rejected": "Rejected",
         "Expired": "Expired",
         "Cancelled": "Cancelled",
-        "WaitingForOthers": "Waiting"
+        "WaitingForOthers": "Waiting",
+        "ChangesRequested": "Changes requested"
       },
       "pageCountSingular": "{{count}} page",
       "pageCountPlural": "{{count}} pages",
@@ -364,7 +370,8 @@
         "inProgress": "In Progress",
         "skipped": "Skipped",
         "delegated": "Delegated",
-        "pending": "Pending"
+        "pending": "Pending",
+        "changesRequested": "Changes requested"
       },
       "roles": {
         "Signature": "Signer",
@@ -395,7 +402,19 @@
       "backToDocuments": "Back to Documents",
       "confirmSend": "Send this document for signatures? Recipients will be notified by email.",
       "sendFailed": "Failed to send document",
-      "reopenFailed": "Failed to reopen request"
+      "reopenFailed": "Failed to reopen request",
+      "changesRequestedTitle": "Changes requested",
+      "changesRequestedBy": "{{name}} requested changes",
+      "changesRequestedHint": "A participant requested changes. Upload a revised PDF to restart the approval round.",
+      "changeNotePlaceholder": "What changed in this revision? (optional)",
+      "uploadRevision": "Upload Revision",
+      "uploadingRevision": "Uploading…",
+      "revisionUploaded": "Revision v{{version}} uploaded. Review the fields, then re-send the document.",
+      "revisionFailed": "Failed to upload revision",
+      "versionsTitle": "Version History",
+      "currentVersion": "Current version",
+      "noChangeNote": "No change note",
+      "versionTooltip": "This document has been revised — see the version history"
     },
     "upload": {
       "title": "Upload Document",
@@ -771,7 +790,8 @@
       "waitingForOthers": "Waiting",
       "skipped": "Skipped",
       "delegated": "Delegated",
-      "escalated": "Escalated"
+      "escalated": "Escalated",
+      "changesRequested": "Changes requested"
     },
     "new": {
       "pageTitle": "New Request",
@@ -906,7 +926,8 @@
         "skipped": "Skipped",
         "expired": "Expired",
         "signingNow": "Signing now",
-        "waiting": "Waiting"
+        "waiting": "Waiting",
+        "changesRequested": "Changes requested"
       },
       "tooltipStep": "Step {{order}}: {{name}} — {{status}}",
       "tooltipStepWithDate": "Step {{order}}: {{name}} — {{status}} ({{date}})"
@@ -939,6 +960,7 @@
       "approveSubmit": "Approve & Submit",
       "submitting": "Submitting…",
       "decline": "Decline",
+      "requestChanges": "Request Changes",
       "reviewSubmit": "Review & Submit",
       "reviewApprove": "Review & Approve",
       "loadingEllipsis": "Loading…",
@@ -955,6 +977,7 @@
     "dismiss": "Dismiss",
     "enterFieldPrompt": "Enter {{fieldType}}:",
     "declineReasonPrompt": "Please provide a reason for declining (optional):",
+    "requestChangesPrompt": "Describe the changes you need (required — the owner will revise the document):",
     "untitledDocument": "document",
     "summary": {
       "sentBy": "Sent by {{name}}",
@@ -985,7 +1008,13 @@
       "waitingForName": "{{name}} needs to sign before it's your turn.",
       "waitingGeneric": "An earlier signer must complete their part first.",
       "waitingSub": "You'll receive an email the moment it's your turn to sign.",
-      "invalidLinkTitle": "Link Invalid"
+      "invalidLinkTitle": "Link Invalid",
+      "changesRequestedOwnTitle": "Changes requested",
+      "changesRequestedOwnBody": "Your change request was sent to the document owner. You'll be notified when a revised version is ready for review.",
+      "changesRequestedTitle": "Document paused",
+      "changesRequestedBody": "A participant requested changes. The workflow is paused until the owner uploads a revised version.",
+      "revisionInProgressTitle": "Revision in progress",
+      "revisionInProgressBody": "The owner is revising this document. You'll be notified when the new version is ready for you."
     },
     "review": {
       "title": "Review Your Signature",
@@ -1016,7 +1045,9 @@
       "saveFieldFailed": "Failed to save field",
       "submitFailed": "Failed to submit signature. Please try again.",
       "declineFailed": "Failed to decline document",
-      "downloadFailed": "Download failed. Please try again."
+      "downloadFailed": "Download failed. Please try again.",
+      "requestChangesFailed": "Failed to request changes",
+      "requestChangesReasonRequired": "A reason is required to request changes"
     },
     "signatureDialog": {
       "addInitials": "Add Initials",

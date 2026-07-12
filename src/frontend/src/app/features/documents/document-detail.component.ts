@@ -44,6 +44,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 <span class="status-badge" [style.background]="statusBg()" [style.color]="statusColor()">
                   {{ statusLabel() }}
                 </span>
+                @if (doc()!.version > 1) {
+                  <span class="version-chip" [matTooltip]="'documents.detail.versionTooltip' | translate">v{{ doc()!.version }}</span>
+                }
                 @if (doc()!.requestTypeName) {
                   <span class="type-chip" [style.background]="(doc()!.requestTypeColor || '#1a73e8') + '20'"
                         [style.color]="doc()!.requestTypeColor || '#1a73e8'">
@@ -86,6 +89,39 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             </button>
           </div>
         </div>
+
+        <!-- Changes-requested banner: a participant paused the flow; the owner answers with a revised PDF -->
+        @if (doc()!.status === 'ChangesRequested') {
+          <div class="changes-banner">
+            <div class="cb-left">
+              <mat-icon class="crb-icon">published_with_changes</mat-icon>
+              <div>
+                <strong>{{ 'documents.detail.changesRequestedTitle' | translate }}</strong>
+                <span class="crb-sub">
+                  @if (changeRequester(); as cr) {
+                    {{ 'documents.detail.changesRequestedBy' | translate: { name: cr.name } }}
+                    @if (cr.declineReason) { — “{{ cr.declineReason }}” }
+                  } @else {
+                    {{ 'documents.detail.changesRequestedHint' | translate }}
+                  }
+                </span>
+              </div>
+            </div>
+            @if (isOwner()) {
+              <div class="revision-form">
+                <input class="note-input" #noteInput
+                       [placeholder]="'documents.detail.changeNotePlaceholder' | translate"
+                       [disabled]="uploadingRevision()" />
+                <input type="file" accept="application/pdf" hidden #revisionInput
+                       (change)="onRevisionFile($event, noteInput.value)" />
+                <button mat-flat-button class="crb-upload-btn" (click)="revisionInput.click()" [disabled]="uploadingRevision()">
+                  <mat-icon>upload_file</mat-icon>
+                  {{ (uploadingRevision() ? 'documents.detail.uploadingRevision' : 'documents.detail.uploadRevision') | translate }}
+                </button>
+              </div>
+            }
+          </div>
+        }
 
         <!-- Completion banner -->
         @if (doc()!.status === 'Completed') {
@@ -145,6 +181,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                       @switch (r.status) {
                         @case ('Completed') { <mat-icon>check_circle</mat-icon> {{ (r.approvalType === 'Review' || r.approvalType === 'Approval' ? 'documents.detail.recipientStatus.approved' : 'documents.detail.recipientStatus.signed') | translate }} }
                         @case ('Rejected') { <mat-icon>cancel</mat-icon> {{ 'documents.detail.recipientStatus.rejected' | translate }} }
+                        @case ('ChangesRequested') { <mat-icon>published_with_changes</mat-icon> {{ 'documents.detail.recipientStatus.changesRequested' | translate }} }
                         @case ('InProgress') { <mat-icon>hourglass_top</mat-icon> {{ 'documents.detail.recipientStatus.inProgress' | translate }} }
                         @case ('Skipped') { <mat-icon>skip_next</mat-icon> {{ 'documents.detail.recipientStatus.skipped' | translate }} }
                         @case ('Delegated') { <mat-icon>forward</mat-icon> {{ 'documents.detail.recipientStatus.delegated' | translate }} }
@@ -232,6 +269,33 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               </mat-card-content>
             </mat-card>
 
+            <!-- Version history (only present once a revision was uploaded) -->
+            @if ((doc()!.versions?.length ?? 0) > 0) {
+              <mat-card class="versions-card">
+                <mat-card-header><mat-card-title>{{ 'documents.detail.versionsTitle' | translate }}</mat-card-title></mat-card-header>
+                <mat-card-content>
+                  <div class="version-row">
+                    <span class="version-badge current">v{{ doc()!.version }}</span>
+                    <div class="version-info">
+                      <span class="version-note">{{ 'documents.detail.currentVersion' | translate }}</span>
+                    </div>
+                  </div>
+                  @for (v of doc()!.versions; track v.id) {
+                    <div class="version-row">
+                      <span class="version-badge">v{{ v.versionNumber }}</span>
+                      <div class="version-info">
+                        <span class="version-note">{{ v.changeNote || ('documents.detail.noChangeNote' | translate) }}</span>
+                        <span class="version-meta">
+                          @if (v.changedByName) { {{ v.changedByName }} · }
+                          {{ v.createdAt | date:'MMM d, y' }}
+                        </span>
+                      </div>
+                    </div>
+                  }
+                </mat-card-content>
+              </mat-card>
+            }
+
             <!-- AI Summary -->
             <mat-card class="ai-summary-card">
               <mat-card-header>
@@ -296,15 +360,42 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
 
   readonly signedCount = () => this.doc()?.fields.filter(f => f.isSigned).length ?? 0;
   readonly reopening = signal(false);
+  readonly uploadingRevision = signal(false);
 
   /** Owner and admins can resolve/delete any comment thread. */
   readonly canModerate = () =>
     this.auth.isAdmin() || this.doc()?.owner.id === this.auth.user()?.id;
 
+  readonly isOwner = () => this.doc()?.owner.id === this.auth.user()?.id;
+
+  /** The participant whose change request paused the document. */
+  readonly changeRequester = () =>
+    this.doc()?.recipients.find(r => r.status === 'ChangesRequested') ?? null;
+
   remaining(): RemainingTime | null {
     const d = this.doc();
-    if (!d || d.status === 'Completed' || d.status === 'Rejected' || d.status === 'Draft') return null;
+    // ChangesRequested pauses the flow (the SLA clock restarts on revision upload) — no countdown.
+    if (!d || d.status === 'Completed' || d.status === 'Rejected' || d.status === 'Draft' || d.status === 'ChangesRequested') return null;
     return remainingTime(d.expiresAt);
+  }
+
+  onRevisionFile(event: Event, changeNote: string): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.uploadingRevision.set(true);
+    this.documentService.uploadRevision(this.documentId, file, changeNote).subscribe({
+      next: r => {
+        this.uploadingRevision.set(false);
+        this.snack.open(this.translate.instant('documents.detail.revisionUploaded', { version: r.version }), 'OK', { duration: 5000 });
+        this.load();
+      },
+      error: err => {
+        this.uploadingRevision.set(false);
+        this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.revisionFailed'), 'OK', { duration: 6000 });
+      }
+    });
   }
 
   copyLink(secureToken: string): void {
@@ -345,7 +436,8 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
 
   readonly STATUS_COLORS: Record<string, string> = {
     Draft: '#5f6368', Sent: '#1a73e8', Completed: '#22c55e',
-    Rejected: '#ef4444', Expired: '#f97316', WaitingForOthers: '#8b5cf6'
+    Rejected: '#ef4444', Expired: '#f97316', WaitingForOthers: '#8b5cf6',
+    ChangesRequested: '#f59e0b'
   };
 
   statusColor(): string { return this.STATUS_COLORS[this.doc()?.status ?? ''] ?? '#5f6368'; }

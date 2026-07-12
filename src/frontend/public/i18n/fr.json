@@ -235,7 +235,8 @@
       "totalDocuments": "Documents au total",
       "completed": "Terminés",
       "pending": "En attente",
-      "drafts": "Brouillons"
+      "drafts": "Brouillons",
+      "changesRequested": "Modifications demandées"
     },
     "activity": {
       "title": "Activité récente",
@@ -266,7 +267,10 @@
         "escalationTriggered": "Escalade déclenchée",
         "commentAdded": "Commentaire ajouté",
         "attachmentUploaded": "Pièce jointe importée",
-        "authenticationEvent": "Événement d'authentification"
+        "authenticationEvent": "Événement d'authentification",
+        "changesRequested": "Modifications demandées",
+        "revisionUploaded": "Révision importée",
+        "signaturesVoided": "Signatures invalidées"
       }
     },
     "sla": {
@@ -310,7 +314,8 @@
         "Rejected": "Rejeté",
         "Expired": "Expiré",
         "Cancelled": "Annulé",
-        "WaitingForOthers": "En attente"
+        "WaitingForOthers": "En attente",
+        "ChangesRequested": "Modifications demandées"
       },
       "noDocumentsFound": "Aucun document trouvé",
       "documentCountSingular": "{{count}} document",
@@ -340,7 +345,8 @@
         "Rejected": "Rejeté",
         "Expired": "Expiré",
         "Cancelled": "Annulé",
-        "WaitingForOthers": "En attente"
+        "WaitingForOthers": "En attente",
+        "ChangesRequested": "Modifications demandées"
       },
       "pageCountSingular": "{{count}} page",
       "pageCountPlural": "{{count}} pages",
@@ -364,7 +370,8 @@
         "inProgress": "En cours",
         "skipped": "Ignoré",
         "delegated": "Délégué",
-        "pending": "En attente"
+        "pending": "En attente",
+        "changesRequested": "Modifications demandées"
       },
       "roles": {
         "Signature": "Signataire",
@@ -395,7 +402,19 @@
       "backToDocuments": "Retour aux documents",
       "confirmSend": "Envoyer ce document pour signature ? Les destinataires seront notifiés par e-mail.",
       "sendFailed": "Échec de l'envoi du document",
-      "reopenFailed": "Échec de la réouverture de la demande"
+      "reopenFailed": "Échec de la réouverture de la demande",
+      "changesRequestedTitle": "Modifications demandées",
+      "changesRequestedBy": "{{name}} a demandé des modifications",
+      "changesRequestedHint": "Un participant a demandé des modifications. Importez un PDF révisé pour relancer le circuit d'approbation.",
+      "changeNotePlaceholder": "Qu'est-ce qui a changé dans cette révision ? (facultatif)",
+      "uploadRevision": "Importer la révision",
+      "uploadingRevision": "Import en cours…",
+      "revisionUploaded": "Révision v{{version}} importée. Vérifiez les champs, puis renvoyez le document.",
+      "revisionFailed": "Échec de l'import de la révision",
+      "versionsTitle": "Historique des versions",
+      "currentVersion": "Version actuelle",
+      "noChangeNote": "Aucune note de révision",
+      "versionTooltip": "Ce document a été révisé — consultez l'historique des versions"
     },
     "upload": {
       "title": "Importer un document",
@@ -771,7 +790,8 @@
       "waitingForOthers": "En attente",
       "skipped": "Ignoré",
       "delegated": "Délégué",
-      "escalated": "Escaladé"
+      "escalated": "Escaladé",
+      "changesRequested": "Modifications demandées"
     },
     "new": {
       "pageTitle": "Nouvelle demande",
@@ -906,7 +926,8 @@
         "skipped": "Ignoré",
         "expired": "Expiré",
         "signingNow": "Signature en cours",
-        "waiting": "En attente"
+        "waiting": "En attente",
+        "changesRequested": "Modifications demandées"
       },
       "tooltipStep": "Étape {{order}} : {{name}} — {{status}}",
       "tooltipStepWithDate": "Étape {{order}} : {{name}} — {{status}} ({{date}})"
@@ -939,6 +960,7 @@
       "approveSubmit": "Approuver et soumettre",
       "submitting": "Envoi en cours…",
       "decline": "Refuser",
+      "requestChanges": "Demander des modifications",
       "reviewSubmit": "Vérifier et soumettre",
       "reviewApprove": "Relire et approuver",
       "loadingEllipsis": "Chargement…",
@@ -955,6 +977,7 @@
     "dismiss": "Fermer",
     "enterFieldPrompt": "Saisissez la valeur du champ « {{fieldType}} » :",
     "declineReasonPrompt": "Veuillez indiquer un motif de refus (facultatif) :",
+    "requestChangesPrompt": "Décrivez les modifications souhaitées (obligatoire — le propriétaire révisera le document) :",
     "untitledDocument": "document",
     "summary": {
       "sentBy": "Envoyé par {{name}}",
@@ -985,7 +1008,13 @@
       "waitingForName": "{{name}} doit signer avant que ce soit votre tour.",
       "waitingGeneric": "Un signataire précédent doit d'abord terminer sa partie.",
       "waitingSub": "Vous recevrez un e-mail dès que ce sera votre tour de signer.",
-      "invalidLinkTitle": "Lien invalide"
+      "invalidLinkTitle": "Lien invalide",
+      "changesRequestedOwnTitle": "Modifications demandées",
+      "changesRequestedOwnBody": "Votre demande de modifications a été transmise au propriétaire du document. Vous serez notifié dès qu'une version révisée sera prête pour relecture.",
+      "changesRequestedTitle": "Document en pause",
+      "changesRequestedBody": "Un participant a demandé des modifications. Le circuit est en pause jusqu'à ce que le propriétaire importe une version révisée.",
+      "revisionInProgressTitle": "Révision en cours",
+      "revisionInProgressBody": "Le propriétaire révise ce document. Vous serez notifié dès que la nouvelle version sera prête pour vous."
     },
     "review": {
       "title": "Vérifiez votre signature",
@@ -1016,7 +1045,9 @@
       "saveFieldFailed": "Échec de l'enregistrement du champ",
       "submitFailed": "Échec de la soumission de la signature. Veuillez réessayer.",
       "declineFailed": "Échec du refus du document",
-      "downloadFailed": "Échec du téléchargement. Veuillez réessayer."
+      "downloadFailed": "Échec du téléchargement. Veuillez réessayer.",
+      "requestChangesFailed": "Échec de la demande de modifications",
+      "requestChangesReasonRequired": "Un motif est obligatoire pour demander des modifications"
     },
     "signatureDialog": {
       "addInitials": "Ajouter des initiales",

@@ -1,8 +1,8 @@
-export type DocumentStatus = 'Draft' | 'Pending' | 'Sent' | 'Completed' | 'Rejected' | 'Expired' | 'Cancelled' | 'WaitingForOthers';
+export type DocumentStatus = 'Draft' | 'Pending' | 'Sent' | 'Completed' | 'Rejected' | 'Expired' | 'Cancelled' | 'WaitingForOthers' | 'ChangesRequested';
 export type FieldType = 'Signature' | 'Initials' | 'Date' | 'Name' | 'Email' | 'Company' | 'Title' | 'Text' | 'MultilineText' | 'Number' | 'Checkbox' | 'Radio' | 'Dropdown' | 'Image' | 'Stamp' | 'Attachment' | 'QrCode' | 'Barcode' | 'Custom';
 export type ApprovalType = 'Signature' | 'Approval' | 'Review' | 'ViewOnly' | 'Stamp' | 'Reject';
 export type WorkflowType = 'Sequential' | 'Parallel' | 'Mixed';
-export type WorkflowStepStatus = 'Pending' | 'InProgress' | 'Completed' | 'Rejected' | 'Skipped' | 'Delegated' | 'Escalated' | 'Expired';
+export type WorkflowStepStatus = 'Pending' | 'InProgress' | 'Completed' | 'Rejected' | 'Skipped' | 'Delegated' | 'Escalated' | 'Expired' | 'ChangesRequested';
 
 export interface AiSummaryDto {
   summary: string;
@@ -58,6 +58,17 @@ export interface DocumentDetail {
   recipients: RecipientInfo[];
   fields: SignatureFieldInfo[];
   workflow?: WorkflowInfo;
+  version: number;
+  versions?: DocumentVersionInfo[];
+}
+
+export interface DocumentVersionInfo {
+  id: string;
+  versionNumber: number;
+  fileSizeBytes: number;
+  changeNote?: string;
+  changedByName?: string;
+  createdAt: string;
 }
 
 export interface OwnerInfo {
@@ -79,6 +90,8 @@ export interface RecipientInfo {
   viewedAt?: string;
   /** Free-text participant label (e.g. "Legal team") — display only, capabilities come from approvalType. */
   roleLabel?: string;
+  /** Reason given on decline or request-changes. */
+  declineReason?: string;
 }
 
 export interface SignatureFieldInfo {
@@ -139,6 +152,7 @@ export interface DashboardData {
   totalDocuments: number;
   recentActivity: RecentActivity[];
   pendingDocuments: DocumentSummary[];
+  changesRequested: number;
 }
 
 export interface RecentActivity {
