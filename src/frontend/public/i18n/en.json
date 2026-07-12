@@ -42,6 +42,7 @@
     "documents": "Documents",
     "templates": "Templates",
     "auditTrail": "Audit Trail",
+    "reports": "Reports",
     "administration": "Administration"
   },
   "layout": {
@@ -952,6 +953,51 @@
       "savePreferences": "Save preferences",
       "necessaryOnly": "Necessary only",
       "acceptAll": "Accept all"
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Organization-wide signing activity, SLA compliance and revision analytics",
+    "forbidden": "Reports are only available to administrators and managers.",
+    "loadFailed": "Failed to load the report. Please try again.",
+    "kpi": {
+      "totalRequests": "Total requests",
+      "active": "Active now",
+      "completionRate": "Completion rate",
+      "avgCompletion": "Avg. completion time",
+      "slaCompliance": "SLA compliance",
+      "slaTooltip": "Based on {{count}} completed request(s) that had a deadline",
+      "rejected": "Rejected",
+      "expired": "Expired",
+      "pausedForChanges": "Paused for changes"
+    },
+    "volume": {
+      "title": "Volume — last 6 months",
+      "created": "Created",
+      "completed": "Completed"
+    },
+    "revisions": {
+      "title": "Revision activity",
+      "changeRequests": "Change requests",
+      "revisionsUploaded": "Revisions uploaded",
+      "documentsRevised": "Documents revised",
+      "hint": "Requests paused by a reviewer or approver and answered with a revised document."
+    },
+    "byType": {
+      "title": "By request type",
+      "type": "Request type",
+      "empty": "No requests are linked to a request type yet."
+    },
+    "byDepartment": {
+      "title": "By department",
+      "department": "Department",
+      "empty": "No requests from users with a department set yet."
+    },
+    "table": {
+      "requests": "Requests",
+      "completed": "Completed",
+      "avgHours": "Avg. hours",
+      "sla": "SLA"
     }
   },
   "signing": {

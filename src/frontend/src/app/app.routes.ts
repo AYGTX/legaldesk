@@ -69,6 +69,11 @@ export const routes: Routes = [
         title: 'PDF Forms — SignFlow'
       },
       {
+        path: 'reports',
+        loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent),
+        title: 'Reports — SignFlow'
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent),
         title: 'My Profile — SignFlow'

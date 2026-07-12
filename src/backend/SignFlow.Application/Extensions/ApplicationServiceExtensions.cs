@@ -20,6 +20,7 @@ using SignFlow.Application.Features.Notifications.Queries;
 using SignFlow.Application.Features.Comments;
 using SignFlow.Application.Features.Comments.Commands;
 using SignFlow.Application.Features.Comments.Queries;
+using SignFlow.Application.Features.Reports.Queries;
 using SignFlow.Application.Features.Requests.Queries;
 using SignFlow.Application.Features.RequestTypes.Commands;
 using SignFlow.Application.Features.RequestTypes.Queries;
@@ -75,6 +76,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<RejectDocumentCommand>, RejectDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<RequestChangesCommand>, RequestChangesCommandHandler>();
         services.AddScoped<IQueryHandler<GetSigningSessionQuery, SigningSessionDto>, GetSigningSessionQueryHandler>();
+
+        // Reports (admin/manager analytics)
+        services.AddScoped<IQueryHandler<GetAdminReportQuery, AdminReportDto>, GetAdminReportQueryHandler>();
 
         // Audit
         services.AddScoped<IQueryHandler<GetAuditTrailQuery, PagedResult<AuditLogDto>>, GetAuditTrailQueryHandler>();

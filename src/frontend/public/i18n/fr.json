@@ -42,6 +42,7 @@
     "documents": "Documents",
     "templates": "Modèles",
     "auditTrail": "Journal d'audit",
+    "reports": "Rapports",
     "administration": "Administration"
   },
   "layout": {
@@ -952,6 +953,51 @@
       "savePreferences": "Enregistrer les préférences",
       "necessaryOnly": "Nécessaires uniquement",
       "acceptAll": "Tout accepter"
+    }
+  },
+  "reports": {
+    "title": "Rapports",
+    "subtitle": "Activité de signature, conformité SLA et analytique des révisions à l'échelle de l'organisation",
+    "forbidden": "Les rapports sont réservés aux administrateurs et aux managers.",
+    "loadFailed": "Échec du chargement du rapport. Veuillez réessayer.",
+    "kpi": {
+      "totalRequests": "Demandes au total",
+      "active": "Actives",
+      "completionRate": "Taux de complétion",
+      "avgCompletion": "Durée moyenne",
+      "slaCompliance": "Conformité SLA",
+      "slaTooltip": "Basé sur {{count}} demande(s) terminée(s) ayant une échéance",
+      "rejected": "Rejetées",
+      "expired": "Expirées",
+      "pausedForChanges": "En pause (modifications)"
+    },
+    "volume": {
+      "title": "Volume — 6 derniers mois",
+      "created": "Créées",
+      "completed": "Terminées"
+    },
+    "revisions": {
+      "title": "Activité de révision",
+      "changeRequests": "Demandes de modifications",
+      "revisionsUploaded": "Révisions importées",
+      "documentsRevised": "Documents révisés",
+      "hint": "Demandes mises en pause par un relecteur ou un approbateur, puis reprises avec un document révisé."
+    },
+    "byType": {
+      "title": "Par type de demande",
+      "type": "Type de demande",
+      "empty": "Aucune demande n'est encore liée à un type de demande."
+    },
+    "byDepartment": {
+      "title": "Par département",
+      "department": "Département",
+      "empty": "Aucune demande d'utilisateurs avec un département renseigné pour le moment."
+    },
+    "table": {
+      "requests": "Demandes",
+      "completed": "Terminées",
+      "avgHours": "Heures moy.",
+      "sla": "SLA"
     }
   },
   "signing": {

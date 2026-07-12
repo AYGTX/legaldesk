@@ -175,6 +175,7 @@ export class LayoutComponent implements OnInit {
     { labelKey: 'nav.documents',      icon: 'description',         path: '/documents' },
     { labelKey: 'nav.templates',      icon: 'article',             path: '/templates' },
     { labelKey: 'nav.auditTrail',     icon: 'history',             path: '/audit' },
+    { labelKey: 'nav.reports',        icon: 'monitoring',          path: '/reports', roles: ['Administrator', 'Manager'] },
     { labelKey: 'nav.administration', icon: 'admin_panel_settings', path: '/admin', roles: ['Administrator'] }
   ];
 

@@ -12,3 +12,4 @@ export * from './pdf-template.models';
 export * from './approver-entry.model';
 export * from './template-gallery.model';
 export * from './comment.models';
+export * from './report.models';
