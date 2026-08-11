@@ -33,10 +33,11 @@ public record SigningSessionDto(
     // Lets the signing UI show the paused/changes-requested state to every participant
     DocumentStatus DocumentStatus = DocumentStatus.InProgress);
 
-public record RecipientSessionDto(Guid Id, string Name, string Email, ApprovalType ApprovalType, WorkflowStepStatus Status, string? RoleLabel = null);
+public record RecipientSessionDto(Guid Id, string Name, string Email, ApprovalType ApprovalType, WorkflowStepStatus Status, string? RoleLabel = null, List<ChecklistItemSessionDto>? ChecklistItems = null);
+public record ChecklistItemSessionDto(Guid Id, string Text, int Order, bool IsChecked);
 
 public record WorkflowParticipantDto(int Order, string Name, WorkflowStepStatus Status, bool IsCurrent, bool IsMe, DateTime? SignedAt);
-public record AssignedFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, string? Label, string? Placeholder, bool IsRequired, bool IsSigned, string? DefaultValue, string? Options, string? Tooltip, string? FontFamily, float? FontSize, string? FontColor);
+public record AssignedFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, string? Label, string? Placeholder, bool IsRequired, bool IsSigned, string? DefaultValue, string? Options, string? Tooltip, string? FontFamily, float? FontSize, string? FontColor, string? GroupName = null);
 
 public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHandler<GetSigningSessionQuery, SigningSessionDto>
 {
@@ -46,6 +47,7 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
             .AsNoTracking()
             .Include(r => r.Document)
             .Include(r => r.AssignedFields)
+            .Include(r => r.ChecklistItems)
             .FirstOrDefaultAsync(r => r.SecureToken == query.SecureToken, cancellationToken)
             ?? throw new NotFoundException("Signing session not found or has expired.");
 
@@ -79,7 +81,7 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
 
         var fields = assignedFields
             .Select(f => new AssignedFieldDto(f.Id, f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height, f.Rotation,
-                f.Label, f.Placeholder, f.IsRequired, f.IsSigned, f.DefaultValue, f.Options, f.Tooltip, f.FontFamily, f.FontSize, f.FontColor))
+                f.Label, f.Placeholder, f.IsRequired, f.IsSigned, f.DefaultValue, f.Options, f.Tooltip, f.FontFamily, f.FontSize, f.FontColor, f.GroupName))
             .ToList();
 
         // The current step is the first not-yet-finished required recipient.
@@ -144,7 +146,8 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
             recipient.Document.FinalStoragePath ?? recipient.Document.StoragePath,
             recipient.Document.PageCount,
             recipient.Document.Message,
-            new RecipientSessionDto(recipient.Id, recipient.Name, recipient.Email, recipient.ApprovalType, recipient.Status, recipient.RoleLabel),
+            new RecipientSessionDto(recipient.Id, recipient.Name, recipient.Email, recipient.ApprovalType, recipient.Status, recipient.RoleLabel,
+                recipient.ChecklistItems.OrderBy(c => c.Order).Select(c => new ChecklistItemSessionDto(c.Id, c.Text, c.Order, c.IsChecked)).ToList()),
             fields,
             recipient.Status == WorkflowStepStatus.Completed,
             recipient.Status == WorkflowStepStatus.Rejected,

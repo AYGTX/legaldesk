@@ -22,10 +22,11 @@ export class PdfTemplateService {
   }
 
   /** Upload the base PDF for a new template (admin). Fields are configured afterwards via update(). */
-  create(file: File, name: string, description?: string): Observable<CreatePdfTemplateResult> {
+  create(file: File, name: string, requestTypeId: string, description?: string): Observable<CreatePdfTemplateResult> {
     const form = new FormData();
     form.append('file', file);
     form.append('name', name);
+    form.append('requestTypeId', requestTypeId);
     if (description) form.append('description', description);
     return this.api.upload<CreatePdfTemplateResult>('/v1/pdf-templates', form);
   }

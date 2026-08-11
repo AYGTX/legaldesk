@@ -411,6 +411,51 @@ namespace SignFlow.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.ChecklistItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CheckedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsChecked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientId", "Order");
+
+                    b.ToTable("ChecklistItems");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.Comment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -850,6 +895,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<Guid?>("RequestTypeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -867,6 +915,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("DefaultApproverId");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("RequestTypeId");
 
                     b.ToTable("HtmlTemplates");
                 });
@@ -990,6 +1040,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("PageCount")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("RequestTypeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("StoragePath")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -1012,6 +1065,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("DefaultApproverId");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("RequestTypeId");
 
                     b.ToTable("PdfTemplates");
                 });
@@ -1920,6 +1975,17 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.ChecklistItem", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Recipient", "Recipient")
+                        .WithMany("ChecklistItems")
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipient");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.Comment", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.Document", "Document")
@@ -1999,9 +2065,16 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasForeignKey("DefaultApproverId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("SignFlow.Domain.Entities.RequestType", "RequestType")
+                        .WithMany()
+                        .HasForeignKey("RequestTypeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("DefaultApprover");
+
+                    b.Navigation("RequestType");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.HtmlTemplateField", b =>
@@ -2035,9 +2108,16 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasForeignKey("DefaultApproverId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("SignFlow.Domain.Entities.RequestType", "RequestType")
+                        .WithMany()
+                        .HasForeignKey("RequestTypeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("DefaultApprover");
+
+                    b.Navigation("RequestType");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.PdfTemplateField", b =>
@@ -2209,6 +2289,8 @@ namespace SignFlow.Infrastructure.Migrations
             modelBuilder.Entity("SignFlow.Domain.Entities.Recipient", b =>
                 {
                     b.Navigation("AssignedFields");
+
+                    b.Navigation("ChecklistItems");
 
                     b.Navigation("Signatures");
                 });

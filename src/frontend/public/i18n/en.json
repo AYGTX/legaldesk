@@ -8,6 +8,7 @@
     "close": "Close",
     "more": "More",
     "confirm": "Confirm",
+    "confirmTitle": "Please confirm",
     "back": "Back",
     "next": "Next",
     "submit": "Submit",
@@ -38,7 +39,6 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "myRequests": "My Requests",
     "documents": "Documents",
     "templates": "Templates",
     "auditTrail": "Audit Trail",
@@ -231,7 +231,6 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Overview of your document signing activity",
-    "uploadDocument": "Upload Document",
     "stats": {
       "totalDocuments": "Total Documents",
       "completed": "Completed",
@@ -286,9 +285,9 @@
       "title": "Pending Your Action",
       "emptyTitle": "All caught up",
       "emptySub": "No documents waiting for you",
-      "waitingSingular": "{{count}} document waiting for your signature",
-      "waitingPlural": "{{count}} documents waiting for your signature",
-      "signNow": "Sign now"
+      "waitingSingular": "{{count}} document waiting for your action",
+      "waitingPlural": "{{count}} documents waiting for your action",
+      "viewRequests": "View requests"
     },
     "quickActions": {
       "title": "Quick Actions",
@@ -302,7 +301,7 @@
     "list": {
       "title": "Documents",
       "subtitle": "Manage your documents and signature requests",
-      "uploadDocument": "Upload Document",
+      "allDocumentsTab": "All documents",
       "searchPlaceholder": "Search documents…",
       "clearSearch": "Clear",
       "allStatuses": "All",
@@ -382,6 +381,15 @@
         "Stamp": "Stamp"
       },
       "noRecipients": "No recipients assigned yet",
+      "presence": {
+        "viewingOne": "1 person viewing now",
+        "viewingMany": "{{count}} people viewing now"
+      },
+      "checklist": {
+        "title": "Checklist",
+        "addPlaceholder": "Add a checklist item…",
+        "saveFailed": "Failed to save checklist"
+      },
       "copySigningLink": "Copy signing link",
       "linkCopied": "Signing link copied to clipboard",
       "linkCopyFailed": "Failed to copy link",
@@ -469,7 +477,8 @@
       "saving": "Saving...",
       "saveDisabledNoRecipient": "Add at least one recipient",
       "saveDisabledNoField": "Place at least one field on the document",
-      "done": "Done"
+      "done": "Done",
+      "snapToGrid": "Snap fields to grid"
     },
     "sidebar": {
       "recipientsTitle": "Recipients",
@@ -544,6 +553,9 @@
       "requiredCheckbox": "Recipients must complete this field",
       "position": "Position",
       "size": "Size",
+      "radioGroup": "Radio group",
+      "radioGroupPlaceholder": "e.g. payment-method",
+      "radioGroupHint": "Buttons sharing the same group name form a single choice — signers can select only one.",
       "removeField": "Remove Field"
     },
     "notifications": {
@@ -763,11 +775,15 @@
     },
     "allCaughtUp": "All caught up",
     "noDocumentsWaiting": "No documents are waiting for your signature",
-    "needsSignature": "Needs your signature",
+    "noActionWaiting": "No documents are waiting for your action",
+    "needsAction": "Needs your action",
     "history": "History",
     "from": "From",
     "deadline": "Deadline {{date}}",
     "signNow": "Sign Now",
+    "approveNow": "Approve Now",
+    "reviewNow": "Review Now",
+    "viewNow": "View Now",
     "openDocument": "Open document",
     "nothingSentYet": "Nothing sent yet",
     "uploadDocumentSub": "Upload a document and send it for signature",
@@ -838,6 +854,9 @@
     "deleteConfirm": "Delete this comment? Replies to it will be removed too.",
     "participant": "Participant",
     "pageTag": "Page {{page}}",
+    "noPage": "No page",
+    "attachPage": "Bookmark",
+    "goToPage": "Jump to page {{page}}",
     "loadFailed": "Couldn't load comments",
     "postFailed": "Couldn't post your comment",
     "actionFailed": "Something went wrong — please try again"
@@ -855,25 +874,88 @@
     },
     "noEvents": "No audit events found",
     "actions": {
-      "created": "Created",
-      "uploaded": "Uploaded",
-      "sent": "Sent",
-      "viewed": "Viewed",
-      "signed": "Signed",
-      "rejected": "Rejected",
-      "deleted": "Deleted",
-      "downloaded": "Downloaded",
-      "completed": "Completed",
-      "fieldsUpdated": "Fields Updated",
-      "recipientsUpdated": "Recipients Updated",
-      "expired": "Expired"
+      "DocumentCreated": "Document created",
+      "DocumentViewed": "Document viewed",
+      "DocumentSent": "Document sent",
+      "DocumentSigned": "Document signed",
+      "DocumentRejected": "Document rejected",
+      "DocumentCompleted": "Document completed",
+      "DocumentExpired": "Document expired",
+      "DocumentCancelled": "Document cancelled",
+      "DocumentDownloaded": "Document downloaded",
+      "FieldSigned": "Field signed",
+      "FieldCleared": "Field cleared",
+      "RecipientAdded": "Recipient added",
+      "RecipientRemoved": "Recipient removed",
+      "WorkflowStarted": "Workflow started",
+      "WorkflowCompleted": "Workflow completed",
+      "WorkflowStepCompleted": "Workflow step completed",
+      "WorkflowStepRejected": "Workflow step rejected",
+      "EmailSent": "Email sent",
+      "ReminderSent": "Reminder sent",
+      "DelegationAdded": "Delegation added",
+      "EscalationTriggered": "Escalation triggered",
+      "CommentAdded": "Comment added",
+      "AttachmentUploaded": "Attachment uploaded",
+      "AuthenticationEvent": "Authentication event",
+      "ChangesRequested": "Changes requested",
+      "RevisionUploaded": "Revision uploaded",
+      "SignaturesVoided": "Signatures voided"
+    }
+  },
+  "orgAudit": {
+    "title": "Audit Trail",
+    "subtitle": "Organization-wide activity log across all documents",
+    "searchPlaceholder": "Search by document, name or email…",
+    "clearSearch": "Clear",
+    "allActions": "All actions",
+    "noEvents": "No audit events found",
+    "columns": {
+      "action": "Action",
+      "document": "Document",
+      "actor": "Actor",
+      "ip": "IP Address",
+      "timestamp": "Timestamp"
+    },
+    "actions": {
+      "DocumentCreated": "Document created",
+      "DocumentViewed": "Document viewed",
+      "DocumentSent": "Document sent",
+      "DocumentSigned": "Document signed",
+      "DocumentRejected": "Document rejected",
+      "DocumentCompleted": "Document completed",
+      "DocumentExpired": "Document expired",
+      "DocumentCancelled": "Document cancelled",
+      "DocumentDownloaded": "Document downloaded",
+      "FieldSigned": "Field signed",
+      "FieldCleared": "Field cleared",
+      "RecipientAdded": "Recipient added",
+      "RecipientRemoved": "Recipient removed",
+      "WorkflowStarted": "Workflow started",
+      "WorkflowCompleted": "Workflow completed",
+      "WorkflowStepCompleted": "Workflow step completed",
+      "WorkflowStepRejected": "Workflow step rejected",
+      "EmailSent": "Email sent",
+      "ReminderSent": "Reminder sent",
+      "DelegationAdded": "Delegation added",
+      "EscalationTriggered": "Escalation triggered",
+      "CommentAdded": "Comment added",
+      "AttachmentUploaded": "Attachment uploaded",
+      "AuthenticationEvent": "Authentication event",
+      "ChangesRequested": "Changes requested",
+      "RevisionUploaded": "Revision uploaded",
+      "SignaturesVoided": "Signatures voided"
     }
   },
   "templates": {
     "title": "Templates",
     "subtitle": "Reusable document templates with pre-configured fields",
-    "manageHtml": "Manage HTML Templates",
-    "managePdf": "Manage PDF Forms",
+    "titleHtml": "HTML Templates",
+    "titlePdf": "PDF Templates",
+    "hintHtml": "Reusable text-based templates with dynamic placeholders — best for contracts and letters you fill in each time.",
+    "hintPdf": "Reusable PDF forms with signature fields already placed — best for recurring paperwork.",
+    "createHtml": "Create HTML Template",
+    "createPdf": "Create PDF Form",
     "searchPlaceholder": "Search templates…",
     "filterAll": "All types",
     "filterAllStatus": "All",
@@ -889,6 +971,25 @@
     "createdBy": "Created by {{name}}",
     "useTemplate": "Use template",
     "manage": "Configure"
+  },
+  "createDocument": {
+    "newDocument": "New Document",
+    "dialogTitle": "How would you like to start?",
+    "dialogSubtitle": "Pick a starting point — you can always fine-tune fields before sending.",
+    "badgeReusable": "Reusable template",
+    "badgeOneTime": "One-time upload",
+    "pdfTemplate": {
+      "title": "Use a PDF Template",
+      "description": "Start from a pre-built PDF with signature fields already placed. Fastest for recurring paperwork like NDAs or offer letters."
+    },
+    "htmlTemplate": {
+      "title": "Use an HTML Template",
+      "description": "Start from a reusable text template with dynamic placeholders you fill in. Best for contracts and letters that change each time."
+    },
+    "uploadPdf": {
+      "title": "Upload a New PDF",
+      "description": "Bring your own PDF and place signature fields from scratch. Best for one-off documents you won't reuse."
+    }
   },
   "shared": {
     "approverPicker": {
@@ -1072,6 +1173,11 @@
     "fieldNav": {
       "title": "Fields to Complete"
     },
+    "checklist": {
+      "title": "Before you approve",
+      "incompleteTooltip": "Check off every item before approving",
+      "toggleFailed": "Failed to update checklist item"
+    },
     "roleBanner": {
       "Review": "Reviewing",
       "Approval": "Approving"
@@ -1116,6 +1222,8 @@
   },
   "htmlTemplateEditor": {
     "workflowType": "Workflow",
+    "requestType": "Request type",
+    "noRequestType": "— No request type (open-ended) —",
     "assignTo": "Assign to",
     "assignToHint": "(optional — overrides the default approver for this field)",
     "unassigned": "— Not assigned (initiator picks) —",
@@ -1123,6 +1231,11 @@
     "stageHint": "Same stage = parallel · stages run in order",
     "fieldsScanned": "Added {{count}} field found in pasted HTML",
     "fieldsScannedPlural": "Added {{count}} fields found in pasted HTML"
+  },
+  "htmlTemplates": {
+    "list": {
+      "confirmDelete": "Delete template \"{{name}}\"? This cannot be undone."
+    }
   },
   "pdfTemplates": {
     "list": {
@@ -1146,9 +1259,12 @@
     },
     "upload": {
       "title": "Upload a base PDF",
+      "subtitle": "Add a PDF, then place fillable fields on it in the next step.",
       "choosePdf": "Choose a PDF file…",
+      "dropHint": "Click to browse or drag a PDF here",
       "namePlaceholder": "Form name",
       "descriptionPlaceholder": "Description (optional)",
+      "requestTypePlaceholder": "Content type (defines SLA)",
       "uploadAndConfigure": "Upload & configure",
       "failed": "Upload failed"
     },
@@ -1172,6 +1288,8 @@
       "selectOrDragHint": "Drag a field type onto the page, or select a placed field to configure it.",
       "defaultApprover": "Default approver",
       "noDefaultApprover": "No default approver",
+      "requestType": "Request type",
+      "noRequestType": "No request type (open-ended)",
       "active": "Active (available to users)",
       "saved": "PDF form saved",
       "saveFailed": "Failed to save PDF form",

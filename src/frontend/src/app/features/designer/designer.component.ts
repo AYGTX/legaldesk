@@ -114,6 +114,13 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
 
           <mat-divider vertical class="toolbar-divider"></mat-divider>
 
+          <button class="grid-toggle" [class.active]="snapToGrid()" (click)="snapToGrid.set(!snapToGrid())"
+                  [matTooltip]="'designer.toolbar.snapToGrid' | translate">
+            <mat-icon>grid_on</mat-icon>
+          </button>
+
+          <mat-divider vertical class="toolbar-divider"></mat-divider>
+
           <button mat-icon-button (click)="undo()" [disabled]="historyIndex() <= 0" [matTooltip]="'designer.toolbar.undo' | translate">
             <mat-icon>undo</mat-icon>
           </button>
@@ -370,6 +377,9 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                    (click)="onCanvasClick($event)">
 
                 <canvas #pdfCanvas class="pdf-canvas"></canvas>
+                @if (snapToGrid()) {
+                  <div class="grid-overlay" [style.background-size]="gridSize + 'px ' + gridSize + 'px'"></div>
+                }
 
                 @for (field of pageFields(); track field.tempId) {
                   <div class="placed-field"
@@ -386,7 +396,12 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                       <span>{{ ('designer.fieldTypes.' + field.fieldType) | translate }}</span>
                       <div class="field-recipient-dot" [style.background]="fieldRecipientColor(field)"></div>
                     </div>
-                    <div class="field-label">{{ ('designer.fieldTypes.' + field.fieldType) | translate }}</div>
+                    <div class="field-label">
+                      {{ ('designer.fieldTypes.' + field.fieldType) | translate }}
+                      @if (field.fieldType === 'Radio' && field.groupName) {
+                        <span class="field-group-tag">{{ field.groupName }}</span>
+                      }
+                    </div>
                     <div class="resize-handle" (mousedown)="startResize($event, field)"></div>
                     <button class="field-delete-btn" mat-icon-button
                             (click)="deleteField(field, $event)" [matTooltip]="'designer.canvas.removeFieldTooltip' | translate">
@@ -438,6 +453,18 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                   {{ 'designer.properties.requiredCheckbox' | translate }}
                 </mat-checkbox>
               </div>
+
+              @if (selectedField()!.fieldType === 'Radio') {
+                <div class="property-group">
+                  <label class="property-label">{{ 'designer.properties.radioGroup' | translate }}</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <input matInput [value]="selectedField()!.groupName ?? ''"
+                           [placeholder]="'designer.properties.radioGroupPlaceholder' | translate"
+                           (change)="updateFieldProp('groupName', $any($event.target).value.trim() || undefined)" />
+                  </mat-form-field>
+                  <p class="property-hint">{{ 'designer.properties.radioGroupHint' | translate }}</p>
+                </div>
+              }
 
               <div class="property-group">
                 <label class="property-label">{{ 'designer.properties.position' | translate }}</label>
@@ -505,6 +532,8 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly selectedRecipientId = signal<string | null>(null);
   readonly showAddRecipient = signal(false);
   readonly sidebarCollapsed = signal(false);
+  readonly snapToGrid = signal(true);
+  readonly gridSize = 10;
 
   readonly workflowType = signal<WorkflowType>('Sequential');
   readonly hideRecipientIdentities = signal(false);
@@ -631,7 +660,7 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
           recipientId: (f.recipientId && validRecipientIds.has(f.recipientId)) ? f.recipientId : firstRecipientId,
           zIndex: f.zIndex ?? 1,
           options: f.options,
-          groupName: undefined,
+          groupName: f.groupName,
           color: '#6366f1',
           label: f.fieldType
         }));
@@ -731,6 +760,11 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.zoomLevel.update(z => Math.min(3, Math.max(0.25, z + delta)));
   }
 
+  /** Rounds a coordinate to the nearest grid line when snapping is on, else to the nearest pixel. */
+  private snap(v: number): number {
+    return this.snapToGrid() ? Math.round(v / this.gridSize) * this.gridSize : Math.round(v);
+  }
+
   onDrop(event: CdkDragDrop<DesignerField[]>): void {
     const dragData = event.item.data;
     if (!dragData?.type) return;
@@ -763,13 +797,21 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const recipientId = this.selectedRecipientId() ?? this.recipients()[0]?.id ?? undefined;
 
+    // New radio buttons join the most recently placed radio's group so consecutively dropped
+    // options form one single-choice group by default; rename per-field in the properties panel.
+    let groupName: string | undefined;
+    if (dragData.type === 'Radio') {
+      const lastRadio = [...this.allFields()].reverse().find(f => f.fieldType === 'Radio');
+      groupName = lastRadio?.groupName ?? 'group-1';
+    }
+
     const newField: DesignerField = {
       tempId: uuidv4(),
       id: undefined,
       fieldType: dragData.type,
       pageNumber: this.currentPage(),
-      xPosition: Math.round(x),
-      yPosition: Math.round(y),
+      xPosition: this.snap(x),
+      yPosition: this.snap(y),
       width: dragData.width,
       height: dragData.height,
       isRequired: true,
@@ -778,7 +820,7 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
       color: '#6366f1',
       label: dragData.label,
       options: undefined,
-      groupName: undefined
+      groupName
     };
 
     const updated = [...this.allFields(), newField];
@@ -804,8 +846,8 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
       const rect = wrapper.getBoundingClientRect();
       const updated = this.allFields().map(f => f.tempId === field.tempId
         ? { ...f,
-            xPosition: Math.min(Math.max(0, Math.round((e.clientX - rect.left) / this.zoomLevel() - grabX)), Math.max(0, this.canvasWidth - f.width)),
-            yPosition: Math.min(Math.max(0, Math.round((e.clientY - rect.top) / this.zoomLevel() - grabY)), Math.max(0, this.canvasHeight - f.height)) }
+            xPosition: Math.min(Math.max(0, this.snap((e.clientX - rect.left) / this.zoomLevel() - grabX)), Math.max(0, this.canvasWidth - f.width)),
+            yPosition: Math.min(Math.max(0, this.snap((e.clientY - rect.top) / this.zoomLevel() - grabY)), Math.max(0, this.canvasHeight - f.height)) }
         : f);
       this.allFields.set(updated);
       if (this.selectedField()?.tempId === field.tempId) {
@@ -977,7 +1019,7 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
     const onMove = (e: MouseEvent) => {
       const updated = this.allFields().map(f =>
         f.tempId === field.tempId
-          ? { ...f, width: Math.max(40, Math.round(startW + (e.clientX - startX) / this.zoomLevel())), height: Math.max(20, Math.round(startH + (e.clientY - startY) / this.zoomLevel())) }
+          ? { ...f, width: Math.max(40, this.snap(startW + (e.clientX - startX) / this.zoomLevel())), height: Math.max(20, this.snap(startH + (e.clientY - startY) / this.zoomLevel())) }
           : f
       );
       this.allFields.set(updated);

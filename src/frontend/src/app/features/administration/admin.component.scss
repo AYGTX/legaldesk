@@ -1,17 +1,37 @@
 .admin-page { }
     .page-header { margin-bottom: 24px; }
-    
-    
+    .page-title { font-size: 22px; font-weight: 500; letter-spacing: -0.2px; }
+
     .tab-content { padding: 24px 0; }
     .toolbar { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
     .search-field { flex: 1; max-width: 360px; }
-    .table-container { background: var(--g-surface); border-radius: 12px; overflow: hidden; position: relative; }
+    .table-container {
+      background: var(--g-surface);
+      border: 1px solid var(--g-border);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
     .table-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.8); z-index: 5; }
     table { width: 100%; }
-    .user-cell { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+
+    ::ng-deep .table-container .mat-mdc-header-cell {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      color: var(--g-text-3) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.06em !important;
+      border-bottom: 1px solid var(--g-border) !important;
+    }
+    ::ng-deep .table-container .mat-mdc-row { border-bottom: 1px solid var(--g-border-light) !important; }
+    ::ng-deep .table-container .mat-mdc-row:last-child { border-bottom: none !important; }
+    ::ng-deep .table-container .mat-mdc-cell { border-bottom: none !important; font-size: 13px; }
+
+    .user-cell { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
     .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--g-blue-container); color: var(--g-blue); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
     .user-name { display: block; font-weight: 500; color: var(--g-text); }
-    .user-email { font-size: 13px; color: var(--g-text-muted); }
+    .user-email { display: block; font-size: 12px; color: var(--g-text-muted); }
     .roles-chips { display: flex; gap: 4px; flex-wrap: wrap; }
     .role-chip { font-size: 11px; font-weight: 600; background: var(--g-blue-container); color: var(--g-blue); padding: 3px 10px; border-radius: 99px; }
     .status-active, .status-inactive { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; font-size: 13px; }
@@ -20,8 +40,25 @@
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
     .danger-item { color: var(--g-red); }
     .no-data { padding: 0; }
-    
-    .coming-soon { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 64px; text-align: center; color: var(--g-text-muted); }
+
+    .coming-soon { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 64px; text-align: center; color: var(--g-text-muted); background: var(--g-surface); border: 1px solid var(--g-border); border-radius: 12px; }
     .coming-soon mat-icon { font-size: 64px; width: 64px; height: 64px; color: var(--g-blue); }
     .coming-soon h3 { font-size: 20px; font-weight: 600; color: var(--g-text); margin: 0; }
-    .coming-soon p { color: #64748b; margin: 0; }
+    .coming-soon p { color: var(--g-text-3); margin: 0; }
+
+    .ht-admin-card {
+      display: flex; align-items: center; gap: 20px;
+      background: var(--g-surface); border: 1px solid var(--g-border); border-radius: 12px;
+      padding: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .ht-admin-icon {
+      width: 56px; height: 56px; border-radius: 12px; flex-shrink: 0;
+      background: var(--g-blue-container); color: var(--g-blue);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ht-admin-icon mat-icon { font-size: 28px; width: 28px; height: 28px; }
+    .ht-admin-body { flex: 1; min-width: 0; }
+    .ht-admin-body h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--g-text); }
+    .ht-admin-body p { margin: 0; font-size: 13px; color: var(--g-text-3); }
+    .ht-admin-link { margin-top: 0; }
+    .ht-admin-link a { border-radius: 20px !important; flex-shrink: 0; }

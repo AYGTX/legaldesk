@@ -259,6 +259,21 @@
         <member name="M:SignFlow.Api.Controllers.V1.RecipientsController.ManageRecipients(System.Guid,SignFlow.Api.Controllers.V1.SaveRecipientsRequest,System.Threading.CancellationToken)">
             <summary>Save all recipients and workflow type for a document (replaces existing recipients)</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RecipientsController.SetChecklist(System.Guid,System.Guid,SignFlow.Api.Controllers.V1.SetChecklistRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Checklist.Commands.SetChecklistItemsCommand},System.Threading.CancellationToken)">
+            <summary>Set the review/approval checklist for one recipient (owner only, draft documents only)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.ReportsController">
+            <summary>Organization-wide reporting and analytics — administrators and managers only</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ReportsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Reports.Queries.GetAdminReportQuery,SignFlow.Application.Features.Reports.Queries.AdminReportDto},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.AuditTrail.Queries.GetOrgAuditLogQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.AuditTrail.Queries.OrgAuditLogDto}})">
+            <summary>Organization-wide reporting and analytics — administrators and managers only</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ReportsController.GetOverview(System.Threading.CancellationToken)">
+            <summary>Get the organization-wide reporting overview (volume, outcomes, SLA, revision activity)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ReportsController.GetAuditLog(System.Int32,System.Int32,System.String,System.Nullable{SignFlow.Domain.Enums.AuditAction},System.Threading.CancellationToken)">
+            <summary>Get the organization-wide audit log across all documents</summary>
+        </member>
         <member name="T:SignFlow.Api.Controllers.V1.RequestsController">
             <summary>Personal request tracking — workflows the user sent and requests sent to them</summary>
         </member>
@@ -330,6 +345,9 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.RequestChanges(System.String,SignFlow.Api.Controllers.V1.RequestChangesRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.RequestChangesCommand},System.Threading.CancellationToken)">
             <summary>Request changes on a document (reviewers/approvers) — pauses the workflow instead of rejecting it</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.ToggleChecklistItem(System.String,System.Guid,SignFlow.Api.Controllers.V1.ToggleChecklistItemRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Checklist.Commands.ToggleChecklistItemCommand},System.Threading.CancellationToken)">
+            <summary>Check or uncheck one of the recipient's own checklist items (token-authenticated)</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.AddSigningCommentRequest">
             <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>

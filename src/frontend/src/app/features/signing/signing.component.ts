@@ -18,7 +18,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { SigningService } from '../../core/services/signing.service';
-import { SigningSession, AssignedField, SignatureType } from '../../core/models';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { SigningSession, AssignedField, SignatureType, ChecklistItemInfo } from '../../core/models';
 import { SignatureDialogComponent } from './signature-dialog.component';
 import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/workflow-visualizer.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
@@ -71,7 +72,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               <button mat-stroked-button (click)="reviewMode.set(false)">
                 <mat-icon>arrow_back</mat-icon> {{ 'signing.topbar.backToFields' | translate }}
               </button>
-              <button mat-flat-button color="primary" (click)="approve()" [disabled]="approving()">
+              <button mat-flat-button color="primary" (click)="approve()" [disabled]="approving() || !checklistComplete()"
+                      [matTooltip]="!checklistComplete() ? ('signing.checklist.incompleteTooltip' | translate) : ''">
                 <mat-icon>verified</mat-icon>
                 {{ (approving() ? 'signing.topbar.submitting' : 'signing.topbar.approveSubmit') | translate }}
               </button>
@@ -306,13 +308,26 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               }
             </div>
 
+            @if (checklistItems().length > 0) {
+              <div class="review-checklist">
+                <h3><mat-icon>checklist</mat-icon>{{ 'signing.checklist.title' | translate }}</h3>
+                @for (item of checklistItems(); track item.id) {
+                  <label class="checklist-item">
+                    <input type="checkbox" [checked]="item.isChecked" (change)="toggleChecklistItem(item)" />
+                    <span [class.done]="item.isChecked">{{ item.text }}</span>
+                  </label>
+                }
+              </div>
+            }
+
             <div class="review-footer">
               <p class="review-legal" [innerHTML]="'signing.review.legalNotice' | translate"></p>
               <div class="review-actions">
                 <button mat-stroked-button (click)="reviewMode.set(false)">
                   <mat-icon>arrow_back</mat-icon> {{ 'signing.topbar.backToFields' | translate }}
                 </button>
-                <button mat-flat-button color="primary" (click)="approve()" [disabled]="approving()">
+                <button mat-flat-button color="primary" (click)="approve()" [disabled]="approving() || !checklistComplete()"
+                        [matTooltip]="!checklistComplete() ? ('signing.checklist.incompleteTooltip' | translate) : ''">
                   <mat-icon>verified</mat-icon>
                   {{ (approving() ? 'signing.topbar.submitting' : 'signing.topbar.approveSubmit') | translate }}
                 </button>
@@ -434,7 +449,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               }
 
               <div class="nav-comments">
-                <sf-comments-panel [token]="token"></sf-comments-panel>
+                <sf-comments-panel [token]="token" [pageCount]="session()!.pageCount"
+                                    [currentPage]="currentPage()" (pageJump)="jumpToPage($event)"></sf-comments-panel>
               </div>
             </div>
 
@@ -460,7 +476,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                              [style.width.px]="field.width" [style.height.px]="field.height"
                              (click)="clickField(field)">
                           @if (field.isSigned && field.signedValue) {
-                            @if (field.signedValue.startsWith('data:')) {
+                            @if (field.fieldType === 'Radio') {
+                              <mat-icon class="signed-radio">radio_button_checked</mat-icon>
+                            } @else if (field.signedValue.startsWith('data:')) {
                               <img [src]="field.signedValue" class="signed-image" [attr.alt]="'signing.signatureImageAlt' | translate" />
                             } @else {
                               <span class="signed-text">{{ field.signedValue }}</span>
@@ -502,6 +520,7 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private readonly route = inject(ActivatedRoute);
   private readonly signingService = inject(SigningService);
+  private readonly confirmService = inject(ConfirmService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
@@ -535,6 +554,24 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
     return s.recipient.roleLabel ? `${base} · ${s.recipient.roleLabel}` : base;
   }
 
+  /** Prerequisites the owner attached to this Review/Approval recipient. */
+  readonly checklistItems = computed(() => this.session()?.recipient.checklistItems ?? []);
+  readonly checklistComplete = computed(() => this.checklistItems().every(i => i.isChecked));
+
+  toggleChecklistItem(item: ChecklistItemInfo): void {
+    const checked = !item.isChecked;
+    this.signingService.toggleChecklistItem(this.token, item.id, checked).subscribe({
+      next: () => this.session.update(cur => cur && {
+        ...cur,
+        recipient: {
+          ...cur.recipient,
+          checklistItems: cur.recipient.checklistItems?.map(i => i.id === item.id ? { ...i, isChecked: checked } : i)
+        }
+      }),
+      error: () => this.snackBar.open(this.translate.instant('signing.checklist.toggleFailed'), 'OK', { duration: 3000 })
+    });
+  }
+
   readonly scale = signal(1.0);
   readonly pageWidth = signal(794);
   readonly pageHeight = signal(1123);
@@ -547,13 +584,41 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
     return Array.from({ length: s.pageCount }, (_, i) => i + 1);
   });
 
+  /** Page of the field currently in focus — used to bookmark new comments to where the user is looking. */
+  readonly currentPage = computed(() => {
+    const id = this.currentFieldId();
+    return this.session()?.fields.find(f => f.id === id)?.page ?? 1;
+  });
+
   readonly signedCount = computed(() =>
     this.session()?.fields.filter(f => f.isSigned).length ?? 0
   );
 
-  readonly allFieldsSigned = computed(() =>
-    this.session()?.fields.filter(f => f.isRequired).every(f => f.isSigned) ?? false
-  );
+  readonly allFieldsSigned = computed(() => {
+    const s = this.session();
+    if (!s) return false;
+    // Radio groups are single-choice: a required group is satisfied by ANY signed member,
+    // so its individual members are excluded from the every-required-field check.
+    // Mirrors the backend's RequiredFieldRules.
+    const standaloneOk = s.fields
+      .filter(f => f.isRequired && !(f.fieldType === 'Radio' && f.groupName))
+      .every(f => f.isSigned);
+    const groups = new Map<string, { required: boolean; signed: boolean }>();
+    for (const f of s.fields) {
+      if (f.fieldType !== 'Radio' || !f.groupName) continue;
+      const g = groups.get(f.groupName) ?? { required: false, signed: false };
+      g.required ||= f.isRequired;
+      g.signed ||= f.isSigned;
+      groups.set(f.groupName, g);
+    }
+    return standaloneOk && [...groups.values()].every(g => !g.required || g.signed);
+  });
+
+  /** True when the field is a radio whose group already has a selected option. */
+  private isRadioGroupSatisfied(field: AssignedField): boolean {
+    if (field.fieldType !== 'Radio' || !field.groupName) return false;
+    return this.session()?.fields.some(f => f.groupName === field.groupName && f.isSigned) ?? false;
+  }
 
   readonly progressPercent = computed(() => {
     const total = this.session()?.fields.length ?? 0;
@@ -601,7 +666,8 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   fieldIcon(type: string): string {
     const icons: Record<string, string> = {
       Signature: 'draw', Initials: 'text_fields', Date: 'calendar_today',
-      Text: 'short_text', Checkbox: 'check_box', Name: 'person', Email: 'email'
+      Text: 'short_text', Checkbox: 'check_box', Radio: 'radio_button_unchecked',
+      Name: 'person', Email: 'email'
     };
     return icons[type] ?? 'edit';
   }
@@ -710,6 +776,12 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
     }, 50);
   }
 
+  /** Jumps the PDF viewer to the page a bookmarked comment points at. */
+  jumpToPage(page: number): void {
+    const el = this.scrollContainer?.nativeElement.querySelector(`[data-page="${page}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   clickField(field: AssignedField): void {
     if (field.isSigned) return;
     this.currentFieldId.set(field.id);
@@ -720,9 +792,41 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
       this.signTextualField(field, new Date().toLocaleDateString());
     } else if (field.fieldType === 'Checkbox') {
       this.signTextualField(field, 'true');
+    } else if (field.fieldType === 'Radio') {
+      this.signRadioField(field);
     } else {
       this.openTextDialog(field);
     }
+  }
+
+  /**
+   * Single-choice group: the backend voids the previously selected option in the same group,
+   * so mirror that locally before recording the new choice.
+   */
+  private signRadioField(field: AssignedField): void {
+    this.signingService.signField(this.token, field.id, {
+      signatureType: 'Typed',
+      typedText: 'true',
+      location: this.resolvedLocation
+    }).subscribe({
+      next: res => {
+        if (field.groupName) {
+          this.session.update(s => s && {
+            ...s,
+            fields: s.fields.map(f =>
+              f.id !== field.id && f.fieldType === 'Radio' && f.groupName === field.groupName
+                ? { ...f, isSigned: false, signedValue: undefined }
+                : f)
+          });
+        }
+        this.applyFieldResult(field.id, 'true', res.allFieldsSigned);
+      },
+      error: () => this.snackBar.open(
+        this.translate.instant('signing.errors.saveFieldFailed'),
+        this.translate.instant('signing.dismiss'),
+        { duration: 4000 }
+      )
+    });
   }
 
   private openSignatureDialog(field: AssignedField): void {
@@ -752,8 +856,11 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private openTextDialog(field: AssignedField): void {
-    const value = prompt(this.translate.instant('signing.enterFieldPrompt', { fieldType: field.fieldType }));
-    if (value !== null && value.trim()) this.signTextualField(field, value.trim());
+    this.confirmService.prompt({
+      message: this.translate.instant('signing.enterFieldPrompt', { fieldType: field.fieldType })
+    }).subscribe(value => {
+      if (value !== null && value.trim()) this.signTextualField(field, value.trim());
+    });
   }
 
   private signTextualField(field: AssignedField, value: string): void {
@@ -788,7 +895,8 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    const next = this.session()?.fields.find(f => !f.isSigned);
+    // Skip unsigned radios whose group already has a selection — they're not pending work.
+    const next = this.session()?.fields.find(f => !f.isSigned && !this.isRadioGroupSatisfied(f));
     if (next) {
       this.currentFieldId.set(next.id);
       this.scrollToField(next);
@@ -820,16 +928,17 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openRequestChangesDialog(): void {
-    const reason = prompt(this.translate.instant('signing.requestChangesPrompt'));
-    if (reason === null) return; // Cancelled
-    if (!reason.trim()) {
-      this.snackBar.open(
-        this.translate.instant('signing.errors.requestChangesReasonRequired'),
-        this.translate.instant('signing.dismiss'),
-        { duration: 4000 });
-      return;
-    }
-    this.signingService.requestChanges(this.token, reason.trim()).subscribe({
+    this.confirmService.prompt({
+      message: this.translate.instant('signing.requestChangesPrompt'),
+      inputType: 'textarea'
+    }).subscribe(reason => {
+      if (reason === null || !reason.trim()) return;
+      this.requestChanges(reason.trim());
+    });
+  }
+
+  private requestChanges(reason: string): void {
+    this.signingService.requestChanges(this.token, reason).subscribe({
       next: () => this.session.update(s => s
         ? { ...s, documentStatus: 'ChangesRequested', recipient: { ...s.recipient, status: 'ChangesRequested' } }
         : s),
@@ -842,9 +951,18 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openRejectDialog(): void {
-    const reason = prompt(this.translate.instant('signing.declineReasonPrompt'));
-    if (reason === null) return; // Cancelled
-    this.signingService.rejectDocument(this.token, reason ?? '').subscribe({
+    this.confirmService.prompt({
+      message: this.translate.instant('signing.declineReasonPrompt'),
+      inputType: 'textarea',
+      required: false
+    }).subscribe(reason => {
+      if (reason === null) return; // Cancelled
+      this.reject(reason);
+    });
+  }
+
+  private reject(reason: string): void {
+    this.signingService.rejectDocument(this.token, reason).subscribe({
       next: () => this.session.update(s => s ? { ...s, isRejected: true } : s),
       error: () => this.snackBar.open(
         this.translate.instant('signing.errors.declineFailed'),

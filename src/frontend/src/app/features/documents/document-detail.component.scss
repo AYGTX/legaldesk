@@ -18,6 +18,20 @@
     .rem-expired { color: var(--g-red); font-weight: 600; }
     .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
+    .presence-stack { display: inline-flex; align-items: center; }
+    .presence-avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--g-green-container); color: var(--g-green);
+      border: 2px solid var(--g-bg);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      margin-left: -6px;
+    }
+    .presence-avatar:first-child { margin-left: 0; }
+    .presence-label { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; font-size: 12px; font-weight: 500; color: var(--g-green); }
+    .presence-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--g-green); animation: presence-pulse 2s ease-in-out infinite; }
+    @keyframes presence-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
     .detail-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
     @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
     .left-column, .right-column { display: flex; flex-direction: column; gap: 16px; }
@@ -139,3 +153,18 @@
 .role-chip.role-approval { background: #e6f4ea; color: #1e6b2e; }
 .role-chip.role-viewonly { background: #f3e8fd; color: #7627bb; }
 .recipient-status.rs-viewer { color: #7627bb; }
+
+.checklist-block { padding: 0 0 12px 48px; display: flex; flex-direction: column; gap: 4px; }
+.checklist-label { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--g-text-3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+.checklist-label mat-icon { font-size: 13px; width: 13px; height: 13px; }
+.checklist-edit-row, .checklist-view-row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.checklist-edit-row { justify-content: space-between; }
+.checklist-text { color: var(--g-text-2); }
+.checklist-remove-btn { width: 24px !important; height: 24px !important; line-height: 24px !important; }
+.checklist-remove-btn mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.checklist-add-row { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.checklist-input { flex: 1; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--g-border); font-size: 13px; font-family: inherit; outline: none; }
+.checklist-input:focus { border-color: var(--g-blue); }
+.checklist-view-row mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--g-text-muted); }
+.checklist-view-row mat-icon.checked { color: var(--g-green); }
+.checklist-view-row span.done { text-decoration: line-through; color: var(--g-text-muted); }

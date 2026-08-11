@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { PdfTemplateService } from '../../core/services/pdf-template.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { PdfTemplateDto } from '../../core/models/pdf-template.models';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -17,7 +18,7 @@ import { AuthService } from '../../core/auth/auth.service';
   selector: 'sf-pdf-templates-list',
   standalone: true,
   imports: [
-    CommonModule, DatePipe, FormsModule,
+    CommonModule, DatePipe, FormsModule, RouterLink,
     MatButtonModule, MatIconModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, MatSnackBarModule, TranslatePipe
   ],
@@ -29,31 +30,11 @@ import { AuthService } from '../../core/auth/auth.service';
           <p class="page-sub">{{ 'pdfTemplates.list.subtitle' | translate }}</p>
         </div>
         @if (canManage()) {
-          <button mat-flat-button class="create-btn" (click)="showUpload.set(!showUpload())">
+          <a mat-flat-button class="create-btn" routerLink="/pdf-templates/new">
             <mat-icon>upload_file</mat-icon> {{ 'pdfTemplates.list.newTemplate' | translate }}
-          </button>
+          </a>
         }
       </div>
-
-      @if (canManage() && showUpload()) {
-        <div class="upload-panel">
-          <h3 class="upload-title">{{ 'pdfTemplates.upload.title' | translate }}</h3>
-          <label class="file-drop" [class.has-file]="selectedFile()">
-            <input type="file" accept="application/pdf" hidden (change)="onFileSelected($event)" />
-            <mat-icon>picture_as_pdf</mat-icon>
-            <span>{{ selectedFile()?.name ?? ('pdfTemplates.upload.choosePdf' | translate) }}</span>
-          </label>
-          <input class="text-input" [(ngModel)]="uploadName" [placeholder]="'pdfTemplates.upload.namePlaceholder' | translate" />
-          <input class="text-input" [(ngModel)]="uploadDescription" [placeholder]="'pdfTemplates.upload.descriptionPlaceholder' | translate" />
-          <div class="upload-actions">
-            <button mat-button (click)="cancelUpload()">{{ 'common.cancel' | translate }}</button>
-            <button mat-flat-button class="create-btn" [disabled]="!selectedFile() || !uploadName.trim() || uploading()" (click)="upload()">
-              @if (uploading()) { <mat-spinner diameter="18"></mat-spinner> }
-              {{ 'pdfTemplates.upload.uploadAndConfigure' | translate }}
-            </button>
-          </div>
-        </div>
-      }
 
       <div class="toolbar">
         <div class="search-wrap">
@@ -136,14 +117,6 @@ import { AuthService } from '../../core/auth/auth.service';
     .page-sub { font-size: 13px; color: #5f6368; margin: 0; }
     .create-btn { background: #0b57d0 !important; color: #fff !important; border-radius: 20px !important; }
 
-    .upload-panel { border: 1px solid #c7d0dc; border-radius: 12px; background: #fff; padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
-    .upload-title { margin: 0; font-size: 15px; font-weight: 500; }
-    .file-drop { display: flex; align-items: center; gap: 10px; padding: 16px; border: 2px dashed #c7d0dc; border-radius: 10px; cursor: pointer; color: #5f6368; }
-    .file-drop.has-file { border-color: #0b57d0; color: #0b57d0; background: #f0f6ff; }
-    .text-input { height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid #c7d0dc; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; }
-    .text-input:focus { border-color: #0b57d0; }
-    .upload-actions { display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
-
     .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
     .search-wrap { position: relative; flex: 1; min-width: 200px; }
     .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; height: 18px; width: 18px; color: #5f6368; pointer-events: none; }
@@ -176,6 +149,7 @@ import { AuthService } from '../../core/auth/auth.service';
 })
 export class PdfTemplatesListComponent implements OnInit {
   private readonly svc = inject(PdfTemplateService);
+  private readonly confirmService = inject(ConfirmService);
   private readonly snack = inject(MatSnackBar);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
@@ -184,12 +158,7 @@ export class PdfTemplatesListComponent implements OnInit {
   readonly templates = signal<PdfTemplateDto[]>([]);
   readonly loading = signal(true);
   readonly activeFilter = signal<boolean | null>(null);
-  readonly showUpload = signal(false);
-  readonly uploading = signal(false);
-  readonly selectedFile = signal<File | null>(null);
   search = '';
-  uploadName = '';
-  uploadDescription = '';
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly canManage = computed(() => {
@@ -217,45 +186,20 @@ export class PdfTemplatesListComponent implements OnInit {
     });
   }
 
-  onFileSelected(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
-    this.selectedFile.set(file);
-    if (file && !this.uploadName.trim()) this.uploadName = file.name.replace(/\.pdf$/i, '');
-  }
-
-  cancelUpload() {
-    this.showUpload.set(false);
-    this.selectedFile.set(null);
-    this.uploadName = '';
-    this.uploadDescription = '';
-  }
-
-  upload() {
-    const file = this.selectedFile();
-    if (!file || !this.uploadName.trim()) return;
-    this.uploading.set(true);
-    this.svc.create(file, this.uploadName.trim(), this.uploadDescription.trim() || undefined).subscribe({
-      next: res => {
-        this.uploading.set(false);
-        this.cancelUpload();
-        // Straight into the field designer to place fields on the freshly uploaded PDF.
-        this.router.navigate(['/pdf-templates', res.id, 'designer']);
-      },
-      error: err => {
-        this.uploading.set(false);
-        this.snack.open(err?.error?.detail ?? this.translate.instant('pdfTemplates.upload.failed'), 'OK', { duration: 5000 });
-      }
-    });
-  }
-
   configure(t: PdfTemplateDto) { this.router.navigate(['/pdf-templates', t.id, 'designer']); }
   startRequest(t: PdfTemplateDto) { this.router.navigate(['/pdf-templates', t.id, 'new']); }
 
   deleteTemplate(t: PdfTemplateDto) {
-    if (!confirm(this.translate.instant('pdfTemplates.list.confirmDelete', { name: t.name }))) return;
-    this.svc.delete(t.id).subscribe({
-      next: () => { this.snack.open(this.translate.instant('pdfTemplates.list.deleted'), 'OK', { duration: 3000 }); this.load(); },
-      error: () => this.snack.open(this.translate.instant('pdfTemplates.list.deleteFailed'), 'OK', { duration: 3000 })
+    this.confirmService.confirm({
+      message: this.translate.instant('pdfTemplates.list.confirmDelete', { name: t.name }),
+      confirmLabel: this.translate.instant('common.delete'),
+      danger: true
+    }).subscribe(ok => {
+      if (!ok) return;
+      this.svc.delete(t.id).subscribe({
+        next: () => { this.snack.open(this.translate.instant('pdfTemplates.list.deleted'), 'OK', { duration: 3000 }); this.load(); },
+        error: () => this.snack.open(this.translate.instant('pdfTemplates.list.deleteFailed'), 'OK', { duration: 3000 })
+      });
     });
   }
 }

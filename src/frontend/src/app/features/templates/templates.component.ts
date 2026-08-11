@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,16 +25,16 @@ import { TemplateKind, UnifiedTemplate, fromHtmlTemplate, fromPdfTemplate } from
     <div class="templates-page">
       <div class="page-header">
         <div>
-          <h1 class="page-title">{{ 'templates.title' | translate }}</h1>
-          <p class="page-subtitle">{{ 'templates.subtitle' | translate }}</p>
+          <h1 class="page-title">{{ headerTitleKey() | translate }}</h1>
+          <p class="page-subtitle">{{ headerSubtitleKey() | translate }}</p>
         </div>
         @if (canManage()) {
           <div class="manage-links">
-            <a mat-stroked-button routerLink="/admin/html-templates">
-              <mat-icon>article</mat-icon> {{ 'templates.manageHtml' | translate }}
+            <a mat-stroked-button routerLink="/admin/html-templates/new">
+              <mat-icon>article</mat-icon> {{ 'templates.createHtml' | translate }}
             </a>
-            <a mat-stroked-button routerLink="/pdf-templates">
-              <mat-icon>picture_as_pdf</mat-icon> {{ 'templates.managePdf' | translate }}
+            <a mat-stroked-button routerLink="/pdf-templates/new">
+              <mat-icon>picture_as_pdf</mat-icon> {{ 'templates.createPdf' | translate }}
             </a>
           </div>
         }
@@ -104,6 +104,7 @@ export class TemplatesComponent implements OnInit {
   private readonly pdfSvc = inject(PdfTemplateService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   private readonly allTemplates = signal<UnifiedTemplate[]>([]);
   readonly loading = signal(true);
@@ -122,7 +123,20 @@ export class TemplatesComponent implements OnInit {
     return kind ? this.allTemplates().filter(t => t.kind === kind) : this.allTemplates();
   });
 
-  ngOnInit() { this.load(); }
+  readonly headerTitleKey = computed(() => {
+    const kind = this.kindFilter();
+    return kind === 'html' ? 'templates.titleHtml' : kind === 'pdf' ? 'templates.titlePdf' : 'templates.title';
+  });
+  readonly headerSubtitleKey = computed(() => {
+    const kind = this.kindFilter();
+    return kind === 'html' ? 'templates.hintHtml' : kind === 'pdf' ? 'templates.hintPdf' : 'templates.subtitle';
+  });
+
+  ngOnInit() {
+    const kind = this.route.snapshot.queryParamMap.get('kind');
+    if (kind === 'html' || kind === 'pdf') this.kindFilter.set(kind);
+    this.load();
+  }
 
   setKindFilter(kind: TemplateKind | null) { this.kindFilter.set(kind); }
   setActiveFilter(val: boolean | null) { this.activeFilter.set(val); this.load(); }

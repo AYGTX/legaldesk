@@ -1,5 +1,6 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,6 +14,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { HubService } from '../../core/services/hub.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DocumentDetail, WorkflowParticipant, AiSummaryDto } from '../../core/models';
@@ -24,7 +26,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
   selector: 'sf-document-detail',
   standalone: true,
   imports: [
-    CommonModule, RouterLink,
+    CommonModule, FormsModule, RouterLink,
     MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatStepperModule, MatChipsModule, MatDividerModule, MatTooltipModule, MatDialogModule,
     MatSnackBarModule, WorkflowVisualizerComponent, CommentsPanelComponent, TranslatePipe
@@ -58,6 +60,17 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 @if (remaining(); as r) {
                   <span class="remaining" [class]="'rem-' + r.level">
                     <mat-icon>{{ r.expired ? 'error' : 'timer' }}</mat-icon> {{ r.text }}
+                  </span>
+                }
+                @if (activeViewers().length > 0) {
+                  <span class="presence-stack" [matTooltip]="presenceTooltip()">
+                    @for (v of activeViewers().slice(0, 4); track v.userId) {
+                      <span class="presence-avatar">{{ initials(v.name) }}</span>
+                    }
+                    <span class="presence-label">
+                      <span class="presence-dot"></span>
+                      {{ (activeViewers().length === 1 ? 'documents.detail.presence.viewingOne' : 'documents.detail.presence.viewingMany') | translate: { count: activeViewers().length } }}
+                    </span>
                   </span>
                 }
               </div>
@@ -196,6 +209,37 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                       <mat-icon>link</mat-icon>
                     </button>
                   </div>
+                  @if (r.approvalType === 'Review' || r.approvalType === 'Approval') {
+                    @if (isOwner() && doc()!.status === 'Draft') {
+                      <div class="checklist-block">
+                        <span class="checklist-label"><mat-icon>checklist</mat-icon>{{ 'documents.detail.checklist.title' | translate }}</span>
+                        @for (item of r.checklistItems; track item.id; let idx = $index) {
+                          <div class="checklist-edit-row">
+                            <span class="checklist-text">{{ item.text }}</span>
+                            <button mat-icon-button class="checklist-remove-btn" (click)="removeChecklistItem(r.id, idx)">
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </div>
+                        }
+                        <div class="checklist-add-row">
+                          <input class="checklist-input" [(ngModel)]="newChecklistText[r.id]"
+                                 [placeholder]="'documents.detail.checklist.addPlaceholder' | translate"
+                                 (keydown.enter)="addChecklistItem(r.id)" />
+                          <button mat-icon-button (click)="addChecklistItem(r.id)"><mat-icon>add</mat-icon></button>
+                        </div>
+                      </div>
+                    } @else if (r.checklistItems && r.checklistItems.length > 0) {
+                      <div class="checklist-block readonly">
+                        <span class="checklist-label"><mat-icon>checklist</mat-icon>{{ 'documents.detail.checklist.title' | translate }}</span>
+                        @for (item of r.checklistItems; track item.id) {
+                          <div class="checklist-view-row">
+                            <mat-icon [class.checked]="item.isChecked">{{ item.isChecked ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+                            <span [class.done]="item.isChecked">{{ item.text }}</span>
+                          </div>
+                        }
+                      </div>
+                    }
+                  }
                   <mat-divider></mat-divider>
                 }
                 @if (doc()!.recipients.length === 0) {
@@ -210,7 +254,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             <!-- Comments / discussion -->
             <mat-card class="comments-card">
               <mat-card-content>
-                <sf-comments-panel [documentId]="doc()!.id" [canModerate]="canModerate()"></sf-comments-panel>
+                <sf-comments-panel [documentId]="doc()!.id" [canModerate]="canModerate()"
+                                    [pageCount]="doc()!.pageCount"></sf-comments-panel>
               </mat-card-content>
             </mat-card>
 
@@ -349,6 +394,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
   private readonly snack = inject(MatSnackBar);
+  private readonly confirmService = inject(ConfirmService);
 
   readonly loading = signal(true);
   readonly doc = signal<DocumentDetail | null>(null);
@@ -371,6 +417,18 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   /** The participant whose change request paused the document. */
   readonly changeRequester = () =>
     this.doc()?.recipients.find(r => r.status === 'ChangesRequested') ?? null;
+
+  /** Other authenticated users viewing this document right now (self excluded). */
+  readonly activeViewers = computed(() => {
+    const p = this.hub.presence();
+    if (!p || p.documentId !== this.documentId) return [];
+    const myId = this.auth.user()?.id;
+    return p.viewers.filter(v => v.userId !== myId);
+  });
+
+  presenceTooltip(): string {
+    return this.activeViewers().map(v => v.name).join(', ');
+  }
 
   remaining(): RemainingTime | null {
     const d = this.doc();
@@ -398,6 +456,33 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Draft input for the "add checklist item" box, keyed by recipient id. */
+  newChecklistText: Record<string, string> = {};
+
+  addChecklistItem(recipientId: string): void {
+    const text = (this.newChecklistText[recipientId] ?? '').trim();
+    if (!text) return;
+    const recipient = this.doc()?.recipients.find(r => r.id === recipientId);
+    if (!recipient) return;
+    const items = [...(recipient.checklistItems ?? []).map(i => i.text), text];
+    this.newChecklistText[recipientId] = '';
+    this.saveChecklist(recipientId, items);
+  }
+
+  removeChecklistItem(recipientId: string, index: number): void {
+    const recipient = this.doc()?.recipients.find(r => r.id === recipientId);
+    if (!recipient?.checklistItems) return;
+    const items = recipient.checklistItems.map(i => i.text).filter((_, i) => i !== index);
+    this.saveChecklist(recipientId, items);
+  }
+
+  private saveChecklist(recipientId: string, items: string[]): void {
+    this.documentService.setChecklist(this.documentId, recipientId, items).subscribe({
+      next: () => this.load(),
+      error: err => this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.checklist.saveFailed'), 'OK', { duration: 4000 })
+    });
+  }
+
   copyLink(secureToken: string): void {
     const url = `${window.location.origin}/sign/${secureToken}`;
     navigator.clipboard.writeText(url).then(
@@ -412,7 +497,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     this.reopening.set(true);
     this.documentService.reopen(d.id).subscribe({
       next: () => { this.reopening.set(false); this.load(); },
-      error: err => { this.reopening.set(false); alert(err.error?.detail ?? this.translate.instant('documents.detail.reopenFailed')); }
+      error: err => { this.reopening.set(false); this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.reopenFailed'), 'OK', { duration: 4000 }); }
     });
   }
 
@@ -491,14 +576,18 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   }
 
   send(): void {
-    if (!confirm(this.translate.instant('documents.detail.confirmSend'))) return;
-    this.sending.set(true);
-    this.documentService.send(this.documentId).subscribe({
-      next: () => { this.sending.set(false); this.load(); },
-      error: err => {
-        this.sending.set(false);
-        alert(err.error?.detail ?? this.translate.instant('documents.detail.sendFailed'));
-      }
+    this.confirmService.confirm({
+      message: this.translate.instant('documents.detail.confirmSend')
+    }).subscribe(ok => {
+      if (!ok) return;
+      this.sending.set(true);
+      this.documentService.send(this.documentId).subscribe({
+        next: () => { this.sending.set(false); this.load(); },
+        error: err => {
+          this.sending.set(false);
+          this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.sendFailed'), 'OK', { duration: 4000 });
+        }
+      });
     });
   }
 

@@ -26,7 +26,12 @@ public record CreateHtmlTemplateCommand(
     Guid? DefaultApproverId = null,
     List<HtmlTemplateFieldInput>? Fields = null,
     WorkflowType WorkflowType = WorkflowType.Sequential,
-    bool HideRecipientIdentities = false) : ICommand<Guid>;
+    bool HideRecipientIdentities = false,
+    /// <summary>
+    /// Request type this template carries. Requests created from it inherit this type (and its SLA) at
+    /// creation time, as a snapshot — changing the type's SLA later never affects in-flight requests.
+    /// </summary>
+    Guid? RequestTypeId = null) : ICommand<Guid>;
 
 public class CreateHtmlTemplateCommandValidator : AbstractValidator<CreateHtmlTemplateCommand>
 {
@@ -64,6 +69,14 @@ public class CreateHtmlTemplateCommandHandler(
                 throw new NotFoundException(nameof(ApplicationUser), approverIds.First());
         }
 
+        if (command.RequestTypeId.HasValue)
+        {
+            var requestTypeExists = await db.RequestTypes
+                .AnyAsync(t => t.Id == command.RequestTypeId.Value && t.IsActive, cancellationToken);
+            if (!requestTypeExists)
+                throw new Common.Exceptions.ValidationException("The selected request type is invalid or inactive.");
+        }
+
         var template = HtmlTemplate.Create(
             command.Name,
             command.HtmlContent,
@@ -71,7 +84,8 @@ public class CreateHtmlTemplateCommandHandler(
             command.Description,
             command.DefaultApproverId,
             command.WorkflowType,
-            command.HideRecipientIdentities);
+            command.HideRecipientIdentities,
+            command.RequestTypeId);
 
         db.HtmlTemplates.Add(template);
         await db.SaveChangesAsync(cancellationToken);

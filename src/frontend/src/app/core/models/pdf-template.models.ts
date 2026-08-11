@@ -72,6 +72,10 @@ export interface PdfTemplateDetailDto {
   createdAt: string;
   updatedAt?: string;
   fields: PdfTemplateFieldDto[];
+  /** Request type this template carries — requests created from it inherit this type (and its SLA) at creation time. */
+  requestTypeId?: string;
+  requestTypeName?: string;
+  requestTypeSlaHours?: number;
 }
 
 export interface CreatePdfTemplateResult {
@@ -88,6 +92,7 @@ export interface UpdatePdfTemplateRequest {
   fields: PdfTemplateFieldDto[];
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
+  requestTypeId?: string;
 }
 
 export interface PdfApproverSelection {
@@ -101,5 +106,4 @@ export interface SubmitPdfTemplateRequest {
   approvers?: PdfApproverSelection[];
   title?: string;
   message?: string;
-  expirationDays?: number;
 }

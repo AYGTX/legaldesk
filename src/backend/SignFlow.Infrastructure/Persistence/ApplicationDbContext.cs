@@ -12,6 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<Recipient> Recipients => Set<Recipient>();
+    public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
     public DbSet<SignatureField> SignatureFields => Set<SignatureField>();
     public DbSet<Signature> Signatures => Set<Signature>();
     public DbSet<Workflow> Workflows => Set<Workflow>();

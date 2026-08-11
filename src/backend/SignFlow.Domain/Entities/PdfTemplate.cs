@@ -34,6 +34,13 @@ public class PdfTemplate : BaseEntity
 
     public bool HideRecipientIdentities { get; private set; }
 
+    /// <summary>
+    /// Request type carried by this template — requests created from it inherit this type (and its SLA)
+    /// at creation time, as a snapshot. Changing this later only affects requests created afterward.
+    /// </summary>
+    public Guid? RequestTypeId { get; private set; }
+    public RequestType? RequestType { get; private set; }
+
     public Guid CreatedById { get; private set; }
     public ApplicationUser CreatedByUser { get; private set; } = null!;
 
@@ -48,6 +55,7 @@ public class PdfTemplate : BaseEntity
         long fileSizeBytes,
         int pageCount,
         Guid createdById,
+        Guid? requestTypeId = null,
         string? description = null,
         Guid? defaultApproverId = null,
         WorkflowType workflowType = WorkflowType.Sequential,
@@ -63,7 +71,8 @@ public class PdfTemplate : BaseEntity
             Description = description,
             DefaultApproverId = defaultApproverId,
             WorkflowType = workflowType,
-            HideRecipientIdentities = hideRecipientIdentities
+            HideRecipientIdentities = hideRecipientIdentities,
+            RequestTypeId = requestTypeId
         };
 
     /// <summary>Updates metadata/config. The stored PDF itself is immutable once uploaded.</summary>
@@ -73,7 +82,8 @@ public class PdfTemplate : BaseEntity
         Guid? defaultApproverId,
         bool isActive,
         WorkflowType workflowType,
-        bool hideRecipientIdentities)
+        bool hideRecipientIdentities,
+        Guid? requestTypeId)
     {
         Name = name;
         Description = description;
@@ -81,6 +91,7 @@ public class PdfTemplate : BaseEntity
         IsActive = isActive;
         WorkflowType = workflowType;
         HideRecipientIdentities = hideRecipientIdentities;
+        RequestTypeId = requestTypeId;
         UpdatedAt = DateTime.UtcNow;
     }
 }

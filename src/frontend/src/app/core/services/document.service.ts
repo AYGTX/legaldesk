@@ -76,6 +76,11 @@ export class DocumentService {
     return this.api.put<void>(`/v1/documents/${documentId}/recipients`, { workflowType, recipients, hideRecipientIdentities });
   }
 
+  /** Owner: define the review/approval checklist for one recipient (draft documents only). */
+  setChecklist(documentId: string, recipientId: string, items: string[]): Observable<void> {
+    return this.api.put<void>(`/v1/documents/${documentId}/recipients/${recipientId}/checklist`, { items });
+  }
+
   getAuditTrail(documentId: string, pageNumber = 1, pageSize = 50): Observable<PagedResult<unknown>> {
     return this.api.get(`/v1/documents/${documentId}/audit`, { pageNumber, pageSize });
   }

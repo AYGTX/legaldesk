@@ -26,8 +26,7 @@ public record CreateRequestFromPdfTemplateCommand(
     /// </summary>
     List<ApproverSelection>? Approvers = null,
     string? Title = null,
-    string? Message = null,
-    int? ExpirationDays = null) : ICommand<Guid>;
+    string? Message = null) : ICommand<Guid>;
 
 public class CreateRequestFromPdfTemplateCommandValidator : AbstractValidator<CreateRequestFromPdfTemplateCommand>
 {
@@ -59,6 +58,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         var template = await db.PdfTemplates
             .Include(t => t.Fields)
             .Include(t => t.DefaultApprover)
+            .Include(t => t.RequestType)
             .FirstOrDefaultAsync(t => t.Id == command.TemplateId, cancellationToken)
             ?? throw new NotFoundException(nameof(PdfTemplate), command.TemplateId);
 
@@ -107,13 +107,17 @@ public class CreateRequestFromPdfTemplateCommandHandler(
             pageCount: template.PageCount,
             ownerId: initiatorId,
             description: template.Description,
-            expirationDays: command.ExpirationDays,
             message: command.Message);
 
         document.SetPdfTemplateSource(template.Id, JsonSerializer.Serialize(command.FilledValues));
         document.SetWorkflowType(template.WorkflowType);
         document.SetHideRecipientIdentities(template.HideRecipientIdentities);
         document.SetCreatedBy(initiatorId.ToString());
+
+        // Inherit the template's request type and snapshot its SLA at creation time — later changes to
+        // the type's SLA (or reassigning the template's type) never affect this in-flight request.
+        if (template.RequestType is { } requestType)
+            document.ApplyRequestType(requestType.Id, requestType.SlaHours);
 
         db.Documents.Add(document);
         await db.SaveChangesAsync(cancellationToken);

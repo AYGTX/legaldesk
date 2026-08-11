@@ -7,6 +7,7 @@ using SignFlow.Application.Features.Documents.Commands;
 using SignFlow.Application.Features.Documents.Queries;
 using SignFlow.Application.Features.SignatureFields.Commands;
 using SignFlow.Application.Features.Recipients.Commands;
+using SignFlow.Application.Features.Checklist.Commands;
 using SignFlow.Application.Features.Signing.Commands;
 using SignFlow.Application.Features.Signing.Queries;
 using SignFlow.Application.Features.AuditTrail.Queries;
@@ -70,6 +71,10 @@ public static class ApplicationServiceExtensions
         // Recipient command handlers
         services.AddScoped<ICommandHandler<ManageRecipientsCommand>, ManageRecipientsCommandHandler>();
 
+        // Checklist command handlers (collab Phase 4 — review/approval prerequisites)
+        services.AddScoped<ICommandHandler<SetChecklistItemsCommand>, SetChecklistItemsCommandHandler>();
+        services.AddScoped<ICommandHandler<ToggleChecklistItemCommand>, ToggleChecklistItemCommandHandler>();
+
         // Signing handlers
         services.AddScoped<ICommandHandler<SignFieldCommand, SignFieldResult>, SignFieldCommandHandler>();
         services.AddScoped<ICommandHandler<ApproveSigningCommand, ApproveSigningResult>, ApproveSigningCommandHandler>();
@@ -83,6 +88,7 @@ public static class ApplicationServiceExtensions
         // Audit
         services.AddScoped<IQueryHandler<GetAuditTrailQuery, PagedResult<AuditLogDto>>, GetAuditTrailQueryHandler>();
         services.AddScoped<IQueryHandler<ExportAuditTrailQuery, byte[]>, ExportAuditTrailQueryHandler>();
+        services.AddScoped<IQueryHandler<GetOrgAuditLogQuery, PagedResult<OrgAuditLogDto>>, GetOrgAuditLogQueryHandler>();
 
         // Templates
         services.AddScoped<ICommandHandler<CreateTemplateCommand, Guid>, CreateTemplateCommandHandler>();

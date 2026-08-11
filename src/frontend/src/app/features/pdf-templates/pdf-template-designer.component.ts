@@ -20,10 +20,12 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { v4 as uuidv4 } from 'uuid';
 import { PdfTemplateService } from '../../core/services/pdf-template.service';
 import { UserService } from '../../core/services/user.service';
+import { RequestTypeService } from '../../core/services/request-type.service';
 import {
   PdfFieldType, PdfFieldFillRole, PdfTemplateFieldDto, PDF_AUTO_FILL_OPTIONS
 } from '../../core/models/pdf-template.models';
-import { WorkflowType, UserDto } from '../../core/models';
+import { WorkflowType, UserDto, RequestType } from '../../core/models';
+import { formatSla } from '../../core/utils/sla';
 
 interface TemplateField {
   tempId: string;
@@ -228,6 +230,13 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
                   @for (u of users(); track u.id) { <mat-option [value]="u.id">{{ u.fullName }}</mat-option> }
                 </mat-select>
               </mat-form-field>
+              <label class="pl">{{ 'pdfTemplates.designer.requestType' | translate }}</label>
+              <mat-form-field appearance="outline" class="ff">
+                <mat-select [value]="requestTypeId() ?? ''" (selectionChange)="requestTypeId.set($event.value || undefined)">
+                  <mat-option value="">{{ 'pdfTemplates.designer.noRequestType' | translate }}</mat-option>
+                  @for (rt of requestTypes(); track rt.id) { <mat-option [value]="rt.id">{{ rt.name }} ({{ formatSla(rt.slaHours) }})</mat-option> }
+                </mat-select>
+              </mat-form-field>
               <mat-checkbox [checked]="isActive()" (change)="isActive.set($event.checked)">{{ 'pdfTemplates.designer.active' | translate }}</mat-checkbox>
               <mat-checkbox [checked]="hideIdentities()" (change)="hideIdentities.set($event.checked)">{{ 'designer.anon.hideIdentities' | translate }}</mat-checkbox>
             </div>
@@ -308,6 +317,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly svc = inject(PdfTemplateService);
   private readonly userService = inject(UserService);
+  private readonly requestTypeSvc = inject(RequestTypeService);
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
@@ -315,6 +325,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   readonly fillRoles: PdfFieldFillRole[] = ['Requester', 'Approver', 'System'];
   readonly roleColors = ROLE_COLORS;
   readonly autoFillOptions = PDF_AUTO_FILL_OPTIONS;
+  readonly formatSla = formatSla;
 
   readonly doc = signal<boolean>(false);
   readonly pdfLoading = signal(true);
@@ -324,11 +335,13 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   readonly selected = signal<TemplateField | null>(null);
   readonly fields = signal<TemplateField[]>([]);
   readonly users = signal<UserDto[]>([]);
+  readonly requestTypes = signal<RequestType[]>([]);
 
   readonly workflowType = signal<WorkflowType>('Sequential');
   readonly hideIdentities = signal(false);
   readonly isActive = signal(true);
   readonly defaultApproverId = signal<string | undefined>(undefined);
+  readonly requestTypeId = signal<string | undefined>(undefined);
 
   readonly snapToGrid = signal(true);
   readonly gridSize = 10;
@@ -357,6 +370,11 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       error: () => {}
     });
 
+    this.requestTypeSvc.getActive().subscribe({
+      next: types => this.requestTypes.set(types),
+      error: () => {}
+    });
+
     this.svc.getById(this.templateId).subscribe({
       next: t => {
         this.name = t.name;
@@ -365,6 +383,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
         this.hideIdentities.set(t.hideRecipientIdentities);
         this.isActive.set(t.isActive);
         this.defaultApproverId.set(t.defaultApproverId);
+        this.requestTypeId.set(t.requestTypeId);
         this.fields.set(t.fields.map(f => ({
           tempId: uuidv4(),
           id: f.id,
@@ -583,7 +602,8 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       isActive: this.isActive(),
       fields,
       workflowType: this.workflowType(),
-      hideRecipientIdentities: this.hideIdentities()
+      hideRecipientIdentities: this.hideIdentities(),
+      requestTypeId: this.requestTypeId()
     }).subscribe({
       next: () => {
         this.saving.set(false);

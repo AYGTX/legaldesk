@@ -35,6 +35,7 @@ public class Recipient : BaseEntity
 
     public ICollection<SignatureField> AssignedFields { get; private set; } = [];
     public ICollection<Signature> Signatures { get; private set; } = [];
+    public ICollection<ChecklistItem> ChecklistItems { get; private set; } = [];
 
     private Recipient() { }
 

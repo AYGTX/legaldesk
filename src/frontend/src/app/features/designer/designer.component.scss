@@ -11,6 +11,8 @@
     .page-controls, .zoom-controls { display: flex; align-items: center; gap: 4px; }
     .page-indicator, .zoom-label { font-size: 14px; color: #64748b; min-width: 60px; text-align: center; }
     .flex-1 { flex: 1; }
+    .grid-toggle { border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; padding: 6px; cursor: pointer; color: #64748b; display: flex; }
+    .grid-toggle.active { border-color: #6366f1; background: #eef2ff; color: #6366f1; }
 
     /* ── Layout ── */
     .designer-body { display: flex; flex-direction: row; flex: 1; overflow: hidden; }
@@ -260,10 +262,15 @@
        it would render below the canvas and make drops look like they land under the page. */
     .pdf-canvas-wrapper .cdk-drag-placeholder { display: none; }
     .pdf-canvas { display: block; }
+    .grid-overlay {
+      position: absolute; inset: 0; pointer-events: none; z-index: 1;
+      background-image: linear-gradient(to right, rgba(99,102,241,0.12) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(99,102,241,0.12) 1px, transparent 1px);
+    }
 
     /* Placed Fields */
     .placed-field {
-      position: absolute; border: 2px solid #6366f1; border-radius: 4px;
+      position: absolute; z-index: 2; border: 2px solid #6366f1; border-radius: 4px;
       background: rgba(99,102,241,0.08); cursor: move;
       user-select: none; min-width: 60px; min-height: 24px;
     }
@@ -275,6 +282,7 @@
     .field-header mat-icon { font-size: 12px; width: 12px; height: 12px; }
     .field-recipient-dot { width: 8px; height: 8px; border-radius: 50%; margin-left: auto; flex-shrink: 0; }
     .field-label { padding: 4px 6px; font-size: 11px; color: #475569; }
+    .field-group-tag { display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 8px; background: #eef2ff; color: #6366f1; font-size: 10px; font-weight: 600; }
     .resize-handle {
       position: absolute; bottom: 0; right: 0; width: 12px; height: 12px;
       cursor: se-resize; background: linear-gradient(135deg, transparent 50%, #6366f1 50%);
@@ -298,6 +306,7 @@
     .panel-heading { font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
     .property-group { margin-bottom: 16px; }
     .property-label { display: block; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .property-hint { font-size: 11px; color: #94a3b8; margin: 4px 0 0; line-height: 1.4; }
     .field-type-display { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #1e293b; }
     .recipient-select { display: flex; flex-direction: column; gap: 6px; }
     .recipient-option {

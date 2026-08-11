@@ -1,4 +1,4 @@
-import { ApprovalType, DocumentStatus, FieldType, WorkflowStepStatus } from './document.models';
+import { ApprovalType, ChecklistItemInfo, DocumentStatus, FieldType, WorkflowStepStatus } from './document.models';
 import { WorkflowParticipant } from './workflow.models';
 
 export type SignatureType = 'Drawn' | 'Typed' | 'Uploaded' | 'Stamp';
@@ -35,6 +35,8 @@ export interface RecipientSession {
   status: WorkflowStepStatus;
   /** Free-text participant label (e.g. "Legal team") — display only, capabilities come from approvalType. */
   roleLabel?: string;
+  /** Prerequisites to check off before approving (Review/Approval roles only). */
+  checklistItems?: ChecklistItemInfo[];
 }
 
 export interface AssignedField {
@@ -56,6 +58,8 @@ export interface AssignedField {
   fontFamily?: string;
   fontSize?: number;
   fontColor?: string;
+  /** Radio fields sharing a group name form a single-choice group. */
+  groupName?: string;
   /** Client-side only: the value/image rendered after signing in this session. */
   signedValue?: string;
 }

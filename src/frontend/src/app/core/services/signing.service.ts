@@ -36,4 +36,9 @@ export class SigningService {
   getDocumentSummary(token: string): Observable<AiSummaryDto> {
     return this.api.get<AiSummaryDto>(`/v1/sign/${token}/summary`);
   }
+
+  /** Check or uncheck one of the recipient's own checklist items. */
+  toggleChecklistItem(token: string, itemId: string, checked: boolean): Observable<void> {
+    return this.api.post<void>(`/v1/sign/${token}/checklist/${itemId}`, { checked });
+  }
 }

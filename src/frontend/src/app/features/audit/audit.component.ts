@@ -24,17 +24,15 @@ interface AuditEntry {
 }
 
 const ACTION_ICONS: Record<string, string> = {
-  Created: 'add_circle', Uploaded: 'upload', Sent: 'send',
-  Viewed: 'visibility', Signed: 'draw', Rejected: 'cancel',
-  Deleted: 'delete', Downloaded: 'download', Completed: 'check_circle',
-  FieldsUpdated: 'edit', RecipientsUpdated: 'people', Expired: 'schedule'
-};
-
-const ACTION_LABEL_KEYS: Record<string, string> = {
-  Created: 'created', Uploaded: 'uploaded', Sent: 'sent',
-  Viewed: 'viewed', Signed: 'signed', Rejected: 'rejected',
-  Deleted: 'deleted', Downloaded: 'downloaded', Completed: 'completed',
-  FieldsUpdated: 'fieldsUpdated', RecipientsUpdated: 'recipientsUpdated', Expired: 'expired'
+  DocumentCreated: 'add_circle', DocumentViewed: 'visibility', DocumentSent: 'send',
+  DocumentSigned: 'draw', DocumentRejected: 'cancel', DocumentCompleted: 'check_circle',
+  DocumentExpired: 'schedule', DocumentCancelled: 'block', DocumentDownloaded: 'download',
+  FieldSigned: 'draw', FieldCleared: 'clear', RecipientAdded: 'person_add', RecipientRemoved: 'person_remove',
+  WorkflowStarted: 'play_circle', WorkflowCompleted: 'task_alt', WorkflowStepCompleted: 'check_circle',
+  WorkflowStepRejected: 'cancel', EmailSent: 'mail', ReminderSent: 'notifications_active',
+  DelegationAdded: 'forward', EscalationTriggered: 'priority_high', CommentAdded: 'comment',
+  AttachmentUploaded: 'attach_file', AuthenticationEvent: 'lock', ChangesRequested: 'published_with_changes',
+  RevisionUploaded: 'upload_file', SignaturesVoided: 'block'
 };
 
 @Component({
@@ -146,8 +144,8 @@ export class AuditComponent implements OnInit {
 
   actionIcon(action: string): string { return ACTION_ICONS[action] ?? 'info'; }
   actionLabel(action: string): string {
-    const key = ACTION_LABEL_KEYS[action];
-    return key ? this.translate.instant(`audit.actions.${key}`) : action;
+    const translated = this.translate.instant(`audit.actions.${action}`);
+    return translated === `audit.actions.${action}` ? action : translated;
   }
   initials(name: string): string { return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2); }
 

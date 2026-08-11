@@ -5,11 +5,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
 import { DashboardData, RecentActivity, SlaMetrics } from '../../core/models';
 import { formatSla } from '../../core/utils/sla';
+import { CreateDocumentDialogComponent } from '../../shared/create-document-dialog/create-document-dialog.component';
 
 interface StatCard {
   label: string;
@@ -31,6 +33,7 @@ interface StatCard {
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    MatDialogModule,
     TranslatePipe,
   ],
   template: `
@@ -41,8 +44,8 @@ interface StatCard {
           <h1 class="page-title">{{ 'dashboard.title' | translate }}</h1>
           <p class="page-subtitle">{{ 'dashboard.subtitle' | translate }}</p>
         </div>
-        <button mat-flat-button color="primary" routerLink="/documents/upload">
-          <mat-icon>upload_file</mat-icon> {{ 'dashboard.uploadDocument' | translate }}
+        <button mat-flat-button color="primary" (click)="openCreateDialog()">
+          <mat-icon>add</mat-icon> {{ 'createDocument.newDocument' | translate }}
         </button>
       </div>
 
@@ -193,7 +196,7 @@ interface StatCard {
                     }}
                   </p>
                   <a mat-flat-button color="primary" routerLink="/requests" class="pending-cta">
-                    {{ 'dashboard.pending.signNow' | translate }} <mat-icon>arrow_forward</mat-icon>
+                    {{ 'dashboard.pending.viewRequests' | translate }} <mat-icon>arrow_forward</mat-icon>
                   </a>
                 </div>
               }
@@ -205,12 +208,12 @@ interface StatCard {
                 <span class="panel-title">{{ 'dashboard.quickActions.title' | translate }}</span>
               </div>
               <div class="quick-actions">
-                <a class="quick-btn" routerLink="/documents/upload">
+                <button type="button" class="quick-btn" (click)="openCreateDialog()">
                   <div class="quick-icon" style="background:#e8f0fe;color:#1a73e8">
-                    <mat-icon>upload_file</mat-icon>
+                    <mat-icon>add</mat-icon>
                   </div>
-                  <span>{{ 'common.upload' | translate }}</span>
-                </a>
+                  <span>{{ 'createDocument.newDocument' | translate }}</span>
+                </button>
                 <a class="quick-btn" routerLink="/documents">
                   <div class="quick-icon" style="background:#fce8e6;color:#ea4335">
                     <mat-icon>description</mat-icon>
@@ -250,11 +253,16 @@ export class DashboardComponent implements OnInit {
   private readonly documentService = inject(DocumentService);
   private readonly requestTypeService = inject(RequestTypeService);
   private readonly translate = inject(TranslateService);
+  private readonly dialog = inject(MatDialog);
 
   readonly loading = signal(true);
   readonly data = signal<DashboardData | null>(null);
   readonly sla = signal<SlaMetrics | null>(null);
   readonly error = signal<string | null>(null);
+
+  openCreateDialog(): void {
+    this.dialog.open(CreateDocumentDialogComponent, { width: '720px', maxWidth: '92vw' });
+  }
 
   formatHours(hours: number): string {
     return formatSla(Math.round(hours));

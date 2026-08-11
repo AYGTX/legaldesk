@@ -176,6 +176,7 @@
 
     .signed-image { max-width: 100%; max-height: 100%; object-fit: contain; }
     .signed-text { font-size: 14px; color: #1e293b; font-weight: 500; padding: 4px; }
+    .signed-radio { color: #1e293b; font-size: 20px; width: 20px; height: 20px; }
     .signed-check { position: absolute; bottom: 2px; right: 2px; font-size: 14px; width: 14px; height: 14px; color: #22c55e; }
 
     /* Pre-signing Summary Screen */
@@ -284,6 +285,16 @@
     .rfc-text-val { font-size: 15px; color: #1e293b; font-weight: 500; }
     .rfc-check { color: #22c55e; font-size: 20px; width: 20px; height: 20px; margin-left: auto; }
     .rfc-empty { font-size: 14px; color: #f59e0b; font-style: italic; }
+
+    .review-checklist {
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px;
+      padding: 18px 20px; max-width: 720px; width: 100%; box-sizing: border-box;
+    }
+    .review-checklist h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #92400e; margin: 0 0 10px; }
+    .review-checklist h3 mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .checklist-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 14px; color: #1e293b; cursor: pointer; }
+    .checklist-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #d97706; }
+    .checklist-item span.done { text-decoration: line-through; color: #94a3b8; }
 
     .review-footer {
       background: white; border: 1px solid #e2e8f0; border-radius: 12px;

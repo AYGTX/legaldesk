@@ -10,6 +10,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { RequestTypeService } from '../../core/services/request-type.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { RequestType } from '../../core/models';
 import { formatSla } from '../../core/utils/sla';
 import { RequestTypeDialogComponent } from './request-type-dialog.component';
@@ -74,6 +75,7 @@ import { RequestTypeDialogComponent } from './request-type-dialog.component';
 })
 export class RequestTypesComponent implements OnInit {
   private readonly service = inject(RequestTypeService);
+  private readonly confirmService = inject(ConfirmService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
@@ -113,11 +115,17 @@ export class RequestTypesComponent implements OnInit {
   }
 
   remove(t: RequestType): void {
-    if (!confirm(this.translate.instant('admin.requestTypes.confirmDelete', { name: t.name }))) return;
-    this.service.delete(t.id).subscribe({
-      next: () => { this.snackBar.open(this.translate.instant('admin.requestTypes.requestTypeDeleted'), this.translate.instant('common.close'), { duration: 3000 }); this.load(); },
-      error: (err: { error?: { detail?: string } }) =>
-        this.snackBar.open(err.error?.detail ?? this.translate.instant('admin.requestTypes.failedToDelete'), this.translate.instant('common.close'), { duration: 5000 })
+    this.confirmService.confirm({
+      message: this.translate.instant('admin.requestTypes.confirmDelete', { name: t.name }),
+      confirmLabel: this.translate.instant('common.delete'),
+      danger: true
+    }).subscribe(ok => {
+      if (!ok) return;
+      this.service.delete(t.id).subscribe({
+        next: () => { this.snackBar.open(this.translate.instant('admin.requestTypes.requestTypeDeleted'), this.translate.instant('common.close'), { duration: 3000 }); this.load(); },
+        error: (err: { error?: { detail?: string } }) =>
+          this.snackBar.open(err.error?.detail ?? this.translate.instant('admin.requestTypes.failedToDelete'), this.translate.instant('common.close'), { duration: 5000 })
+      });
     });
   }
 }

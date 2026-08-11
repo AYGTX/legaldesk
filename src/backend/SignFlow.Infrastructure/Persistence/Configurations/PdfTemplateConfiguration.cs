@@ -26,6 +26,11 @@ public class PdfTemplateConfiguration : IEntityTypeConfiguration<PdfTemplate>
             .HasForeignKey(t => t.DefaultApproverId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(t => t.RequestType)
+            .WithMany()
+            .HasForeignKey(t => t.RequestTypeId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(t => t.Fields)
             .WithOne(f => f.PdfTemplate)
             .HasForeignKey(f => f.PdfTemplateId)
@@ -33,6 +38,7 @@ public class PdfTemplateConfiguration : IEntityTypeConfiguration<PdfTemplate>
 
         builder.HasIndex(t => t.IsActive);
         builder.HasIndex(t => t.CreatedById);
+        builder.HasIndex(t => t.RequestTypeId);
 
         builder.HasQueryFilter(t => !t.IsDeleted);
     }

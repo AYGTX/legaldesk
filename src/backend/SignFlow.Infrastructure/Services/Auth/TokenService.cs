@@ -64,7 +64,7 @@ public class TokenService(IOptions<JwtSettings> jwtSettings) : ITokenService
         };
 
         var handler = new JwtSecurityTokenHandler();
-        var principal = handler.ValidateToken(token, validationParams, out var securityToken);
+            var principal = handler.ValidateToken(token, validationParams, out var securityToken);
 
         if (securityToken is not JwtSecurityToken jwtToken ||
             !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.OrdinalIgnoreCase))

@@ -43,7 +43,10 @@ public record PdfTemplateDetailDto(
     bool HideRecipientIdentities,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    List<PdfTemplateFieldDto> Fields);
+    List<PdfTemplateFieldDto> Fields,
+    Guid? RequestTypeId,
+    string? RequestTypeName,
+    int? RequestTypeSlaHours);
 
 public class GetPdfTemplateByIdQueryHandler(
     IApplicationDbContext db,
@@ -55,6 +58,7 @@ public class GetPdfTemplateByIdQueryHandler(
             .AsNoTracking()
             .Include(t => t.CreatedByUser)
             .Include(t => t.DefaultApprover)
+            .Include(t => t.RequestType)
             .Include(t => t.Fields.OrderBy(f => f.Order))
                 .ThenInclude(f => f.PreAssignedApprover)
             .FirstOrDefaultAsync(t => t.Id == query.Id, cancellationToken)
@@ -94,6 +98,9 @@ public class GetPdfTemplateByIdQueryHandler(
                 f.OptionsJson,
                 f.PreAssignedApproverId,
                 f.PreAssignedApprover is not null ? $"{f.PreAssignedApprover.FirstName} {f.PreAssignedApprover.LastName}" : null,
-                f.WorkflowStage)).ToList());
+                f.WorkflowStage)).ToList(),
+            template.RequestTypeId,
+            template.RequestType?.Name,
+            template.RequestType?.SlaHours);
     }
 }

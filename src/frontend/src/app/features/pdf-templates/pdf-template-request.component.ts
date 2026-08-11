@@ -25,6 +25,7 @@ import { ApproverEntry, createEmptyApproverEntry, isApproverEntryValid } from '.
 import { ApproverPickerComponent } from '../../shared/approver-picker/approver-picker.component';
 import { RequestStepperComponent } from '../../shared/request-stepper/request-stepper.component';
 import { RequestSuccessComponent } from '../../shared/request-success/request-success.component';
+import { formatSla } from '../../core/utils/sla';
 
 @Component({
   selector: 'sf-pdf-template-request',
@@ -43,6 +44,12 @@ import { RequestSuccessComponent } from '../../shared/request-success/request-su
           <h1 class="req-title">{{ template()?.name ?? ('common.loading' | translate) }}</h1>
           <p class="req-sub">{{ 'pdfTemplates.request.subtitle' | translate }}</p>
         </div>
+        @if (template()?.requestTypeId) {
+          <span class="request-type-chip">
+            <mat-icon>schedule</mat-icon>
+            {{ template()!.requestTypeName }} · {{ formatSla(template()!.requestTypeSlaHours) }}
+          </span>
+        }
       </div>
 
       <sf-request-stepper [steps]="stepLabels" [currentIndex]="stepIndex()" />
@@ -187,6 +194,8 @@ import { RequestSuccessComponent } from '../../shared/request-success/request-su
     .req-header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
     .req-title { font-size: 22px; font-weight: 500; margin: 0; }
     .req-sub { font-size: 13px; color: #5f6368; margin: 0; }
+    .request-type-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #5f6368; background: #f1f3f4; border-radius: 12px; padding: 3px 10px; margin-left: auto; }
+    .request-type-chip mat-icon { font-size: 15px; width: 15px; height: 15px; color: #5f6368; }
     .loading { display: flex; justify-content: center; padding: 64px; }
     .req-grid { display: grid; grid-template-columns: minmax(340px, 1fr) minmax(520px, 1.5fr); gap: 20px; align-items: start; }
     @media (max-width: 1100px) { .req-grid { grid-template-columns: 1fr; } }
@@ -239,6 +248,7 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+  readonly formatSla = formatSla;
 
   readonly step = signal<'prepare' | 'done'>('prepare');
   readonly stepLabels = [this.translate.instant('pdfTemplates.request.stepPrepare'), this.translate.instant('pdfTemplates.request.stepSent')];

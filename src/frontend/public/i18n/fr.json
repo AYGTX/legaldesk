@@ -8,6 +8,7 @@
     "close": "Fermer",
     "more": "Plus",
     "confirm": "Confirmer",
+    "confirmTitle": "Veuillez confirmer",
     "back": "Retour",
     "next": "Suivant",
     "submit": "Envoyer",
@@ -38,7 +39,6 @@
   },
   "nav": {
     "dashboard": "Tableau de bord",
-    "myRequests": "Mes demandes",
     "documents": "Documents",
     "templates": "Modèles",
     "auditTrail": "Journal d'audit",
@@ -231,7 +231,6 @@
   "dashboard": {
     "title": "Tableau de bord",
     "subtitle": "Aperçu de votre activité de signature de documents",
-    "uploadDocument": "Importer un document",
     "stats": {
       "totalDocuments": "Documents au total",
       "completed": "Terminés",
@@ -286,9 +285,9 @@
       "title": "En attente de votre action",
       "emptyTitle": "Tout est à jour",
       "emptySub": "Aucun document en attente de votre part",
-      "waitingSingular": "{{count}} document en attente de votre signature",
-      "waitingPlural": "{{count}} documents en attente de votre signature",
-      "signNow": "Signer maintenant"
+      "waitingSingular": "{{count}} document en attente de votre action",
+      "waitingPlural": "{{count}} documents en attente de votre action",
+      "viewRequests": "Voir les demandes"
     },
     "quickActions": {
       "title": "Actions rapides",
@@ -302,7 +301,7 @@
     "list": {
       "title": "Documents",
       "subtitle": "Gérez vos documents et vos demandes de signature",
-      "uploadDocument": "Importer un document",
+      "allDocumentsTab": "Tous les documents",
       "searchPlaceholder": "Rechercher des documents…",
       "clearSearch": "Effacer",
       "allStatuses": "Tous",
@@ -382,6 +381,15 @@
         "Stamp": "Tampon"
       },
       "noRecipients": "Aucun destinataire assigné pour le moment",
+      "presence": {
+        "viewingOne": "1 personne consulte ce document",
+        "viewingMany": "{{count}} personnes consultent ce document"
+      },
+      "checklist": {
+        "title": "Liste de vérification",
+        "addPlaceholder": "Ajouter un élément…",
+        "saveFailed": "Échec de l'enregistrement de la liste de vérification"
+      },
       "copySigningLink": "Copier le lien de signature",
       "linkCopied": "Lien de signature copié dans le presse-papiers",
       "linkCopyFailed": "Échec de la copie du lien",
@@ -469,7 +477,8 @@
       "saving": "Enregistrement...",
       "saveDisabledNoRecipient": "Ajoutez au moins un destinataire",
       "saveDisabledNoField": "Placez au moins un champ sur le document",
-      "done": "Terminé"
+      "done": "Terminé",
+      "snapToGrid": "Aligner les champs sur la grille"
     },
     "sidebar": {
       "recipientsTitle": "Destinataires",
@@ -544,6 +553,9 @@
       "requiredCheckbox": "Les destinataires doivent remplir ce champ",
       "position": "Position",
       "size": "Taille",
+      "radioGroup": "Groupe de boutons radio",
+      "radioGroupPlaceholder": "ex. mode-de-paiement",
+      "radioGroupHint": "Les boutons partageant le même nom de groupe forment un choix unique — les signataires ne peuvent en sélectionner qu'un seul.",
       "removeField": "Supprimer le champ"
     },
     "notifications": {
@@ -763,11 +775,15 @@
     },
     "allCaughtUp": "Tout est à jour",
     "noDocumentsWaiting": "Aucun document n'attend votre signature",
-    "needsSignature": "Nécessite votre signature",
+    "noActionWaiting": "Aucun document n'attend votre action",
+    "needsAction": "Nécessite votre action",
     "history": "Historique",
     "from": "De",
     "deadline": "Échéance {{date}}",
     "signNow": "Signer maintenant",
+    "approveNow": "Approuver maintenant",
+    "reviewNow": "Examiner maintenant",
+    "viewNow": "Consulter",
     "openDocument": "Ouvrir le document",
     "nothingSentYet": "Rien n'a encore été envoyé",
     "uploadDocumentSub": "Téléversez un document et envoyez-le pour signature",
@@ -838,6 +854,9 @@
     "deleteConfirm": "Supprimer ce commentaire ? Ses réponses seront également supprimées.",
     "participant": "Participant",
     "pageTag": "Page {{page}}",
+    "noPage": "Aucune page",
+    "attachPage": "Repère",
+    "goToPage": "Aller à la page {{page}}",
     "loadFailed": "Impossible de charger les commentaires",
     "postFailed": "Impossible de publier votre commentaire",
     "actionFailed": "Une erreur s'est produite — veuillez réessayer"
@@ -855,25 +874,88 @@
     },
     "noEvents": "Aucun événement d'audit trouvé",
     "actions": {
-      "created": "Créé",
-      "uploaded": "Téléversé",
-      "sent": "Envoyé",
-      "viewed": "Consulté",
-      "signed": "Signé",
-      "rejected": "Rejeté",
-      "deleted": "Supprimé",
-      "downloaded": "Téléchargé",
-      "completed": "Terminé",
-      "fieldsUpdated": "Champs mis à jour",
-      "recipientsUpdated": "Destinataires mis à jour",
-      "expired": "Expiré"
+      "DocumentCreated": "Document créé",
+      "DocumentViewed": "Document consulté",
+      "DocumentSent": "Document envoyé",
+      "DocumentSigned": "Document signé",
+      "DocumentRejected": "Document rejeté",
+      "DocumentCompleted": "Document terminé",
+      "DocumentExpired": "Document expiré",
+      "DocumentCancelled": "Document annulé",
+      "DocumentDownloaded": "Document téléchargé",
+      "FieldSigned": "Champ signé",
+      "FieldCleared": "Champ effacé",
+      "RecipientAdded": "Destinataire ajouté",
+      "RecipientRemoved": "Destinataire retiré",
+      "WorkflowStarted": "Flux démarré",
+      "WorkflowCompleted": "Flux terminé",
+      "WorkflowStepCompleted": "Étape du flux terminée",
+      "WorkflowStepRejected": "Étape du flux rejetée",
+      "EmailSent": "E-mail envoyé",
+      "ReminderSent": "Rappel envoyé",
+      "DelegationAdded": "Délégation ajoutée",
+      "EscalationTriggered": "Escalade déclenchée",
+      "CommentAdded": "Commentaire ajouté",
+      "AttachmentUploaded": "Pièce jointe téléversée",
+      "AuthenticationEvent": "Événement d'authentification",
+      "ChangesRequested": "Modifications demandées",
+      "RevisionUploaded": "Révision téléversée",
+      "SignaturesVoided": "Signatures annulées"
+    }
+  },
+  "orgAudit": {
+    "title": "Journal d'audit",
+    "subtitle": "Journal d'activité de l'organisation, tous documents confondus",
+    "searchPlaceholder": "Rechercher par document, nom ou e-mail…",
+    "clearSearch": "Effacer",
+    "allActions": "Toutes les actions",
+    "noEvents": "Aucun événement d'audit trouvé",
+    "columns": {
+      "action": "Action",
+      "document": "Document",
+      "actor": "Acteur",
+      "ip": "Adresse IP",
+      "timestamp": "Horodatage"
+    },
+    "actions": {
+      "DocumentCreated": "Document créé",
+      "DocumentViewed": "Document consulté",
+      "DocumentSent": "Document envoyé",
+      "DocumentSigned": "Document signé",
+      "DocumentRejected": "Document rejeté",
+      "DocumentCompleted": "Document terminé",
+      "DocumentExpired": "Document expiré",
+      "DocumentCancelled": "Document annulé",
+      "DocumentDownloaded": "Document téléchargé",
+      "FieldSigned": "Champ signé",
+      "FieldCleared": "Champ effacé",
+      "RecipientAdded": "Destinataire ajouté",
+      "RecipientRemoved": "Destinataire retiré",
+      "WorkflowStarted": "Flux démarré",
+      "WorkflowCompleted": "Flux terminé",
+      "WorkflowStepCompleted": "Étape du flux terminée",
+      "WorkflowStepRejected": "Étape du flux rejetée",
+      "EmailSent": "E-mail envoyé",
+      "ReminderSent": "Rappel envoyé",
+      "DelegationAdded": "Délégation ajoutée",
+      "EscalationTriggered": "Escalade déclenchée",
+      "CommentAdded": "Commentaire ajouté",
+      "AttachmentUploaded": "Pièce jointe téléversée",
+      "AuthenticationEvent": "Événement d'authentification",
+      "ChangesRequested": "Modifications demandées",
+      "RevisionUploaded": "Révision téléversée",
+      "SignaturesVoided": "Signatures annulées"
     }
   },
   "templates": {
     "title": "Modèles",
     "subtitle": "Modèles de documents réutilisables avec champs préconfigurés",
-    "manageHtml": "Gérer les modèles HTML",
-    "managePdf": "Gérer les formulaires PDF",
+    "titleHtml": "Modèles HTML",
+    "titlePdf": "Modèles PDF",
+    "hintHtml": "Modèles texte réutilisables avec des espaces réservés dynamiques — idéal pour les contrats et lettres à personnaliser à chaque fois.",
+    "hintPdf": "Formulaires PDF réutilisables avec champs de signature déjà placés — idéal pour les documents administratifs récurrents.",
+    "createHtml": "Créer un modèle HTML",
+    "createPdf": "Créer un formulaire PDF",
     "searchPlaceholder": "Rechercher des modèles…",
     "filterAll": "Tous les types",
     "filterAllStatus": "Tous",
@@ -889,6 +971,25 @@
     "createdBy": "Créé par {{name}}",
     "useTemplate": "Utiliser le modèle",
     "manage": "Configurer"
+  },
+  "createDocument": {
+    "newDocument": "Nouveau document",
+    "dialogTitle": "Comment souhaitez-vous commencer ?",
+    "dialogSubtitle": "Choisissez un point de départ — vous pourrez toujours ajuster les champs avant l'envoi.",
+    "badgeReusable": "Modèle réutilisable",
+    "badgeOneTime": "Import ponctuel",
+    "pdfTemplate": {
+      "title": "Utiliser un modèle PDF",
+      "description": "Partez d'un PDF prêt à l'emploi avec les champs de signature déjà placés. Le plus rapide pour les documents récurrents comme les accords de confidentialité ou lettres d'offre."
+    },
+    "htmlTemplate": {
+      "title": "Utiliser un modèle HTML",
+      "description": "Partez d'un modèle texte réutilisable avec des espaces réservés dynamiques à remplir. Idéal pour les contrats et lettres qui changent à chaque fois."
+    },
+    "uploadPdf": {
+      "title": "Importer un nouveau PDF",
+      "description": "Importez votre propre PDF et placez les champs de signature à partir de zéro. Idéal pour les documents ponctuels que vous ne réutiliserez pas."
+    }
   },
   "shared": {
     "approverPicker": {
@@ -1072,6 +1173,11 @@
     "fieldNav": {
       "title": "Champs à compléter"
     },
+    "checklist": {
+      "title": "Avant d'approuver",
+      "incompleteTooltip": "Cochez chaque élément avant d'approuver",
+      "toggleFailed": "Échec de la mise à jour de l'élément"
+    },
     "roleBanner": {
       "Review": "Relecture",
       "Approval": "Approbation"
@@ -1116,6 +1222,8 @@
   },
   "htmlTemplateEditor": {
     "workflowType": "Flux de travail",
+    "requestType": "Type de demande",
+    "noRequestType": "— Aucun type de demande (sans échéance) —",
     "assignTo": "Assigner à",
     "assignToHint": "(facultatif — remplace l'approbateur par défaut pour ce champ)",
     "unassigned": "— Non assigné (l'initiateur choisit) —",
@@ -1123,6 +1231,11 @@
     "stageHint": "Même étape = parallèle · les étapes s'exécutent dans l'ordre",
     "fieldsScanned": "{{count}} champ ajouté depuis le HTML collé",
     "fieldsScannedPlural": "{{count}} champs ajoutés depuis le HTML collé"
+  },
+  "htmlTemplates": {
+    "list": {
+      "confirmDelete": "Supprimer le modèle « {{name}} » ? Cette action est irréversible."
+    }
   },
   "pdfTemplates": {
     "list": {
@@ -1146,9 +1259,12 @@
     },
     "upload": {
       "title": "Téléverser un PDF de base",
+      "subtitle": "Ajoutez un PDF, puis placez les champs à remplir à l'étape suivante.",
       "choosePdf": "Choisir un fichier PDF…",
+      "dropHint": "Cliquez pour parcourir ou déposez un PDF ici",
       "namePlaceholder": "Nom du formulaire",
       "descriptionPlaceholder": "Description (facultatif)",
+      "requestTypePlaceholder": "Type de contenu (définit le SLA)",
       "uploadAndConfigure": "Téléverser et configurer",
       "failed": "Échec du téléversement"
     },
@@ -1172,6 +1288,8 @@
       "selectOrDragHint": "Glissez un type de champ sur la page, ou sélectionnez un champ placé pour le configurer.",
       "defaultApprover": "Approbateur par défaut",
       "noDefaultApprover": "Aucun approbateur par défaut",
+      "requestType": "Type de demande",
+      "noRequestType": "Aucun type de demande (sans échéance)",
       "active": "Actif (disponible pour les utilisateurs)",
       "saved": "Formulaire PDF enregistré",
       "saveFailed": "Échec de l'enregistrement du formulaire PDF",

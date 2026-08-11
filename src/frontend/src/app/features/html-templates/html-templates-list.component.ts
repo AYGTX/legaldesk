@@ -8,7 +8,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateService } from '@ngx-translate/core';
 import { HtmlTemplateService } from '../../core/services/html-template.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { HtmlTemplateDto } from '../../core/models/html-template.models';
 
 @Component({
@@ -147,6 +149,8 @@ import { HtmlTemplateDto } from '../../core/models/html-template.models';
 export class HtmlTemplatesListComponent implements OnInit {
   private readonly svc = inject(HtmlTemplateService);
   private readonly snack = inject(MatSnackBar);
+  private readonly confirmService = inject(ConfirmService);
+  private readonly translate = inject(TranslateService);
 
   templates = signal<HtmlTemplateDto[]>([]);
   loading = signal(true);
@@ -178,7 +182,16 @@ export class HtmlTemplatesListComponent implements OnInit {
   }
 
   deleteTemplate(t: HtmlTemplateDto) {
-    if (!confirm(`Delete template "${t.name}"?`)) return;
+    this.confirmService.confirm({
+      message: this.translate.instant('htmlTemplates.list.confirmDelete', { name: t.name }),
+      confirmLabel: this.translate.instant('common.delete'),
+      danger: true
+    }).subscribe(ok => {
+      if (ok) this.doDelete(t);
+    });
+  }
+
+  private doDelete(t: HtmlTemplateDto) {
     this.svc.delete(t.id).subscribe({
       next: () => {
         this.snack.open('Template deleted', 'OK', { duration: 3000 });

@@ -193,6 +193,20 @@ html, body {
   background: #3c4043 !important;
 }
 
+/* ── Tables — force our surface color, override Material's tonal default (#fcf8fd-ish) ── */
+.mat-mdc-table {
+  background: var(--g-surface) !important;
+}
+.mat-mdc-header-row {
+  background: var(--g-surface-variant) !important;
+}
+.mat-mdc-row {
+  background: var(--g-surface) !important;
+}
+.mat-mdc-row:hover {
+  background: var(--g-hover) !important;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

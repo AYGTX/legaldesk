@@ -36,7 +36,10 @@ public record HtmlTemplateDetailDto(
     bool HideRecipientIdentities,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    List<HtmlTemplateFieldDto> Fields);
+    List<HtmlTemplateFieldDto> Fields,
+    Guid? RequestTypeId,
+    string? RequestTypeName,
+    int? RequestTypeSlaHours);
 
 public class GetHtmlTemplateByIdQueryHandler(
     IApplicationDbContext db,
@@ -48,6 +51,7 @@ public class GetHtmlTemplateByIdQueryHandler(
             .AsNoTracking()
             .Include(t => t.CreatedByUser)
             .Include(t => t.DefaultApprover)
+            .Include(t => t.RequestType)
             .Include(t => t.Fields.OrderBy(f => f.Order))
                 .ThenInclude(f => f.PreAssignedApprover)
             .FirstOrDefaultAsync(t => t.Id == query.Id, cancellationToken)
@@ -83,6 +87,9 @@ public class GetHtmlTemplateByIdQueryHandler(
                 f.OptionsJson,
                 f.PreAssignedApproverId,
                 f.PreAssignedApprover is not null ? $"{f.PreAssignedApprover.FirstName} {f.PreAssignedApprover.LastName}" : null,
-                f.WorkflowStage)).ToList());
+                f.WorkflowStage)).ToList(),
+            template.RequestTypeId,
+            template.RequestType?.Name,
+            template.RequestType?.SlaHours);
     }
 }

@@ -12,6 +12,11 @@ export interface DocumentProgressEvent {
   isCompleted: boolean;
 }
 
+export interface PresenceViewer {
+  userId: string;
+  name: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class HubService {
   private readonly auth = inject(AuthService);
@@ -26,6 +31,11 @@ export class HubService {
    * carries no comment data, so viewers refetch and per-viewer anonymization is preserved).
    */
   readonly lastCommentsChange = signal<{ documentId: string; at: number } | null>(null);
+  /**
+   * Everyone currently viewing a document (authenticated hub connections only — external
+   * token signers never connect, so they don't appear).
+   */
+  readonly presence = signal<{ documentId: string; viewers: PresenceViewer[] } | null>(null);
 
   async connect(): Promise<void> {
     if (this.connection?.state === signalR.HubConnectionState.Connected) return;
@@ -48,6 +58,10 @@ export class HubService {
 
     this.connection.on('comments-changed', (event: { documentId: string }) => {
       this.lastCommentsChange.set({ documentId: event.documentId, at: Date.now() });
+    });
+
+    this.connection.on('presence-changed', (event: { documentId: string; viewers: PresenceViewer[] }) => {
+      this.presence.set(event);
     });
 
     this.connection.onreconnected(() => this.isConnected.set(true));

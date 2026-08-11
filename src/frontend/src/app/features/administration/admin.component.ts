@@ -19,6 +19,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { UserService } from '../../core/services/user.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { UserDto } from '../../core/models';
 import { UserDialogComponent } from './user-dialog.component';
@@ -160,9 +161,13 @@ import { RequestTypesComponent } from './request-types.component';
 
         <mat-tab label="HTML Templates">
           <div class="tab-content">
-            <div class="ht-admin-link">
-              <p>Manage reusable HTML form templates that users can submit as requests.</p>
-              <a mat-flat-button routerLink="/admin/html-templates" style="background:#0b57d0;color:#fff;border-radius:20px">
+            <div class="ht-admin-card">
+              <div class="ht-admin-icon"><mat-icon>description</mat-icon></div>
+              <div class="ht-admin-body">
+                <h3>HTML Form Templates</h3>
+                <p>Manage reusable HTML form templates that users can submit as requests.</p>
+              </div>
+              <a mat-flat-button color="primary" routerLink="/admin/html-templates">
                 <mat-icon>open_in_new</mat-icon> Manage HTML Templates
               </a>
             </div>
@@ -183,6 +188,7 @@ import { RequestTypesComponent } from './request-types.component';
 })
 export class AdminComponent implements OnInit {
   private readonly userService = inject(UserService);
+  private readonly confirmService = inject(ConfirmService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -274,19 +280,29 @@ export class AdminComponent implements OnInit {
   }
 
   resetPassword(user: UserDto): void {
-    const pw = prompt(this.translate.instant('admin.users.resetPasswordPrompt', { name: user.fullName }));
-    if (!pw) return;
-    this.userService.resetUserPassword(user.id, pw).subscribe({
-      next: () => this.snackBar.open(this.translate.instant('admin.users.passwordResetSuccess'), this.translate.instant('common.close'), { duration: 3000 }),
-      error: err => this.snackBar.open(this.errorText(err, this.translate.instant('admin.users.failedToResetPassword')), this.translate.instant('common.close'), { duration: 5000 })
+    this.confirmService.prompt({
+      message: this.translate.instant('admin.users.resetPasswordPrompt', { name: user.fullName }),
+      inputType: 'password'
+    }).subscribe(pw => {
+      if (!pw) return;
+      this.userService.resetUserPassword(user.id, pw).subscribe({
+        next: () => this.snackBar.open(this.translate.instant('admin.users.passwordResetSuccess'), this.translate.instant('common.close'), { duration: 3000 }),
+        error: err => this.snackBar.open(this.errorText(err, this.translate.instant('admin.users.failedToResetPassword')), this.translate.instant('common.close'), { duration: 5000 })
+      });
     });
   }
 
   deleteUser(user: UserDto): void {
-    if (!confirm(this.translate.instant('admin.users.confirmDelete', { name: user.fullName }))) return;
-    this.userService.deleteUser(user.id).subscribe({
-      next: () => { this.snackBar.open(this.translate.instant('admin.users.userDeleted'), this.translate.instant('common.close'), { duration: 3000 }); this.load(); },
-      error: err => this.snackBar.open(this.errorText(err, this.translate.instant('admin.users.failedToDeleteUser')), this.translate.instant('common.close'), { duration: 5000 })
+    this.confirmService.confirm({
+      message: this.translate.instant('admin.users.confirmDelete', { name: user.fullName }),
+      confirmLabel: this.translate.instant('common.delete'),
+      danger: true
+    }).subscribe(ok => {
+      if (!ok) return;
+      this.userService.deleteUser(user.id).subscribe({
+        next: () => { this.snackBar.open(this.translate.instant('admin.users.userDeleted'), this.translate.instant('common.close'), { duration: 3000 }); this.load(); },
+        error: err => this.snackBar.open(this.errorText(err, this.translate.instant('admin.users.failedToDeleteUser')), this.translate.instant('common.close'), { duration: 5000 })
+      });
     });
   }
 

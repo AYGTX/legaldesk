@@ -18,6 +18,7 @@ import { ApproverEntry, createEmptyApproverEntry, isApproverEntryValid } from '.
 import { ApproverPickerComponent } from '../../shared/approver-picker/approver-picker.component';
 import { RequestStepperComponent } from '../../shared/request-stepper/request-stepper.component';
 import { RequestSuccessComponent } from '../../shared/request-success/request-success.component';
+import { formatSla } from '../../core/utils/sla';
 
 type Step = 'pick' | 'fill' | 'done';
 
@@ -98,6 +99,12 @@ type Step = 'pick' | 'fill' | 'done';
             <div class="fill-tpl-name">
               <span class="material-symbols-outlined">article</span>
               {{ selectedTemplate()!.name }}
+              @if (selectedTemplate()!.requestTypeId) {
+                <span class="request-type-chip">
+                  <span class="material-symbols-outlined">schedule</span>
+                  {{ selectedTemplate()!.requestTypeName }} · {{ formatSla(selectedTemplate()!.requestTypeSlaHours) }}
+                </span>
+              }
             </div>
             <button mat-button (click)="goBack()">
               <mat-icon>arrow_back</mat-icon> {{ 'requests.new.changeTemplate' | translate }}
@@ -241,6 +248,8 @@ type Step = 'pick' | 'fill' | 'done';
     .fill-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e8edf2; }
     .fill-tpl-name { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; color: #1f1f1f; }
     .fill-tpl-name .material-symbols-outlined { color: #0b57d0; }
+    .request-type-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 400; color: #5f6368; background: #f1f3f4; border-radius: 12px; padding: 3px 10px; }
+    .request-type-chip .material-symbols-outlined { font-size: 15px; color: #5f6368; }
 
     .fill-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
     @media (max-width: 900px) { .fill-layout { grid-template-columns: 1fr; } }
@@ -289,6 +298,7 @@ export class NewRequestComponent implements OnInit {
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
   private readonly sanitizer = inject(DomSanitizer);
+  readonly formatSla = formatSla;
 
   step = signal<Step>('pick');
   templates = signal<HtmlTemplateDto[]>([]);

@@ -10,11 +10,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
-import { DocumentSummary, DocumentStatus, RequestType } from '../../core/models';
+import { DocumentSummary, DocumentStatus, RequestType, ReceivedRequest } from '../../core/models';
 import { remainingTime, RemainingTime } from '../../core/utils/sla';
+import { CreateDocumentDialogComponent } from '../../shared/create-document-dialog/create-document-dialog.component';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#5f6368',
@@ -28,6 +32,12 @@ const STATUS_COLORS: Record<string, string> = {
   ChangesRequested: '#d97706'
 };
 
+const RECEIVED_STATUS_COLORS: Record<string, string> = {
+  Pending: '#f59e0b', InProgress: '#1a73e8', Completed: '#34a853', Rejected: '#ea4335',
+  Expired: '#f29900', Cancelled: '#80868b', Skipped: '#80868b', Delegated: '#8430ce',
+  Escalated: '#f29900', ChangesRequested: '#d97706'
+};
+
 @Component({
   selector: 'sf-documents-list',
   standalone: true,
@@ -35,8 +45,8 @@ const STATUS_COLORS: Record<string, string> = {
     CommonModule, RouterLink, ReactiveFormsModule,
     MatTableModule, MatPaginatorModule,
     MatButtonModule, MatIconModule,
-    MatMenuModule, MatProgressSpinnerModule, MatTooltipModule,
-    TranslatePipe
+    MatMenuModule, MatProgressSpinnerModule, MatTooltipModule, MatDialogModule,
+    MatTabsModule, TranslatePipe
   ],
   template: `
     <div class="documents-page">
@@ -47,12 +57,112 @@ const STATUS_COLORS: Record<string, string> = {
           <h1 class="page-title">{{ 'documents.list.title' | translate }}</h1>
           <p class="page-subtitle">{{ 'documents.list.subtitle' | translate }}</p>
         </div>
-        <button mat-flat-button color="primary" routerLink="/documents/upload">
-          <mat-icon>upload_file</mat-icon> {{ 'documents.list.uploadDocument' | translate }}
+        <button mat-flat-button color="primary" (click)="openCreateDialog()">
+          <mat-icon>add</mat-icon> {{ 'createDocument.newDocument' | translate }}
         </button>
       </div>
 
+      <mat-tab-group animationDuration="0ms" [selectedIndex]="defaultTabIndex()">
+
+        <!-- ── Needs your action ── -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">inbox</mat-icon>
+            {{ 'requests.tabs.actionRequired' | translate }}
+            @if (actionRequiredCount() > 0) {
+              <span class="tab-badge">{{ actionRequiredCount() }}</span>
+            }
+          </ng-template>
+
+          <div class="tab-body">
+            @if (requestsLoading()) {
+              <div class="loading-state"><mat-spinner diameter="36"></mat-spinner></div>
+            } @else if (received().length === 0) {
+              <div class="empty-state">
+                <div class="empty-icon-wrap"><mat-icon>mark_email_read</mat-icon></div>
+                <p class="empty-title">{{ 'requests.allCaughtUp' | translate }}</p>
+                <p class="empty-sub">{{ 'requests.noActionWaiting' | translate }}</p>
+              </div>
+            } @else {
+              @if (awaitingMe().length > 0) {
+                <div class="section-header">
+                  <span class="section-label">{{ 'requests.needsAction' | translate }}</span>
+                  <span class="count-chip urgent">{{ awaitingMe().length }}</span>
+                </div>
+                <div class="list-surface">
+                  @for (r of awaitingMe(); track r.documentId; let last = $last) {
+                    <div class="list-row action-row" [class.no-border]="last">
+                      <div class="row-icon-wrap action-icon">
+                        <mat-icon>edit_document</mat-icon>
+                      </div>
+                      <div class="row-body">
+                        <span class="row-title">{{ r.title }}</span>
+                        <span class="row-meta">
+                          {{ 'requests.from' | translate }} <strong class="meta-strong">{{ r.ownerName }}</strong>
+                          @if (r.receivedAt) { &nbsp;·&nbsp; {{ r.receivedAt | date:'MMM d, y' }} }
+                        </span>
+                      </div>
+                      <div class="row-end">
+                        @if (remaining(r.expiresAt); as rem) {
+                          <span class="sla-chip sla-{{ rem.level }}"
+                                [matTooltip]="r.expiresAt ? ('requests.deadline' | translate: { date: (r.expiresAt | date:'medium') }) : ''"
+                                matTooltipPosition="left">
+                            <mat-icon>{{ rem.expired ? 'error_outline' : 'schedule' }}</mat-icon>
+                            {{ rem.text }}
+                          </span>
+                        }
+                        <button mat-flat-button class="sign-btn" (click)="openSigning(r)">
+                          <mat-icon>{{ actionIcon(r) }}</mat-icon> {{ actionLabel(r) | translate }}
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (otherReceived().length > 0) {
+                <div class="section-header" [style.margin-top]="awaitingMe().length ? '24px' : '0'">
+                  <span class="section-label">{{ 'requests.history' | translate }}</span>
+                  <span class="count-chip">{{ otherReceived().length }}</span>
+                </div>
+                <div class="list-surface">
+                  @for (r of otherReceived(); track r.documentId; let last = $last) {
+                    <div class="list-row" [class.no-border]="last">
+                      <div class="row-icon-wrap" [style.background]="receivedStatusBg(r.myStatus)" [style.color]="receivedStatusColor(r.myStatus)">
+                        <mat-icon>{{ receivedStatusIcon(r.myStatus) }}</mat-icon>
+                      </div>
+                      <div class="row-body">
+                        <span class="row-title faded">{{ r.title }}</span>
+                        <span class="row-meta">
+                          {{ 'requests.from' | translate }} {{ r.ownerName }}
+                          @if (r.signedAt) { &nbsp;·&nbsp; {{ 'requests.signed' | translate }} {{ r.signedAt | date:'MMM d, y' }} }
+                        </span>
+                      </div>
+                      <div class="row-end">
+                        <span class="status-chip" [style.background]="receivedStatusBg(r.myStatus)" [style.color]="receivedStatusColor(r.myStatus)">
+                          {{ receivedStatusLabel(r.myStatus) }}
+                        </span>
+                        <button mat-icon-button [matTooltip]="'requests.openDocument' | translate" matTooltipPosition="left" (click)="openSigning(r)">
+                          <mat-icon>open_in_new</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+        </mat-tab>
+
+        <!-- ── All documents ── -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">description</mat-icon>
+            {{ 'documents.list.allDocumentsTab' | translate }}
+          </ng-template>
+
       <!-- ── Toolbar ── -->
+      <div class="tab-body">
       <div class="toolbar">
 
         <!-- Search -->
@@ -223,7 +333,7 @@ const STATUS_COLORS: Record<string, string> = {
                   <div class="empty-icon-wrap"><mat-icon>description</mat-icon></div>
                   <p class="empty-title">{{ 'documents.list.noDocumentsFound' | translate }}</p>
                   <p class="empty-sub">{{ 'documents.list.emptySub' | translate }}</p>
-                  <a mat-stroked-button routerLink="/documents/upload">{{ 'documents.list.uploadDocument' | translate }}</a>
+                  <button mat-stroked-button (click)="openCreateDialog()">{{ 'createDocument.newDocument' | translate }}</button>
                 </div>
               }
             </td>
@@ -238,16 +348,26 @@ const STATUS_COLORS: Record<string, string> = {
           showFirstLastButtons>
         </mat-paginator>
       </div>
+      </div>
+        </mat-tab>
+
+      </mat-tab-group>
     </div>
   `,
   styleUrl: './documents-list.component.scss'
 })
 export class DocumentsListComponent implements OnInit {
   private readonly documentService = inject(DocumentService);
+  private readonly confirmService = inject(ConfirmService);
   private readonly requestTypeService = inject(RequestTypeService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
+  private readonly dialog = inject(MatDialog);
+
+  openCreateDialog(): void {
+    this.dialog.open(CreateDocumentDialogComponent, { width: '720px', maxWidth: '92vw' });
+  }
 
   readonly displayedColumns = ['title', 'status', 'owner', 'recipients', 'createdAt', 'actions'];
   readonly statusOptions = Object.entries(STATUS_COLORS).map(([value, color]) => ({
@@ -264,6 +384,72 @@ export class DocumentsListComponent implements OnInit {
   readonly documents = signal<DocumentSummary[]>([]);
   readonly totalCount = signal(0);
   readonly requestTypes = signal<RequestType[]>([]);
+
+  readonly requestsLoading = signal(true);
+  readonly received = signal<ReceivedRequest[]>([]);
+  readonly awaitingMe = computed(() => this.received().filter(r => r.isMyTurn));
+  readonly otherReceived = computed(() => this.received().filter(r => !r.isMyTurn));
+  readonly actionRequiredCount = computed(() => this.awaitingMe().length);
+  readonly defaultTabIndex = computed(() => this.actionRequiredCount() > 0 ? 0 : 1);
+
+  private static readonly RECEIVED_STATUS_LABEL_KEYS: Record<string, string> = {
+    Pending: 'pending', InProgress: 'inProgress', Completed: 'completed', Rejected: 'rejected',
+    Expired: 'expired', Cancelled: 'cancelled', WaitingForOthers: 'waitingForOthers', Skipped: 'skipped',
+    Delegated: 'delegated', Escalated: 'escalated', ChangesRequested: 'changesRequested'
+  };
+  private static readonly ACTION_LABEL_KEYS: Record<string, string> = {
+    Signature: 'requests.signNow', Approval: 'requests.approveNow',
+    Review: 'requests.reviewNow', ViewOnly: 'requests.viewNow', Stamp: 'requests.signNow'
+  };
+  private static readonly ACTION_ICONS: Record<string, string> = {
+    Signature: 'draw', Approval: 'fact_check', Review: 'rate_review', ViewOnly: 'visibility', Stamp: 'draw'
+  };
+
+  receivedStatusLabel(status: string): string {
+    const key = DocumentsListComponent.RECEIVED_STATUS_LABEL_KEYS[status];
+    return key ? this.translate.instant(`requests.status.${key}`) : status;
+  }
+  receivedStatusColor(status: string): string { return RECEIVED_STATUS_COLORS[status] ?? '#64748b'; }
+  receivedStatusBg(status: string): string { return `${this.receivedStatusColor(status)}20`; }
+  receivedStatusIcon(status: string): string {
+    switch (status) {
+      case 'Completed': return 'check_circle';
+      case 'Rejected': return 'cancel';
+      case 'InProgress': return 'hourglass_top';
+      case 'Expired': return 'schedule';
+      case 'Skipped': return 'skip_next';
+      case 'Delegated': return 'forward';
+      case 'ChangesRequested': return 'published_with_changes';
+      default: return 'radio_button_unchecked';
+    }
+  }
+
+  actionLabel(r: ReceivedRequest): string {
+    return DocumentsListComponent.ACTION_LABEL_KEYS[r.approvalType] ?? 'requests.signNow';
+  }
+  actionIcon(r: ReceivedRequest): string {
+    return DocumentsListComponent.ACTION_ICONS[r.approvalType] ?? 'draw';
+  }
+
+  remaining(expiresAt?: string): RemainingTime | null {
+    return remainingTime(expiresAt);
+  }
+
+  openSigning(r: ReceivedRequest): void {
+    const url = `${window.location.origin}/sign/${r.secureToken}`;
+    window.open(url, '_blank');
+  }
+
+  private loadReceived(): void {
+    this.requestsLoading.set(true);
+    this.documentService.getMyRequests().subscribe({
+      next: data => {
+        this.received.set(data.received);
+        this.requestsLoading.set(false);
+      },
+      error: () => this.requestsLoading.set(false)
+    });
+  }
 
   pageSize = 25;
   private pageNumber = 1;
@@ -295,6 +481,7 @@ export class DocumentsListComponent implements OnInit {
     });
 
     this.load();
+    this.loadReceived();
 
     this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe(() => {
       this.pageNumber = 1;
@@ -346,7 +533,12 @@ export class DocumentsListComponent implements OnInit {
   }
 
   confirmDelete(doc: DocumentSummary): void {
-    if (!confirm(this.translate.instant('documents.list.confirmDelete', { title: doc.title }))) return;
-    this.documentService.delete(doc.id).subscribe(() => this.load());
+    this.confirmService.confirm({
+      message: this.translate.instant('documents.list.confirmDelete', { title: doc.title }),
+      confirmLabel: this.translate.instant('common.delete'),
+      danger: true
+    }).subscribe(ok => {
+      if (ok) this.documentService.delete(doc.id).subscribe(() => this.load());
+    });
   }
 }

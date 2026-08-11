@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Features.Checklist.Commands;
 using SignFlow.Application.Features.Comments;
 using SignFlow.Application.Features.Comments.Commands;
 using SignFlow.Application.Features.Comments.Queries;
@@ -146,11 +147,27 @@ public class SigningController(
         await requestChangesHandler.HandleAsync(new RequestChangesCommand(token, request.Reason, ip), ct);
         return NoContent();
     }
+
+    /// <summary>Check or uncheck one of the recipient's own checklist items (token-authenticated)</summary>
+    [HttpPost("{token}/checklist/{itemId:guid}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<IActionResult> ToggleChecklistItem(
+        [FromRoute] string token,
+        [FromRoute] Guid itemId,
+        [FromBody] ToggleChecklistItemRequest request,
+        [FromServices] ICommandHandler<ToggleChecklistItemCommand> toggleHandler,
+        CancellationToken ct)
+    {
+        await toggleHandler.HandleAsync(new ToggleChecklistItemCommand(token, itemId, request.Checked), ct);
+        return NoContent();
+    }
 }
 
 public record SignFieldRequest(SignFlow.Domain.Enums.SignatureType SignatureType, string? ImageBase64, string? TypedText, string? FontFamily, string? Location);
 public record RejectRequest(string Reason);
 public record RequestChangesRequest(string Reason);
+public record ToggleChecklistItemRequest(bool Checked);
 
 /// <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
 public record AddSigningCommentRequest(string Content, Guid? ParentCommentId, int? Page, float? X, float? Y);

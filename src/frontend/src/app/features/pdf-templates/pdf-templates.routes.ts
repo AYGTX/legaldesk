@@ -7,6 +7,11 @@ export const pdfTemplatesRoutes: Routes = [
     title: 'PDF Forms — SignFlow'
   },
   {
+    path: 'new',
+    loadComponent: () => import('./pdf-template-upload.component').then(m => m.PdfTemplateUploadComponent),
+    title: 'New PDF Form — SignFlow'
+  },
+  {
     path: ':id/designer',
     loadComponent: () => import('./pdf-template-designer.component').then(m => m.PdfTemplateDesignerComponent),
     title: 'Configure PDF Form — SignFlow'

@@ -27,6 +27,13 @@ public class HtmlTemplate : BaseEntity
 
     public bool HideRecipientIdentities { get; private set; }
 
+    /// <summary>
+    /// Request type carried by this template — requests created from it inherit this type (and its SLA)
+    /// at creation time, as a snapshot. Changing this later only affects requests created afterward.
+    /// </summary>
+    public Guid? RequestTypeId { get; private set; }
+    public RequestType? RequestType { get; private set; }
+
     public Guid CreatedById { get; private set; }
     public ApplicationUser CreatedByUser { get; private set; } = null!;
 
@@ -41,7 +48,8 @@ public class HtmlTemplate : BaseEntity
         string? description = null,
         Guid? defaultApproverId = null,
         WorkflowType workflowType = WorkflowType.Sequential,
-        bool hideRecipientIdentities = false)
+        bool hideRecipientIdentities = false,
+        Guid? requestTypeId = null)
         => new()
         {
             Name = name,
@@ -50,7 +58,8 @@ public class HtmlTemplate : BaseEntity
             Description = description,
             DefaultApproverId = defaultApproverId,
             WorkflowType = workflowType,
-            HideRecipientIdentities = hideRecipientIdentities
+            HideRecipientIdentities = hideRecipientIdentities,
+            RequestTypeId = requestTypeId
         };
 
     public void Update(
@@ -60,7 +69,8 @@ public class HtmlTemplate : BaseEntity
         Guid? defaultApproverId,
         bool isActive,
         WorkflowType workflowType,
-        bool hideRecipientIdentities)
+        bool hideRecipientIdentities,
+        Guid? requestTypeId)
     {
         Name = name;
         HtmlContent = htmlContent;
@@ -69,6 +79,7 @@ public class HtmlTemplate : BaseEntity
         IsActive = isActive;
         WorkflowType = workflowType;
         HideRecipientIdentities = hideRecipientIdentities;
+        RequestTypeId = requestTypeId;
         UpdatedAt = DateTime.UtcNow;
     }
 }

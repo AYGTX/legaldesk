@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, throwError } from 'rxjs';
 import { ApiService } from '../services/api.service';
 import {
   LoginRequest, LoginResult, RegisterRequest,
@@ -47,10 +47,16 @@ export class AuthService {
   }
 
   refreshToken(): Observable<LoginResult> {
-    const request: RefreshTokenRequest = {
-      accessToken: this._token() ?? '',
-      refreshToken: localStorage.getItem(REFRESH_KEY) ?? ''
-    };
+    const accessToken = this._token();
+    const storedRefreshToken = localStorage.getItem(REFRESH_KEY);
+    // Guards against the empty-token refresh call that used to reach the backend whenever a
+    // logout raced an in-flight request's 401 — an empty access token there threw an unhandled
+    // ArgumentNullException instead of failing cleanly.
+    if (!accessToken || !storedRefreshToken) {
+      return throwError(() => new Error('No session to refresh.'));
+    }
+
+    const request: RefreshTokenRequest = { accessToken, refreshToken: storedRefreshToken };
     return this.api.post<LoginResult>('/v1/auth/refresh', request).pipe(
       tap(result => this.storeSession(result))
     );

@@ -17,8 +17,8 @@ import { AdminReport, MonthlyVolume } from '../../core/models';
     <div class="reports-page">
       <div class="page-header">
         <div>
-          <h1>{{ 'reports.title' | translate }}</h1>
-          <p class="subtitle">{{ 'reports.subtitle' | translate }}</p>
+          <h1 class="page-title">{{ 'reports.title' | translate }}</h1>
+          <p class="page-subtitle">{{ 'reports.subtitle' | translate }}</p>
         </div>
       </div>
 
@@ -151,18 +151,20 @@ import { AdminReport, MonthlyVolume } from '../../core/models';
     </div>
   `,
   styles: [`
-    .reports-page { padding: 24px; max-width: 1100px; margin: 0 auto; }
-    .page-header h1 { font-size: 24px; font-weight: 600; margin: 0; }
-    .subtitle { color: #5f6368; margin: 4px 0 20px; font-size: 14px; }
+    .reports-page { padding: 0; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-size: 22px; font-weight: 500; color: var(--g-text); margin: 0 0 4px; letter-spacing: -0.2px; }
+    .page-subtitle { color: var(--g-text-3); margin: 0; font-size: 14px; }
     .loading-state { display: flex; justify-content: center; padding: 80px; }
-    .error-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 80px; color: #5f6368; }
+    .error-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 80px; color: var(--g-text-3); }
 
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
-    .kpi { background: #fff; border: 1px solid #e8edf2; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 2px; }
-    .kpi-value { font-size: 22px; font-weight: 700; color: #202124; }
-    .kpi-label { font-size: 12px; color: #5f6368; }
-    .c-blue { color: #1a73e8; } .c-green { color: #188038; } .c-red { color: #d93025; }
-    .c-orange { color: #f97316; } .c-amber { color: #d97706; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 860px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    .kpi { background: var(--g-surface); border: 1px solid var(--g-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 4px; }
+    .kpi-value { font-size: 26px; font-weight: 600; color: var(--g-text); }
+    .kpi-label { font-size: 13px; color: var(--g-text-3); }
+    .c-blue { color: var(--g-blue); } .c-green { color: var(--g-green); } .c-red { color: var(--g-red); }
+    .c-orange { color: #f97316; } .c-amber { color: var(--g-yellow); }
 
     .report-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
     @media (max-width: 800px) { .report-grid { grid-template-columns: 1fr; } }
@@ -173,26 +175,26 @@ import { AdminReport, MonthlyVolume } from '../../core/models';
     .vbar { width: 18px; border-radius: 4px 4px 0 0; min-height: 2px; }
     .vbar.created { background: #aecbfa; }
     .vbar.completed { background: #34a853; }
-    .volume-label { font-size: 11px; color: #5f6368; }
+    .volume-label { font-size: 11px; color: var(--g-text-3); }
     .volume-legend { display: flex; gap: 16px; margin-top: 10px; }
-    .legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6368; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--g-text-3); }
     .legend-item .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
     .dot.created { background: #aecbfa; } .dot.completed { background: #34a853; }
 
     .rev-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
-    .rev-row mat-icon { color: #d97706; }
-    .rev-value { font-size: 20px; font-weight: 700; min-width: 36px; text-align: right; }
-    .rev-label { font-size: 13px; color: #5f6368; }
-    .rev-hint { font-size: 12px; color: #80868b; margin: 10px 0 0; }
+    .rev-row mat-icon { color: var(--g-yellow); }
+    .rev-value { font-size: 20px; font-weight: 700; min-width: 36px; text-align: right; color: var(--g-text); }
+    .rev-label { font-size: 13px; color: var(--g-text-3); }
+    .rev-hint { font-size: 12px; color: var(--g-text-muted); margin: 10px 0 0; }
 
     .table-card { margin-bottom: 16px; }
     .report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .report-table th { text-align: left; color: #5f6368; font-weight: 500; padding: 8px; border-bottom: 1px solid #e8edf2; }
-    .report-table td { padding: 8px; border-bottom: 1px solid #f1f3f4; }
+    .report-table th { text-align: left; color: var(--g-text-3); font-weight: 500; padding: 8px; border-bottom: 1px solid var(--g-border-light); }
+    .report-table td { padding: 8px; border-bottom: 1px solid var(--g-border-light); color: var(--g-text); }
     .report-table .num { text-align: right; }
     .type-cell { display: inline-flex; align-items: center; gap: 8px; }
     .type-cell mat-icon { font-size: 18px; width: 18px; height: 18px; }
-    .empty-note { color: #80868b; font-size: 13px; margin: 8px 0; }
+    .empty-note { color: var(--g-text-muted); font-size: 13px; margin: 8px 0; }
   `]
 })
 export class ReportsComponent implements OnInit {

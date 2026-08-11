@@ -45,7 +45,9 @@ public record ReceivedRequestDto(
     string SecureToken,
     DateTime? ReceivedAt,
     DateTime? ExpiresAt,
-    DateTime? SignedAt);
+    DateTime? SignedAt,
+    ApprovalType ApprovalType,
+    string? RoleLabel);
 
 public class GetMyRequestsQueryHandler(
     IApplicationDbContext db,
@@ -139,7 +141,9 @@ public class GetMyRequestsQueryHandler(
                 r.SecureToken,
                 doc.SentAt,
                 r.TokenExpiresAt ?? doc.ExpiresAt,
-                r.SignedAt);
+                r.SignedAt,
+                r.ApprovalType,
+                r.RoleLabel);
         }).ToList();
 
         return new MyRequestsDto(sent, received);

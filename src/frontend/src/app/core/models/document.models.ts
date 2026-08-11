@@ -92,6 +92,15 @@ export interface RecipientInfo {
   roleLabel?: string;
   /** Reason given on decline or request-changes. */
   declineReason?: string;
+  /** Review/Approval prerequisites the recipient must check off before approving. */
+  checklistItems?: ChecklistItemInfo[];
+}
+
+export interface ChecklistItemInfo {
+  id: string;
+  text: string;
+  order: number;
+  isChecked: boolean;
 }
 
 export interface SignatureFieldInfo {
@@ -120,6 +129,8 @@ export interface SignatureFieldInfo {
   validationRule?: string;
   isReadOnly: boolean;
   tooltip?: string;
+  /** Radio fields sharing a group name form a single-choice group. */
+  groupName?: string;
 }
 
 export interface WorkflowInfo {

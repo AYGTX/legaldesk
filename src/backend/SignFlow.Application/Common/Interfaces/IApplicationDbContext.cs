@@ -8,6 +8,7 @@ public interface IApplicationDbContext
     DbSet<Document> Documents { get; }
     DbSet<DocumentVersion> DocumentVersions { get; }
     DbSet<Recipient> Recipients { get; }
+    DbSet<ChecklistItem> ChecklistItems { get; }
     DbSet<SignatureField> SignatureFields { get; }
     DbSet<Signature> Signatures { get; }
     DbSet<Workflow> Workflows { get; }

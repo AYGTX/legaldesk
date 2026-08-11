@@ -30,8 +30,7 @@ export const routes: Routes = [
       },
       {
         path: 'requests',
-        loadComponent: () => import('./features/requests/my-requests.component').then(m => m.MyRequestsComponent),
-        title: 'My Requests — SignFlow'
+        redirectTo: 'documents'
       },
       {
         path: 'requests/new',
@@ -56,6 +55,11 @@ export const routes: Routes = [
       {
         path: 'documents/:id/audit',
         loadComponent: () => import('./features/audit/audit.component').then(m => m.AuditComponent),
+        title: 'Audit Trail — SignFlow'
+      },
+      {
+        path: 'audit',
+        loadComponent: () => import('./features/audit/org-audit.component').then(m => m.OrgAuditComponent),
         title: 'Audit Trail — SignFlow'
       },
       {

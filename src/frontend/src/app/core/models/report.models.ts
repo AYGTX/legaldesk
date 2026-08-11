@@ -41,3 +41,16 @@ export interface DepartmentBreakdown {
   completed: number;
   avgCompletionHours: number;
 }
+
+/** A single entry in the organization-wide audit log — mirrors OrgAuditLogDto (admin/manager only). */
+export interface OrgAuditLogEntry {
+  id: string;
+  documentId: string;
+  documentTitle: string;
+  action: string;
+  description?: string;
+  ipAddress: string;
+  actorName?: string;
+  actorEmail?: string;
+  timestamp: string;
+}

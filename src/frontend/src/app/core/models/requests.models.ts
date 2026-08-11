@@ -1,4 +1,4 @@
-import { DocumentStatus, WorkflowType, WorkflowStepStatus } from './document.models';
+import { DocumentStatus, WorkflowType, WorkflowStepStatus, ApprovalType } from './document.models';
 
 export interface RecipientProgress {
   name: string;
@@ -37,6 +37,8 @@ export interface ReceivedRequest {
   receivedAt?: string;
   expiresAt?: string;
   signedAt?: string;
+  approvalType: ApprovalType;
+  roleLabel?: string;
 }
 
 export interface MyRequests {

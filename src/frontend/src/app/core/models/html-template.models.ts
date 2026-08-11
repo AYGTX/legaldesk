@@ -48,6 +48,10 @@ export interface HtmlTemplateDetailDto {
   createdAt: string;
   updatedAt?: string;
   fields: HtmlTemplateFieldDto[];
+  /** Request type this template carries — requests created from it inherit this type (and its SLA) at creation time. */
+  requestTypeId?: string;
+  requestTypeName?: string;
+  requestTypeSlaHours?: number;
 }
 
 export interface HtmlTemplateFieldInput {
@@ -71,6 +75,7 @@ export interface CreateHtmlTemplateRequest {
   fields: HtmlTemplateFieldInput[];
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
+  requestTypeId?: string;
 }
 
 export interface UpdateHtmlTemplateRequest {
@@ -82,6 +87,7 @@ export interface UpdateHtmlTemplateRequest {
   fields: HtmlTemplateFieldInput[];
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
+  requestTypeId?: string;
 }
 
 /** One approver choice: either an existing system user, or an external signer with no account (name + email only). */
@@ -96,7 +102,6 @@ export interface SubmitFromTemplateRequest {
   approvers?: ApproverSelection[];    // one per Approver Signature field needing a choice
   title?: string;
   message?: string;
-  expirationDays?: number;
 }
 
 export interface GeneratedHtmlTemplateField {

@@ -65,7 +65,8 @@ public class HtmlTemplatesController(
                     f.FieldKey, f.Label, f.Type, f.Role, f.IsRequired, f.Order, f.AutoFillFrom, f.OptionsJson,
                     f.PreAssignedApproverId, f.WorkflowStage)).ToList(),
                 request.WorkflowType,
-                request.HideRecipientIdentities), ct);
+                request.HideRecipientIdentities,
+                request.RequestTypeId), ct);
         return CreatedAtAction(nameof(GetById), new { id }, new CreateHtmlTemplateResponse(id));
     }
 
@@ -89,7 +90,8 @@ public class HtmlTemplatesController(
                     f.FieldKey, f.Label, f.Type, f.Role, f.IsRequired, f.Order, f.AutoFillFrom, f.OptionsJson,
                     f.PreAssignedApproverId, f.WorkflowStage)).ToList(),
                 request.WorkflowType,
-                request.HideRecipientIdentities), ct);
+                request.HideRecipientIdentities,
+                request.RequestTypeId), ct);
         return NoContent();
     }
 
@@ -131,8 +133,7 @@ public class HtmlTemplatesController(
                 request.FilledValues,
                 request.Approvers?.Select(a => new ApproverSelection(a.UserId, a.ExternalName, a.ExternalEmail)).ToList(),
                 request.Title,
-                request.Message,
-                request.ExpirationDays), ct);
+                request.Message), ct);
         return CreatedAtAction(nameof(GetById), new { id }, new SubmitFromTemplateResponse(documentId));
     }
 }
@@ -158,7 +159,8 @@ public record CreateHtmlTemplateRequest(
     Guid? DefaultApproverId = null,
     List<HtmlTemplateFieldRequest>? Fields = null,
     SignFlow.Domain.Enums.WorkflowType WorkflowType = SignFlow.Domain.Enums.WorkflowType.Sequential,
-    bool HideRecipientIdentities = false);
+    bool HideRecipientIdentities = false,
+    Guid? RequestTypeId = null);
 
 public record UpdateHtmlTemplateRequest(
     string Name,
@@ -168,7 +170,8 @@ public record UpdateHtmlTemplateRequest(
     bool IsActive,
     List<HtmlTemplateFieldRequest> Fields,
     SignFlow.Domain.Enums.WorkflowType WorkflowType = SignFlow.Domain.Enums.WorkflowType.Sequential,
-    bool HideRecipientIdentities = false);
+    bool HideRecipientIdentities = false,
+    Guid? RequestTypeId = null);
 
 public record ApproverSelectionRequest(Guid? UserId = null, string? ExternalName = null, string? ExternalEmail = null);
 
@@ -176,8 +179,7 @@ public record SubmitFromTemplateRequest(
     Dictionary<string, string> FilledValues,
     List<ApproverSelectionRequest>? Approvers = null,   // one per Approver Signature field needing a choice
     string? Title = null,
-    string? Message = null,
-    int? ExpirationDays = null);
+    string? Message = null);
 
 public record CreateHtmlTemplateResponse(Guid Id);
 public record GenerateHtmlTemplateRequest(string UserText);

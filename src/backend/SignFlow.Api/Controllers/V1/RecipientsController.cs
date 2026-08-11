@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Features.Checklist.Commands;
 using SignFlow.Application.Features.Recipients.Commands;
 using SignFlow.Domain.Enums;
 
@@ -23,6 +24,22 @@ public class RecipientsController(ICommandHandler<ManageRecipientsCommand> manag
         await manageHandler.HandleAsync(new ManageRecipientsCommand(documentId, request.WorkflowType, request.Recipients, request.HideRecipientIdentities), ct);
         return NoContent();
     }
+
+    /// <summary>Set the review/approval checklist for one recipient (owner only, draft documents only)</summary>
+    [HttpPut("{recipientId:guid}/checklist")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<IActionResult> SetChecklist(
+        [FromRoute] Guid documentId,
+        [FromRoute] Guid recipientId,
+        [FromBody] SetChecklistRequest request,
+        [FromServices] ICommandHandler<SetChecklistItemsCommand> setChecklistHandler,
+        CancellationToken ct)
+    {
+        await setChecklistHandler.HandleAsync(new SetChecklistItemsCommand(documentId, recipientId, request.Items), ct);
+        return NoContent();
+    }
 }
 
 public record SaveRecipientsRequest(WorkflowType WorkflowType, List<RecipientInputDto> Recipients, bool HideRecipientIdentities = false);
+public record SetChecklistRequest(List<string> Items);

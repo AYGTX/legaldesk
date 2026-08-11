@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -40,6 +41,11 @@ public record CreatePdfTemplateCommand(
     long FileSizeBytes,
     string ContentType,
     string Name,
+    /// <summary>
+    /// Request type this template carries. Requests created from it inherit this type (and its SLA) at
+    /// creation time. Required — every PDF template must be linked to a content type.
+    /// </summary>
+    Guid RequestTypeId,
     string? Description = null) : ICommand<CreatePdfTemplateResult>;
 
 public record CreatePdfTemplateResult(Guid Id, string Name, int PageCount);
@@ -58,6 +64,7 @@ public class CreatePdfTemplateCommandValidator : AbstractValidator<CreatePdfTemp
         RuleFor(x => x.ContentType).Must(ct => ct == "application/pdf").WithMessage("Content type must be application/pdf.");
         RuleFor(x => x.Name).NotEmpty().MaximumLength(300);
         RuleFor(x => x.Description).MaximumLength(1000).When(x => x.Description is not null);
+        RuleFor(x => x.RequestTypeId).NotEmpty().WithMessage("A content type is required.");
     }
 }
 
@@ -75,6 +82,11 @@ public class CreatePdfTemplateCommandHandler(
             throw new ForbiddenAccessException();
 
         var createdById = currentUser.UserId ?? throw new ForbiddenAccessException();
+
+        var requestTypeExists = await db.RequestTypes
+            .AnyAsync(t => t.Id == command.RequestTypeId && t.IsActive, cancellationToken);
+        if (!requestTypeExists)
+            throw new Common.Exceptions.ValidationException("The selected request type is invalid or inactive.");
 
         var scanResult = await virusScan.ScanAsync(command.FileStream, command.FileName, cancellationToken);
         if (!scanResult.IsSafe)
@@ -95,6 +107,7 @@ public class CreatePdfTemplateCommandHandler(
             command.FileSizeBytes,
             pageCount,
             createdById,
+            command.RequestTypeId,
             command.Description);
         template.SetCreatedBy(createdById.ToString());
 

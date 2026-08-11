@@ -25,6 +25,11 @@ public class HtmlTemplateConfiguration : IEntityTypeConfiguration<HtmlTemplate>
             .HasForeignKey(t => t.DefaultApproverId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(t => t.RequestType)
+            .WithMany()
+            .HasForeignKey(t => t.RequestTypeId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(t => t.Fields)
             .WithOne(f => f.HtmlTemplate)
             .HasForeignKey(f => f.HtmlTemplateId)
@@ -32,6 +37,7 @@ public class HtmlTemplateConfiguration : IEntityTypeConfiguration<HtmlTemplate>
 
         builder.HasIndex(t => t.IsActive);
         builder.HasIndex(t => t.CreatedById);
+        builder.HasIndex(t => t.RequestTypeId);
 
         builder.HasQueryFilter(t => !t.IsDeleted);
     }

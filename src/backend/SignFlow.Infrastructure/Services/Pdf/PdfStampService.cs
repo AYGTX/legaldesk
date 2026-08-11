@@ -55,6 +55,11 @@ public class PdfStampService(
             {
                 DrawCheckbox(gfx, field.TextValue == "true", x, y, w, h);
             }
+            else if (field.FieldType == FieldType.Radio)
+            {
+                // Only signed fields reach stamping, so a radio here is always the selected option.
+                DrawRadio(gfx, x, y, w, h);
+            }
             else if (!string.IsNullOrEmpty(field.TextValue))
             {
                 DrawText(gfx, field.TextValue, x, y, w, h);
@@ -96,6 +101,18 @@ public class PdfStampService(
             gfx.DrawLine(checkPen, x + w * 0.15, y + h * 0.55, x + w * 0.42, y + h * 0.8);
             gfx.DrawLine(checkPen, x + w * 0.42, y + h * 0.8, x + w * 0.85, y + h * 0.2);
         }
+    }
+
+    private static void DrawRadio(XGraphics gfx, double x, double y, double w, double h)
+    {
+        // Outer ring + filled inner dot, centered in the field box.
+        var d = Math.Min(w, h) - 2;
+        var cx = x + w / 2;
+        var cy = y + h / 2;
+        var pen = new XPen(XColors.Black, 1);
+        gfx.DrawEllipse(pen, cx - d / 2, cy - d / 2, d, d);
+        var dot = d * 0.5;
+        gfx.DrawEllipse(XBrushes.Black, cx - dot / 2, cy - dot / 2, dot, dot);
     }
 
     private static void DrawText(XGraphics gfx, string text, double x, double y, double w, double h)

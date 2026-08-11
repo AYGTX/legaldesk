@@ -13,6 +13,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { VacationService } from '../../core/services/vacation.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { Vacation } from '../../core/models';
 
 function dateRangeValid(control: AbstractControl): ValidationErrors | null {
@@ -111,6 +112,7 @@ function dateRangeValid(control: AbstractControl): ValidationErrors | null {
 export class VacationPanelComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly vacationService = inject(VacationService);
+  private readonly confirmService = inject(ConfirmService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
@@ -163,11 +165,18 @@ export class VacationPanelComponent implements OnInit {
   }
 
   cancel(v: Vacation): void {
-    if (!confirm(this.translate.instant('vacation.confirmCancel'))) return;
-    this.cancelling.set(v.id);
-    this.vacationService.cancel(v.id).subscribe({
-      next: () => { this.cancelling.set(null); this.snackBar.open(this.translate.instant('vacation.messages.cancelled'), this.translate.instant('common.close'), { duration: 3000 }); this.load(); },
-      error: () => { this.cancelling.set(null); this.snackBar.open(this.translate.instant('vacation.messages.cancelFailed'), this.translate.instant('common.close'), { duration: 4000 }); }
+    this.confirmService.confirm({
+      message: this.translate.instant('vacation.confirmCancel'),
+      confirmLabel: this.translate.instant('common.yes'),
+      cancelLabel: this.translate.instant('common.no'),
+      danger: true
+    }).subscribe(ok => {
+      if (!ok) return;
+      this.cancelling.set(v.id);
+      this.vacationService.cancel(v.id).subscribe({
+        next: () => { this.cancelling.set(null); this.snackBar.open(this.translate.instant('vacation.messages.cancelled'), this.translate.instant('common.close'), { duration: 3000 }); this.load(); },
+        error: () => { this.cancelling.set(null); this.snackBar.open(this.translate.instant('vacation.messages.cancelFailed'), this.translate.instant('common.close'), { duration: 4000 }); }
+      });
     });
   }
 

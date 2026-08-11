@@ -109,6 +109,24 @@ public class SignFieldCommandHandler(
         if (field.IsSigned)
             throw new ConflictException("This field has already been signed.");
 
+        // Radio groups are single-choice: selecting one option voids any previously selected
+        // option in the same group. The old Signature rows stay as evidence (same policy as
+        // revision voiding); IsSigned/SignedValue move to the new choice, and stamping only
+        // renders signed fields, so exactly one option lands on the final PDF.
+        if (field.FieldType == FieldType.Radio && !string.IsNullOrEmpty(field.GroupName))
+        {
+            var previousChoices = await db.SignatureFields
+                .Where(f => f.DocumentId == recipient.DocumentId
+                         && f.Id != field.Id
+                         && f.FieldType == FieldType.Radio
+                         && f.GroupName == field.GroupName
+                         && f.RecipientId == field.RecipientId
+                         && f.IsSigned)
+                .ToListAsync(cancellationToken);
+            foreach (var previous in previousChoices)
+                previous.VoidSignature();
+        }
+
         string? imageUrl = null;
         if (!string.IsNullOrEmpty(command.ImageBase64))
         {
@@ -156,15 +174,17 @@ public class SignFieldCommandHandler(
 
     private async Task<bool> CheckAllFieldsSigned(Recipient recipient, CancellationToken cancellationToken)
     {
+        // Fetch ALL of the recipient's fields (not just required ones): a required radio group
+        // is satisfied by any signed member, including optional ones.
         var canClaimOrphans = recipient.ApprovalType is ApprovalType.Signature or ApprovalType.Stamp;
-        var requiredFields = await db.SignatureFields
-            .Where(f => f.DocumentId == recipient.DocumentId && f.IsRequired &&
+        var fields = await db.SignatureFields
+            .Where(f => f.DocumentId == recipient.DocumentId &&
                         (f.RecipientId == recipient.Id ||
                          (canClaimOrphans &&
                           (f.RecipientId == null ||
                            !db.Recipients.Any(r => r.DocumentId == recipient.DocumentId && r.Id == f.RecipientId)))))
             .ToListAsync(cancellationToken);
 
-        return requiredFields.All(f => f.IsSigned);
+        return RequiredFieldRules.AllRequiredSatisfied(fields);
     }
 }

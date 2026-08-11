@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { CommentService } from '../../core/services/comment.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { HubService } from '../../core/services/hub.service';
 import { AddCommentRequest, CommentDto } from '../../core/models';
 import { resolveFileUrl } from '../../core/utils/file-url';
@@ -58,7 +59,12 @@ import { resolveFileUrl } from '../../core/utils/file-url';
               <div class="cp-body">
                 <div class="cp-meta">
                   <span class="cp-author">{{ displayNameOf(c) }}</span>
-                  @if (c.page) { <span class="cp-page-chip">{{ 'comments.pageTag' | translate: { page: c.page } }}</span> }
+                  @if (c.page) {
+                    <button type="button" class="cp-page-chip" [matTooltip]="'comments.goToPage' | translate: { page: c.page }"
+                            (click)="pageJump.emit(c.page!)">
+                      <mat-icon>bookmark</mat-icon>{{ 'comments.pageTag' | translate: { page: c.page } }}
+                    </button>
+                  }
                   @if (c.isResolved) {
                     <span class="cp-resolved-chip"><mat-icon>check</mat-icon>{{ 'comments.resolved' | translate }}</span>
                   }
@@ -120,6 +126,17 @@ import { resolveFileUrl } from '../../core/utils/file-url';
           <textarea [(ngModel)]="draft" rows="3" maxlength="4000"
                     [placeholder]="'comments.placeholder' | translate"></textarea>
           <div class="cp-composer-actions">
+            @if (pageCount(); as pc) {
+              <label class="cp-page-select" [matTooltip]="'comments.attachPage' | translate">
+                <mat-icon>bookmark_border</mat-icon>
+                <select [(ngModel)]="commentPage">
+                  <option [ngValue]="null">{{ 'comments.noPage' | translate }}</option>
+                  @for (p of pageOptions(pc); track p) {
+                    <option [ngValue]="p">{{ 'comments.pageTag' | translate: { page: p } }}</option>
+                  }
+                </select>
+              </label>
+            }
             <button mat-flat-button color="primary" [disabled]="!draft.trim() || posting()" (click)="post()">
               <mat-icon>send</mat-icon> {{ 'comments.send' | translate }}
             </button>
@@ -149,7 +166,12 @@ import { resolveFileUrl } from '../../core/utils/file-url';
     .cp-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .cp-author { font-size: 13px; font-weight: 600; }
     .cp-time { font-size: 11px; color: #9aa0a6; }
-    .cp-page-chip { font-size: 11px; background: #e8f0fe; color: #1a73e8; border-radius: 8px; padding: 0 6px; }
+    .cp-page-chip { display: inline-flex; align-items: center; gap: 2px; font: inherit; font-size: 11px; background: #e8f0fe; color: #1a73e8; border: none; border-radius: 8px; padding: 0 6px; cursor: pointer; }
+    .cp-page-chip:hover { background: #d2e3fc; }
+    .cp-page-chip mat-icon { font-size: 12px; width: 12px; height: 12px; }
+    .cp-page-select { display: flex; align-items: center; gap: 4px; margin-right: auto; color: #5f6368; }
+    .cp-page-select mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .cp-page-select select { font: inherit; font-size: 12px; border: 1px solid #c7d0dc; border-radius: 6px; padding: 3px 4px; background: #fff; color: inherit; }
     .cp-resolved-chip { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; color: #1e6b2e; }
     .cp-resolved-chip mat-icon { font-size: 14px; width: 14px; height: 14px; }
     .cp-content { font-size: 13px; margin: 4px 0 6px; white-space: pre-wrap; word-break: break-word; }
@@ -169,8 +191,15 @@ export class CommentsPanelComponent implements OnInit {
   readonly token = input<string | null>(null);
   /** Owner/admin viewers may resolve/delete any thread (authenticated mode only). */
   readonly canModerate = input(false);
+  /** Total page count of the document — enables the "bookmark to page" picker in the composer. */
+  readonly pageCount = input<number | null>(null);
+  /** Page the host is currently showing (e.g. the field/page in view) — pre-selects the picker. */
+  readonly currentPage = input<number | null>(null);
+  /** Emitted when a comment's page chip is clicked, so the host can scroll its PDF viewer there. */
+  readonly pageJump = output<number>();
 
   private readonly commentService = inject(CommentService);
+  private readonly confirmService = inject(ConfirmService);
   private readonly hub = inject(HubService);
   private readonly translate = inject(TranslateService);
   private readonly snack = inject(MatSnackBar);
@@ -182,10 +211,16 @@ export class CommentsPanelComponent implements OnInit {
 
   draft = '';
   replyDraft = '';
+  /** Page the next posted comment will be bookmarked to; follows currentPage() until the user starts typing. */
+  commentPage: number | null = null;
 
   readonly topLevel = computed(() => this.comments().filter(c => !c.parentCommentId));
 
   constructor() {
+    effect(() => {
+      const page = this.currentPage();
+      if (!this.draft) this.commentPage = page;
+    });
     effect(() => {
       const change = this.hub.lastCommentsChange();
       const docId = this.documentId();
@@ -233,8 +268,15 @@ export class CommentsPanelComponent implements OnInit {
     });
   }
 
+  pageOptions(count: number): number[] {
+    return Array.from({ length: count }, (_, i) => i + 1);
+  }
+
   post(): void {
-    this.submit({ content: this.draft.trim() }, () => { this.draft = ''; });
+    this.submit({ content: this.draft.trim(), page: this.commentPage }, () => {
+      this.draft = '';
+      this.commentPage = this.currentPage();
+    });
   }
 
   startReply(parentId: string): void {
@@ -259,10 +301,16 @@ export class CommentsPanelComponent implements OnInit {
   }
 
   remove(c: CommentDto): void {
-    if (!confirm(this.translate.instant('comments.deleteConfirm'))) return;
-    this.commentService.delete(c.id).subscribe({
-      next: () => this.load(false),
-      error: () => this.snack.open(this.translate.instant('comments.actionFailed'), 'OK', { duration: 3000 })
+    this.confirmService.confirm({
+      message: this.translate.instant('comments.deleteConfirm'),
+      confirmLabel: this.translate.instant('common.delete'),
+      danger: true
+    }).subscribe(ok => {
+      if (!ok) return;
+      this.commentService.delete(c.id).subscribe({
+        next: () => this.load(false),
+        error: () => this.snack.open(this.translate.instant('comments.actionFailed'), 'OK', { duration: 3000 })
+      });
     });
   }
 

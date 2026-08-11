@@ -83,6 +83,7 @@ public class PdfTemplatesController(
                 request.File.Length,
                 request.File.ContentType,
                 request.Name,
+                request.RequestTypeId,
                 request.Description), ct);
 
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
@@ -108,7 +109,8 @@ public class PdfTemplatesController(
                     f.IsRequired, f.Order, f.AutoFillFrom, f.DefaultValue, f.OptionsJson,
                     f.PreAssignedApproverId, f.WorkflowStage)).ToList(),
                 request.WorkflowType,
-                request.HideRecipientIdentities), ct);
+                request.HideRecipientIdentities,
+                request.RequestTypeId), ct);
         return NoContent();
     }
 
@@ -138,15 +140,14 @@ public class PdfTemplatesController(
                 request.FilledValues,
                 request.Approvers?.Select(a => new ApproverSelection(a.UserId, a.ExternalName, a.ExternalEmail)).ToList(),
                 request.Title,
-                request.Message,
-                request.ExpirationDays), ct);
+                request.Message), ct);
         return CreatedAtAction(nameof(GetById), new { id }, new SubmitFromPdfTemplateResponse(documentId));
     }
 }
 
 // ---- Request / Response DTOs ----
 
-public record CreatePdfTemplateRequest(IFormFile File, string Name, string? Description = null);
+public record CreatePdfTemplateRequest(IFormFile File, string Name, Guid RequestTypeId, string? Description = null);
 
 public record PdfTemplateFieldRequest(
     string FieldKey,
@@ -173,7 +174,8 @@ public record UpdatePdfTemplateRequest(
     bool IsActive,
     List<PdfTemplateFieldRequest> Fields,
     WorkflowType WorkflowType = WorkflowType.Sequential,
-    bool HideRecipientIdentities = false);
+    bool HideRecipientIdentities = false,
+    Guid? RequestTypeId = null);
 
 // ApproverSelectionRequest is shared with HtmlTemplatesController (same namespace).
 
@@ -181,7 +183,6 @@ public record SubmitFromPdfTemplateRequest(
     Dictionary<string, string> FilledValues,
     List<ApproverSelectionRequest>? Approvers = null,
     string? Title = null,
-    string? Message = null,
-    int? ExpirationDays = null);
+    string? Message = null);
 
 public record SubmitFromPdfTemplateResponse(Guid DocumentId);

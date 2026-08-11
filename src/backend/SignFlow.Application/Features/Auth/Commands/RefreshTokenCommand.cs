@@ -22,6 +22,13 @@ public class RefreshTokenCommandHandler(
 {
     public async Task<LoginResult> HandleAsync(RefreshTokenCommand command, CancellationToken cancellationToken = default)
     {
+        // The FluentValidation NotEmpty() rules above are registered but never invoked (no
+        // pipeline/decorator calls IValidator<T> anywhere in this codebase), so guard here too —
+        // an empty AccessToken reaching JwtSecurityTokenHandler.ValidateToken throws an unhandled
+        // ArgumentNullException (IDX10000) instead of a clean 401.
+        if (string.IsNullOrWhiteSpace(command.AccessToken) || string.IsNullOrWhiteSpace(command.RefreshToken))
+            throw new UnauthorizedAccessException("Invalid token.");
+
         var principal = tokenService.GetPrincipalFromExpiredToken(command.AccessToken);
         var email = principal.Identity?.Name ?? principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
             ?? throw new UnauthorizedAccessException("Invalid token.");

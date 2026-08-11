@@ -11,9 +11,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HtmlTemplateService } from '../../core/services/html-template.service';
 import { UserService } from '../../core/services/user.service';
+import { RequestTypeService } from '../../core/services/request-type.service';
 import { HtmlTemplateFieldInput, HtmlFieldType, HtmlFieldRole } from '../../core/models/html-template.models';
 import { WorkflowType } from '../../core/models/document.models';
-import { UserDto } from '../../core/models';
+import { UserDto, RequestType } from '../../core/models';
+import { formatSla } from '../../core/utils/sla';
 
 const WORKFLOW_TYPES: { value: WorkflowType; labelKey: string }[] = [
   { value: 'Sequential', labelKey: 'designer.workflow.sequential' },
@@ -86,6 +88,15 @@ const AUTO_FILL_OPTIONS = [
             <option value="">— User picks at submit time —</option>
             @for (u of users(); track u.id) {
               <option [value]="u.id">{{ u.fullName }} ({{ u.email }})</option>
+            }
+          </select>
+        </div>
+        <div class="meta-field">
+          <label>{{ 'htmlTemplateEditor.requestType' | translate }}</label>
+          <select [(ngModel)]="requestTypeId" class="meta-select">
+            <option value="">{{ 'htmlTemplateEditor.noRequestType' | translate }}</option>
+            @for (rt of requestTypes(); track rt.id) {
+              <option [value]="rt.id">{{ rt.name }} ({{ formatSla(rt.slaHours) }})</option>
             }
           </select>
         </div>
@@ -385,6 +396,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
 
   private readonly svc = inject(HtmlTemplateService);
   private readonly userSvc = inject(UserService);
+  private readonly requestTypeSvc = inject(RequestTypeService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly snack = inject(MatSnackBar);
@@ -401,15 +413,18 @@ export class HtmlTemplateEditorComponent implements OnInit {
   saving = signal(false);
   previewing = signal(false);
   users = signal<UserDto[]>([]);
+  requestTypes = signal<RequestType[]>([]);
   fields = signal<HtmlTemplateFieldInput[]>([]);
   expandedIdx = signal<number | null>(null);
   workflowType = signal<WorkflowType>('Sequential');
   hideRecipientIdentities = signal(false);
+  readonly formatSla = formatSla;
 
   name = '';
   description = '';
   htmlContent = '';
   defaultApproverId = '';
+  requestTypeId = '';
   isActive = true;
 
   aiPanelOpen = signal(false);
@@ -424,6 +439,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
     this.isEdit = !!this.templateId;
 
     this.userSvc.getUsers({ pageSize: 200 }).subscribe(r => this.users.set(r.items));
+    this.requestTypeSvc.getActive().subscribe(types => this.requestTypes.set(types));
 
     if (this.isEdit && this.templateId) {
       this.svc.getById(this.templateId).subscribe(t => {
@@ -431,6 +447,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
         this.description = t.description ?? '';
         this.htmlContent = t.htmlContent;
         this.defaultApproverId = t.defaultApproverId ?? '';
+        this.requestTypeId = t.requestTypeId ?? '';
         this.isActive = t.isActive;
         this.workflowType.set(t.workflowType);
         this.hideRecipientIdentities.set(t.hideRecipientIdentities);
@@ -599,7 +616,8 @@ export class HtmlTemplateEditorComponent implements OnInit {
         isActive: this.isActive,
         fields: fieldsPayload,
         workflowType: this.workflowType(),
-        hideRecipientIdentities: this.hideRecipientIdentities()
+        hideRecipientIdentities: this.hideRecipientIdentities(),
+        requestTypeId: this.requestTypeId || undefined
       }).subscribe({
         next: () => {
           this.saving.set(false);
@@ -616,7 +634,8 @@ export class HtmlTemplateEditorComponent implements OnInit {
         defaultApproverId: this.defaultApproverId || undefined,
         fields: fieldsPayload,
         workflowType: this.workflowType(),
-        hideRecipientIdentities: this.hideRecipientIdentities()
+        hideRecipientIdentities: this.hideRecipientIdentities(),
+        requestTypeId: this.requestTypeId || undefined
       }).subscribe({
         next: () => {
           this.saving.set(false);

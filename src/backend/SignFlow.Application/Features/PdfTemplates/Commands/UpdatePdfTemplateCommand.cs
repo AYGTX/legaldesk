@@ -19,7 +19,8 @@ public record UpdatePdfTemplateCommand(
     bool IsActive,
     List<PdfTemplateFieldInput> Fields,
     WorkflowType WorkflowType = WorkflowType.Sequential,
-    bool HideRecipientIdentities = false) : ICommand;
+    bool HideRecipientIdentities = false,
+    Guid? RequestTypeId = null) : ICommand;
 
 public class UpdatePdfTemplateCommandValidator : AbstractValidator<UpdatePdfTemplateCommand>
 {
@@ -69,13 +70,22 @@ public class UpdatePdfTemplateCommandHandler(
                 throw new NotFoundException(nameof(ApplicationUser), approverIds.First());
         }
 
+        if (command.RequestTypeId.HasValue)
+        {
+            var requestTypeExists = await db.RequestTypes
+                .AnyAsync(t => t.Id == command.RequestTypeId.Value && t.IsActive, cancellationToken);
+            if (!requestTypeExists)
+                throw new Common.Exceptions.ValidationException("The selected request type is invalid or inactive.");
+        }
+
         template.Update(
             command.Name,
             command.Description,
             command.DefaultApproverId,
             command.IsActive,
             command.WorkflowType,
-            command.HideRecipientIdentities);
+            command.HideRecipientIdentities,
+            command.RequestTypeId);
 
         // Replace fields wholesale (designer save semantics), mirroring the HTML-template flow.
         foreach (var existing in template.Fields.ToList())
