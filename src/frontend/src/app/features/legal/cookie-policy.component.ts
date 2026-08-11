@@ -78,7 +78,7 @@ import { CookieConsentService } from '../../core/services/cookie-consent.service
       <p>{{ 'legal.cookies.thirdPartyBody' | translate }}</p>
 
       <h2>{{ 'legal.cookies.contactTitle' | translate }}</h2>
-      <p>{{ 'legal.cookies.contactBody' | translate }} <a href="mailto:privacy@signflow.app">privacy&#64;signflow.app</a></p>
+      <p>{{ 'legal.cookies.contactBody' | translate }} <a href="mailto:privacy@legaldesk.tn">privacy&#64;legaldesk.tn</a></p>
     </div>
   `,
   styleUrl: './cookie-policy.component.scss'

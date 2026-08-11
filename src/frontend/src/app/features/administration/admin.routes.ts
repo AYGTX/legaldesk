@@ -8,6 +8,6 @@ export const adminRoutes: Routes = [
   {
     path: 'html-templates',
     loadChildren: () => import('../html-templates/html-templates.routes').then(m => m.htmlTemplatesRoutes),
-    title: 'HTML Templates — SignFlow'
+    title: 'Clause Templates — LegalDesk'
   }
 ];

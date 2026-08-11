@@ -260,9 +260,9 @@ const AUTO_FILL_OPTIONS = [
             </div>
 
             <div class="ai-panel-body">
-              <p class="ai-hint">Describe the document or paste a draft. AI will generate the HTML layout and suggest form fields automatically.</p>
+              <p class="ai-hint">Describe the contract or paste a draft. AI will generate the HTML layout and suggest the parameterised clauses automatically.</p>
               <textarea class="ai-prompt-textarea" [(ngModel)]="aiPrompt"
-                placeholder="Examples:&#10;• A vacation request form with employee name, department, dates, and reason&#10;• An NDA with company name, effective date, and signature&#10;• Paste the raw text of an existing document…"
+                placeholder="Examples:&#10;• A B2B service contract with counterparty, scope, term, payment terms and signatures&#10;• An NDA with company name, effective date, duration and signature&#10;• Paste the raw text of an existing contract…"
                 rows="10"></textarea>
             </div>
 

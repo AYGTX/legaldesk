@@ -10,22 +10,22 @@ export const authRoutes: Routes = [
       {
         path: 'login',
         loadComponent: () => import('./login/login.component').then(m => m.LoginComponent),
-        title: 'Sign In — SignFlow'
+        title: 'Sign In — LegalDesk'
       },
       {
         path: 'register',
         loadComponent: () => import('./register/register.component').then(m => m.RegisterComponent),
-        title: 'Create Account — SignFlow'
+        title: 'Create Account — LegalDesk'
       },
       {
         path: 'forgot-password',
         loadComponent: () => import('./forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
-        title: 'Forgot Password — SignFlow'
+        title: 'Forgot Password — LegalDesk'
       },
       {
         path: 'reset-password',
         loadComponent: () => import('./reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
-        title: 'Reset Password — SignFlow'
+        title: 'Reset Password — LegalDesk'
       }
     ]
   }

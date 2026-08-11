@@ -45,7 +45,7 @@ import { TranslatePipe } from '@ngx-translate/core';
       <p>{{ 'legal.privacy.section6Body' | translate }}</p>
       <ul>
         <li>{{ 'legal.privacy.section6Item1Before' | translate }} <a routerLink="/privacy/dsar">{{ 'legal.privacy.section6DsarLink' | translate }}</a></li>
-        <li>{{ 'legal.privacy.section6Item2Before' | translate }} <a href="mailto:privacy@signflow.app">privacy&#64;signflow.app</a></li>
+        <li>{{ 'legal.privacy.section6Item2Before' | translate }} <a href="mailto:privacy@legaldesk.tn">privacy&#64;legaldesk.tn</a></li>
       </ul>
       <p>{{ 'legal.privacy.section6Footer' | translate }}</p>
 
@@ -59,7 +59,7 @@ import { TranslatePipe } from '@ngx-translate/core';
       <p>{{ 'legal.privacy.section9BodyBefore' | translate }} <a routerLink="/legal/cookies">{{ 'legal.privacy.section9CookieLink' | translate }}</a> {{ 'legal.privacy.section9BodyAfter' | translate }}</p>
 
       <h2>{{ 'legal.privacy.section10Title' | translate }}</h2>
-      <p>{{ 'legal.privacy.section10Body' | translate }} <a href="mailto:dpo@signflow.app">dpo&#64;signflow.app</a></p>
+      <p>{{ 'legal.privacy.section10Body' | translate }} <a href="mailto:dpo@legaldesk.tn">dpo&#64;legaldesk.tn</a></p>
     </div>
   `,
   styleUrl: './privacy-policy.component.scss'

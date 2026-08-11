@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'sf-auth-shell',
@@ -12,9 +13,9 @@ import { TranslatePipe } from '@ngx-translate/core';
       <div class="auth-brand">
         <div class="brand-content">
           <div class="brand-logo">
-            <mat-icon>draw</mat-icon>
+            <mat-icon>gavel</mat-icon>
           </div>
-          <h1>SignFlow</h1>
+          <h1>{{ appName }}</h1>
           <p>{{ 'auth.shell.tagline' | translate }}</p>
           <div class="brand-features">
             <div class="feature">
@@ -39,4 +40,6 @@ import { TranslatePipe } from '@ngx-translate/core';
   `,
   styleUrl: './auth-shell.component.scss'
 })
-export class AuthShellComponent {}
+export class AuthShellComponent {
+  readonly appName = environment.appName;
+}

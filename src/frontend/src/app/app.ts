@@ -9,6 +9,6 @@ import { LanguageService } from './core/services/language.service';
   styleUrl: './app.scss'
 })
 export class App {
-  protected readonly title = signal('signflow-frontend');
+  protected readonly title = signal('legaldesk-frontend');
   private readonly language = inject(LanguageService);
 }

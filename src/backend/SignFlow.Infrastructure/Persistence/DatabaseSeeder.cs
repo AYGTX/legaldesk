@@ -20,60 +20,60 @@ public static class DatabaseSeeder
         }
 
         // Admin user
-        if (await userManager.FindByEmailAsync("admin@signflow.app") is null)
+        if (await userManager.FindByEmailAsync("admin@legaldesk.tn") is null)
         {
             var admin = new ApplicationUser
             {
-                UserName = "admin@signflow.app",
-                Email = "admin@signflow.app",
+                UserName = "admin@legaldesk.tn",
+                Email = "admin@legaldesk.tn",
                 FirstName = "System",
                 LastName = "Administrator",
-                Department = "IT",
+                Department = "Legal",
                 EmailConfirmed = true,
                 IsActive = true
             };
 
-            var result = await userManager.CreateAsync(admin, "Admin@SignFlow1!");
+            var result = await userManager.CreateAsync(admin, "Admin@LegalDesk1!");
             if (result.Succeeded)
                 await userManager.AddToRoleAsync(admin, "Administrator");
         }
 
         // Demo manager
-        if (await userManager.FindByEmailAsync("manager@signflow.app") is null)
+        if (await userManager.FindByEmailAsync("manager@legaldesk.tn") is null)
         {
             var manager = new ApplicationUser
             {
-                UserName = "manager@signflow.app",
-                Email = "manager@signflow.app",
+                UserName = "manager@legaldesk.tn",
+                Email = "manager@legaldesk.tn",
                 FirstName = "Demo",
                 LastName = "Manager",
-                Company = "Acme Corp",
-                Department = "Sales",
+                Company = "DCWI",
+                Department = "Legal",
                 EmailConfirmed = true,
                 IsActive = true
             };
 
-            var result = await userManager.CreateAsync(manager, "Manager@SignFlow1!");
+            var result = await userManager.CreateAsync(manager, "Manager@LegalDesk1!");
             if (result.Succeeded)
                 await userManager.AddToRoleAsync(manager, "Manager");
         }
 
         // Demo employee
-        if (await userManager.FindByEmailAsync("employee@signflow.app") is null)
+        if (await userManager.FindByEmailAsync("employee@legaldesk.tn") is null)
         {
             var employee = new ApplicationUser
             {
-                UserName = "employee@signflow.app",
-                Email = "employee@signflow.app",
+                UserName = "employee@legaldesk.tn",
+                Email = "employee@legaldesk.tn",
                 FirstName = "Demo",
                 LastName = "Employee",
-                Company = "Acme Corp",
-                Department = "Operations",
+                Company = "DCWI",
+                Department = "Procurement",
                 EmailConfirmed = true,
                 IsActive = true
             };
 
-            var result = await userManager.CreateAsync(employee, "Employee@SignFlow1!");
+            var result = await userManager.CreateAsync(employee, "Employee@LegalDesk1!");
             if (result.Succeeded)
                 await userManager.AddToRoleAsync(employee, "Employee");
         }
@@ -88,9 +88,9 @@ public static class DatabaseSeeder
     {
         var departmentsByEmail = new Dictionary<string, string>
         {
-            ["admin@signflow.app"] = "IT",
-            ["manager@signflow.app"] = "Sales",
-            ["employee@signflow.app"] = "Operations"
+            ["admin@legaldesk.tn"] = "Legal",
+            ["manager@legaldesk.tn"] = "Legal",
+            ["employee@legaldesk.tn"] = "Procurement"
         };
 
         var usersMissingDepartment = await context.Users
@@ -111,14 +111,16 @@ public static class DatabaseSeeder
     private static async Task SeedRequestTypesAsync(ApplicationDbContext context)
     {
         // (Name, Description, SlaHours, Icon, Color)
+        // Contract families, not HR requests: these drive the SLA clock and the
+        // "by contract type" breakdown on the reports page.
         var defaults = new (string Name, string Description, int SlaHours, string Icon, string Color)[]
         {
-            ("Vacation Request", "Request approval for planned time off. Submit at least one week in advance.", 72, "beach_access", "#22c55e"),
-            ("Sick Leave", "Notify and obtain approval for medical or sick leave.", 48, "sick", "#ef4444"),
-            ("Business Trip", "Authorization for work-related travel and associated bookings.", 96, "flight", "#3b82f6"),
-            ("Purchase Approval", "Approval for purchasing goods or services. Time-sensitive.", 24, "shopping_cart", "#f59e0b"),
-            ("Expense Reimbursement", "Reimbursement for business expenses with receipts attached.", 120, "receipt_long", "#8b5cf6"),
-            ("Contract Signature", "Legal contract requiring signatures from all parties.", 168, "gavel", "#6366f1"),
+            ("Contrat B2B", "Contrat commercial entre entreprises. Revue juridique obligatoire avant signature.", 168, "handshake", "#6366f1"),
+            ("Contrat B2C", "Contrat de service destiné aux clients particuliers. Vérification de conformité consommateur.", 72, "person", "#22c55e"),
+            ("Contrat DCWI", "Contrat lié à l'activité DCWI. Revue réglementaire télécoms requise.", 120, "cell_tower", "#0ea5e9"),
+            ("NDA", "Accord de confidentialité. Circuit court, signature des deux parties.", 48, "lock", "#f59e0b"),
+            ("Avenant", "Modification d'un contrat existant. Référence au contrat d'origine obligatoire.", 96, "edit_document", "#8b5cf6"),
+            ("Contrat fournisseur", "Contrat d'achat ou de prestation. Validation achats puis juridique.", 168, "local_shipping", "#ef4444"),
         };
 
         var existing = await context.RequestTypes

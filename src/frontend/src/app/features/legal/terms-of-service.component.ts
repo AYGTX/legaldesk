@@ -48,7 +48,7 @@ import { TranslatePipe } from '@ngx-translate/core';
       <p>{{ 'legal.terms.section10Body' | translate }}</p>
 
       <h2>{{ 'legal.terms.section11Title' | translate }}</h2>
-      <p>{{ 'legal.terms.section11Body' | translate }} <a href="mailto:legal@signflow.app">legal&#64;signflow.app</a></p>
+      <p>{{ 'legal.terms.section11Body' | translate }} <a href="mailto:legal@legaldesk.tn">legal&#64;legaldesk.tn</a></p>
     </div>
   `,
   styleUrl: './terms-of-service.component.scss'

@@ -86,7 +86,7 @@ const DSAR_TYPE_KEYS = [
           <mat-icon class="success-icon">check_circle</mat-icon>
           <h2>{{ 'legal.dsar.successTitle' | translate }}</h2>
           <p [innerHTML]="'legal.dsar.successBody' | translate: { id: requestId() }"></p>
-          <p>{{ 'legal.dsar.successContact' | translate }} <a href="mailto:privacy@signflow.app">privacy&#64;signflow.app</a>.</p>
+          <p>{{ 'legal.dsar.successContact' | translate }} <a href="mailto:privacy@legaldesk.tn">privacy&#64;legaldesk.tn</a>.</p>
           <a routerLink="/dashboard" mat-flat-button color="primary">{{ 'legal.dsar.backToDashboard' | translate }}</a>
         </div>
       }

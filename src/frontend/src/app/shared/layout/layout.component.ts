@@ -14,6 +14,7 @@ import { NotificationBellComponent } from '../notification-bell/notification-bel
 import { CookieConsentBannerComponent } from '../cookie-consent/cookie-consent-banner.component';
 import { ThemeService } from '../../core/services/theme.service';
 import { LanguageService, AppLanguage } from '../../core/services/language.service';
+import { environment } from '../../../environments/environment';
 
 interface NavItem {
   labelKey: string;
@@ -38,12 +39,12 @@ interface NavItem {
         <!-- Logo -->
         <div class="logo-row" [class.collapsed]="sidenavCollapsed()">
           <div class="logo-icon-wrap">
-            <mat-icon class="logo-icon">draw</mat-icon>
+            <mat-icon class="logo-icon">gavel</mat-icon>
           </div>
           @if (!sidenavCollapsed()) {
             <div class="logo-text-wrap">
-              <span class="logo-text">SignFlow</span>
-              <span class="logo-sub">e-Signature</span>
+              <span class="logo-text">{{ appName }}</span>
+              <span class="logo-sub">{{ 'layout.tagline' | translate }}</span>
             </div>
           }
         </div>
@@ -149,7 +150,7 @@ interface NavItem {
           <span class="dot">·</span>
           <a routerLink="/legal/cookies">{{ 'layout.cookiePolicy' | translate }}</a>
           <span class="dot">·</span>
-          <span class="copy">&copy; {{ year }} SignFlow. {{ 'layout.allRightsReserved' | translate }}</span>
+          <span class="copy">&copy; {{ year }} {{ appName }}. {{ 'layout.allRightsReserved' | translate }}</span>
         </footer>
       </div>
     </div>
@@ -166,6 +167,7 @@ export class LayoutComponent implements OnInit {
   readonly language = inject(LanguageService);
   private readonly router = inject(Router);
   readonly year = new Date().getFullYear();
+  readonly appName = environment.appName;
 
   readonly sidenavCollapsed = signal(false);
 
@@ -175,6 +177,7 @@ export class LayoutComponent implements OnInit {
     { labelKey: 'nav.templates',      icon: 'article',             path: '/templates' },
     { labelKey: 'nav.auditTrail',     icon: 'history',             path: '/audit', roles: ['Administrator', 'Manager'] },
     { labelKey: 'nav.reports',        icon: 'monitoring',          path: '/reports', roles: ['Administrator', 'Manager'] },
+    { labelKey: 'nav.capabilities',   icon: 'checklist',           path: '/capabilities' },
     { labelKey: 'nav.administration', icon: 'admin_panel_settings', path: '/admin', roles: ['Administrator'] }
   ];
 

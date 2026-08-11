@@ -4,16 +4,16 @@ export const htmlTemplatesRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('./html-templates-list.component').then(m => m.HtmlTemplatesListComponent),
-    title: 'HTML Templates — SignFlow'
+    title: 'Clause Templates — LegalDesk'
   },
   {
     path: 'new',
     loadComponent: () => import('./html-template-editor.component').then(m => m.HtmlTemplateEditorComponent),
-    title: 'New Template — SignFlow'
+    title: 'New Contract Template — LegalDesk'
   },
   {
     path: ':id/edit',
     loadComponent: () => import('./html-template-editor.component').then(m => m.HtmlTemplateEditorComponent),
-    title: 'Edit Template — SignFlow'
+    title: 'Edit Contract Template — LegalDesk'
   }
 ];

@@ -28,6 +28,6 @@ export class LanguageService {
       const browserLang = navigator.language?.slice(0, 2) as AppLanguage;
       if (this.supported.includes(browserLang)) return browserLang;
     } catch { /* ignore */ }
-    return 'en';
+    return 'fr';
   }
 }

@@ -78,13 +78,13 @@ public class MailKitEmailService(IOptions<EmailSettings> settings, ILogger<MailK
 
     private static string GetDefaultSubject(string templateName) => templateName switch
     {
-        "DocumentReceived" => "Please sign your document",
-        "Reminder" => "Reminder: Document awaiting your signature",
-        "Completed" => "Document signed successfully",
-        "Rejected" => "Document was rejected",
-        "ChangesRequested" => "Changes requested on your document",
-        "Expired" => "Document has expired",
+        "DocumentReceived" => "A contract is awaiting your action",
+        "Reminder" => "Reminder: a contract is still awaiting your action",
+        "Completed" => "Contract fully executed",
+        "Rejected" => "Contract was declined",
+        "ChangesRequested" => "Revision requested on your contract",
+        "Expired" => "Contract validation deadline has passed",
         "ForgotPassword" => "Reset your password",
-        _ => $"SignFlow Notification"
+        _ => "LegalDesk notification"
     };
 }

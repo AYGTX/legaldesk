@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "SignFlow",
+    "appName": "LegalDesk",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",
@@ -39,14 +39,15 @@
   },
   "nav": {
     "dashboard": "Tableau de bord",
-    "documents": "Documents",
-    "templates": "Modèles",
-    "auditTrail": "Journal d'audit",
+    "documents": "Contrats",
+    "templates": "Modèles de contrats",
+    "auditTrail": "Traçabilité",
     "reports": "Rapports",
-    "administration": "Administration"
+    "administration": "Administration",
+    "capabilities": "Capacités"
   },
   "layout": {
-    "eSignature": "Signature électronique",
+    "tagline": "Gestion du cycle de vie contractuel",
     "manageAccount": "Gérer le compte",
     "signOut": "Se déconnecter",
     "realtimeConnected": "Temps réel : connecté",
@@ -119,28 +120,28 @@
     },
     "requestTypes": {
       "intro": "Configurez les catégories de demandes et leurs délais de signature (SLA). C'est la référence appliquée à chaque nouvelle demande.",
-      "newRequestType": "Nouveau type de demande",
-      "noRequestTypesYet": "Aucun type de demande pour le moment",
-      "createFirst": "Créer votre premier type de demande",
+      "newRequestType": "Nouveau type de contrat",
+      "noRequestTypesYet": "Aucun type de contrat pour le moment",
+      "createFirst": "Créer votre premier type de contrat",
       "inactive": "Inactif",
       "slaLabel": "SLA : {{sla}}",
       "activeToggleTooltip": "Actif",
-      "requestTypeCreated": "Type de demande créé",
-      "requestTypeUpdated": "Type de demande mis à jour",
+      "requestTypeCreated": "Type de contrat créé",
+      "requestTypeUpdated": "Type de contrat mis à jour",
       "activated": "Activé",
       "deactivated": "Désactivé",
       "failedToUpdateStatus": "Échec de la mise à jour du statut",
       "confirmDelete": "Supprimer « {{name}} » ? Cette action est irréversible.",
-      "requestTypeDeleted": "Type de demande supprimé",
+      "requestTypeDeleted": "Type de contrat supprimé",
       "failedToDelete": "Échec de la suppression"
     },
     "requestTypeDialog": {
-      "createTitle": "Nouveau type de demande",
-      "editTitle": "Modifier le type de demande",
+      "createTitle": "Nouveau type de contrat",
+      "editTitle": "Modifier le type de contrat",
       "requestName": "Nom de la demande",
       "requestNamePlaceholder": "ex. Demande de congé",
       "description": "Description (affichée aux utilisateurs)",
-      "descriptionPlaceholder": "Expliquez quand utiliser ce type de demande",
+      "descriptionPlaceholder": "Expliquez quand utiliser ce type de contrat",
       "slaDeadline": "Délai de signature (SLA)",
       "unit": "Unité",
       "hours": "Heures",
@@ -155,14 +156,14 @@
   },
   "auth": {
     "shell": {
-      "tagline": "Plateforme de signature électronique pour entreprises",
-      "feature1": "Signatures juridiquement contraignantes",
-      "feature2": "Signez en quelques secondes, où que vous soyez",
-      "feature3": "Sécurité de niveau bancaire"
+      "tagline": "Plateforme de gestion du cycle de vie contractuel",
+      "feature1": "Signatures électroniques juridiquement contraignantes",
+      "feature2": "Circuits de validation traçables",
+      "feature3": "Sécurité et archivage de niveau bancaire"
     },
     "login": {
       "title": "Content de vous revoir",
-      "subtitle": "Connectez-vous à votre compte SignFlow",
+      "subtitle": "Connectez-vous à votre compte LegalDesk",
       "emailLabel": "Adresse e-mail",
       "emailPlaceholder": "vous@entreprise.com",
       "emailRequired": "L'adresse e-mail est requise",
@@ -178,7 +179,7 @@
     },
     "register": {
       "title": "Créez votre compte",
-      "subtitle": "Commencez à signer des documents gratuitement",
+      "subtitle": "Commencez à signer des contrats gratuitement",
       "firstNameLabel": "Prénom",
       "lastNameLabel": "Nom",
       "emailLabel": "Adresse e-mail",
@@ -230,9 +231,9 @@
   },
   "dashboard": {
     "title": "Tableau de bord",
-    "subtitle": "Aperçu de votre activité de signature de documents",
+    "subtitle": "Aperçu de votre activité contractuelle",
     "stats": {
-      "totalDocuments": "Documents au total",
+      "totalDocuments": "Contrats au total",
       "completed": "Terminés",
       "pending": "En attente",
       "drafts": "Brouillons",
@@ -242,21 +243,21 @@
       "title": "Activité récente",
       "viewAll": "Tout voir",
       "emptyTitle": "Aucune activité pour le moment",
-      "emptySub": "Importez un document pour commencer",
+      "emptySub": "Importez un contrat pour commencer",
       "actions": {
-        "documentCreated": "Document créé",
-        "documentViewed": "Document consulté",
-        "documentSent": "Document envoyé",
-        "documentSigned": "Document signé",
-        "documentRejected": "Document rejeté",
-        "documentCompleted": "Document terminé",
-        "documentExpired": "Document expiré",
-        "documentCancelled": "Document annulé",
-        "documentDownloaded": "Document téléchargé",
+        "documentCreated": "Contrat créé",
+        "documentViewed": "Contrat consulté",
+        "documentSent": "Contrat envoyé",
+        "documentSigned": "Contrat signé",
+        "documentRejected": "Contrat rejeté",
+        "documentCompleted": "Contrat terminé",
+        "documentExpired": "Contrat expiré",
+        "documentCancelled": "Contrat annulé",
+        "documentDownloaded": "Contrat téléchargé",
         "fieldSigned": "Champ signé",
         "fieldCleared": "Champ effacé",
-        "recipientAdded": "Destinataire ajouté",
-        "recipientRemoved": "Destinataire retiré",
+        "recipientAdded": "Intervenant ajouté",
+        "recipientRemoved": "Intervenant retiré",
         "workflowStarted": "Flux de travail démarré",
         "workflowCompleted": "Flux de travail terminé",
         "workflowStepCompleted": "Étape du flux de travail terminée",
@@ -284,14 +285,14 @@
     "pending": {
       "title": "En attente de votre action",
       "emptyTitle": "Tout est à jour",
-      "emptySub": "Aucun document en attente de votre part",
-      "waitingSingular": "{{count}} document en attente de votre action",
-      "waitingPlural": "{{count}} documents en attente de votre action",
+      "emptySub": "Aucun contrat en attente de votre part",
+      "waitingSingular": "{{count}} contrat en attente de votre action",
+      "waitingPlural": "{{count}} contrats en attente de votre action",
       "viewRequests": "Voir les demandes"
     },
     "quickActions": {
       "title": "Actions rapides",
-      "documents": "Documents",
+      "documents": "Contrats",
       "templates": "Modèles",
       "audit": "Audit"
     },
@@ -299,10 +300,10 @@
   },
   "documents": {
     "list": {
-      "title": "Documents",
-      "subtitle": "Gérez vos documents et vos demandes de signature",
-      "allDocumentsTab": "Tous les documents",
-      "searchPlaceholder": "Rechercher des documents…",
+      "title": "Contrats",
+      "subtitle": "Gérez vos contrats et vos demandes de validation",
+      "allDocumentsTab": "Tous les contrats",
+      "searchPlaceholder": "Rechercher des contrats…",
       "clearSearch": "Effacer",
       "allStatuses": "Tous",
       "allTypes": "Tous les types",
@@ -317,13 +318,13 @@
         "WaitingForOthers": "En attente",
         "ChangesRequested": "Modifications demandées"
       },
-      "noDocumentsFound": "Aucun document trouvé",
-      "documentCountSingular": "{{count}} document",
-      "documentCountPlural": "{{count}} documents",
+      "noDocumentsFound": "Aucun contrat trouvé",
+      "documentCountSingular": "{{count}} contrat",
+      "documentCountPlural": "{{count}} contrats",
       "columns": {
-        "document": "Document",
+        "document": "Contrat",
         "owner": "Propriétaire",
-        "recipients": "Destinataires",
+        "recipients": "Intervenants",
         "created": "Créé le"
       },
       "pageCountSingular": "{{count}} page",
@@ -333,7 +334,7 @@
         "open": "Ouvrir",
         "designFields": "Positionner les champs"
       },
-      "emptySub": "Essayez d'ajuster vos filtres ou importez un nouveau document",
+      "emptySub": "Essayez d'ajuster vos filtres ou importez un nouveau contrat",
       "confirmDelete": "Supprimer « {{title}} » ? Cette action est irréversible."
     },
     "detail": {
@@ -357,12 +358,12 @@
       "reopenRequest": "Rouvrir la demande",
       "downloadSigned": "Télécharger le PDF signé",
       "downloadOriginal": "Télécharger le PDF original",
-      "auditTrail": "Journal d'audit",
-      "completedTitle": "Document terminé",
-      "allSignedOn": "Tous les destinataires ont signé le {{date}}",
+      "auditTrail": "Traçabilité",
+      "completedTitle": "Contrat terminé",
+      "allSignedOn": "Tous les intervenants ont signé le {{date}}",
       "verificationCode": "Code de vérification",
       "signingWorkflow": "Flux de signature",
-      "recipientsTitle": "Destinataires",
+      "recipientsTitle": "Intervenants",
       "recipientStatus": {
         "signed": "Signé",
         "approved": "Approuvé",
@@ -380,10 +381,10 @@
         "ViewOnly": "Observateur",
         "Stamp": "Tampon"
       },
-      "noRecipients": "Aucun destinataire assigné pour le moment",
+      "noRecipients": "Aucun intervenant assigné pour le moment",
       "presence": {
-        "viewingOne": "1 personne consulte ce document",
-        "viewingMany": "{{count}} personnes consultent ce document"
+        "viewingOne": "1 personne consulte ce contrat",
+        "viewingMany": "{{count}} personnes consultent ce contrat"
       },
       "checklist": {
         "title": "Liste de vérification",
@@ -407,10 +408,10 @@
       "summaryError": "Impossible de générer le résumé",
       "noSummary": "Aucun résumé pour le moment",
       "generateSummary": "Générer le résumé",
-      "notFound": "Document introuvable",
-      "backToDocuments": "Retour aux documents",
-      "confirmSend": "Envoyer ce document pour signature ? Les destinataires seront notifiés par e-mail.",
-      "sendFailed": "Échec de l'envoi du document",
+      "notFound": "Contrat introuvable",
+      "backToDocuments": "Retour aux contrats",
+      "confirmSend": "Envoyer ce contrat pour signature ? Les intervenants seront notifiés par e-mail.",
+      "sendFailed": "Échec de l'envoi du contrat",
       "reopenFailed": "Échec de la réouverture de la demande",
       "changesRequestedTitle": "Modifications demandées",
       "changesRequestedBy": "{{name}} a demandé des modifications",
@@ -418,29 +419,29 @@
       "changeNotePlaceholder": "Qu'est-ce qui a changé dans cette révision ? (facultatif)",
       "uploadRevision": "Importer la révision",
       "uploadingRevision": "Import en cours…",
-      "revisionUploaded": "Révision v{{version}} importée. Vérifiez les champs, puis renvoyez le document.",
+      "revisionUploaded": "Révision v{{version}} importée. Vérifiez les champs, puis renvoyez le contrat.",
       "revisionFailed": "Échec de l'import de la révision",
       "versionsTitle": "Historique des versions",
       "currentVersion": "Version actuelle",
       "noChangeNote": "Aucune note de révision",
-      "versionTooltip": "Ce document a été révisé — consultez l'historique des versions"
+      "versionTooltip": "Ce contrat a été révisé — consultez l'historique des versions"
     },
     "upload": {
-      "title": "Importer un document",
+      "title": "Importer un contrat",
       "subtitle": "Importez un PDF pour démarrer un flux de signature",
       "dropHere": "Déposez votre PDF ici",
       "orBrowse": "ou cliquez pour parcourir",
       "hint": "Fichiers PDF uniquement, 50 Mo maximum",
       "remove": "Supprimer",
-      "documentTitle": "Titre du document",
+      "documentTitle": "Titre du contrat",
       "titlePlaceholder": "ex. Contrat de service T4 2026",
       "titleRequired": "Le titre est requis",
-      "requestType": "Type de demande",
+      "requestType": "Type de contrat",
       "none": "Aucun",
       "mustBeSignedWithinPrefix": "Doit être signé dans un délai de",
       "mustBeSignedWithinSuffix": "à compter de la création",
-      "messageLabel": "Message aux destinataires (facultatif)",
-      "messagePlaceholder": "Veuillez examiner et signer ce document...",
+      "messageLabel": "Message aux intervenants (facultatif)",
+      "messagePlaceholder": "Veuillez examiner et signer ce contrat...",
       "uploadingProgress": "Importation et traitement en cours...",
       "processing": "Traitement en cours...",
       "uploadAndContinue": "Importer et continuer",
@@ -448,15 +449,15 @@
       "steps": {
         "placeFields": {
           "title": "Placer les champs de signature",
-          "desc": "Glissez-déposez les champs sur le PDF à l'endroit où les destinataires doivent signer"
+          "desc": "Glissez-déposez les champs sur le PDF à l'endroit où les intervenants doivent signer"
         },
         "assignRecipients": {
-          "title": "Assigner les destinataires",
+          "title": "Assigner les intervenants",
           "desc": "Ajoutez les adresses e-mail de chaque personne devant signer"
         },
         "sendForSignatures": {
           "title": "Envoyer pour signature",
-          "desc": "Les destinataires reçoivent un e-mail avec un lien de signature sécurisé"
+          "desc": "Les intervenants reçoivent un e-mail avec un lien de signature sécurisé"
         }
       },
       "onlyPdf": "Seuls les fichiers PDF sont pris en charge",
@@ -475,13 +476,13 @@
       "undo": "Annuler (Ctrl+Z)",
       "redo": "Rétablir (Ctrl+Y)",
       "saving": "Enregistrement...",
-      "saveDisabledNoRecipient": "Ajoutez au moins un destinataire",
-      "saveDisabledNoField": "Placez au moins un champ sur le document",
+      "saveDisabledNoRecipient": "Ajoutez au moins un intervenant",
+      "saveDisabledNoField": "Placez au moins un champ sur le contrat",
       "done": "Terminé",
       "snapToGrid": "Aligner les champs sur la grille"
     },
     "sidebar": {
-      "recipientsTitle": "Destinataires",
+      "recipientsTitle": "Intervenants",
       "collapse": "Réduire",
       "expand": "Développer la barre latérale"
     },
@@ -494,11 +495,11 @@
       "mixedHint": "Mixte — regroupez les signataires en étapes séquentielles"
     },
     "anon": {
-      "hideIdentities": "Masquer l'identité des destinataires",
-      "hideIdentitiesHint": "Les signataires voient « Destinataire 1, 2… » au lieu des noms réels"
+      "hideIdentities": "Masquer l'identité des intervenants",
+      "hideIdentitiesHint": "Les signataires voient « Intervenant 1, 2… » au lieu des noms réels"
     },
     "recipients": {
-      "addRecipient": "Ajouter un destinataire",
+      "addRecipient": "Ajouter un intervenant",
       "fromUsers": "Depuis les utilisateurs",
       "other": "Autre",
       "searchUsersPlaceholder": "Rechercher des utilisateurs...",
@@ -506,9 +507,9 @@
       "fullNamePlaceholder": "Nom complet",
       "emailAddressPlaceholder": "Adresse e-mail",
       "addBtn": "Ajouter",
-      "addAtLeastOneHint": "Ajoutez au moins un destinataire avant de placer des champs.",
+      "addAtLeastOneHint": "Ajoutez au moins un intervenant avant de placer des champs.",
       "sequentialOrderHint": "Signature dans l'ordre, du haut vers le bas",
-      "parallelOrderHint": "Tous les destinataires sont notifiés en même temps",
+      "parallelOrderHint": "Tous les intervenants sont notifiés en même temps",
       "mixedOrderHint": "Même étape = parallèle · les étapes s'exécutent dans l'ordre",
       "moveUp": "Monter",
       "moveDown": "Descendre",
@@ -525,7 +526,7 @@
     },
     "palette": {
       "droppingFor": "Dépôt pour : {{name}}",
-      "selectRecipientWarning": "Sélectionnez un destinataire avant de placer des champs"
+      "selectRecipientWarning": "Sélectionnez un intervenant avant de placer des champs"
     },
     "fieldTypes": {
       "Signature": "Signature",
@@ -550,7 +551,7 @@
       "heading": "Propriétés du champ",
       "fieldType": "Type de champ",
       "assignedTo": "Assigné à",
-      "requiredCheckbox": "Les destinataires doivent remplir ce champ",
+      "requiredCheckbox": "Les intervenants doivent remplir ce champ",
       "position": "Position",
       "size": "Taille",
       "radioGroup": "Groupe de boutons radio",
@@ -563,8 +564,8 @@
       "later": "plus tard",
       "dismiss": "Fermer",
       "ok": "OK",
-      "selectRecipientFirst": "Sélectionnez un destinataire dans la barre latérale avant de placer des champs.",
-      "addRecipientBeforeSaving": "Ajoutez au moins un destinataire avant d'enregistrer.",
+      "selectRecipientFirst": "Sélectionnez un intervenant dans la barre latérale avant de placer des champs.",
+      "addRecipientBeforeSaving": "Ajoutez au moins un intervenant avant d'enregistrer.",
       "savedSuccessfully": "Enregistré avec succès",
       "saveFailed": "Échec de l'enregistrement",
       "fieldsUnassignedForRole": "Les champs ont été désassignés — ce participant ne signe plus.",
@@ -575,9 +576,9 @@
     "privacy": {
       "backToDashboard": "Retour au tableau de bord",
       "title": "Politique de confidentialité",
-      "effective": "Date d'entrée en vigueur : 4 juillet 2026 | Responsable du traitement : SignFlow Ltd.",
+      "effective": "Date d'entrée en vigueur : 4 juillet 2026 | Responsable du traitement : LegalDesk Ltd.",
       "section1Title": "1. Qui sommes-nous",
-      "section1Body": "SignFlow (« nous », « notre », « nos ») propose une plateforme de signature électronique hébergée dans le cloud. Nous agissons en tant que <strong>responsable du traitement</strong> pour les données de compte et en tant que <strong>sous-traitant</strong> pour les documents et signatures que vous traitez via notre service.",
+      "section1Body": "LegalDesk (« nous », « notre », « nos ») propose une plateforme de gestion du cycle de vie contractuel hébergée dans le cloud. Nous agissons en tant que <strong>responsable du traitement</strong> pour les données de compte et en tant que <strong>sous-traitant</strong> pour les documents et signatures que vous traitez via notre service.",
       "section2Title": "2. Données que nous collectons",
       "section2Item1": "<strong>Données de compte :</strong> nom, adresse e-mail, empreinte du mot de passe, avatar.",
       "section2Item2": "<strong>Données de signature :</strong> images de signature, valeurs des champs, adresse IP au moment de la signature, géolocalisation facultative (uniquement si vous y consentez).",
@@ -589,7 +590,7 @@
       "section3Item3": "<strong>Consentement (art. 6(1)(a)) :</strong> cookies analytiques, collecte de géolocalisation, communications marketing.",
       "section3Item4": "<strong>Obligation légale (art. 6(1)(c)) :</strong> conservation des documents signés conformément à la loi applicable.",
       "section4Title": "4. eIDAS / ESIGN Act — validité de la signature électronique",
-      "section4Body": "Les signatures créées via SignFlow constituent des <em>signatures électroniques avancées</em> au sens du règlement européen n° 910/2014 (eIDAS) et sont juridiquement contraignantes en vertu de la loi américaine ESIGN (Electronic Signatures in Global and National Commerce Act). La piste d'audit conservée pour chaque document constitue la preuve de l'intention de signer.",
+      "section4Body": "Les signatures créées via LegalDesk constituent des <em>signatures électroniques avancées</em> au sens du règlement européen n° 910/2014 (eIDAS) et sont juridiquement contraignantes en vertu de la loi américaine ESIGN (Electronic Signatures in Global and National Commerce Act). La piste d'audit conservée pour chaque document constitue la preuve de l'intention de signer.",
       "section5Title": "5. Conservation des données",
       "section5Item1": "Les documents signés et leurs pistes d'audit sont conservés pendant <strong>7 ans</strong>, sauf si vous soumettez une demande d'effacement et qu'aucune obligation légale de conservation ne s'applique.",
       "section5Item2": "Les documents non signés en brouillon sont automatiquement supprimés 90 jours après la dernière activité.",
@@ -616,11 +617,11 @@
       "title": "Conditions d'utilisation",
       "effective": "Date d'entrée en vigueur : 4 juillet 2026",
       "section1Title": "1. Acceptation",
-      "section1Body": "En créant un compte ou en utilisant SignFlow, vous acceptez les présentes Conditions. Si vous agissez au nom d'une organisation, vous confirmez disposer du pouvoir d'engager celle-ci.",
+      "section1Body": "En créant un compte ou en utilisant LegalDesk, vous acceptez les présentes Conditions. Si vous agissez au nom d'une organisation, vous confirmez disposer du pouvoir d'engager celle-ci.",
       "section2Title": "2. Description du service",
-      "section2Body": "SignFlow propose une plateforme de signature électronique permettant aux utilisateurs de téléverser des documents, de désigner des signataires et de recueillir des signatures électroniques juridiquement contraignantes. Les fonctionnalités incluent les pistes d'audit, les modèles de documents, la collaboration en temps réel et les résumés de documents générés par IA.",
+      "section2Body": "LegalDesk propose une plateforme de gestion du cycle de vie contractuel permettant aux utilisateurs de téléverser des documents, de désigner des signataires et de recueillir des signatures électroniques juridiquement contraignantes. Les fonctionnalités incluent les pistes d'audit, les modèles de documents, la collaboration en temps réel et les résumés de documents générés par IA.",
       "section3Title": "3. Validité juridique des signatures",
-      "section3Body": "Les signatures créées sur SignFlow répondent aux exigences des <strong>signatures électroniques avancées</strong> au sens du règlement européen eIDAS n° 910/2014 et sont juridiquement contraignantes en vertu de la loi américaine ESIGN. La piste d'audit constitue la preuve de l'intention de signer et de l'intégrité du document.",
+      "section3Body": "Les signatures créées sur LegalDesk répondent aux exigences des <strong>signatures électroniques avancées</strong> au sens du règlement européen eIDAS n° 910/2014 et sont juridiquement contraignantes en vertu de la loi américaine ESIGN. La piste d'audit constitue la preuve de l'intention de signer et de l'intégrité du document.",
       "section4Title": "4. Vos obligations",
       "section4Item1": "Vous devez fournir des informations de compte exactes et garder vos identifiants confidentiels.",
       "section4Item2": "Vous ne devez téléverser que des documents que vous avez le droit de diffuser.",
@@ -634,7 +635,7 @@
       "section7Title": "7. Conservation et suppression",
       "section7Body": "Les documents signés sont conservés pendant 7 ans afin de respecter les lois applicables. Les documents en brouillon sont automatiquement supprimés après 90 jours d'inactivité. Vous pouvez demander une suppression anticipée, sous réserve des obligations légales de conservation.",
       "section8Title": "8. Responsabilité",
-      "section8Body": "SignFlow est fourni « en l'état ». Nous ne sommes pas responsables des dommages indirects ou consécutifs. Notre responsabilité totale ne pourra excéder le montant que vous avez payé au cours des 12 mois précédant la réclamation.",
+      "section8Body": "LegalDesk est fourni « en l'état ». Nous ne sommes pas responsables des dommages indirects ou consécutifs. Notre responsabilité totale ne pourra excéder le montant que vous avez payé au cours des 12 mois précédant la réclamation.",
       "section9Title": "9. Droit applicable",
       "section9Body": "Les présentes Conditions sont régies par le droit de l'Union européenne et, le cas échéant, par le droit français. Les litiges seront soumis aux tribunaux de Paris, France.",
       "section10Title": "10. Modifications",
@@ -646,7 +647,7 @@
       "backToDashboard": "Retour au tableau de bord",
       "title": "Politique relative aux cookies",
       "effective": "Date d'entrée en vigueur : 4 juillet 2026",
-      "intro": "Cette politique explique quels cookies SignFlow utilise, pourquoi, et comment vous pouvez les contrôler.",
+      "intro": "Cette politique explique quels cookies LegalDesk utilise, pourquoi, et comment vous pouvez les contrôler.",
       "whatAreTitle": "Que sont les cookies ?",
       "whatAreBody": "Les cookies sont de petits fichiers texte stockés par votre navigateur qui aident les sites web à se souvenir d'informations concernant votre visite.",
       "cookiesWeUseTitle": "Cookies que nous utilisons",
@@ -695,7 +696,7 @@
       "successTitle": "Demande envoyée",
       "successBody": "Votre identifiant de demande est <strong>{{id}}</strong>. Nous vous contacterons à l'adresse e-mail fournie dans un délai de 30 jours.",
       "successContact": "Pour toute question, écrivez à",
-      "genericError": "Une erreur s'est produite. Veuillez réessayer ou écrire à privacy@signflow.app.",
+      "genericError": "Une erreur s'est produite. Veuillez réessayer ou écrire à privacy@legaldesk.tn.",
       "type": {
         "access": "Accès (art. 15) — recevoir une copie de mes données",
         "erasure": "Effacement (art. 17) — supprimer mes données",
@@ -745,7 +746,7 @@
     }
   },
   "vacation": {
-    "intro": "Pendant vos congés, vous ne pouvez pas être ajouté comme destinataire sur de nouveaux documents. Les demandes existantes ne sont pas affectées.",
+    "intro": "Pendant vos congés, vous ne pouvez pas être ajouté comme intervenant sur de nouveaux contrats. Les demandes existantes ne sont pas affectées.",
     "scheduleTitle": "Planifier un congé",
     "startDate": "Date de début",
     "endDate": "Date de fin",
@@ -774,8 +775,8 @@
       "sentByMe": "Envoyées par moi"
     },
     "allCaughtUp": "Tout est à jour",
-    "noDocumentsWaiting": "Aucun document n'attend votre signature",
-    "noActionWaiting": "Aucun document n'attend votre action",
+    "noDocumentsWaiting": "Aucun contrat n'attend votre signature",
+    "noActionWaiting": "Aucun contrat n'attend votre action",
     "needsAction": "Nécessite votre action",
     "history": "Historique",
     "from": "De",
@@ -784,15 +785,15 @@
     "approveNow": "Approuver maintenant",
     "reviewNow": "Examiner maintenant",
     "viewNow": "Consulter",
-    "openDocument": "Ouvrir le document",
+    "openDocument": "Ouvrir le contrat",
     "nothingSentYet": "Rien n'a encore été envoyé",
-    "uploadDocumentSub": "Téléversez un document et envoyez-le pour signature",
-    "uploadDocument": "Téléverser un document",
-    "recipientsCount": "{{count}} destinataire",
-    "recipientsCountPlural": "{{count}} destinataires",
+    "uploadDocumentSub": "Téléversez un contrat et envoyez-le pour signature",
+    "uploadDocument": "Téléverser un contrat",
+    "recipientsCount": "{{count}} intervenant",
+    "recipientsCountPlural": "{{count}} intervenants",
     "completedRecipients": "{{completed}}/{{total}} signés",
     "collapse": "Réduire",
-    "showRecipients": "Afficher les destinataires",
+    "showRecipients": "Afficher les intervenants",
     "signingNow": "Signature en cours",
     "signed": "Signé",
     "status": {
@@ -837,7 +838,7 @@
       "missingFields": "Champs obligatoires manquants : {{fields}}",
       "submitFailed": "Échec de l'envoi de la demande",
       "previewTitle": "Aperçu en direct",
-      "previewHint": "Voici ce que le destinataire verra. Les champs non remplis et les signatures sont affichés comme espaces réservés."
+      "previewHint": "Voici ce que l'intervenant verra. Les champs non remplis et les signatures sont affichés comme espaces réservés."
     }
   },
   "comments": {
@@ -862,10 +863,10 @@
     "actionFailed": "Une erreur s'est produite — veuillez réessayer"
   },
   "audit": {
-    "title": "Journal d'audit",
-    "subtitle": "Historique complet des activités de ce document",
+    "title": "Traçabilité",
+    "subtitle": "Historique complet des activités de ce contrat",
     "exportCsv": "Exporter en CSV",
-    "exportFailed": "Échec de l'export du journal d'audit",
+    "exportFailed": "Échec de l'export de la piste d'audit",
     "columns": {
       "action": "Action",
       "user": "Utilisateur",
@@ -874,19 +875,19 @@
     },
     "noEvents": "Aucun événement d'audit trouvé",
     "actions": {
-      "DocumentCreated": "Document créé",
-      "DocumentViewed": "Document consulté",
-      "DocumentSent": "Document envoyé",
-      "DocumentSigned": "Document signé",
-      "DocumentRejected": "Document rejeté",
-      "DocumentCompleted": "Document terminé",
-      "DocumentExpired": "Document expiré",
-      "DocumentCancelled": "Document annulé",
-      "DocumentDownloaded": "Document téléchargé",
+      "DocumentCreated": "Contrat créé",
+      "DocumentViewed": "Contrat consulté",
+      "DocumentSent": "Contrat envoyé",
+      "DocumentSigned": "Contrat signé",
+      "DocumentRejected": "Contrat rejeté",
+      "DocumentCompleted": "Contrat terminé",
+      "DocumentExpired": "Contrat expiré",
+      "DocumentCancelled": "Contrat annulé",
+      "DocumentDownloaded": "Contrat téléchargé",
       "FieldSigned": "Champ signé",
       "FieldCleared": "Champ effacé",
-      "RecipientAdded": "Destinataire ajouté",
-      "RecipientRemoved": "Destinataire retiré",
+      "RecipientAdded": "Intervenant ajouté",
+      "RecipientRemoved": "Intervenant retiré",
       "WorkflowStarted": "Flux démarré",
       "WorkflowCompleted": "Flux terminé",
       "WorkflowStepCompleted": "Étape du flux terminée",
@@ -904,33 +905,33 @@
     }
   },
   "orgAudit": {
-    "title": "Journal d'audit",
-    "subtitle": "Journal d'activité de l'organisation, tous documents confondus",
-    "searchPlaceholder": "Rechercher par document, nom ou e-mail…",
+    "title": "Traçabilité",
+    "subtitle": "Journal d'activité de l'organisation, tous contrats confondus",
+    "searchPlaceholder": "Rechercher par contrat, nom ou e-mail…",
     "clearSearch": "Effacer",
     "allActions": "Toutes les actions",
     "noEvents": "Aucun événement d'audit trouvé",
     "columns": {
       "action": "Action",
-      "document": "Document",
+      "document": "Contrat",
       "actor": "Acteur",
       "ip": "Adresse IP",
       "timestamp": "Horodatage"
     },
     "actions": {
-      "DocumentCreated": "Document créé",
-      "DocumentViewed": "Document consulté",
-      "DocumentSent": "Document envoyé",
-      "DocumentSigned": "Document signé",
-      "DocumentRejected": "Document rejeté",
-      "DocumentCompleted": "Document terminé",
-      "DocumentExpired": "Document expiré",
-      "DocumentCancelled": "Document annulé",
-      "DocumentDownloaded": "Document téléchargé",
+      "DocumentCreated": "Contrat créé",
+      "DocumentViewed": "Contrat consulté",
+      "DocumentSent": "Contrat envoyé",
+      "DocumentSigned": "Contrat signé",
+      "DocumentRejected": "Contrat rejeté",
+      "DocumentCompleted": "Contrat terminé",
+      "DocumentExpired": "Contrat expiré",
+      "DocumentCancelled": "Contrat annulé",
+      "DocumentDownloaded": "Contrat téléchargé",
       "FieldSigned": "Champ signé",
       "FieldCleared": "Champ effacé",
-      "RecipientAdded": "Destinataire ajouté",
-      "RecipientRemoved": "Destinataire retiré",
+      "RecipientAdded": "Intervenant ajouté",
+      "RecipientRemoved": "Intervenant retiré",
       "WorkflowStarted": "Flux démarré",
       "WorkflowCompleted": "Flux terminé",
       "WorkflowStepCompleted": "Étape du flux terminée",
@@ -948,12 +949,12 @@
     }
   },
   "templates": {
-    "title": "Modèles",
-    "subtitle": "Modèles de documents réutilisables avec champs préconfigurés",
+    "title": "Modèles de contrats",
+    "subtitle": "Modèles de contrats réutilisables avec champs préconfigurés",
     "titleHtml": "Modèles HTML",
     "titlePdf": "Modèles PDF",
     "hintHtml": "Modèles texte réutilisables avec des espaces réservés dynamiques — idéal pour les contrats et lettres à personnaliser à chaque fois.",
-    "hintPdf": "Formulaires PDF réutilisables avec champs de signature déjà placés — idéal pour les documents administratifs récurrents.",
+    "hintPdf": "Formulaires PDF réutilisables avec champs de signature déjà placés — idéal pour les contrats administratifs récurrents.",
     "createHtml": "Créer un modèle HTML",
     "createPdf": "Créer un formulaire PDF",
     "searchPlaceholder": "Rechercher des modèles…",
@@ -973,14 +974,14 @@
     "manage": "Configurer"
   },
   "createDocument": {
-    "newDocument": "Nouveau document",
+    "newDocument": "Nouveau contrat",
     "dialogTitle": "Comment souhaitez-vous commencer ?",
     "dialogSubtitle": "Choisissez un point de départ — vous pourrez toujours ajuster les champs avant l'envoi.",
     "badgeReusable": "Modèle réutilisable",
     "badgeOneTime": "Import ponctuel",
     "pdfTemplate": {
       "title": "Utiliser un modèle PDF",
-      "description": "Partez d'un PDF prêt à l'emploi avec les champs de signature déjà placés. Le plus rapide pour les documents récurrents comme les accords de confidentialité ou lettres d'offre."
+      "description": "Partez d'un PDF prêt à l'emploi avec les champs de signature déjà placés. Le plus rapide pour les contrats récurrents comme les accords de confidentialité ou lettres d'offre."
     },
     "htmlTemplate": {
       "title": "Utiliser un modèle HTML",
@@ -988,7 +989,7 @@
     },
     "uploadPdf": {
       "title": "Importer un nouveau PDF",
-      "description": "Importez votre propre PDF et placez les champs de signature à partir de zéro. Idéal pour les documents ponctuels que vous ne réutiliserez pas."
+      "description": "Importez votre propre PDF et placez les champs de signature à partir de zéro. Idéal pour les contrats ponctuels que vous ne réutiliserez pas."
     }
   },
   "shared": {
@@ -1041,7 +1042,7 @@
     "cookieConsent": {
       "ariaLabel": "Préférences relatives aux cookies",
       "title": "Nous utilisons des cookies",
-      "description": "SignFlow utilise des cookies pour vous garder connecté et améliorer votre expérience. Vous pouvez choisir ci-dessous les cookies facultatifs à autoriser.",
+      "description": "LegalDesk utilise des cookies pour vous garder connecté et améliorer votre expérience. Vous pouvez choisir ci-dessous les cookies facultatifs à autoriser.",
       "cookiePolicy": "Politique relative aux cookies",
       "privacyPolicy": "Politique de confidentialité",
       "necessary": "Nécessaires",
@@ -1081,13 +1082,13 @@
       "title": "Activité de révision",
       "changeRequests": "Demandes de modifications",
       "revisionsUploaded": "Révisions importées",
-      "documentsRevised": "Documents révisés",
-      "hint": "Demandes mises en pause par un relecteur ou un approbateur, puis reprises avec un document révisé."
+      "documentsRevised": "Contrats révisés",
+      "hint": "Demandes mises en pause par un relecteur ou un approbateur, puis reprises avec un contrat révisé."
     },
     "byType": {
-      "title": "Par type de demande",
-      "type": "Type de demande",
-      "empty": "Aucune demande n'est encore liée à un type de demande."
+      "title": "Par type de contrat",
+      "type": "Type de contrat",
+      "empty": "Aucune demande n'est encore liée à un type de contrat."
     },
     "byDepartment": {
       "title": "Par département",
@@ -1115,7 +1116,7 @@
       "linkTooltip": "Temps restant avant l'expiration de ce lien de signature",
       "linkPillLabel": "Lien : {{time}}"
     },
-    "loadingDocument": "Chargement du document…",
+    "loadingDocument": "Chargement du contrat…",
     "fieldsCompleted": "{{count}} sur {{total}} {{unit}} complété(s)",
     "field": "champ",
     "fields": "champs",
@@ -1124,32 +1125,32 @@
     "dismiss": "Fermer",
     "enterFieldPrompt": "Saisissez la valeur du champ « {{fieldType}} » :",
     "declineReasonPrompt": "Veuillez indiquer un motif de refus (facultatif) :",
-    "requestChangesPrompt": "Décrivez les modifications souhaitées (obligatoire — le propriétaire révisera le document) :",
-    "untitledDocument": "document",
+    "requestChangesPrompt": "Décrivez les modifications souhaitées (obligatoire — le propriétaire révisera le contrat) :",
+    "untitledDocument": "contrat",
     "summary": {
       "sentBy": "Envoyé par {{name}}",
-      "documentOwnerFallback": "le propriétaire du document",
+      "documentOwnerFallback": "le propriétaire du contrat",
       "pageCount": "{{count}} {{unit}}",
       "page": "page",
       "pages": "pages",
-      "title": "Résumé du document",
-      "unavailable": "Résumé indisponible. Veuillez consulter directement le document après avoir poursuivi.",
+      "title": "Résumé du contrat",
+      "unavailable": "Résumé indisponible. Veuillez consulter directement le contrat après avoir poursuivi.",
       "proceedToSign": "Passer à la signature",
       "proceedToReview": "Passer à la relecture",
       "gdprTitle": "Avis de traitement des données",
-      "gdprText": "En signant, vous reconnaissez que SignFlow enregistrera votre signature électronique, la date et l'heure de signature, votre adresse IP, ainsi que cette piste d'audit, aux fins de validité juridique du document signé (base légale : art. 6(1)(b) du RGPD — exécution d'un contrat).",
+      "gdprText": "En signant, vous reconnaissez que LegalDesk enregistrera votre signature électronique, la date et l'heure de signature, votre adresse IP, ainsi que cette piste d'audit, aux fins de validité juridique du contrat signé (base légale : art. 6(1)(b) du RGPD — exécution d'un contrat).",
       "geoOptIn": "J'accepte de partager ma position approximative afin de renforcer la piste d'audit (facultatif — art. 6(1)(a) du RGPD)."
     },
     "status": {
-      "completedTitle": "Document signé !",
+      "completedTitle": "Contrat signé !",
       "completedBody": "Vous avez signé {{title}} avec succès.",
       "completedSub": "Toutes les parties recevront une copie une fois que tout le monde aura signé.",
       "downloadCopy": "Télécharger une copie",
       "downloading": "Téléchargement…",
-      "rejectedTitle": "Document refusé",
-      "rejectedBody": "Vous avez refusé de signer ce document.",
+      "rejectedTitle": "Contrat refusé",
+      "rejectedBody": "Vous avez refusé de signer ce contrat.",
       "expiredTitle": "Lien expiré",
-      "expiredBody": "Ce lien de signature a expiré. Veuillez contacter le propriétaire du document.",
+      "expiredBody": "Ce lien de signature a expiré. Veuillez contacter le propriétaire du contrat.",
       "waitingTitle": "En attente de votre tour",
       "waitingIntro": "Il s'agit d'un processus de signature séquentiel.",
       "waitingForName": "{{name}} doit signer avant que ce soit votre tour.",
@@ -1157,18 +1158,18 @@
       "waitingSub": "Vous recevrez un e-mail dès que ce sera votre tour de signer.",
       "invalidLinkTitle": "Lien invalide",
       "changesRequestedOwnTitle": "Modifications demandées",
-      "changesRequestedOwnBody": "Votre demande de modifications a été transmise au propriétaire du document. Vous serez notifié dès qu'une version révisée sera prête pour relecture.",
-      "changesRequestedTitle": "Document en pause",
+      "changesRequestedOwnBody": "Votre demande de modifications a été transmise au propriétaire du contrat. Vous serez notifié dès qu'une version révisée sera prête pour relecture.",
+      "changesRequestedTitle": "Contrat en pause",
       "changesRequestedBody": "Un participant a demandé des modifications. Le circuit est en pause jusqu'à ce que le propriétaire importe une version révisée.",
       "revisionInProgressTitle": "Révision en cours",
-      "revisionInProgressBody": "Le propriétaire révise ce document. Vous serez notifié dès que la nouvelle version sera prête pour vous."
+      "revisionInProgressBody": "Le propriétaire révise ce contrat. Vous serez notifié dès que la nouvelle version sera prête pour vous."
     },
     "review": {
       "title": "Vérifiez votre signature",
       "intro": "Veuillez vérifier les valeurs ci-dessous avant d'approuver. Une fois soumise, cette action est irréversible.",
       "notFilled": "Non rempli",
       "noFieldsRole": "Aucun champ à remplir — approuver enregistre votre décision de relecture dans la piste d'audit.",
-      "legalNotice": "En cliquant sur <strong>Approuver et soumettre</strong>, vous signez électroniquement ce document et reconnaissez que votre signature électronique a la même valeur juridique qu'une signature manuscrite."
+      "legalNotice": "En cliquant sur <strong>Approuver et soumettre</strong>, vous signez électroniquement ce contrat et reconnaissez que votre signature électronique a la même valeur juridique qu'une signature manuscrite."
     },
     "fieldNav": {
       "title": "Champs à compléter"
@@ -1183,20 +1184,20 @@
       "Approval": "Approbation"
     },
     "roleNav": {
-      "Review": "Vous relisez ce document. Lisez-le, échangez dans les commentaires, puis approuvez ou refusez depuis la barre du haut.",
-      "Approval": "Votre approbation formelle est demandée. Examinez le document, puis approuvez ou refusez depuis la barre du haut."
+      "Review": "Vous relisez ce contrat. Lisez-le, échangez dans les commentaires, puis approuvez ou refusez depuis la barre du haut.",
+      "Approval": "Votre approbation formelle est demandée. Examinez le contrat, puis approuvez ou refusez depuis la barre du haut."
     },
     "viewer": {
       "title": "Vous avez un accès en lecture",
-      "body": "« {{title}} » a été partagé avec vous. Vous pouvez lire le document et participer à la discussion — aucune action n'est requise de votre part.",
-      "openDocument": "Ouvrir le document (PDF)"
+      "body": "« {{title}} » a été partagé avec vous. Vous pouvez lire le contrat et participer à la discussion — aucune action n'est requise de votre part.",
+      "openDocument": "Ouvrir le contrat (PDF)"
     },
     "errors": {
       "invalidOrExpiredLink": "Ce lien de signature est invalide ou a expiré",
       "saveSignatureFailed": "Échec de l'enregistrement de la signature",
       "saveFieldFailed": "Échec de l'enregistrement du champ",
       "submitFailed": "Échec de la soumission de la signature. Veuillez réessayer.",
-      "declineFailed": "Échec du refus du document",
+      "declineFailed": "Échec du refus du contrat",
       "downloadFailed": "Échec du téléchargement. Veuillez réessayer.",
       "requestChangesFailed": "Échec de la demande de modifications",
       "requestChangesReasonRequired": "Un motif est obligatoire pour demander des modifications"
@@ -1222,8 +1223,8 @@
   },
   "htmlTemplateEditor": {
     "workflowType": "Flux de travail",
-    "requestType": "Type de demande",
-    "noRequestType": "— Aucun type de demande (sans échéance) —",
+    "requestType": "Type de contrat",
+    "noRequestType": "— Aucun type de contrat (sans échéance) —",
     "assignTo": "Assigner à",
     "assignToHint": "(facultatif — remplace l'approbateur par défaut pour ce champ)",
     "unassigned": "— Non assigné (l'initiateur choisit) —",
@@ -1288,8 +1289,8 @@
       "selectOrDragHint": "Glissez un type de champ sur la page, ou sélectionnez un champ placé pour le configurer.",
       "defaultApprover": "Approbateur par défaut",
       "noDefaultApprover": "Aucun approbateur par défaut",
-      "requestType": "Type de demande",
-      "noRequestType": "Aucun type de demande (sans échéance)",
+      "requestType": "Type de contrat",
+      "noRequestType": "Aucun type de contrat (sans échéance)",
       "active": "Actif (disponible pour les utilisateurs)",
       "saved": "Formulaire PDF enregistré",
       "saveFailed": "Échec de l'enregistrement du formulaire PDF",
@@ -1340,6 +1341,63 @@
       "stepPrepare": "Préparer",
       "stepSent": "Envoyée",
       "backToForms": "Retour aux formulaires PDF"
+    }
+  },
+  "capabilities": {
+    "title": "Cartographie des capacités",
+    "subtitle": "Comment LegalDesk répond au besoin de gestion du cycle de vie contractuel, capacité par capacité — avec un statut honnête pour chacune.",
+    "seeItLive": "Voir en conditions réelles",
+    "footnote": "Les statuts reflètent ce qui fonctionne réellement dans cette version. « Disponible » signifie que vous pouvez l’exercer dès aujourd’hui dans cette démonstration ; « En cours » que les fondations sont en place et le reste du travail cadré ; « Feuille de route » que la capacité est conçue mais pas encore développée.",
+    "status": {
+      "available": "Disponible",
+      "partial": "En cours",
+      "roadmap": "Feuille de route"
+    },
+    "items": {
+      "generation": {
+        "title": "Génération et modèles de contrats",
+        "desc": "Modèles de contrats HTML et PDF réutilisables, paramétrage dynamique des champs, pré-remplissage selon le type de contrat et génération assistée par IA à partir d’un simple texte. Restent à livrer : les clauses conditionnelles et une bibliothèque de clauses partagée."
+      },
+      "aiReview": {
+        "title": "Revue contractuelle assistée par IA",
+        "desc": "La couche IA est intégrée et produit déjà une synthèse du contrat avant signature. La détection des clauses à risque, des incohérences et des écarts aux standards internes s’appuie sur la même abstraction."
+      },
+      "workflow": {
+        "title": "Workflow de validation digitalisé",
+        "desc": "Circuits de validation séquentiels, parallèles ou par étapes, avec des rôles distincts Signataire, Validateur, Réviseur juridique et Observateur, des check-lists par réviseur, la délégation, l’escalade et les échéances. Chaque étape est tracée."
+      },
+      "versioning": {
+        "title": "Versioning automatique",
+        "desc": "Une demande de révision met le circuit en pause, archive la version précédente avec sa note de modification, invalide les signatures recueillies tout en les conservant comme preuve, puis relance la validation sur la nouvelle version."
+      },
+      "archive": {
+        "title": "Centralisation et archivage sécurisé",
+        "desc": "Stockage unique des contrats et de leurs annexes, accès restreint au propriétaire et aux intervenants désignés, chaque consultation, téléchargement, signature et commentaire étant inscrit dans une trace exportable en CSV."
+      },
+      "obligations": {
+        "title": "Suivi des obligations contractuelles",
+        "desc": "Dates d’effet, fenêtres de renouvellement, jalons et engagements réglementaires portés par le contrat lui-même, avec une surveillance planifiée qui les remonte avant échéance. Aujourd’hui, seul le délai de validation est suivi."
+      },
+      "reporting": {
+        "title": "Tableaux de bord et reporting",
+        "desc": "Activité contractuelle à l’échelle de l’organisation : volumes dans le temps, taux d’aboutissement, délai moyen de validation, respect des échéances et cycles de révision, ventilés par type de contrat et par département."
+      },
+      "execution": {
+        "title": "Suivi d’exécution et alertes",
+        "desc": "Les canaux de notification par e-mail, dans l’application et en temps réel sont en place et se déclenchent déjà sur les échéances, les relances et les escalades. Leur extension aux alertes d’obligation et de renouvellement reste à faire."
+      },
+      "regWatch": {
+        "title": "Veille réglementaire intégrée",
+        "desc": "Surveillance automatisée des cadres tunisien, européen et sectoriels applicables à un contrat — télécommunications, protection des données, marchés publics — afin de maintenir à jour le référentiel applicable."
+      },
+      "compliance": {
+        "title": "Analyse de conformité par assistants IA",
+        "desc": "Des assistants capables d’interpréter les obligations légales, de confronter un contrat au cadre applicable et de signaler les clauses manquantes ou non conformes, en explicitant le raisonnement de chaque constat."
+      },
+      "riskMap": {
+        "title": "Alertes réglementaires et cartographie des risques",
+        "desc": "Alerte lorsqu’une évolution législative touche des contrats déjà en vigueur, avec une cartographie de l’exposition juridique du portefeuille pour en anticiper l’impact."
+      }
     }
   }
 }

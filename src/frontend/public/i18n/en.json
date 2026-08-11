@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "SignFlow",
+    "appName": "LegalDesk",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -39,14 +39,15 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "documents": "Documents",
-    "templates": "Templates",
-    "auditTrail": "Audit Trail",
+    "documents": "Contracts",
+    "templates": "Contract Templates",
+    "auditTrail": "Traceability",
     "reports": "Reports",
-    "administration": "Administration"
+    "administration": "Administration",
+    "capabilities": "Capabilities"
   },
   "layout": {
-    "eSignature": "e-Signature",
+    "tagline": "Contract Lifecycle Management",
     "manageAccount": "Manage account",
     "signOut": "Sign out",
     "realtimeConnected": "Real-time: connected",
@@ -65,7 +66,7 @@
     "pageSubtitle": "Manage users, roles, and system settings",
     "tabs": {
       "users": "Users",
-      "requestTypes": "Request Types",
+      "requestTypes": "Contract Types",
       "systemSettings": "System Settings"
     },
     "systemSettings": {
@@ -119,28 +120,28 @@
     },
     "requestTypes": {
       "intro": "Configure the request categories and their signing deadlines (SLA). This is the source of truth applied to every new request.",
-      "newRequestType": "New Request Type",
-      "noRequestTypesYet": "No request types yet",
-      "createFirst": "Create your first request type",
+      "newRequestType": "New Contract Type",
+      "noRequestTypesYet": "No contract types yet",
+      "createFirst": "Create your first contract type",
       "inactive": "Inactive",
       "slaLabel": "SLA: {{sla}}",
       "activeToggleTooltip": "Active",
-      "requestTypeCreated": "Request type created",
-      "requestTypeUpdated": "Request type updated",
+      "requestTypeCreated": "Contract type created",
+      "requestTypeUpdated": "Contract type updated",
       "activated": "Activated",
       "deactivated": "Deactivated",
       "failedToUpdateStatus": "Failed to update status",
       "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
-      "requestTypeDeleted": "Request type deleted",
+      "requestTypeDeleted": "Contract type deleted",
       "failedToDelete": "Failed to delete"
     },
     "requestTypeDialog": {
-      "createTitle": "New Request Type",
-      "editTitle": "Edit Request Type",
+      "createTitle": "New Contract Type",
+      "editTitle": "Edit Contract Type",
       "requestName": "Request name",
       "requestNamePlaceholder": "e.g. Vacation Request",
       "description": "Description (shown to end users)",
-      "descriptionPlaceholder": "Explain when to use this request type",
+      "descriptionPlaceholder": "Explain when to use this contract type",
       "slaDeadline": "Signing deadline (SLA)",
       "unit": "Unit",
       "hours": "Hours",
@@ -155,14 +156,14 @@
   },
   "auth": {
     "shell": {
-      "tagline": "Enterprise Electronic Signature Platform",
-      "feature1": "Legally binding signatures",
-      "feature2": "Sign in seconds, anywhere",
-      "feature3": "Bank-grade security"
+      "tagline": "Enterprise Contract Lifecycle Management",
+      "feature1": "Legally binding electronic signatures",
+      "feature2": "Traceable validation workflows",
+      "feature3": "Bank-grade security and archiving"
     },
     "login": {
       "title": "Welcome back",
-      "subtitle": "Sign in to your SignFlow account",
+      "subtitle": "Sign in to your LegalDesk account",
       "emailLabel": "Email address",
       "emailPlaceholder": "you@company.com",
       "emailRequired": "Email is required",
@@ -178,7 +179,7 @@
     },
     "register": {
       "title": "Create your account",
-      "subtitle": "Start signing documents for free",
+      "subtitle": "Start signing contracts for free",
       "firstNameLabel": "First name",
       "lastNameLabel": "Last name",
       "emailLabel": "Email address",
@@ -230,9 +231,9 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Overview of your document signing activity",
+    "subtitle": "Overview of your contract activity",
     "stats": {
-      "totalDocuments": "Total Documents",
+      "totalDocuments": "Total Contracts",
       "completed": "Completed",
       "pending": "Pending",
       "drafts": "Drafts",
@@ -242,21 +243,21 @@
       "title": "Recent Activity",
       "viewAll": "View all",
       "emptyTitle": "No activity yet",
-      "emptySub": "Upload a document to get started",
+      "emptySub": "Upload a contract to get started",
       "actions": {
-        "documentCreated": "Document created",
-        "documentViewed": "Document viewed",
-        "documentSent": "Document sent",
-        "documentSigned": "Document signed",
-        "documentRejected": "Document rejected",
-        "documentCompleted": "Document completed",
-        "documentExpired": "Document expired",
-        "documentCancelled": "Document cancelled",
-        "documentDownloaded": "Document downloaded",
+        "documentCreated": "Contract created",
+        "documentViewed": "Contract viewed",
+        "documentSent": "Contract sent",
+        "documentSigned": "Contract signed",
+        "documentRejected": "Contract rejected",
+        "documentCompleted": "Contract completed",
+        "documentExpired": "Contract expired",
+        "documentCancelled": "Contract cancelled",
+        "documentDownloaded": "Contract downloaded",
         "fieldSigned": "Field signed",
         "fieldCleared": "Field cleared",
-        "recipientAdded": "Recipient added",
-        "recipientRemoved": "Recipient removed",
+        "recipientAdded": "Participant added",
+        "recipientRemoved": "Participant removed",
         "workflowStarted": "Workflow started",
         "workflowCompleted": "Workflow completed",
         "workflowStepCompleted": "Workflow step completed",
@@ -284,14 +285,14 @@
     "pending": {
       "title": "Pending Your Action",
       "emptyTitle": "All caught up",
-      "emptySub": "No documents waiting for you",
-      "waitingSingular": "{{count}} document waiting for your action",
-      "waitingPlural": "{{count}} documents waiting for your action",
+      "emptySub": "No contracts waiting for you",
+      "waitingSingular": "{{count}} contract waiting for your action",
+      "waitingPlural": "{{count}} contracts waiting for your action",
       "viewRequests": "View requests"
     },
     "quickActions": {
       "title": "Quick Actions",
-      "documents": "Documents",
+      "documents": "Contracts",
       "templates": "Templates",
       "audit": "Audit"
     },
@@ -299,10 +300,10 @@
   },
   "documents": {
     "list": {
-      "title": "Documents",
-      "subtitle": "Manage your documents and signature requests",
-      "allDocumentsTab": "All documents",
-      "searchPlaceholder": "Search documents…",
+      "title": "Contracts",
+      "subtitle": "Manage your contracts and validation requests",
+      "allDocumentsTab": "All contracts",
+      "searchPlaceholder": "Search contracts…",
       "clearSearch": "Clear",
       "allStatuses": "All",
       "allTypes": "All types",
@@ -317,13 +318,13 @@
         "WaitingForOthers": "Waiting",
         "ChangesRequested": "Changes requested"
       },
-      "noDocumentsFound": "No documents found",
-      "documentCountSingular": "{{count}} document",
-      "documentCountPlural": "{{count}} documents",
+      "noDocumentsFound": "No contracts found",
+      "documentCountSingular": "{{count}} contract",
+      "documentCountPlural": "{{count}} contracts",
       "columns": {
-        "document": "Document",
+        "document": "Contract",
         "owner": "Owner",
-        "recipients": "Recipients",
+        "recipients": "Participants",
         "created": "Created"
       },
       "pageCountSingular": "{{count}} page",
@@ -333,7 +334,7 @@
         "open": "Open",
         "designFields": "Design fields"
       },
-      "emptySub": "Try adjusting your filters or upload a new document",
+      "emptySub": "Try adjusting your filters or upload a new contract",
       "confirmDelete": "Delete \"{{title}}\"? This cannot be undone."
     },
     "detail": {
@@ -357,12 +358,12 @@
       "reopenRequest": "Reopen Request",
       "downloadSigned": "Download Signed PDF",
       "downloadOriginal": "Download Original PDF",
-      "auditTrail": "Audit Trail",
-      "completedTitle": "Document completed",
-      "allSignedOn": "All recipients signed on {{date}}",
+      "auditTrail": "Traceability",
+      "completedTitle": "Contract completed",
+      "allSignedOn": "All participants signed on {{date}}",
       "verificationCode": "Verification code",
-      "signingWorkflow": "Signing Workflow",
-      "recipientsTitle": "Recipients",
+      "signingWorkflow": "Validation workflow",
+      "recipientsTitle": "Participants",
       "recipientStatus": {
         "signed": "Signed",
         "approved": "Approved",
@@ -374,13 +375,13 @@
         "changesRequested": "Changes requested"
       },
       "roles": {
-        "Signature": "Signer",
+        "Signature": "Signatory",
         "Approval": "Approver",
         "Review": "Reviewer",
         "ViewOnly": "Viewer",
         "Stamp": "Stamp"
       },
-      "noRecipients": "No recipients assigned yet",
+      "noRecipients": "No participants assigned yet",
       "presence": {
         "viewingOne": "1 person viewing now",
         "viewingMany": "{{count}} people viewing now"
@@ -407,10 +408,10 @@
       "summaryError": "Could not generate summary",
       "noSummary": "No summary yet",
       "generateSummary": "Generate Summary",
-      "notFound": "Document not found",
-      "backToDocuments": "Back to Documents",
-      "confirmSend": "Send this document for signatures? Recipients will be notified by email.",
-      "sendFailed": "Failed to send document",
+      "notFound": "Contract not found",
+      "backToDocuments": "Back to Contracts",
+      "confirmSend": "Send this contract for signatures? Participants will be notified by email.",
+      "sendFailed": "Failed to send contract",
       "reopenFailed": "Failed to reopen request",
       "changesRequestedTitle": "Changes requested",
       "changesRequestedBy": "{{name}} requested changes",
@@ -418,29 +419,29 @@
       "changeNotePlaceholder": "What changed in this revision? (optional)",
       "uploadRevision": "Upload Revision",
       "uploadingRevision": "Uploading…",
-      "revisionUploaded": "Revision v{{version}} uploaded. Review the fields, then re-send the document.",
+      "revisionUploaded": "Revision v{{version}} uploaded. Review the fields, then re-send the contract.",
       "revisionFailed": "Failed to upload revision",
       "versionsTitle": "Version History",
       "currentVersion": "Current version",
       "noChangeNote": "No change note",
-      "versionTooltip": "This document has been revised — see the version history"
+      "versionTooltip": "This contract has been revised — see the version history"
     },
     "upload": {
-      "title": "Upload Document",
-      "subtitle": "Upload a PDF to start a signing workflow",
+      "title": "Upload Contract",
+      "subtitle": "Upload a PDF to start a validation workflow",
       "dropHere": "Drop your PDF here",
       "orBrowse": "or click to browse",
       "hint": "PDF files only, max 50 MB",
       "remove": "Remove",
-      "documentTitle": "Document title",
+      "documentTitle": "Contract title",
       "titlePlaceholder": "e.g. Service Agreement Q4 2026",
       "titleRequired": "Title is required",
-      "requestType": "Request type",
+      "requestType": "Contract type",
       "none": "None",
       "mustBeSignedWithinPrefix": "Must be signed within",
       "mustBeSignedWithinSuffix": "of creation",
-      "messageLabel": "Message to recipients (optional)",
-      "messagePlaceholder": "Please review and sign this document...",
+      "messageLabel": "Message to participants (optional)",
+      "messagePlaceholder": "Please review and sign this contract...",
       "uploadingProgress": "Uploading and processing...",
       "processing": "Processing...",
       "uploadAndContinue": "Upload & Continue",
@@ -448,15 +449,15 @@
       "steps": {
         "placeFields": {
           "title": "Place signature fields",
-          "desc": "Drag & drop fields onto the PDF where recipients need to sign"
+          "desc": "Drag & drop fields onto the PDF where participants need to sign"
         },
         "assignRecipients": {
-          "title": "Assign recipients",
+          "title": "Assign participants",
           "desc": "Add email addresses for each person who needs to sign"
         },
         "sendForSignatures": {
           "title": "Send for signatures",
-          "desc": "Recipients receive an email with a secure signing link"
+          "desc": "Participants receive an email with a secure signing link"
         }
       },
       "onlyPdf": "Only PDF files are supported",
@@ -475,30 +476,30 @@
       "undo": "Undo (Ctrl+Z)",
       "redo": "Redo (Ctrl+Y)",
       "saving": "Saving...",
-      "saveDisabledNoRecipient": "Add at least one recipient",
-      "saveDisabledNoField": "Place at least one field on the document",
+      "saveDisabledNoRecipient": "Add at least one participant",
+      "saveDisabledNoField": "Place at least one field on the contract",
       "done": "Done",
       "snapToGrid": "Snap fields to grid"
     },
     "sidebar": {
-      "recipientsTitle": "Recipients",
+      "recipientsTitle": "Participants",
       "collapse": "Collapse",
       "expand": "Expand sidebar"
     },
     "workflow": {
       "sequential": "Sequential",
-      "sequentialHint": "Sequential — signers notified one by one",
+      "sequentialHint": "Sequential — signatories notified one by one",
       "parallel": "Parallel",
-      "parallelHint": "Parallel — all signers notified at once",
+      "parallelHint": "Parallel — all signatories notified at once",
       "mixed": "Mixed",
-      "mixedHint": "Mixed — group signers into sequential stages"
+      "mixedHint": "Mixed — group signatories into sequential stages"
     },
     "anon": {
-      "hideIdentities": "Hide recipient identities",
-      "hideIdentitiesHint": "Signers see \"Recipient 1, 2…\" instead of real names"
+      "hideIdentities": "Hide participant identities",
+      "hideIdentitiesHint": "Signatories see \"Participant 1, 2…\" instead of real names"
     },
     "recipients": {
-      "addRecipient": "Add Recipient",
+      "addRecipient": "Add Participant",
       "fromUsers": "From users",
       "other": "Other",
       "searchUsersPlaceholder": "Search users...",
@@ -506,9 +507,9 @@
       "fullNamePlaceholder": "Full name",
       "emailAddressPlaceholder": "Email address",
       "addBtn": "Add",
-      "addAtLeastOneHint": "Add at least one recipient before placing fields.",
+      "addAtLeastOneHint": "Add at least one participant before placing fields.",
       "sequentialOrderHint": "Signed top to bottom in turn",
-      "parallelOrderHint": "All recipients notified at once",
+      "parallelOrderHint": "All participants notified at once",
       "mixedOrderHint": "Same stage = parallel · stages run in order",
       "moveUp": "Move up",
       "moveDown": "Move down",
@@ -518,14 +519,14 @@
       "roleLabelPlaceholder": "Role label (e.g. Legal team)"
     },
     "roles": {
-      "Signature": "Signer",
+      "Signature": "Signatory",
       "Approval": "Approver",
       "Review": "Reviewer",
       "ViewOnly": "Viewer"
     },
     "palette": {
       "droppingFor": "Dropping for: {{name}}",
-      "selectRecipientWarning": "Select a recipient before placing fields"
+      "selectRecipientWarning": "Select a participant before placing fields"
     },
     "fieldTypes": {
       "Signature": "Signature",
@@ -550,12 +551,12 @@
       "heading": "Field Properties",
       "fieldType": "Field Type",
       "assignedTo": "Assigned To",
-      "requiredCheckbox": "Recipients must complete this field",
+      "requiredCheckbox": "Participants must complete this field",
       "position": "Position",
       "size": "Size",
       "radioGroup": "Radio group",
       "radioGroupPlaceholder": "e.g. payment-method",
-      "radioGroupHint": "Buttons sharing the same group name form a single choice — signers can select only one.",
+      "radioGroupHint": "Buttons sharing the same group name form a single choice — signatories can select only one.",
       "removeField": "Remove Field"
     },
     "notifications": {
@@ -563,21 +564,21 @@
       "later": "later",
       "dismiss": "Dismiss",
       "ok": "OK",
-      "selectRecipientFirst": "Select a recipient in the sidebar before placing fields.",
-      "addRecipientBeforeSaving": "Add at least one recipient before saving.",
+      "selectRecipientFirst": "Select a participant in the sidebar before placing fields.",
+      "addRecipientBeforeSaving": "Add at least one participant before saving.",
       "savedSuccessfully": "Saved successfully",
       "saveFailed": "Failed to save",
       "fieldsUnassignedForRole": "Fields were unassigned — this participant no longer signs.",
-      "nonSignerNoFields": "Reviewers, approvers and viewers don't fill fields — select a signer first."
+      "nonSignerNoFields": "Reviewers, approvers and viewers don't fill fields — select a signatory first."
     }
   },
   "legal": {
     "privacy": {
       "backToDashboard": "Back to dashboard",
       "title": "Privacy Policy",
-      "effective": "Effective date: 4 July 2026 | Controller: SignFlow Ltd.",
+      "effective": "Effective date: 4 July 2026 | Controller: LegalDesk Ltd.",
       "section1Title": "1. Who we are",
-      "section1Body": "SignFlow (\"we\", \"us\", \"our\") provides a cloud-based electronic-signature platform. We act as <strong>data controller</strong> for account data and as <strong>data processor</strong> for documents and signatures you process through our service.",
+      "section1Body": "LegalDesk (\"we\", \"us\", \"our\") provides a cloud-based contract lifecycle management platform. We act as <strong>data controller</strong> for account data and as <strong>data processor</strong> for documents and signatures you process through our service.",
       "section2Title": "2. What data we collect",
       "section2Item1": "<strong>Account data:</strong> name, email address, password hash, avatar.",
       "section2Item2": "<strong>Signing data:</strong> signature images, field values, IP address at time of signing, optional geolocation (only if you opt in).",
@@ -589,7 +590,7 @@
       "section3Item3": "<strong>Consent (Art. 6(1)(a)):</strong> Analytics cookies, geolocation capture, marketing communications.",
       "section3Item4": "<strong>Legal obligation (Art. 6(1)(c)):</strong> Retaining signed documents as required by applicable law.",
       "section4Title": "4. eIDAS / ESIGN Act — e-signature validity",
-      "section4Body": "Signatures created through SignFlow constitute <em>Advanced Electronic Signatures</em> under EU Regulation No 910/2014 (eIDAS) and are legally binding under the U.S. Electronic Signatures in Global and National Commerce Act (ESIGN). The audit trail stored per document constitutes the evidentiary record of intent to sign.",
+      "section4Body": "Signatures created through LegalDesk constitute <em>Advanced Electronic Signatures</em> under EU Regulation No 910/2014 (eIDAS) and are legally binding under the U.S. Electronic Signatures in Global and National Commerce Act (ESIGN). The audit trail stored per document constitutes the evidentiary record of intent to sign.",
       "section5Title": "5. Data retention",
       "section5Item1": "Signed documents and their audit trails are retained for <strong>7 years</strong> unless you submit an erasure request and no legal hold applies.",
       "section5Item2": "Unsigned draft documents are automatically purged 90 days after last activity.",
@@ -616,11 +617,11 @@
       "title": "Terms of Service",
       "effective": "Effective date: 4 July 2026",
       "section1Title": "1. Acceptance",
-      "section1Body": "By creating an account or using SignFlow you agree to these Terms. If you are acting on behalf of an organisation, you confirm you have authority to bind that organisation.",
+      "section1Body": "By creating an account or using LegalDesk you agree to these Terms. If you are acting on behalf of an organisation, you confirm you have authority to bind that organisation.",
       "section2Title": "2. Service description",
-      "section2Body": "SignFlow provides an electronic-signature workflow platform allowing users to upload documents, designate signatories, and collect legally binding electronic signatures. Features include audit trails, document templates, real-time collaboration, and AI-generated document summaries.",
+      "section2Body": "LegalDesk provides a contract lifecycle management platform allowing users to upload documents, designate signatories, and collect legally binding electronic signatures. Features include audit trails, document templates, real-time collaboration, and AI-generated document summaries.",
       "section3Title": "3. Legal validity of signatures",
-      "section3Body": "Signatures created on SignFlow meet the requirements of <strong>Advanced Electronic Signatures</strong> under EU eIDAS Regulation 910/2014 and are legally binding under the U.S. ESIGN Act. The audit trail constitutes evidence of intent to sign and document integrity.",
+      "section3Body": "Signatures created on LegalDesk meet the requirements of <strong>Advanced Electronic Signatures</strong> under EU eIDAS Regulation 910/2014 and are legally binding under the U.S. ESIGN Act. The audit trail constitutes evidence of intent to sign and document integrity.",
       "section4Title": "4. Your obligations",
       "section4Item1": "You must provide accurate account information and keep credentials confidential.",
       "section4Item2": "You must only upload documents you have the right to circulate.",
@@ -634,7 +635,7 @@
       "section7Title": "7. Retention and deletion",
       "section7Body": "Signed documents are retained for 7 years to comply with applicable laws. Draft documents are automatically deleted after 90 days of inactivity. You may request early deletion subject to legal hold obligations.",
       "section8Title": "8. Liability",
-      "section8Body": "SignFlow is provided \"as is\". We are not liable for indirect or consequential damages. Our total liability shall not exceed the amount paid by you in the 12 months preceding the claim.",
+      "section8Body": "LegalDesk is provided \"as is\". We are not liable for indirect or consequential damages. Our total liability shall not exceed the amount paid by you in the 12 months preceding the claim.",
       "section9Title": "9. Governing law",
       "section9Body": "These Terms are governed by the laws of the European Union and, where applicable, the laws of France. Disputes shall be resolved in the courts of Paris, France.",
       "section10Title": "10. Changes",
@@ -646,7 +647,7 @@
       "backToDashboard": "Back to dashboard",
       "title": "Cookie Policy",
       "effective": "Effective date: 4 July 2026",
-      "intro": "This policy explains what cookies SignFlow sets, why, and how you can control them.",
+      "intro": "This policy explains what cookies LegalDesk sets, why, and how you can control them.",
       "whatAreTitle": "What are cookies?",
       "whatAreBody": "Cookies are small text files stored by your browser that help websites remember information about your visit.",
       "cookiesWeUseTitle": "Cookies we use",
@@ -695,7 +696,7 @@
       "successTitle": "Request submitted",
       "successBody": "Your request ID is <strong>{{id}}</strong>. We will contact you at your provided email address within 30 days.",
       "successContact": "If you have any questions, email",
-      "genericError": "Something went wrong. Please try again or email privacy@signflow.app.",
+      "genericError": "Something went wrong. Please try again or email privacy@legaldesk.tn.",
       "type": {
         "access": "Access (Art. 15) — receive a copy of my data",
         "erasure": "Erasure (Art. 17) — delete my data",
@@ -745,7 +746,7 @@
     }
   },
   "vacation": {
-    "intro": "While you're on vacation, you can't be added as a recipient on new documents. Existing requests are unaffected.",
+    "intro": "While you're on vacation, you can't be added as a participant on new contracts. Existing requests are unaffected.",
     "scheduleTitle": "Schedule time off",
     "startDate": "Start date",
     "endDate": "End date",
@@ -774,8 +775,8 @@
       "sentByMe": "Sent by Me"
     },
     "allCaughtUp": "All caught up",
-    "noDocumentsWaiting": "No documents are waiting for your signature",
-    "noActionWaiting": "No documents are waiting for your action",
+    "noDocumentsWaiting": "No contracts are waiting for your signature",
+    "noActionWaiting": "No contracts are waiting for your action",
     "needsAction": "Needs your action",
     "history": "History",
     "from": "From",
@@ -784,15 +785,15 @@
     "approveNow": "Approve Now",
     "reviewNow": "Review Now",
     "viewNow": "View Now",
-    "openDocument": "Open document",
+    "openDocument": "Open contract",
     "nothingSentYet": "Nothing sent yet",
-    "uploadDocumentSub": "Upload a document and send it for signature",
-    "uploadDocument": "Upload a document",
-    "recipientsCount": "{{count}} recipient",
-    "recipientsCountPlural": "{{count}} recipients",
+    "uploadDocumentSub": "Upload a contract and send it for signature",
+    "uploadDocument": "Upload a contract",
+    "recipientsCount": "{{count}} participant",
+    "recipientsCountPlural": "{{count}} participants",
     "completedRecipients": "{{completed}}/{{total}} signed",
     "collapse": "Collapse",
-    "showRecipients": "Show recipients",
+    "showRecipients": "Show participants",
     "signingNow": "Signing now",
     "signed": "Signed",
     "status": {
@@ -837,7 +838,7 @@
       "missingFields": "Required fields missing: {{fields}}",
       "submitFailed": "Failed to submit request",
       "previewTitle": "Live preview",
-      "previewHint": "This is what the recipient will see. Unfilled fields and signatures are shown as placeholders."
+      "previewHint": "This is what the participant will see. Unfilled fields and signatures are shown as placeholders."
     }
   },
   "comments": {
@@ -862,10 +863,10 @@
     "actionFailed": "Something went wrong — please try again"
   },
   "audit": {
-    "title": "Audit Trail",
-    "subtitle": "Complete activity log for this document",
+    "title": "Traceability",
+    "subtitle": "Complete activity log for this contract",
     "exportCsv": "Export CSV",
-    "exportFailed": "Failed to export audit trail",
+    "exportFailed": "Failed to export the audit trail",
     "columns": {
       "action": "Action",
       "user": "User",
@@ -874,19 +875,19 @@
     },
     "noEvents": "No audit events found",
     "actions": {
-      "DocumentCreated": "Document created",
-      "DocumentViewed": "Document viewed",
-      "DocumentSent": "Document sent",
-      "DocumentSigned": "Document signed",
-      "DocumentRejected": "Document rejected",
-      "DocumentCompleted": "Document completed",
-      "DocumentExpired": "Document expired",
-      "DocumentCancelled": "Document cancelled",
-      "DocumentDownloaded": "Document downloaded",
+      "DocumentCreated": "Contract created",
+      "DocumentViewed": "Contract viewed",
+      "DocumentSent": "Contract sent",
+      "DocumentSigned": "Contract signed",
+      "DocumentRejected": "Contract rejected",
+      "DocumentCompleted": "Contract completed",
+      "DocumentExpired": "Contract expired",
+      "DocumentCancelled": "Contract cancelled",
+      "DocumentDownloaded": "Contract downloaded",
       "FieldSigned": "Field signed",
       "FieldCleared": "Field cleared",
-      "RecipientAdded": "Recipient added",
-      "RecipientRemoved": "Recipient removed",
+      "RecipientAdded": "Participant added",
+      "RecipientRemoved": "Participant removed",
       "WorkflowStarted": "Workflow started",
       "WorkflowCompleted": "Workflow completed",
       "WorkflowStepCompleted": "Workflow step completed",
@@ -904,33 +905,33 @@
     }
   },
   "orgAudit": {
-    "title": "Audit Trail",
-    "subtitle": "Organization-wide activity log across all documents",
-    "searchPlaceholder": "Search by document, name or email…",
+    "title": "Traceability",
+    "subtitle": "Organization-wide activity log across all contracts",
+    "searchPlaceholder": "Search by contract, name or email…",
     "clearSearch": "Clear",
     "allActions": "All actions",
     "noEvents": "No audit events found",
     "columns": {
       "action": "Action",
-      "document": "Document",
+      "document": "Contract",
       "actor": "Actor",
       "ip": "IP Address",
       "timestamp": "Timestamp"
     },
     "actions": {
-      "DocumentCreated": "Document created",
-      "DocumentViewed": "Document viewed",
-      "DocumentSent": "Document sent",
-      "DocumentSigned": "Document signed",
-      "DocumentRejected": "Document rejected",
-      "DocumentCompleted": "Document completed",
-      "DocumentExpired": "Document expired",
-      "DocumentCancelled": "Document cancelled",
-      "DocumentDownloaded": "Document downloaded",
+      "DocumentCreated": "Contract created",
+      "DocumentViewed": "Contract viewed",
+      "DocumentSent": "Contract sent",
+      "DocumentSigned": "Contract signed",
+      "DocumentRejected": "Contract rejected",
+      "DocumentCompleted": "Contract completed",
+      "DocumentExpired": "Contract expired",
+      "DocumentCancelled": "Contract cancelled",
+      "DocumentDownloaded": "Contract downloaded",
       "FieldSigned": "Field signed",
       "FieldCleared": "Field cleared",
-      "RecipientAdded": "Recipient added",
-      "RecipientRemoved": "Recipient removed",
+      "RecipientAdded": "Participant added",
+      "RecipientRemoved": "Participant removed",
       "WorkflowStarted": "Workflow started",
       "WorkflowCompleted": "Workflow completed",
       "WorkflowStepCompleted": "Workflow step completed",
@@ -948,8 +949,8 @@
     }
   },
   "templates": {
-    "title": "Templates",
-    "subtitle": "Reusable document templates with pre-configured fields",
+    "title": "Contract Templates",
+    "subtitle": "Reusable contract templates with pre-configured fields",
     "titleHtml": "HTML Templates",
     "titlePdf": "PDF Templates",
     "hintHtml": "Reusable text-based templates with dynamic placeholders — best for contracts and letters you fill in each time.",
@@ -973,7 +974,7 @@
     "manage": "Configure"
   },
   "createDocument": {
-    "newDocument": "New Document",
+    "newDocument": "New Contract",
     "dialogTitle": "How would you like to start?",
     "dialogSubtitle": "Pick a starting point — you can always fine-tune fields before sending.",
     "badgeReusable": "Reusable template",
@@ -988,14 +989,14 @@
     },
     "uploadPdf": {
       "title": "Upload a New PDF",
-      "description": "Bring your own PDF and place signature fields from scratch. Best for one-off documents you won't reuse."
+      "description": "Bring your own PDF and place signature fields from scratch. Best for one-off contracts you won't reuse."
     }
   },
   "shared": {
     "approverPicker": {
       "approverN": "Approver {{n}}",
       "existingUser": "Existing user",
-      "externalSigner": "External signer",
+      "externalSigner": "External signatory",
       "selectApprover": "— Select approver —",
       "fullName": "Full name",
       "emailAddress": "Email address",
@@ -1020,7 +1021,7 @@
       "daysAgo": "{{count}}d ago"
     },
     "workflowVisualizer": {
-      "header": "Sequential signing — each signer is notified only after the previous one finishes",
+      "header": "Sequential signing — each signatory is notified only after the previous one finishes",
       "you": "(You)",
       "status": {
         "signed": "Signed",
@@ -1041,7 +1042,7 @@
     "cookieConsent": {
       "ariaLabel": "Cookie preferences",
       "title": "We use cookies",
-      "description": "SignFlow uses cookies to keep you signed in and improve your experience. You can choose which optional cookies to allow below.",
+      "description": "LegalDesk uses cookies to keep you signed in and improve your experience. You can choose which optional cookies to allow below.",
       "cookiePolicy": "Cookie Policy",
       "privacyPolicy": "Privacy Policy",
       "necessary": "Necessary",
@@ -1058,7 +1059,7 @@
   },
   "reports": {
     "title": "Reports",
-    "subtitle": "Organization-wide signing activity, SLA compliance and revision analytics",
+    "subtitle": "Organization-wide contract activity, SLA compliance and revision analytics",
     "forbidden": "Reports are only available to administrators and managers.",
     "loadFailed": "Failed to load the report. Please try again.",
     "kpi": {
@@ -1081,13 +1082,13 @@
       "title": "Revision activity",
       "changeRequests": "Change requests",
       "revisionsUploaded": "Revisions uploaded",
-      "documentsRevised": "Documents revised",
-      "hint": "Requests paused by a reviewer or approver and answered with a revised document."
+      "documentsRevised": "Contracts revised",
+      "hint": "Requests paused by a reviewer or approver and answered with a revised contract."
     },
     "byType": {
-      "title": "By request type",
-      "type": "Request type",
-      "empty": "No requests are linked to a request type yet."
+      "title": "By contract type",
+      "type": "Contract type",
+      "empty": "No requests are linked to a contract type yet."
     },
     "byDepartment": {
       "title": "By department",
@@ -1115,7 +1116,7 @@
       "linkTooltip": "Time left before this signing link expires",
       "linkPillLabel": "Link: {{time}}"
     },
-    "loadingDocument": "Loading document…",
+    "loadingDocument": "Loading contract…",
     "fieldsCompleted": "{{count}} of {{total}} {{unit}} completed",
     "field": "field",
     "fields": "fields",
@@ -1124,51 +1125,51 @@
     "dismiss": "Dismiss",
     "enterFieldPrompt": "Enter {{fieldType}}:",
     "declineReasonPrompt": "Please provide a reason for declining (optional):",
-    "requestChangesPrompt": "Describe the changes you need (required — the owner will revise the document):",
-    "untitledDocument": "document",
+    "requestChangesPrompt": "Describe the changes you need (required — the owner will revise the contract):",
+    "untitledDocument": "contract",
     "summary": {
       "sentBy": "Sent by {{name}}",
-      "documentOwnerFallback": "the document owner",
+      "documentOwnerFallback": "the contract owner",
       "pageCount": "{{count}} {{unit}}",
       "page": "page",
       "pages": "pages",
-      "title": "Document Summary",
-      "unavailable": "Summary not available. Please review the document directly after proceeding.",
+      "title": "Contract Summary",
+      "unavailable": "Summary not available. Please review the contract directly after proceeding.",
       "proceedToSign": "Proceed to Sign",
       "proceedToReview": "Proceed to Review",
       "gdprTitle": "Data Processing Notice",
-      "gdprText": "By signing, you acknowledge that SignFlow will record your electronic signature, the date and time of signing, your IP address, and this audit trail for the legal validity of the signed document (legal basis: Art. 6(1)(b) GDPR — contract performance).",
+      "gdprText": "By signing, you acknowledge that LegalDesk will record your electronic signature, the date and time of signing, your IP address, and this audit trail for the legal validity of the signed contract (legal basis: Art. 6(1)(b) GDPR — contract performance).",
       "geoOptIn": "I consent to sharing my approximate location to strengthen the audit trail (optional — Art. 6(1)(a) GDPR)."
     },
     "status": {
-      "completedTitle": "Document Signed!",
+      "completedTitle": "Contract Signed!",
       "completedBody": "You have successfully signed {{title}}.",
       "completedSub": "All parties will receive a copy once everyone has signed.",
       "downloadCopy": "Download a Copy",
       "downloading": "Downloading…",
-      "rejectedTitle": "Document Declined",
-      "rejectedBody": "You have declined to sign this document.",
+      "rejectedTitle": "Contract Declined",
+      "rejectedBody": "You have declined to sign this contract.",
       "expiredTitle": "Link Expired",
-      "expiredBody": "This signing link has expired. Please contact the document owner.",
+      "expiredBody": "This signing link has expired. Please contact the contract owner.",
       "waitingTitle": "Waiting your turn",
-      "waitingIntro": "This is a sequential signing workflow.",
+      "waitingIntro": "This is a sequential validation workflow.",
       "waitingForName": "{{name}} needs to sign before it's your turn.",
-      "waitingGeneric": "An earlier signer must complete their part first.",
+      "waitingGeneric": "An earlier signatory must complete their part first.",
       "waitingSub": "You'll receive an email the moment it's your turn to sign.",
       "invalidLinkTitle": "Link Invalid",
       "changesRequestedOwnTitle": "Changes requested",
-      "changesRequestedOwnBody": "Your change request was sent to the document owner. You'll be notified when a revised version is ready for review.",
-      "changesRequestedTitle": "Document paused",
+      "changesRequestedOwnBody": "Your change request was sent to the contract owner. You'll be notified when a revised version is ready for review.",
+      "changesRequestedTitle": "Contract paused",
       "changesRequestedBody": "A participant requested changes. The workflow is paused until the owner uploads a revised version.",
       "revisionInProgressTitle": "Revision in progress",
-      "revisionInProgressBody": "The owner is revising this document. You'll be notified when the new version is ready for you."
+      "revisionInProgressBody": "The owner is revising this contract. You'll be notified when the new version is ready for you."
     },
     "review": {
       "title": "Review Your Signature",
       "intro": "Please review the values below before approving. Once submitted, this cannot be undone.",
       "notFilled": "Not filled",
       "noFieldsRole": "There are no fields for you to fill — approving records your review decision on the audit trail.",
-      "legalNotice": "By clicking <strong>Approve &amp; Submit</strong>, you are electronically signing this document and agree that your electronic signature has the same legal effect as a handwritten signature."
+      "legalNotice": "By clicking <strong>Approve &amp; Submit</strong>, you are electronically signing this contract and agree that your electronic signature has the same legal effect as a handwritten signature."
     },
     "fieldNav": {
       "title": "Fields to Complete"
@@ -1183,20 +1184,20 @@
       "Approval": "Approving"
     },
     "roleNav": {
-      "Review": "You're reviewing this document. Read it, discuss in the comments, then approve or decline from the top bar.",
-      "Approval": "Your formal approval is requested. Examine the document, then approve or decline from the top bar."
+      "Review": "You're reviewing this contract. Read it, discuss in the comments, then approve or decline from the top bar.",
+      "Approval": "Your formal approval is requested. Examine the contract, then approve or decline from the top bar."
     },
     "viewer": {
       "title": "You have view access",
-      "body": "\"{{title}}\" was shared with you. You can read the document and join the discussion — no action is required from you.",
-      "openDocument": "Open Document (PDF)"
+      "body": "\"{{title}}\" was shared with you. You can read the contract and join the discussion — no action is required from you.",
+      "openDocument": "Open Contract (PDF)"
     },
     "errors": {
       "invalidOrExpiredLink": "This signing link is invalid or has expired",
       "saveSignatureFailed": "Failed to save signature",
       "saveFieldFailed": "Failed to save field",
       "submitFailed": "Failed to submit signature. Please try again.",
-      "declineFailed": "Failed to decline document",
+      "declineFailed": "Failed to decline contract",
       "downloadFailed": "Download failed. Please try again.",
       "requestChangesFailed": "Failed to request changes",
       "requestChangesReasonRequired": "A reason is required to request changes"
@@ -1222,8 +1223,8 @@
   },
   "htmlTemplateEditor": {
     "workflowType": "Workflow",
-    "requestType": "Request type",
-    "noRequestType": "— No request type (open-ended) —",
+    "requestType": "Contract type",
+    "noRequestType": "— No contract type (open-ended) —",
     "assignTo": "Assign to",
     "assignToHint": "(optional — overrides the default approver for this field)",
     "unassigned": "— Not assigned (initiator picks) —",
@@ -1288,8 +1289,8 @@
       "selectOrDragHint": "Drag a field type onto the page, or select a placed field to configure it.",
       "defaultApprover": "Default approver",
       "noDefaultApprover": "No default approver",
-      "requestType": "Request type",
-      "noRequestType": "No request type (open-ended)",
+      "requestType": "Contract type",
+      "noRequestType": "No contract type (open-ended)",
       "active": "Active (available to users)",
       "saved": "PDF form saved",
       "saveFailed": "Failed to save PDF form",
@@ -1340,6 +1341,63 @@
       "stepPrepare": "Prepare",
       "stepSent": "Sent",
       "backToForms": "Back to PDF Forms"
+    }
+  },
+  "capabilities": {
+    "title": "Capability map",
+    "subtitle": "How LegalDesk answers the contract lifecycle requirements, capability by capability — with an honest status for each.",
+    "seeItLive": "See it live",
+    "footnote": "Statuses reflect what is actually running in this build. “Available” means you can exercise it in this demo today; “In progress” means the foundation is in place and the remaining work is scoped; “Roadmap” means it is designed but not built.",
+    "status": {
+      "available": "Available",
+      "partial": "In progress",
+      "roadmap": "Roadmap"
+    },
+    "items": {
+      "generation": {
+        "title": "Contract generation and templates",
+        "desc": "Reusable HTML and PDF contract templates with dynamic parameters, fields auto-filled per contract type, and AI generation from a plain-text brief. Conditional clauses and a shared clause library are the remaining step."
+      },
+      "aiReview": {
+        "title": "AI-assisted contract review",
+        "desc": "The AI layer is wired in and already summarises a contract before signature. Risk-clause detection, inconsistency spotting and comparison against internal standards run on the same abstraction."
+      },
+      "workflow": {
+        "title": "Digitalised validation workflow",
+        "desc": "Sequential, parallel or staged validation circuits with distinct Signatory, Approver, Legal reviewer and Observer roles, per-reviewer checklists, delegation, escalation and deadlines. Every step is traced."
+      },
+      "versioning": {
+        "title": "Automatic versioning",
+        "desc": "Requesting a revision pauses the circuit, archives the previous version with its change note, voids the collected signatures while keeping them as evidence, and restarts validation on the new version."
+      },
+      "archive": {
+        "title": "Centralised secure archive",
+        "desc": "A single store for contracts and their annexes, access restricted to the owner and named participants, with every consultation, download, signature and comment written to a trace that exports to CSV."
+      },
+      "obligations": {
+        "title": "Contractual obligation tracking",
+        "desc": "Effective dates, renewal windows, milestones and regulatory commitments carried on the contract itself, with a scheduled sweep raising them before they fall due. Today only the validation deadline is tracked."
+      },
+      "reporting": {
+        "title": "Dashboards and reporting",
+        "desc": "Organisation-wide contract activity: volumes over time, completion rate, average validation time, deadline compliance and revision cycles, broken down by contract type and by department."
+      },
+      "execution": {
+        "title": "Execution monitoring and alerts",
+        "desc": "Email, in-app and real-time notification channels are in place and already fire on deadlines, reminders and escalations. Extending them to obligation and renewal alerts is the remaining work."
+      },
+      "regWatch": {
+        "title": "Integrated regulatory watch",
+        "desc": "Automated monitoring of the Tunisian, European and sector-specific frameworks that apply to a contract — telecommunications, data protection, public procurement — keeping the applicable reference set current."
+      },
+      "compliance": {
+        "title": "AI compliance analysis",
+        "desc": "Assistants that interpret legal obligations, check a contract against the applicable framework, and flag missing or non-compliant clauses with the reasoning behind each finding."
+      },
+      "riskMap": {
+        "title": "Regulatory alerts and risk mapping",
+        "desc": "Alerting when a legislative change affects contracts already in force, with a portfolio-level map of legal exposure to anticipate the impact."
+      }
     }
   }
 }

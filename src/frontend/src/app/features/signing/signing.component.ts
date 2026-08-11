@@ -24,6 +24,7 @@ import { SignatureDialogComponent } from './signature-dialog.component';
 import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/workflow-visualizer.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
 import { remainingTime, RemainingTime } from '../../core/utils/sla';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'sf-signing',
@@ -40,8 +41,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
       <!-- Top bar -->
       <div class="signing-topbar">
         <div class="brand">
-          <mat-icon class="brand-icon">draw</mat-icon>
-          <span>SignFlow</span>
+          <mat-icon class="brand-icon">gavel</mat-icon>
+          <span>{{ appName }}</span>
         </div>
         <div class="doc-info">
           @if (session()) {
@@ -513,6 +514,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
 })
 export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('pdfScrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
+
+  readonly appName = environment.appName;
 
   /** Bumped every 30s so the countdown pills re-render live without waiting for another event. */
   private readonly tick = signal(0);
