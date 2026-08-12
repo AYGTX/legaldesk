@@ -159,16 +159,46 @@ import { RequestTypesComponent } from './request-types.component';
           </div>
         </mat-tab>
 
-        <mat-tab label="HTML Templates">
+        <mat-tab [label]="'admin.tabs.htmlTemplates' | translate">
           <div class="tab-content">
             <div class="ht-admin-card">
               <div class="ht-admin-icon"><mat-icon>description</mat-icon></div>
               <div class="ht-admin-body">
-                <h3>HTML Form Templates</h3>
-                <p>Manage reusable HTML form templates that users can submit as requests.</p>
+                <h3>{{ 'admin.htmlTemplates.title' | translate }}</h3>
+                <p>{{ 'admin.htmlTemplates.description' | translate }}</p>
               </div>
               <a mat-flat-button color="primary" routerLink="/admin/html-templates">
-                <mat-icon>open_in_new</mat-icon> Manage HTML Templates
+                <mat-icon>open_in_new</mat-icon> {{ 'admin.htmlTemplates.manage' | translate }}
+              </a>
+            </div>
+          </div>
+        </mat-tab>
+
+        <mat-tab [label]="'admin.tabs.clauses' | translate">
+          <div class="tab-content">
+            <div class="ht-admin-card">
+              <div class="ht-admin-icon"><mat-icon>menu_book</mat-icon></div>
+              <div class="ht-admin-body">
+                <h3>{{ 'admin.clauses.title' | translate }}</h3>
+                <p>{{ 'admin.clauses.description' | translate }}</p>
+              </div>
+              <a mat-flat-button color="primary" routerLink="/admin/clauses">
+                <mat-icon>open_in_new</mat-icon> {{ 'admin.clauses.manage' | translate }}
+              </a>
+            </div>
+          </div>
+        </mat-tab>
+
+        <mat-tab [label]="'admin.tabs.regulatoryWatch' | translate">
+          <div class="tab-content">
+            <div class="ht-admin-card">
+              <div class="ht-admin-icon"><mat-icon>travel_explore</mat-icon></div>
+              <div class="ht-admin-body">
+                <h3>{{ 'admin.regulatoryWatch.title' | translate }}</h3>
+                <p>{{ 'admin.regulatoryWatch.description' | translate }}</p>
+              </div>
+              <a mat-flat-button color="primary" routerLink="/admin/regulatory-watch">
+                <mat-icon>open_in_new</mat-icon> {{ 'admin.regulatoryWatch.manage' | translate }}
               </a>
             </div>
           </div>

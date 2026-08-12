@@ -3,7 +3,8 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
   DocumentDetail, DocumentSummary, DashboardData,
-  FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto
+  FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto,
+  ContractAnalysisResponse, ComplianceAnalysisResponse
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -55,6 +56,10 @@ export class DocumentService {
     return this.api.post<void>(`/v1/documents/${id}/reopen`, { slaHours: slaHours ?? null });
   }
 
+  updateObligation(id: string, dueDate: string, obligationType: string): Observable<void> {
+    return this.api.patch<void>(`/v1/documents/${id}/obligation`, { dueDate, obligationType });
+  }
+
   delete(id: string): Observable<void> {
     return this.api.delete<void>(`/v1/documents/${id}`);
   }
@@ -91,5 +96,15 @@ export class DocumentService {
 
   getDocumentSummary(id: string): Observable<AiSummaryDto> {
     return this.api.get<AiSummaryDto>(`/v1/documents/${id}/summary`);
+  }
+
+  /** Runs the full model-backed legal review — takes tens of seconds, so this is user-triggered. */
+  analyzeContract(id: string): Observable<ContractAnalysisResponse> {
+    return this.api.post<ContractAnalysisResponse>(`/v1/documents/${id}/analyze`, {});
+  }
+
+  /** Checks the contract against the published regulatory watch registry — user-triggered. */
+  analyzeCompliance(id: string): Observable<ComplianceAnalysisResponse> {
+    return this.api.post<ComplianceAnalysisResponse>(`/v1/documents/${id}/compliance`, {});
   }
 }

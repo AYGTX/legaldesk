@@ -77,14 +77,14 @@ public class WorkflowEngine(
                     viewer.Email,
                     "DocumentReceived",
                     new { viewer.Name, DocumentTitle = document.Title, SigningLink = $"/sign/{viewer.SecureToken}" },
-                    "A document was shared with you",
+                    "A contract was shared with you",
                     cancellationToken);
 
                 await notifications.NotifyByEmailAsync(
                     viewer.Email,
                     NotificationType.DocumentReceived,
-                    "A document was shared with you",
-                    $"You have view access to \"{document.Title}\".",
+                    "A contract was shared with you",
+                    $"You have view access to the contract \"{document.Title}\".",
                     documentId,
                     cancellationToken);
             }
@@ -140,7 +140,7 @@ public class WorkflowEngine(
                 NotificationType.Completed,
                 recipient.ApprovalType is ApprovalType.Review or ApprovalType.Approval
                     ? "A participant approved"
-                    : "A recipient signed",
+                    : "A participant signed",
                 $"{recipient.Name} {verb} \"{document.Title}\".",
                 documentId,
                 cancellationToken);
@@ -200,8 +200,8 @@ public class WorkflowEngine(
         await notifications.NotifyUserAsync(
             document.OwnerId,
             NotificationType.Rejected,
-            "Request declined",
-            $"{recipient?.Name ?? "A recipient"} declined to sign \"{document.Title}\"" + (string.IsNullOrWhiteSpace(reason) ? "." : $": {reason}"),
+            "Contract declined",
+            $"{recipient?.Name ?? "A participant"} declined to sign the contract \"{document.Title}\"" + (string.IsNullOrWhiteSpace(reason) ? "." : $": {reason}"),
             documentId,
             cancellationToken);
 
@@ -240,7 +240,7 @@ public class WorkflowEngine(
                 owner.Email!,
                 "ChangesRequested",
                 new { document.Title, Reason = reason, RecipientName = recipient?.Name },
-                "Changes requested on your document",
+                "Changes requested on your contract",
                 cancellationToken);
         }
 
@@ -248,7 +248,7 @@ public class WorkflowEngine(
             document.OwnerId,
             NotificationType.ChangesRequested,
             "Changes requested",
-            $"{recipient?.Name ?? "A participant"} requested changes on \"{document.Title}\": {reason}",
+            $"{recipient?.Name ?? "A participant"} requested changes to the contract \"{document.Title}\": {reason}",
             documentId,
             cancellationToken);
 
@@ -301,7 +301,7 @@ public class WorkflowEngine(
             .Where(s => s.Order == nextStep.Order && s.Status == WorkflowStepStatus.Pending)
             .ToList();
 
-        var docTitle = (await db.Documents.FindAsync([documentId], cancellationToken))?.Title ?? "a document";
+        var docTitle = (await db.Documents.FindAsync([documentId], cancellationToken))?.Title ?? "a contract";
 
         foreach (var step in stepsToActivate)
         {
@@ -314,12 +314,12 @@ public class WorkflowEngine(
 
                 var (emailSubject, turnTitle, turnBody) = recipient.ApprovalType switch
                 {
-                    ApprovalType.Review => ("Please review your document", "It's your turn to review",
-                        $"\"{docTitle}\" is waiting for your review."),
+                    ApprovalType.Review => ("Please review this contract", "It's your turn to review",
+                        $"The contract \"{docTitle}\" is waiting for your review."),
                     ApprovalType.Approval => ("Your approval is requested", "It's your turn to approve",
-                        $"\"{docTitle}\" is waiting for your approval."),
-                    _ => ("Please sign your document", "It's your turn to sign",
-                        $"\"{docTitle}\" is waiting for your signature.")
+                        $"The contract \"{docTitle}\" is waiting for your approval."),
+                    _ => ("Please sign this contract", "It's your turn to sign",
+                        $"The contract \"{docTitle}\" is waiting for your signature.")
                 };
 
                 await emailService.SendTemplateAsync(
@@ -361,7 +361,7 @@ public class WorkflowEngine(
             document.Owner.Email!,
             "Completed",
             new { document.Title },
-            "Document signed by all parties",
+            "Contract signed by all parties",
             cancellationToken);
 
         await hub.SendToGroupAsync(
@@ -373,8 +373,8 @@ public class WorkflowEngine(
         await notifications.NotifyUserAsync(
             document.OwnerId,
             NotificationType.WorkflowFinished,
-            "Request completed",
-            $"\"{document.Title}\" has been signed by all parties.",
+            "Contract completed",
+            $"The contract \"{document.Title}\" has been signed by all parties.",
             documentId,
             cancellationToken);
 

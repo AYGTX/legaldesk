@@ -1,11 +1,15 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SignFlow.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace SignFlow.Infrastructure.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260706120000_AddPdfTemplates")]
     public partial class AddPdfTemplates : Migration
     {
         /// <inheritdoc />

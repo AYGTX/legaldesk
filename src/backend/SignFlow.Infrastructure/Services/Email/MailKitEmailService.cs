@@ -84,6 +84,7 @@ public class MailKitEmailService(IOptions<EmailSettings> settings, ILogger<MailK
         "Rejected" => "Contract was declined",
         "ChangesRequested" => "Revision requested on your contract",
         "Expired" => "Contract validation deadline has passed",
+        "ObligationDue" => "Contract obligation deadline reminder",
         "ForgotPassword" => "Reset your password",
         _ => "LegalDesk notification"
     };

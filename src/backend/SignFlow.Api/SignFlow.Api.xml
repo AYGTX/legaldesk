@@ -61,6 +61,63 @@
         <member name="M:SignFlow.Api.Controllers.V1.AuthController.ResetPassword(SignFlow.Application.Features.Auth.Commands.ResetPasswordCommand,System.Threading.CancellationToken)">
             <summary>Reset password using token</summary>
         </member>
+        <member name="T:SignFlow.Api.Controllers.V1.ClausesController">
+            <summary>
+            The shared clause library — legally vetted, reusable contract wording. Curation is restricted
+            to administrators and managers; approved clauses are readable by anyone drafting a contract.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Clauses.Queries.GetClausesQuery,System.Collections.Generic.List{SignFlow.Application.Features.Clauses.Queries.ClauseDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Clauses.Queries.GetApprovedClausesQuery,System.Collections.Generic.List{SignFlow.Application.Features.Clauses.Queries.ClauseDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.CreateClauseCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.UpdateClauseCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.SetClauseStatusCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.DeleteClauseCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.RecordClauseUsageCommand})">
+            <summary>
+            The shared clause library — legally vetted, reusable contract wording. Curation is restricted
+            to administrators and managers; approved clauses are readable by anyone drafting a contract.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.GetAll(System.String,System.Nullable{SignFlow.Domain.Enums.ClauseCategory},System.String,System.Nullable{SignFlow.Domain.Enums.ClauseStatus},System.Threading.CancellationToken)">
+            <summary>List every clause in the library, including drafts (administrators and managers)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.GetApproved(System.String,System.Nullable{SignFlow.Domain.Enums.ClauseCategory},System.String,System.Nullable{System.Guid},System.Threading.CancellationToken)">
+            <summary>List approved clauses available for insertion into a contract</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Create(SignFlow.Api.Controllers.V1.CreateClauseRequest,System.Threading.CancellationToken)">
+            <summary>Add a clause to the library (created as a draft)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdateClauseRequest,System.Threading.CancellationToken)">
+            <summary>Update clause wording or metadata (bumps the version when the wording changes)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.SetStatus(System.Guid,SignFlow.Api.Controllers.V1.SetClauseStatusRequest,System.Threading.CancellationToken)">
+            <summary>Approve or deprecate a clause (administrators only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.RecordUsage(System.Guid,System.Threading.CancellationToken)">
+            <summary>Record that a clause was inserted into a contract template</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Delete a clause that has never been used (administrators only)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.CreateClauseRequest">
+            <summary>Payload to add a clause to the library.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CreateClauseRequest.#ctor(System.String,SignFlow.Domain.Enums.ClauseCategory,System.String,System.String,System.String,System.String,System.Nullable{System.Guid})">
+            <summary>Payload to add a clause to the library.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.UpdateClauseRequest">
+            <summary>Payload to update an existing clause.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.UpdateClauseRequest.#ctor(System.String,SignFlow.Domain.Enums.ClauseCategory,System.String,System.String,System.String,System.String,System.Nullable{System.Guid})">
+            <summary>Payload to update an existing clause.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.SetClauseStatusRequest">
+            <summary>Payload to move a clause through its approval lifecycle.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SetClauseStatusRequest.#ctor(SignFlow.Domain.Enums.ClauseStatus)">
+            <summary>Payload to move a clause through its approval lifecycle.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.CreateClauseResponse">
+            <summary>Identifier of the newly created clause.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CreateClauseResponse.#ctor(System.Guid)">
+            <summary>Identifier of the newly created clause.</summary>
+        </member>
         <member name="T:SignFlow.Api.Controllers.V1.CommentsController">
             <summary>Document comments and threaded discussions (collaboration layer)</summary>
         </member>
@@ -106,6 +163,9 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Reopen(System.Guid,SignFlow.Api.Controllers.V1.ReopenDocumentRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.ReopenDocumentCommand},System.Threading.CancellationToken)">
             <summary>Reopen an expired request (administrators only)</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.UpdateObligation(System.Guid,SignFlow.Api.Controllers.V1.UpdateObligationRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.UpdateObligationCommand},System.Threading.CancellationToken)">
+            <summary>Confirm or override the AI-suggested obligation (renewal/expiry) date</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDocuments(System.Int32,System.Int32,System.String,System.Nullable{SignFlow.Domain.Enums.DocumentStatus},System.String,System.Boolean,System.Nullable{System.Guid},System.Threading.CancellationToken)">
             <summary>List documents with pagination, filtering and sorting</summary>
         </member>
@@ -126,6 +186,12 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Download(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentByIdQuery,SignFlow.Application.Features.Documents.Queries.DocumentDetailDto},System.Threading.CancellationToken)">
             <summary>Download the signed PDF (as attachment)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Analyze(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AnalyzeContractCommand,SignFlow.Application.Features.Documents.Commands.ContractAnalysisDto},System.Threading.CancellationToken)">
+            <summary>Run a full legal review of the contract — gaps, weak clauses, proposed wording and the next obligation date</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.AnalyzeCompliance(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AnalyzeComplianceCommand,SignFlow.Application.Features.Documents.Commands.ComplianceAnalysisDto},System.Threading.CancellationToken)">
+            <summary>Check the contract against the published regulatory watch registry — a keyword scan, not a legal opinion</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSummary(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
             <summary>Get an AI-generated plain-English summary of a document</summary>
@@ -262,14 +328,73 @@
         <member name="M:SignFlow.Api.Controllers.V1.RecipientsController.SetChecklist(System.Guid,System.Guid,SignFlow.Api.Controllers.V1.SetChecklistRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Checklist.Commands.SetChecklistItemsCommand},System.Threading.CancellationToken)">
             <summary>Set the review/approval checklist for one recipient (owner only, draft documents only)</summary>
         </member>
+        <member name="T:SignFlow.Api.Controllers.V1.RegulatoryWatchController">
+            <summary>
+            The regulatory watch registry — a legal-team-curated list of tracked regulatory texts (TN/EU/
+            sectoral). Curation is restricted to administrators and managers; publishing a text is an
+            administrator-only action and triggers a regulatory alert on contracts already in force.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RegulatoryWatch.Queries.GetRegulatoryTextsQuery,System.Collections.Generic.List{SignFlow.Application.Features.RegulatoryWatch.Queries.RegulatoryTextDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RegulatoryWatch.Queries.GetPublishedRegulatoryTextsQuery,System.Collections.Generic.List{SignFlow.Application.Features.RegulatoryWatch.Queries.RegulatoryTextDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.CreateRegulatoryTextCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.UpdateRegulatoryTextCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.SetRegulatoryTextStatusCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.DeleteRegulatoryTextCommand})">
+            <summary>
+            The regulatory watch registry — a legal-team-curated list of tracked regulatory texts (TN/EU/
+            sectoral). Curation is restricted to administrators and managers; publishing a text is an
+            administrator-only action and triggers a regulatory alert on contracts already in force.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.GetAll(System.String,System.Nullable{SignFlow.Domain.Enums.RegulatoryCategory},System.Nullable{SignFlow.Domain.Enums.RegulatoryJurisdiction},System.String,System.Nullable{SignFlow.Domain.Enums.RegulatoryTextStatus},System.Threading.CancellationToken)">
+            <summary>List every tracked regulatory text, including drafts (administrators and managers)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.GetPublished(System.String,System.Nullable{SignFlow.Domain.Enums.RegulatoryCategory},System.Nullable{SignFlow.Domain.Enums.RegulatoryJurisdiction},System.String,System.Nullable{System.Guid},System.Threading.CancellationToken)">
+            <summary>List published regulatory texts (any authenticated user)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.Create(SignFlow.Api.Controllers.V1.CreateRegulatoryTextRequest,System.Threading.CancellationToken)">
+            <summary>Add a regulatory text to the registry (created as a draft)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdateRegulatoryTextRequest,System.Threading.CancellationToken)">
+            <summary>Update a regulatory text's summary or metadata</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.SetStatus(System.Guid,SignFlow.Api.Controllers.V1.SetRegulatoryTextStatusRequest,System.Threading.CancellationToken)">
+            <summary>Publish or archive a regulatory text (administrators only). Publishing alerts owners of contracts in force.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Delete a regulatory text that has never been published (administrators only)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.CreateRegulatoryTextRequest">
+            <summary>Payload to add a regulatory text to the registry.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CreateRegulatoryTextRequest.#ctor(System.String,SignFlow.Domain.Enums.RegulatoryCategory,SignFlow.Domain.Enums.RegulatoryJurisdiction,System.String,System.String,System.String,System.String,System.Nullable{System.DateTime},System.Nullable{System.Guid})">
+            <summary>Payload to add a regulatory text to the registry.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.UpdateRegulatoryTextRequest">
+            <summary>Payload to update an existing regulatory text.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.UpdateRegulatoryTextRequest.#ctor(System.String,SignFlow.Domain.Enums.RegulatoryCategory,SignFlow.Domain.Enums.RegulatoryJurisdiction,System.String,System.String,System.String,System.String,System.Nullable{System.DateTime},System.Nullable{System.Guid})">
+            <summary>Payload to update an existing regulatory text.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.SetRegulatoryTextStatusRequest">
+            <summary>Payload to move a regulatory text through its publication lifecycle.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SetRegulatoryTextStatusRequest.#ctor(SignFlow.Domain.Enums.RegulatoryTextStatus)">
+            <summary>Payload to move a regulatory text through its publication lifecycle.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.CreateRegulatoryTextResponse">
+            <summary>Identifier of the newly created regulatory text.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CreateRegulatoryTextResponse.#ctor(System.Guid)">
+            <summary>Identifier of the newly created regulatory text.</summary>
+        </member>
         <member name="T:SignFlow.Api.Controllers.V1.ReportsController">
             <summary>Organization-wide reporting and analytics — administrators and managers only</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.ReportsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Reports.Queries.GetAdminReportQuery,SignFlow.Application.Features.Reports.Queries.AdminReportDto},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.AuditTrail.Queries.GetOrgAuditLogQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.AuditTrail.Queries.OrgAuditLogDto}})">
+        <member name="M:SignFlow.Api.Controllers.V1.ReportsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Reports.Queries.GetAdminReportQuery,SignFlow.Application.Features.Reports.Queries.AdminReportDto},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Reports.Queries.GetRiskMapQuery,SignFlow.Application.Features.Reports.Queries.RiskMapDto},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.AuditTrail.Queries.GetOrgAuditLogQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.AuditTrail.Queries.OrgAuditLogDto}})">
             <summary>Organization-wide reporting and analytics — administrators and managers only</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ReportsController.GetOverview(System.Threading.CancellationToken)">
             <summary>Get the organization-wide reporting overview (volume, outcomes, SLA, revision activity)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ReportsController.GetRiskMap(System.Threading.CancellationToken)">
+            <summary>Get the portfolio-level risk map aggregated from existing contract risk analyses</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ReportsController.GetAuditLog(System.Int32,System.Int32,System.String,System.Nullable{SignFlow.Domain.Enums.AuditAction},System.Threading.CancellationToken)">
             <summary>Get the organization-wide audit log across all documents</summary>

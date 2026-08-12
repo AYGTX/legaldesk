@@ -119,6 +119,7 @@ public static class InfrastructureServiceExtensions
                     }));
         services.AddHangfireServer();
         services.AddScoped<SlaExpirationJob>();
+        services.AddScoped<ObligationReminderJob>();
 
         // SignalR
         services.AddSignalR(options =>
@@ -131,6 +132,13 @@ public static class InfrastructureServiceExtensions
         services.AddHttpClient("groq", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        // Full contract review runs for tens of seconds — it gets its own client so that
+        // summaries and template generation keep failing fast on the 30s one above.
+        services.AddHttpClient("groq-analysis", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(120);
         });
 
         // Application services

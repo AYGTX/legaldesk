@@ -10,5 +10,7 @@ public enum NotificationType
     WorkflowFinished = 5,
     DelegationRequest = 6,
     CommentMention = 7,
-    ChangesRequested = 8
+    ChangesRequested = 8,
+    ObligationDue = 9,
+    RegulatoryAlert = 10
 }

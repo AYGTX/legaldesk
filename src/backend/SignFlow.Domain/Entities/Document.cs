@@ -37,6 +37,21 @@ public class Document : BaseEntity
     public string? AiSummary { get; private set; }
     public DateTime? AiSummaryGeneratedAt { get; private set; }
 
+    // AI risk-clause analysis (JSON-serialized ContractRiskAnalysis), generated at upload time
+    public string? AiRiskAnalysisJson { get; private set; }
+    public DateTime? AiRiskAnalysisGeneratedAt { get; private set; }
+
+    // AI compliance analysis (JSON-serialized ComplianceAnalysis), generated on demand
+    public string? AiComplianceAnalysisJson { get; private set; }
+    public DateTime? AiComplianceAnalysisGeneratedAt { get; private set; }
+
+    // Obligation tracking (renewal/expiry date), AI-suggested at upload time and owner-confirmable
+    public DateTime? ObligationDueDate { get; private set; }
+    public string? ObligationType { get; private set; }
+    public string? ObligationRationale { get; private set; }
+    public bool ObligationConfirmed { get; private set; }
+    public DateTime? LastObligationReminderSentAt { get; private set; }
+
     // Request type & SLA (snapshot taken at creation so later config changes don't affect in-flight requests)
     public Guid? RequestTypeId { get; private set; }
     public RequestType? RequestType { get; private set; }
@@ -174,9 +189,13 @@ public class Document : BaseEntity
         Hash = hash;
         Version++;
         FinalStoragePath = null;
-        // The cached summary describes the previous file's content
+        // The cached summary/risk analysis describe the previous file's content
         AiSummary = null;
         AiSummaryGeneratedAt = null;
+        AiRiskAnalysisJson = null;
+        AiRiskAnalysisGeneratedAt = null;
+        AiComplianceAnalysisJson = null;
+        AiComplianceAnalysisGeneratedAt = null;
         if (SlaHours.HasValue)
             ExpiresAt = DateTime.UtcNow.AddHours(SlaHours.Value);
         else if (ExpirationDays.HasValue)
@@ -215,6 +234,46 @@ public class Document : BaseEntity
     {
         AiSummary = summary;
         AiSummaryGeneratedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetAiRiskAnalysis(string riskAnalysisJson)
+    {
+        AiRiskAnalysisJson = riskAnalysisJson;
+        AiRiskAnalysisGeneratedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetAiComplianceAnalysis(string complianceAnalysisJson)
+    {
+        AiComplianceAnalysisJson = complianceAnalysisJson;
+        AiComplianceAnalysisGeneratedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>AI-suggested obligation date at upload/analysis time — not yet confirmed by the owner.</summary>
+    public void SetObligationSuggestion(DateTime? dueDate, string? obligationType, string? rationale)
+    {
+        ObligationDueDate = dueDate;
+        ObligationType = obligationType;
+        ObligationRationale = rationale;
+        ObligationConfirmed = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>Owner override/confirmation of the obligation date — takes precedence over the AI suggestion.</summary>
+    public void ConfirmObligation(DateTime dueDate, string obligationType)
+    {
+        ObligationDueDate = dueDate;
+        ObligationType = obligationType;
+        ObligationRationale = null;
+        ObligationConfirmed = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MarkObligationReminderSent()
+    {
+        LastObligationReminderSentAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 

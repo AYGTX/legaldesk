@@ -16,6 +16,7 @@ namespace SignFlow.Api.Controllers.V1;
 [Authorize(Roles = "Administrator,Manager")]
 public class ReportsController(
     IQueryHandler<GetAdminReportQuery, AdminReportDto> reportHandler,
+    IQueryHandler<GetRiskMapQuery, RiskMapDto> riskMapHandler,
     IQueryHandler<GetOrgAuditLogQuery, PagedResult<OrgAuditLogDto>> auditLogHandler) : ControllerBase
 {
     /// <summary>Get the organization-wide reporting overview (volume, outcomes, SLA, revision activity)</summary>
@@ -25,6 +26,16 @@ public class ReportsController(
     public async Task<ActionResult<AdminReportDto>> GetOverview(CancellationToken ct)
     {
         var result = await reportHandler.HandleAsync(new GetAdminReportQuery(), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Get the portfolio-level risk map aggregated from existing contract risk analyses</summary>
+    [HttpGet("risk-map")]
+    [ProducesResponseType(typeof(RiskMapDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    public async Task<ActionResult<RiskMapDto>> GetRiskMap(CancellationToken ct)
+    {
+        var result = await riskMapHandler.HandleAsync(new GetRiskMapQuery(), ct);
         return Ok(result);
     }
 

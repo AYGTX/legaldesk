@@ -53,6 +53,14 @@ export interface DocumentDetail {
   requestTypeColor?: string;
   aiSummary?: string;
   aiSummaryGeneratedAt?: string;
+  aiRiskAnalysisJson?: string;
+  aiRiskAnalysisGeneratedAt?: string;
+  aiComplianceAnalysisJson?: string;
+  aiComplianceAnalysisGeneratedAt?: string;
+  obligationDueDate?: string;
+  obligationType?: string;
+  obligationRationale?: string;
+  obligationConfirmed: boolean;
   hideRecipientIdentities: boolean;
   owner: OwnerInfo;
   recipients: RecipientInfo[];

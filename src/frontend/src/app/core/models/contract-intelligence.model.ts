@@ -1,0 +1,73 @@
+export type RiskSeverity = 'Critical' | 'High' | 'Medium' | 'Low';
+
+export type RiskFindingType =
+  | 'MissingClause'
+  | 'WeakClause'
+  | 'Ambiguity'
+  | 'Contradiction'
+  | 'Imbalance';
+
+export interface RiskFinding {
+  clauseType: string;
+  severity: RiskSeverity;
+  explanation: string;
+  // Only the full legal review fills these in — the rules-based scan at upload time, and any
+  // analysis stored before the review existed, leave them undefined.
+  findingType?: RiskFindingType;
+  whyItMatters?: string;
+  recommendedAction?: string;
+  proposedLanguage?: string;
+  contractReference?: string;
+}
+
+/** What the analysis could determine about the contract itself. Fields are absent where the text does not say. */
+export interface ContractProfile {
+  contractType?: string;
+  parties?: string;
+  purpose?: string;
+  jurisdiction?: string;
+  governingLaw?: string;
+  term?: string;
+}
+
+export interface ContractRiskAnalysis {
+  riskScore: number;
+  findings: RiskFinding[];
+  analyzedAt: string;
+  profile?: ContractProfile;
+  /** What the analysis could not establish — shown to the reader rather than guessed at. */
+  limitations?: string[];
+}
+
+/** Response of POST /documents/{id}/analyze. */
+export interface ContractAnalysisResponse {
+  riskAnalysisJson: string;
+  generatedAt: string;
+  obligationDueDate?: string;
+  obligationType?: string;
+  obligationRationale?: string;
+  obligationConfirmed: boolean;
+}
+
+export const RISK_SEVERITY_ORDER: RiskSeverity[] = ['Critical', 'High', 'Medium', 'Low'];
+
+export type ComplianceStatus = 'Addressed' | 'Gap' | 'Unclear';
+
+export interface ComplianceFinding {
+  regulationId: string;
+  regulationTitle: string;
+  status: ComplianceStatus;
+  explanation: string;
+}
+
+export interface ComplianceAnalysis {
+  complianceScore: number;
+  findings: ComplianceFinding[];
+  analyzedAt: string;
+}
+
+/** Response of POST /documents/{id}/compliance. */
+export interface ComplianceAnalysisResponse {
+  complianceAnalysisJson: string;
+  generatedAt: string;
+}

@@ -42,6 +42,31 @@ export interface DepartmentBreakdown {
   avgCompletionHours: number;
 }
 
+/** Portfolio-level risk map aggregated from existing contract risk analyses — mirrors RiskMapDto (admin/manager only). */
+export interface RiskMap {
+  totalAnalyzed: number;
+  avgRiskScore: number;
+  bySeverity: SeverityCount[];
+  topClauseTypes: ClauseTypeFrequency[];
+  byRequestType: ContractFamilyRisk[];
+}
+
+export interface SeverityCount {
+  severity: string;
+  count: number;
+}
+
+export interface ClauseTypeFrequency {
+  clauseType: string;
+  count: number;
+}
+
+export interface ContractFamilyRisk {
+  requestTypeName: string;
+  count: number;
+  avgRiskScore: number;
+}
+
 /** A single entry in the organization-wide audit log — mirrors OrgAuditLogDto (admin/manager only). */
 export interface OrgAuditLogEntry {
   id: string;

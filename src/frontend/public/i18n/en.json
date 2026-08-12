@@ -67,7 +67,25 @@
     "tabs": {
       "users": "Users",
       "requestTypes": "Contract Types",
+      "htmlTemplates": "Contract Templates",
+      "clauses": "Clause Library",
+      "regulatoryWatch": "Regulatory Watch",
       "systemSettings": "System Settings"
+    },
+    "htmlTemplates": {
+      "title": "Contract Templates",
+      "description": "Manage reusable HTML contract templates that participants fill in and submit for validation.",
+      "manage": "Manage contract templates"
+    },
+    "clauses": {
+      "title": "Clause Library",
+      "description": "Curate the organisation's approved contract wording — confidentiality, liability, termination, data protection — ready to insert when drafting.",
+      "manage": "Manage clause library"
+    },
+    "regulatoryWatch": {
+      "title": "Regulatory Watch",
+      "description": "Curate the registry of tracked regulatory texts. Publishing a text notifies owners of in-force contracts it applies to and feeds the compliance check.",
+      "manage": "Manage regulatory watch"
     },
     "systemSettings": {
       "title": "System Settings",
@@ -408,6 +426,67 @@
       "summaryError": "Could not generate summary",
       "noSummary": "No summary yet",
       "generateSummary": "Generate Summary",
+      "riskAnalysis": "Risk Analysis",
+      "riskScore": "Risk score: {{score}}/100",
+      "noRiskFindings": "No risk analysis available",
+      "severityLow": "Low",
+      "severityMedium": "Medium",
+      "severityHigh": "High",
+      "severityCritical": "Critical",
+      "analysis": {
+        "title": "Contract Analysis",
+        "run": "Run full legal analysis",
+        "rerun": "Re-run analysis",
+        "failed": "Contract analysis failed",
+        "notStated": "Not stated",
+        "copy": "Copy",
+        "copied": "Copied to clipboard",
+        "addToLibrary": "Add to clause library",
+        "addedToLibrary": "Clause added to the library as a draft",
+        "whyItMatters": "Why it matters",
+        "recommendedAction": "Recommended action",
+        "proposedLanguage": "Proposed language",
+        "reference": "Reference",
+        "profile": {
+          "contractType": "Contract type",
+          "parties": "Parties",
+          "purpose": "Purpose",
+          "jurisdiction": "Jurisdiction",
+          "governingLaw": "Governing law",
+          "term": "Term"
+        },
+        "findingType": {
+          "MissingClause": "Missing clause",
+          "WeakClause": "Weak clause",
+          "Ambiguity": "Ambiguity",
+          "Contradiction": "Contradiction",
+          "Imbalance": "Imbalance"
+        }
+      },
+      "compliance": {
+        "title": "Regulatory Compliance",
+        "run": "Check compliance",
+        "rerun": "Re-check compliance",
+        "failed": "Compliance check failed",
+        "score": "Compliance score: {{score}}/100",
+        "noRun": "No compliance check run yet",
+        "noneTracked": "No published regulatory texts apply to this contract",
+        "status": {
+          "Addressed": "Addressed",
+          "Gap": "Gap",
+          "Unclear": "Unclear"
+        }
+      },
+      "obligation": {
+        "title": "Obligation Tracking",
+        "dueDate": "Due date",
+        "type": "Obligation type",
+        "suggested": "AI-suggested — please confirm",
+        "edit": "Edit obligation",
+        "save": "Save",
+        "saveFailed": "Failed to save obligation",
+        "none": "No obligation date tracked"
+      },
       "notFound": "Contract not found",
       "backToDocuments": "Back to Contracts",
       "confirmSend": "Send this contract for signatures? Participants will be notified by email.",
@@ -1100,6 +1179,15 @@
       "completed": "Completed",
       "avgHours": "Avg. hours",
       "sla": "SLA"
+    },
+    "riskMap": {
+      "title": "Legal risk map",
+      "hint": "Aggregated from each contract's stored risk analysis — a rules-based keyword scan, not a legal opinion. No new analysis runs here.",
+      "empty": "No contract has a risk analysis yet.",
+      "analyzed": "Contracts analyzed",
+      "avgScore": "Avg. risk score",
+      "bySeverity": "Findings by severity",
+      "topClauseTypes": "Most frequent risk clauses"
     }
   },
   "signing": {
@@ -1231,11 +1319,240 @@
     "stage": "Stage",
     "stageHint": "Same stage = parallel · stages run in order",
     "fieldsScanned": "Added {{count}} field found in pasted HTML",
-    "fieldsScannedPlural": "Added {{count}} fields found in pasted HTML"
+    "fieldsScannedPlural": "Added {{count}} fields found in pasted HTML",
+    "backToTemplates": "Back to contract templates",
+    "namePlaceholder": "Contract template name…",
+    "generateWithAi": "Generate with AI",
+    "preview": "Preview",
+    "descriptionPlaceholder": "Optional description…",
+    "defaultApprover": "Default approver",
+    "userPicksAtSubmit": "— Chosen by the requester at submission —",
+    "active": "Active",
+    "inactive": "Inactive",
+    "htmlContentLabel": "Contract content",
+    "panelHint": "Use <code>{{example}}</code> placeholders — click “Insert” on a field to add one",
+    "htmlPlaceholder": "Write your contract template here…\n\nExample:\n<h2>Service Agreement</h2>\n<p>Counterparty: {{counterpartyName}}</p>",
+    "fieldsLabel": "Contract fields",
+    "noFieldsYet": "No fields yet.",
+    "noFieldsHint": "Add fields to create interactive placeholders in your contract template.",
+    "noLabelFallback": "(no label)",
+    "insertIntoHtml": "Insert into contract",
+    "remove": "Remove",
+    "keyLabel": "Key",
+    "keyPlaceholder": "e.g. counterpartyName",
+    "labelLabel": "Label",
+    "labelPlaceholder": "Display label",
+    "typeLabel": "Type",
+    "roleLabel": "Role",
+    "roleInitiatorOption": "Initiator (completed while drafting, before sending)",
+    "roleApproverOption": "Approver (signs or completes once the contract is routed)",
+    "autoFillLabel": "Auto-fill",
+    "autoFillNone": "None",
+    "aiHint": "Describe the contract or paste a draft. AI will generate the HTML layout and suggest the parameterised clauses automatically.",
+    "aiPromptPlaceholder": "Examples:\n• A B2B service contract with counterparty, scope, term, payment terms and signatures\n• An NDA with company name, effective date, duration and signature\n• Paste the raw text of an existing contract…",
+    "generating": "Generating…",
+    "generate": "Generate",
+    "templateGenerated": "Contract template generated! Review and adjust as needed.",
+    "aiGenerationFailed": "AI generation failed",
+    "nameRequired": "Contract template name is required",
+    "htmlContentRequired": "Contract content is required",
+    "templateUpdated": "Contract template updated",
+    "failedToSave": "Failed to save",
+    "templateCreated": "Contract template created",
+    "failedToCreate": "Failed to create",
+    "role": {
+      "Initiator": "Initiator",
+      "Approver": "Approver"
+    },
+    "fieldType": {
+      "Text": "Text",
+      "Textarea": "Long text",
+      "Date": "Date",
+      "Number": "Number",
+      "Checkbox": "Checkbox",
+      "Signature": "Signature"
+    },
+    "autoFillOption": {
+      "fullName": "Full name",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "company": "Company",
+      "department": "Department"
+    }
+  },
+  "clauses": {
+    "title": "Clause Library",
+    "subtitle": "Approved, reusable contract wording. Drafters insert these clauses instead of rewriting standard language, so the organisation's negotiated positions stay consistent.",
+    "backToAdmin": "Back to Administration",
+    "addClause": "Add clause",
+    "searchLabel": "Search clauses",
+    "searchPlaceholder": "Title or wording…",
+    "filterCategory": "Category",
+    "filterLanguage": "Language",
+    "filterStatus": "Status",
+    "allCategories": "All categories",
+    "allLanguages": "All languages",
+    "allStatuses": "All statuses",
+    "emptyTitle": "No clauses found",
+    "emptyHint": "Adjust your filters, or add the first clause to the library.",
+    "loadFailed": "Could not load the clause library",
+    "statusFailed": "Could not change the clause status",
+    "deleteFailed": "Could not delete the clause",
+    "confirmDelete": "Delete the clause \"{{title}}\"? This cannot be undone.",
+    "approve": "Approve",
+    "deprecate": "Deprecate",
+    "revertToDraft": "Revert to draft",
+    "usedTimes": "Used {{count}}×",
+    "versionTooltip": "Clause version — bumped whenever the wording changes",
+    "usageTooltip": "How many times this clause has been inserted into a contract",
+    "stats": {
+      "total": "Clauses"
+    },
+    "category": {
+      "Confidentiality": "Confidentiality",
+      "Liability": "Liability",
+      "Termination": "Termination",
+      "DataProtection": "Data protection",
+      "IntellectualProperty": "Intellectual property",
+      "Payment": "Payment",
+      "ForceMajeure": "Force majeure",
+      "GoverningLaw": "Governing law",
+      "Compliance": "Compliance",
+      "Warranty": "Warranty",
+      "NonCompete": "Non-compete",
+      "Other": "Other"
+    },
+    "status": {
+      "Draft": "Draft",
+      "Approved": "Approved",
+      "Deprecated": "Deprecated"
+    },
+    "risk": {
+      "Low": "Low risk",
+      "Medium": "Medium risk",
+      "High": "High risk"
+    },
+    "language": {
+      "en": "English",
+      "fr": "French"
+    },
+    "dialog": {
+      "createTitle": "Add a clause",
+      "editTitle": "Edit clause",
+      "clauseTitle": "Clause title",
+      "clauseTitlePlaceholder": "e.g. Limitation of liability (capped)",
+      "category": "Category",
+      "language": "Language",
+      "riskLevel": "Risk level",
+      "riskNone": "Not assessed",
+      "scope": "Applies to contract type",
+      "scopeAll": "All contract types",
+      "scopeHint": "Leave on “All contract types” unless this wording only belongs in one contract family.",
+      "body": "Clause wording",
+      "bodyPlaceholder": "<h3>Confidentiality</h3><p>Each party shall keep confidential…</p>",
+      "bodyHint": "HTML fragment inserted into the contract. You can include {{placeholders}} — they become fields.",
+      "guidance": "Internal legal guidance",
+      "guidancePlaceholder": "When to use this clause, negotiation stance, accepted fallback positions…",
+      "guidanceHint": "Shown to drafters in the library and picker. Never appears in the contract itself.",
+      "versionNote": "Currently version {{version}}. Editing the wording will create a new version.",
+      "create": "Add clause",
+      "operationFailed": "The operation failed"
+    },
+    "picker": {
+      "button": "Clause library",
+      "buttonTooltip": "Insert approved wording from the clause library",
+      "title": "Insert a clause",
+      "hint": "Pick approved wording to insert at the cursor. Only approved clauses are listed.",
+      "insert": "Insert clause",
+      "inserted": "Inserted “{{title}}”",
+      "empty": "No approved clause matches these filters."
+    }
+  },
+  "regulatoryWatch": {
+    "title": "Regulatory Watch",
+    "subtitle": "A legal-team-curated registry of tracked regulatory texts. Publishing a text notifies the owners of in-force contracts it applies to, and feeds the compliance check on the contract page.",
+    "backToAdmin": "Back to Administration",
+    "addText": "Add regulatory text",
+    "searchLabel": "Search regulatory texts",
+    "searchPlaceholder": "Title or summary…",
+    "filterCategory": "Category",
+    "filterJurisdiction": "Jurisdiction",
+    "filterStatus": "Status",
+    "allCategories": "All categories",
+    "allJurisdictions": "All jurisdictions",
+    "allStatuses": "All statuses",
+    "emptyTitle": "No regulatory texts found",
+    "emptyHint": "Adjust your filters, or add the first tracked text.",
+    "loadFailed": "Could not load the regulatory watch registry",
+    "statusFailed": "Could not change the regulatory text status",
+    "deleteFailed": "Could not delete the regulatory text",
+    "confirmDelete": "Delete the regulatory text \"{{title}}\"? This cannot be undone.",
+    "publish": "Publish",
+    "archive": "Archive",
+    "revertToDraft": "Revert to draft",
+    "effectiveDateTooltip": "Effective date of this regulatory text",
+    "stats": {
+      "total": "Texts"
+    },
+    "category": {
+      "DataProtection": "Data protection",
+      "Labor": "Labor",
+      "Consumer": "Consumer",
+      "Commercial": "Commercial",
+      "Tax": "Tax",
+      "Telecom": "Telecom",
+      "Other": "Other"
+    },
+    "jurisdiction": {
+      "Tunisia": "Tunisia",
+      "EU": "European Union",
+      "Sectoral": "Sectoral"
+    },
+    "status": {
+      "Draft": "Draft",
+      "Published": "Published",
+      "Archived": "Archived"
+    },
+    "language": {
+      "en": "English",
+      "fr": "French"
+    },
+    "dialog": {
+      "createTitle": "Add a regulatory text",
+      "editTitle": "Edit regulatory text",
+      "textTitle": "Text title",
+      "textTitlePlaceholder": "e.g. Personal data protection law",
+      "category": "Category",
+      "jurisdiction": "Jurisdiction",
+      "language": "Language",
+      "reference": "Legal reference",
+      "referencePlaceholder": "e.g. Loi organique n° 2004-63 du 27 juillet 2004",
+      "effectiveDate": "Effective date",
+      "scope": "Applies to contract type",
+      "scopeAll": "All contract types",
+      "scopeHint": "Leave on “All contract types” unless this text only applies to one contract family.",
+      "summary": "Summary",
+      "summaryPlaceholder": "<p>Plain-language summary of what this text requires…</p>",
+      "keywords": "Keywords",
+      "keywordsPlaceholder": "personal data, data controller, data breach",
+      "keywordsHint": "Comma-separated terms the compliance scan looks for in a contract's text.",
+      "create": "Add text",
+      "operationFailed": "The operation failed"
+    }
   },
   "htmlTemplates": {
     "list": {
-      "confirmDelete": "Delete template \"{{name}}\"? This cannot be undone."
+      "title": "HTML Contract Templates",
+      "subtitle": "Create reusable contract templates with pre-fillable fields and signature zones.",
+      "newTemplate": "New HTML template",
+      "searchPlaceholder": "Search contract templates…",
+      "empty": "No contract templates found.",
+      "createFirst": "Create your first contract template",
+      "editTooltip": "Edit contract template",
+      "confirmDelete": "Delete contract template \"{{name}}\"? This cannot be undone.",
+      "deleted": "Contract template deleted",
+      "deleteFailed": "Failed to delete contract template"
     }
   },
   "pdfTemplates": {
@@ -1356,11 +1673,11 @@
     "items": {
       "generation": {
         "title": "Contract generation and templates",
-        "desc": "Reusable HTML and PDF contract templates with dynamic parameters, fields auto-filled per contract type, and AI generation from a plain-text brief. Conditional clauses and a shared clause library are the remaining step."
+        "desc": "Reusable HTML and PDF contract templates with dynamic parameters, fields auto-filled per contract type, and AI generation from a plain-text brief. A shared clause library of approved bilingual wording — with categories, versioning and a draft/approved lifecycle — is now insertable straight into a template. Conditional clauses are the remaining step."
       },
       "aiReview": {
         "title": "AI-assisted contract review",
-        "desc": "The AI layer is wired in and already summarises a contract before signature. Risk-clause detection, inconsistency spotting and comparison against internal standards run on the same abstraction."
+        "desc": "Every uploaded contract gets an instant rules-based scan and a pre-signature summary. From the contract page, a full legal-model review can be run on demand: it identifies the contract, flags missing, weak or contradictory clauses with severity and proposed wording, and extracts the next renewal or expiry date — falling back to the rules-based scan if the model is unavailable."
       },
       "workflow": {
         "title": "Digitalised validation workflow",
@@ -1376,7 +1693,7 @@
       },
       "obligations": {
         "title": "Contractual obligation tracking",
-        "desc": "Effective dates, renewal windows, milestones and regulatory commitments carried on the contract itself, with a scheduled sweep raising them before they fall due. Today only the validation deadline is tracked."
+        "desc": "Renewal and expiry dates are carried on the contract itself, proposed automatically from the contract text at upload and confirmed by the owner. A daily sweep raises each obligation to its owner as the deadline approaches, so a renewal window is never missed silently."
       },
       "reporting": {
         "title": "Dashboards and reporting",
@@ -1388,16 +1705,44 @@
       },
       "regWatch": {
         "title": "Integrated regulatory watch",
-        "desc": "Automated monitoring of the Tunisian, European and sector-specific frameworks that apply to a contract — telecommunications, data protection, public procurement — keeping the applicable reference set current."
+        "desc": "A legal-team-curated registry of Tunisian, European and sector-specific texts — data protection, consumer, telecom, commercial — each publishable with an effective date and an optional contract-family scope. Curation and publication are legal-team actions today, not an automated crawler of external sources."
       },
       "compliance": {
         "title": "AI compliance analysis",
-        "desc": "Assistants that interpret legal obligations, check a contract against the applicable framework, and flag missing or non-compliant clauses with the reasoning behind each finding."
+        "desc": "On demand from the contract page, a scan checks the contract text against every published regulatory text and flags each one as addressed or a gap. Today this is a keyword-presence check behind the same interface the risk scan uses — not a legal opinion — designed to plug into a full model review the same way the risk scan already does."
       },
       "riskMap": {
         "title": "Regulatory alerts and risk mapping",
-        "desc": "Alerting when a legislative change affects contracts already in force, with a portfolio-level map of legal exposure to anticipate the impact."
+        "desc": "Publishing a regulatory text immediately notifies the owners of in-force contracts it applies to, and the reporting page aggregates every contract's risk analysis into a portfolio-level map — severity distribution, most frequent risk clauses, and exposure by contract family."
       }
+    }
+  },
+  "landing": {
+    "nav": {
+      "signIn": "Sign in"
+    },
+    "hero": {
+      "title": "Contract lifecycle management, simplified.",
+      "subtitle": "Draft, route, sign and track contracts in one place — with a full audit trail from first draft to final signature.",
+      "cta": "Get started"
+    },
+    "features": {
+      "signatures": {
+        "title": "Legally binding e-signatures",
+        "desc": "Send contracts for signature and collect legally binding approvals in minutes."
+      },
+      "workflows": {
+        "title": "Structured validation workflows",
+        "desc": "Route contracts through review, approval and sign-off with clear ownership at every step."
+      },
+      "traceability": {
+        "title": "Full traceability",
+        "desc": "Every action is logged, timestamped and auditable — from upload to final execution."
+      }
+    },
+    "footer": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
     }
   }
 }

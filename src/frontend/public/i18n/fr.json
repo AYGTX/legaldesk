@@ -66,8 +66,26 @@
     "pageSubtitle": "Gérez les utilisateurs, les rôles et les paramètres système",
     "tabs": {
       "users": "Utilisateurs",
-      "requestTypes": "Types de demandes",
+      "requestTypes": "Types de contrats",
+      "htmlTemplates": "Modèles de contrats",
+      "clauses": "Bibliothèque de clauses",
+      "regulatoryWatch": "Veille réglementaire",
       "systemSettings": "Paramètres système"
+    },
+    "htmlTemplates": {
+      "title": "Modèles de contrats",
+      "description": "Gérez les modèles de contrats HTML réutilisables que les intervenants remplissent et soumettent pour validation.",
+      "manage": "Gérer les modèles de contrats"
+    },
+    "clauses": {
+      "title": "Bibliothèque de clauses",
+      "description": "Gérez les rédactions contractuelles validées de l'organisation — confidentialité, responsabilité, résiliation, protection des données — prêtes à être insérées lors de la rédaction.",
+      "manage": "Gérer la bibliothèque de clauses"
+    },
+    "regulatoryWatch": {
+      "title": "Veille réglementaire",
+      "description": "Gérez le référentiel de textes réglementaires suivis. Publier un texte notifie les propriétaires des contrats en vigueur qu'il concerne et alimente la vérification de conformité.",
+      "manage": "Gérer la veille réglementaire"
     },
     "systemSettings": {
       "title": "Paramètres système",
@@ -408,6 +426,67 @@
       "summaryError": "Impossible de générer le résumé",
       "noSummary": "Aucun résumé pour le moment",
       "generateSummary": "Générer le résumé",
+      "riskAnalysis": "Analyse des risques",
+      "riskScore": "Score de risque : {{score}}/100",
+      "noRiskFindings": "Aucune analyse de risque disponible",
+      "severityLow": "Faible",
+      "severityMedium": "Moyen",
+      "severityHigh": "Élevé",
+      "severityCritical": "Critique",
+      "analysis": {
+        "title": "Analyse du contrat",
+        "run": "Lancer l'analyse juridique complète",
+        "rerun": "Relancer l'analyse",
+        "failed": "L'analyse du contrat a échoué",
+        "notStated": "Non précisé",
+        "copy": "Copier",
+        "copied": "Copié dans le presse-papiers",
+        "addToLibrary": "Ajouter à la bibliothèque de clauses",
+        "addedToLibrary": "Clause ajoutée à la bibliothèque en tant que brouillon",
+        "whyItMatters": "Pourquoi c'est important",
+        "recommendedAction": "Action recommandée",
+        "proposedLanguage": "Formulation proposée",
+        "reference": "Référence",
+        "profile": {
+          "contractType": "Type de contrat",
+          "parties": "Parties",
+          "purpose": "Objet",
+          "jurisdiction": "Juridiction",
+          "governingLaw": "Droit applicable",
+          "term": "Durée"
+        },
+        "findingType": {
+          "MissingClause": "Clause manquante",
+          "WeakClause": "Clause faible",
+          "Ambiguity": "Ambiguïté",
+          "Contradiction": "Contradiction",
+          "Imbalance": "Déséquilibre"
+        }
+      },
+      "compliance": {
+        "title": "Conformité réglementaire",
+        "run": "Vérifier la conformité",
+        "rerun": "Revérifier la conformité",
+        "failed": "Échec de la vérification de conformité",
+        "score": "Score de conformité : {{score}}/100",
+        "noRun": "Aucune vérification de conformité effectuée",
+        "noneTracked": "Aucun texte réglementaire publié ne s'applique à ce contrat",
+        "status": {
+          "Addressed": "Couvert",
+          "Gap": "Écart",
+          "Unclear": "Incertain"
+        }
+      },
+      "obligation": {
+        "title": "Suivi des obligations",
+        "dueDate": "Date d'échéance",
+        "type": "Type d'obligation",
+        "suggested": "Suggéré par l'IA — à confirmer",
+        "edit": "Modifier l'obligation",
+        "save": "Enregistrer",
+        "saveFailed": "Échec de l'enregistrement de l'obligation",
+        "none": "Aucune date d'obligation suivie"
+      },
       "notFound": "Contrat introuvable",
       "backToDocuments": "Retour aux contrats",
       "confirmSend": "Envoyer ce contrat pour signature ? Les intervenants seront notifiés par e-mail.",
@@ -1100,6 +1179,15 @@
       "completed": "Terminées",
       "avgHours": "Heures moy.",
       "sla": "SLA"
+    },
+    "riskMap": {
+      "title": "Cartographie des risques juridiques",
+      "hint": "Agrégée à partir de l'analyse de risque déjà enregistrée pour chaque contrat — une analyse par mots-clés, pas un avis juridique. Aucune nouvelle analyse n'est exécutée ici.",
+      "empty": "Aucun contrat n'a encore d'analyse de risque.",
+      "analyzed": "Contrats analysés",
+      "avgScore": "Score de risque moy.",
+      "bySeverity": "Constats par sévérité",
+      "topClauseTypes": "Clauses à risque les plus fréquentes"
     }
   },
   "signing": {
@@ -1231,11 +1319,240 @@
     "stage": "Étape",
     "stageHint": "Même étape = parallèle · les étapes s'exécutent dans l'ordre",
     "fieldsScanned": "{{count}} champ ajouté depuis le HTML collé",
-    "fieldsScannedPlural": "{{count}} champs ajoutés depuis le HTML collé"
+    "fieldsScannedPlural": "{{count}} champs ajoutés depuis le HTML collé",
+    "backToTemplates": "Retour aux modèles de contrats",
+    "namePlaceholder": "Nom du modèle de contrat…",
+    "generateWithAi": "Générer avec l'IA",
+    "preview": "Aperçu",
+    "descriptionPlaceholder": "Description facultative…",
+    "defaultApprover": "Approbateur par défaut",
+    "userPicksAtSubmit": "— Choisi par l'initiateur à l'envoi —",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "htmlContentLabel": "Contenu du contrat",
+    "panelHint": "Utilisez les espaces réservés <code>{{example}}</code> — cliquez sur « Insérer » sur un champ pour en ajouter un",
+    "htmlPlaceholder": "Écrivez votre modèle de contrat ici…\n\nExemple :\n<h2>Contrat de prestation de services</h2>\n<p>Cocontractant : {{counterpartyName}}</p>",
+    "fieldsLabel": "Champs du contrat",
+    "noFieldsYet": "Aucun champ pour l'instant.",
+    "noFieldsHint": "Ajoutez des champs pour créer des espaces réservés interactifs dans votre modèle de contrat.",
+    "noLabelFallback": "(sans libellé)",
+    "insertIntoHtml": "Insérer dans le contrat",
+    "remove": "Supprimer",
+    "keyLabel": "Clé",
+    "keyPlaceholder": "ex. nomCocontractant",
+    "labelLabel": "Libellé",
+    "labelPlaceholder": "Libellé à afficher",
+    "typeLabel": "Type",
+    "roleLabel": "Rôle",
+    "roleInitiatorOption": "Initiateur (complété lors de la rédaction, avant l'envoi)",
+    "roleApproverOption": "Approbateur (signe ou complète une fois le contrat acheminé)",
+    "autoFillLabel": "Remplissage automatique",
+    "autoFillNone": "Aucun",
+    "aiHint": "Décrivez le contrat ou collez un brouillon. L'IA générera la mise en page HTML et proposera automatiquement les clauses paramétrées.",
+    "aiPromptPlaceholder": "Exemples :\n• Un contrat de service B2B avec la contrepartie, l'objet, la durée, les modalités de paiement et les signatures\n• Un accord de confidentialité (NDA) avec le nom de l'entreprise, la date d'effet, la durée et la signature\n• Collez le texte brut d'un contrat existant…",
+    "generating": "Génération…",
+    "generate": "Générer",
+    "templateGenerated": "Modèle de contrat généré ! Vérifiez et ajustez si nécessaire.",
+    "aiGenerationFailed": "Échec de la génération par IA",
+    "nameRequired": "Le nom du modèle de contrat est requis",
+    "htmlContentRequired": "Le contenu du contrat est requis",
+    "templateUpdated": "Modèle de contrat mis à jour",
+    "failedToSave": "Échec de l'enregistrement",
+    "templateCreated": "Modèle de contrat créé",
+    "failedToCreate": "Échec de la création",
+    "role": {
+      "Initiator": "Initiateur",
+      "Approver": "Approbateur"
+    },
+    "fieldType": {
+      "Text": "Texte",
+      "Textarea": "Texte long",
+      "Date": "Date",
+      "Number": "Nombre",
+      "Checkbox": "Case à cocher",
+      "Signature": "Signature"
+    },
+    "autoFillOption": {
+      "fullName": "Nom complet",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "email": "E-mail",
+      "company": "Entreprise",
+      "department": "Département"
+    }
+  },
+  "clauses": {
+    "title": "Bibliothèque de clauses",
+    "subtitle": "Rédactions contractuelles validées et réutilisables. Les rédacteurs insèrent ces clauses au lieu de réécrire les formulations standard, afin que les positions négociées de l'organisation restent cohérentes.",
+    "backToAdmin": "Retour à l'administration",
+    "addClause": "Ajouter une clause",
+    "searchLabel": "Rechercher des clauses",
+    "searchPlaceholder": "Intitulé ou rédaction…",
+    "filterCategory": "Catégorie",
+    "filterLanguage": "Langue",
+    "filterStatus": "Statut",
+    "allCategories": "Toutes les catégories",
+    "allLanguages": "Toutes les langues",
+    "allStatuses": "Tous les statuts",
+    "emptyTitle": "Aucune clause trouvée",
+    "emptyHint": "Ajustez vos filtres ou ajoutez la première clause à la bibliothèque.",
+    "loadFailed": "Impossible de charger la bibliothèque de clauses",
+    "statusFailed": "Impossible de modifier le statut de la clause",
+    "deleteFailed": "Impossible de supprimer la clause",
+    "confirmDelete": "Supprimer la clause « {{title}} » ? Cette action est irréversible.",
+    "approve": "Valider",
+    "deprecate": "Déprécier",
+    "revertToDraft": "Repasser en brouillon",
+    "usedTimes": "Utilisée {{count}} ×",
+    "versionTooltip": "Version de la clause — incrémentée à chaque modification de la rédaction",
+    "usageTooltip": "Nombre d'insertions de cette clause dans un contrat",
+    "stats": {
+      "total": "Clauses"
+    },
+    "category": {
+      "Confidentiality": "Confidentialité",
+      "Liability": "Responsabilité",
+      "Termination": "Résiliation",
+      "DataProtection": "Protection des données",
+      "IntellectualProperty": "Propriété intellectuelle",
+      "Payment": "Paiement",
+      "ForceMajeure": "Force majeure",
+      "GoverningLaw": "Droit applicable",
+      "Compliance": "Conformité",
+      "Warranty": "Garantie",
+      "NonCompete": "Non-concurrence",
+      "Other": "Autre"
+    },
+    "status": {
+      "Draft": "Brouillon",
+      "Approved": "Validée",
+      "Deprecated": "Dépréciée"
+    },
+    "risk": {
+      "Low": "Risque faible",
+      "Medium": "Risque moyen",
+      "High": "Risque élevé"
+    },
+    "language": {
+      "en": "Anglais",
+      "fr": "Français"
+    },
+    "dialog": {
+      "createTitle": "Ajouter une clause",
+      "editTitle": "Modifier la clause",
+      "clauseTitle": "Intitulé de la clause",
+      "clauseTitlePlaceholder": "ex. Limitation de responsabilité (plafonnée)",
+      "category": "Catégorie",
+      "language": "Langue",
+      "riskLevel": "Niveau de risque",
+      "riskNone": "Non évalué",
+      "scope": "S'applique au type de contrat",
+      "scopeAll": "Tous les types de contrats",
+      "scopeHint": "Laissez « Tous les types de contrats » sauf si cette rédaction ne concerne qu'une seule famille de contrats.",
+      "body": "Rédaction de la clause",
+      "bodyPlaceholder": "<h3>Confidentialité</h3><p>Chaque partie s'engage à conserver confidentielles…</p>",
+      "bodyHint": "Fragment HTML inséré dans le contrat. Vous pouvez inclure des {{placeholders}} — ils deviennent des champs.",
+      "guidance": "Note juridique interne",
+      "guidancePlaceholder": "Quand utiliser cette clause, position de négociation, replis acceptés…",
+      "guidanceHint": "Affichée aux rédacteurs dans la bibliothèque et le sélecteur. N'apparaît jamais dans le contrat.",
+      "versionNote": "Version actuelle : {{version}}. Modifier la rédaction créera une nouvelle version.",
+      "create": "Ajouter la clause",
+      "operationFailed": "L'opération a échoué"
+    },
+    "picker": {
+      "button": "Bibliothèque de clauses",
+      "buttonTooltip": "Insérer une rédaction validée depuis la bibliothèque de clauses",
+      "title": "Insérer une clause",
+      "hint": "Choisissez une rédaction validée à insérer à l'emplacement du curseur. Seules les clauses validées sont proposées.",
+      "insert": "Insérer la clause",
+      "inserted": "« {{title}} » insérée",
+      "empty": "Aucune clause validée ne correspond à ces filtres."
+    }
+  },
+  "regulatoryWatch": {
+    "title": "Veille réglementaire",
+    "subtitle": "Un référentiel de textes réglementaires suivis, curé par l'équipe juridique. Publier un texte notifie les propriétaires des contrats en vigueur qu'il concerne et alimente la vérification de conformité de la fiche contrat.",
+    "backToAdmin": "Retour à l'administration",
+    "addText": "Ajouter un texte réglementaire",
+    "searchLabel": "Rechercher des textes réglementaires",
+    "searchPlaceholder": "Intitulé ou résumé…",
+    "filterCategory": "Catégorie",
+    "filterJurisdiction": "Juridiction",
+    "filterStatus": "Statut",
+    "allCategories": "Toutes les catégories",
+    "allJurisdictions": "Toutes les juridictions",
+    "allStatuses": "Tous les statuts",
+    "emptyTitle": "Aucun texte réglementaire trouvé",
+    "emptyHint": "Ajustez vos filtres ou ajoutez le premier texte suivi.",
+    "loadFailed": "Impossible de charger le référentiel de veille réglementaire",
+    "statusFailed": "Impossible de modifier le statut du texte réglementaire",
+    "deleteFailed": "Impossible de supprimer le texte réglementaire",
+    "confirmDelete": "Supprimer le texte réglementaire « {{title}} » ? Cette action est irréversible.",
+    "publish": "Publier",
+    "archive": "Archiver",
+    "revertToDraft": "Repasser en brouillon",
+    "effectiveDateTooltip": "Date d'effet de ce texte réglementaire",
+    "stats": {
+      "total": "Textes"
+    },
+    "category": {
+      "DataProtection": "Protection des données",
+      "Labor": "Droit du travail",
+      "Consumer": "Consommation",
+      "Commercial": "Droit commercial",
+      "Tax": "Fiscalité",
+      "Telecom": "Télécommunications",
+      "Other": "Autre"
+    },
+    "jurisdiction": {
+      "Tunisia": "Tunisie",
+      "EU": "Union européenne",
+      "Sectoral": "Sectorielle"
+    },
+    "status": {
+      "Draft": "Brouillon",
+      "Published": "Publié",
+      "Archived": "Archivé"
+    },
+    "language": {
+      "en": "Anglais",
+      "fr": "Français"
+    },
+    "dialog": {
+      "createTitle": "Ajouter un texte réglementaire",
+      "editTitle": "Modifier le texte réglementaire",
+      "textTitle": "Intitulé du texte",
+      "textTitlePlaceholder": "ex. Loi sur la protection des données personnelles",
+      "category": "Catégorie",
+      "jurisdiction": "Juridiction",
+      "language": "Langue",
+      "reference": "Référence légale",
+      "referencePlaceholder": "ex. Loi organique n° 2004-63 du 27 juillet 2004",
+      "effectiveDate": "Date d'effet",
+      "scope": "S'applique au type de contrat",
+      "scopeAll": "Tous les types de contrats",
+      "scopeHint": "Laissez « Tous les types de contrats » sauf si ce texte ne concerne qu'une seule famille de contrats.",
+      "summary": "Résumé",
+      "summaryPlaceholder": "<p>Résumé en langage clair de ce que ce texte impose…</p>",
+      "keywords": "Mots-clés",
+      "keywordsPlaceholder": "données personnelles, responsable de traitement, violation de données",
+      "keywordsHint": "Termes séparés par des virgules recherchés par l'analyse de conformité dans le texte d'un contrat.",
+      "create": "Ajouter le texte",
+      "operationFailed": "L'opération a échoué"
+    }
   },
   "htmlTemplates": {
     "list": {
-      "confirmDelete": "Supprimer le modèle « {{name}} » ? Cette action est irréversible."
+      "title": "Modèles de contrats HTML",
+      "subtitle": "Créez des modèles de contrats réutilisables avec des champs pré-remplissables et des zones de signature.",
+      "newTemplate": "Nouveau modèle HTML",
+      "searchPlaceholder": "Rechercher des modèles de contrats…",
+      "empty": "Aucun modèle de contrat trouvé.",
+      "createFirst": "Créer votre premier modèle de contrat",
+      "editTooltip": "Modifier le modèle de contrat",
+      "confirmDelete": "Supprimer le modèle de contrat « {{name}} » ? Cette action est irréversible.",
+      "deleted": "Modèle de contrat supprimé",
+      "deleteFailed": "Échec de la suppression du modèle de contrat"
     }
   },
   "pdfTemplates": {
@@ -1356,11 +1673,11 @@
     "items": {
       "generation": {
         "title": "Génération et modèles de contrats",
-        "desc": "Modèles de contrats HTML et PDF réutilisables, paramétrage dynamique des champs, pré-remplissage selon le type de contrat et génération assistée par IA à partir d’un simple texte. Restent à livrer : les clauses conditionnelles et une bibliothèque de clauses partagée."
+        "desc": "Modèles de contrats HTML et PDF réutilisables, paramétrage dynamique des champs, pré-remplissage selon le type de contrat et génération assistée par IA à partir d’un simple texte. Une bibliothèque de clauses partagée — rédactions bilingues validées, catégorisées, versionnées, avec cycle brouillon/validée — s’insère désormais directement dans un modèle. Restent à livrer : les clauses conditionnelles."
       },
       "aiReview": {
         "title": "Revue contractuelle assistée par IA",
-        "desc": "La couche IA est intégrée et produit déjà une synthèse du contrat avant signature. La détection des clauses à risque, des incohérences et des écarts aux standards internes s’appuie sur la même abstraction."
+        "desc": "Chaque contrat déposé bénéficie d’une analyse instantanée par moteur de règles et d’une synthèse pré-signature. Depuis la fiche du contrat, une revue juridique complète par le modèle de langage peut être lancée à la demande : elle identifie le contrat, signale les clauses manquantes, faibles ou contradictoires avec leur gravité et une formulation proposée, et extrait la prochaine échéance de renouvellement ou d’expiration — avec repli sur l’analyse par règles si le modèle est indisponible."
       },
       "workflow": {
         "title": "Workflow de validation digitalisé",
@@ -1376,7 +1693,7 @@
       },
       "obligations": {
         "title": "Suivi des obligations contractuelles",
-        "desc": "Dates d’effet, fenêtres de renouvellement, jalons et engagements réglementaires portés par le contrat lui-même, avec une surveillance planifiée qui les remonte avant échéance. Aujourd’hui, seul le délai de validation est suivi."
+        "desc": "Les dates de renouvellement et d’échéance sont portées par le contrat lui-même, proposées automatiquement à partir du texte au dépôt puis confirmées par le responsable. Une surveillance quotidienne remonte chaque obligation à son responsable à l’approche du terme, afin qu’aucune fenêtre de renouvellement ne passe inaperçue."
       },
       "reporting": {
         "title": "Tableaux de bord et reporting",
@@ -1388,16 +1705,44 @@
       },
       "regWatch": {
         "title": "Veille réglementaire intégrée",
-        "desc": "Surveillance automatisée des cadres tunisien, européen et sectoriels applicables à un contrat — télécommunications, protection des données, marchés publics — afin de maintenir à jour le référentiel applicable."
+        "desc": "Un référentiel de textes tunisiens, européens et sectoriels curé par l’équipe juridique — protection des données, consommation, télécommunications, droit commercial — chacun publiable avec une date d’effet et un périmètre optionnel par famille de contrat. La curation et la publication sont aujourd’hui des actions de l’équipe juridique, pas une veille automatisée de sources externes."
       },
       "compliance": {
-        "title": "Analyse de conformité par assistants IA",
-        "desc": "Des assistants capables d’interpréter les obligations légales, de confronter un contrat au cadre applicable et de signaler les clauses manquantes ou non conformes, en explicitant le raisonnement de chaque constat."
+        "title": "Analyse de conformité par IA",
+        "desc": "Depuis la fiche contrat, une analyse à la demande confronte le texte du contrat à chaque texte réglementaire publié et signale chacun comme couvert ou en écart. Il s’agit aujourd’hui d’une vérification par mots-clés derrière la même interface que l’analyse de risque — pas un avis juridique — conçue pour être branchée sur une revue par modèle complet comme l’est déjà l’analyse de risque."
       },
       "riskMap": {
         "title": "Alertes réglementaires et cartographie des risques",
-        "desc": "Alerte lorsqu’une évolution législative touche des contrats déjà en vigueur, avec une cartographie de l’exposition juridique du portefeuille pour en anticiper l’impact."
+        "desc": "La publication d’un texte réglementaire notifie immédiatement les propriétaires des contrats en vigueur qu’il concerne, et la page de reporting agrège l’analyse de risque de chaque contrat en une cartographie de portefeuille — répartition par sévérité, clauses à risque les plus fréquentes et exposition par famille de contrat."
       }
+    }
+  },
+  "landing": {
+    "nav": {
+      "signIn": "Se connecter"
+    },
+    "hero": {
+      "title": "La gestion du cycle de vie contractuel, simplifiée.",
+      "subtitle": "Rédigez, faites circuler, signez et suivez vos contrats en un seul endroit — avec une traçabilité complète, du premier brouillon à la signature finale.",
+      "cta": "Commencer"
+    },
+    "features": {
+      "signatures": {
+        "title": "Signatures électroniques juridiquement valables",
+        "desc": "Envoyez vos contrats à la signature et recueillez des approbations juridiquement valables en quelques minutes."
+      },
+      "workflows": {
+        "title": "Circuits de validation structurés",
+        "desc": "Faites circuler les contrats à travers la revue, l’approbation et la signature, avec une responsabilité claire à chaque étape."
+      },
+      "traceability": {
+        "title": "Traçabilité complète",
+        "desc": "Chaque action est enregistrée, horodatée et auditable — du dépôt jusqu’à l’exécution finale."
+      }
+    },
+    "footer": {
+      "privacy": "Politique de confidentialité",
+      "terms": "Conditions d’utilisation"
     }
   }
 }

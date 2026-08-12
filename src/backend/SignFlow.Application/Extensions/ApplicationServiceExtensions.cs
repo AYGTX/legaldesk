@@ -33,6 +33,10 @@ using SignFlow.Application.Features.HtmlTemplates.Commands;
 using SignFlow.Application.Features.HtmlTemplates.Queries;
 using SignFlow.Application.Features.PdfTemplates.Commands;
 using SignFlow.Application.Features.PdfTemplates.Queries;
+using SignFlow.Application.Features.Clauses.Commands;
+using SignFlow.Application.Features.Clauses.Queries;
+using SignFlow.Application.Features.RegulatoryWatch.Commands;
+using SignFlow.Application.Features.RegulatoryWatch.Queries;
 using SignFlow.Application.Services;
 
 namespace SignFlow.Application.Extensions;
@@ -57,6 +61,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<DeleteDocumentCommand>, DeleteDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<ReopenDocumentCommand>, ReopenDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
+        services.AddScoped<ICommandHandler<UpdateObligationCommand>, UpdateObligationCommandHandler>();
+        services.AddScoped<ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto>, AnalyzeContractCommandHandler>();
+        services.AddScoped<ICommandHandler<AnalyzeComplianceCommand, ComplianceAnalysisDto>, AnalyzeComplianceCommandHandler>();
 
         // Document query handlers
         services.AddScoped<IQueryHandler<GetDocumentsQuery, PagedResult<DocumentSummaryDto>>, GetDocumentsQueryHandler>();
@@ -84,6 +91,7 @@ public static class ApplicationServiceExtensions
 
         // Reports (admin/manager analytics)
         services.AddScoped<IQueryHandler<GetAdminReportQuery, AdminReportDto>, GetAdminReportQueryHandler>();
+        services.AddScoped<IQueryHandler<GetRiskMapQuery, RiskMapDto>, GetRiskMapQueryHandler>();
 
         // Audit
         services.AddScoped<IQueryHandler<GetAuditTrailQuery, PagedResult<AuditLogDto>>, GetAuditTrailQueryHandler>();
@@ -124,6 +132,23 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<UpdateRequestTypeCommand>, UpdateRequestTypeCommandHandler>();
         services.AddScoped<ICommandHandler<SetRequestTypeStatusCommand>, SetRequestTypeStatusCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteRequestTypeCommand>, DeleteRequestTypeCommandHandler>();
+
+        // Clause library
+        services.AddScoped<IQueryHandler<GetClausesQuery, List<ClauseDto>>, GetClausesQueryHandler>();
+        services.AddScoped<IQueryHandler<GetApprovedClausesQuery, List<ClauseDto>>, GetApprovedClausesQueryHandler>();
+        services.AddScoped<ICommandHandler<CreateClauseCommand, Guid>, CreateClauseCommandHandler>();
+        services.AddScoped<ICommandHandler<UpdateClauseCommand>, UpdateClauseCommandHandler>();
+        services.AddScoped<ICommandHandler<SetClauseStatusCommand>, SetClauseStatusCommandHandler>();
+        services.AddScoped<ICommandHandler<DeleteClauseCommand>, DeleteClauseCommandHandler>();
+        services.AddScoped<ICommandHandler<RecordClauseUsageCommand>, RecordClauseUsageCommandHandler>();
+
+        // Regulatory watch
+        services.AddScoped<IQueryHandler<GetRegulatoryTextsQuery, List<RegulatoryTextDto>>, GetRegulatoryTextsQueryHandler>();
+        services.AddScoped<IQueryHandler<GetPublishedRegulatoryTextsQuery, List<RegulatoryTextDto>>, GetPublishedRegulatoryTextsQueryHandler>();
+        services.AddScoped<ICommandHandler<CreateRegulatoryTextCommand, Guid>, CreateRegulatoryTextCommandHandler>();
+        services.AddScoped<ICommandHandler<UpdateRegulatoryTextCommand>, UpdateRegulatoryTextCommandHandler>();
+        services.AddScoped<ICommandHandler<SetRegulatoryTextStatusCommand>, SetRegulatoryTextStatusCommandHandler>();
+        services.AddScoped<ICommandHandler<DeleteRegulatoryTextCommand>, DeleteRegulatoryTextCommandHandler>();
 
         // Vacations
         services.AddScoped<IQueryHandler<GetMyVacationsQuery, List<VacationDto>>, GetMyVacationsQueryHandler>();

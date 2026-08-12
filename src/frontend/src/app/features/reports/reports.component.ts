@@ -6,7 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ReportService } from '../../core/services/report.service';
-import { AdminReport, MonthlyVolume } from '../../core/models';
+import { AdminReport, MonthlyVolume, RiskMap } from '../../core/models';
 
 /** Organization-wide analytics for administrators and managers (server enforces the roles). */
 @Component({
@@ -142,6 +142,74 @@ import { AdminReport, MonthlyVolume } from '../../core/models';
           </mat-card-content>
         </mat-card>
 
+        <!-- Legal risk map -->
+        <mat-card class="table-card">
+          <mat-card-header>
+            <mat-card-title>{{ 'reports.riskMap.title' | translate }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="risk-map-hint">{{ 'reports.riskMap.hint' | translate }}</p>
+
+            @if (loadingRiskMap()) {
+              <div class="loading-state"><mat-spinner diameter="32"></mat-spinner></div>
+            } @else if (riskMap(); as rm) {
+              @if (rm.totalAnalyzed === 0) {
+                <p class="empty-note">{{ 'reports.riskMap.empty' | translate }}</p>
+              } @else {
+                <div class="risk-map-kpis">
+                  <div class="kpi"><span class="kpi-value">{{ rm.totalAnalyzed }}</span><span class="kpi-label">{{ 'reports.riskMap.analyzed' | translate }}</span></div>
+                  <div class="kpi"><span class="kpi-value" [class.c-green]="rm.avgRiskScore < 25" [class.c-amber]="rm.avgRiskScore >= 25 && rm.avgRiskScore < 50" [class.c-red]="rm.avgRiskScore >= 50">{{ rm.avgRiskScore }}</span><span class="kpi-label">{{ 'reports.riskMap.avgScore' | translate }}</span></div>
+                </div>
+
+                <div class="risk-map-grid">
+                  <div class="risk-bar-block">
+                    <h4>{{ 'reports.riskMap.bySeverity' | translate }}</h4>
+                    @for (s of rm.bySeverity; track s.severity) {
+                      <div class="risk-bar-row">
+                        <span class="risk-bar-label" [ngClass]="'severity-' + s.severity.toLowerCase()">{{ s.severity }}</span>
+                        <div class="risk-bar-track"><div class="risk-bar-fill" [ngClass]="'severity-' + s.severity.toLowerCase()" [style.width.%]="barPercent(s.count, maxSeverityCount())"></div></div>
+                        <span class="risk-bar-count">{{ s.count }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="risk-bar-block">
+                    <h4>{{ 'reports.riskMap.topClauseTypes' | translate }}</h4>
+                    @for (c of rm.topClauseTypes; track c.clauseType) {
+                      <div class="risk-bar-row">
+                        <span class="risk-bar-label">{{ c.clauseType }}</span>
+                        <div class="risk-bar-track"><div class="risk-bar-fill neutral" [style.width.%]="barPercent(c.count, maxClauseCount())"></div></div>
+                        <span class="risk-bar-count">{{ c.count }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (rm.byRequestType.length > 0) {
+                  <table class="report-table risk-map-table">
+                    <thead>
+                      <tr>
+                        <th>{{ 'reports.byType.type' | translate }}</th>
+                        <th class="num">{{ 'reports.table.requests' | translate }}</th>
+                        <th class="num">{{ 'reports.riskMap.avgScore' | translate }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (t of rm.byRequestType; track t.requestTypeName) {
+                        <tr>
+                          <td>{{ t.requestTypeName }}</td>
+                          <td class="num">{{ t.count }}</td>
+                          <td class="num">{{ t.avgRiskScore }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              }
+            }
+          </mat-card-content>
+        </mat-card>
+
       } @else if (error()) {
         <div class="error-state">
           <mat-icon>lock</mat-icon>
@@ -195,6 +263,27 @@ import { AdminReport, MonthlyVolume } from '../../core/models';
     .type-cell { display: inline-flex; align-items: center; gap: 8px; }
     .type-cell mat-icon { font-size: 18px; width: 18px; height: 18px; }
     .empty-note { color: var(--g-text-muted); font-size: 13px; margin: 8px 0; }
+
+    .risk-map-hint { font-size: 12px; color: var(--g-text-muted); margin: 0 0 14px; }
+    .risk-map-kpis { display: flex; gap: 16px; margin-bottom: 16px; }
+    .risk-map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 16px; }
+    @media (max-width: 800px) { .risk-map-grid { grid-template-columns: 1fr; } }
+    .risk-bar-block h4 { font-size: 13px; font-weight: 600; color: var(--g-text); margin: 0 0 10px; }
+    .risk-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .risk-bar-label { font-size: 12px; color: var(--g-text-3); min-width: 110px; flex-shrink: 0; }
+    .risk-bar-track { flex: 1; height: 10px; background: var(--g-border-light); border-radius: 5px; overflow: hidden; }
+    .risk-bar-fill { height: 100%; border-radius: 5px; }
+    .risk-bar-fill.neutral { background: #1a73e8; }
+    .risk-bar-fill.severity-critical { background: #7f1d1d; }
+    .risk-bar-fill.severity-high { background: #dc2626; }
+    .risk-bar-fill.severity-medium { background: #f59e0b; }
+    .risk-bar-fill.severity-low { background: #22c55e; }
+    .risk-bar-label.severity-critical { color: #7f1d1d; }
+    .risk-bar-label.severity-high { color: #dc2626; }
+    .risk-bar-label.severity-medium { color: #b45309; }
+    .risk-bar-label.severity-low { color: #15803d; }
+    .risk-bar-count { font-size: 12px; color: var(--g-text-3); min-width: 24px; text-align: right; }
+    .risk-map-table { margin-top: 8px; }
   `]
 })
 export class ReportsComponent implements OnInit {
@@ -205,11 +294,24 @@ export class ReportsComponent implements OnInit {
   readonly report = signal<AdminReport | null>(null);
   readonly error = signal<string | null>(null);
 
+  readonly loadingRiskMap = signal(true);
+  readonly riskMap = signal<RiskMap | null>(null);
+
   private readonly maxMonthly = computed(() =>
     Math.max(1, ...(this.report()?.monthlyVolume.flatMap(m => [m.created, m.completed]) ?? [1])));
 
+  readonly maxSeverityCount = computed(() =>
+    Math.max(1, ...(this.riskMap()?.bySeverity.map(s => s.count) ?? [1])));
+
+  readonly maxClauseCount = computed(() =>
+    Math.max(1, ...(this.riskMap()?.topClauseTypes.map(c => c.count) ?? [1])));
+
   barHeight(value: number): number {
     return Math.round((value / this.maxMonthly()) * 120);
+  }
+
+  barPercent(value: number, max: number): number {
+    return Math.max(2, Math.round((value / max) * 100));
   }
 
   monthLabel(m: MonthlyVolume): string {
@@ -226,6 +328,11 @@ export class ReportsComponent implements OnInit {
           ? this.translate.instant('reports.forbidden')
           : this.translate.instant('reports.loadFailed'));
       }
+    });
+
+    this.reportService.getRiskMap().subscribe({
+      next: rm => { this.riskMap.set(rm); this.loadingRiskMap.set(false); },
+      error: () => this.loadingRiskMap.set(false)
     });
   }
 }

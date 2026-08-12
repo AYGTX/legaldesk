@@ -27,6 +27,8 @@ public interface IApplicationDbContext
     DbSet<HtmlTemplateField> HtmlTemplateFields { get; }
     DbSet<PdfTemplate> PdfTemplates { get; }
     DbSet<PdfTemplateField> PdfTemplateFields { get; }
+    DbSet<Clause> Clauses { get; }
+    DbSet<RegulatoryText> RegulatoryTexts { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

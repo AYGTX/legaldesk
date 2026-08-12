@@ -51,6 +51,7 @@ public sealed class ScenarioFixture : IDisposable
         services.AddSingleton<IPdfService, NullPdfService>();
         services.AddSingleton<IVirusScanService, NullVirusScanService>();
         services.AddSingleton<IAuditService, NullAuditService>();
+        services.AddSingleton<IAiService, NullAiService>();
         services.AddSingleton<ICurrentUserService>(new FakeCurrentUserService(ownerId, ownerEmail));
 
         // Command handlers
@@ -59,6 +60,7 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<IStorageService>(),
             sp.GetRequiredService<IPdfService>(),
             sp.GetRequiredService<IVirusScanService>(),
+            sp.GetRequiredService<IAiService>(),
             sp.GetRequiredService<ICurrentUserService>(),
             sp.GetRequiredService<IAuditService>(),
             NullLogger<UploadDocumentCommandHandler>.Instance));

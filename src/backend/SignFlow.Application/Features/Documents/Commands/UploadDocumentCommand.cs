@@ -1,7 +1,9 @@
+using System.Text.Json;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Serialization;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 
@@ -42,6 +44,7 @@ public class UploadDocumentCommandHandler(
     IStorageService storage,
     IPdfService pdfService,
     IVirusScanService virusScan,
+    IAiService aiService,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<UploadDocumentCommandHandler> logger) : ICommandHandler<UploadDocumentCommand, DocumentUploadResult>
@@ -59,6 +62,14 @@ public class UploadDocumentCommandHandler(
 
         var hash = await pdfService.ComputeHashAsync(command.FileStream, cancellationToken);
         command.FileStream.Position = 0;
+
+        var extractedText = await pdfService.ExtractTextAsync(command.FileStream, cancellationToken);
+        command.FileStream.Position = 0;
+
+        // Fast rules-based pass so the risk card is populated the moment the upload lands. The full
+        // legal review is on demand (POST /documents/{id}/analyze) because it takes tens of seconds.
+        var riskAnalysis = await aiService.AnalyzeContractRiskAsync(extractedText, command.Title, cancellationToken);
+        var obligationSuggestion = await aiService.SuggestObligationAsync(extractedText, command.Title, DateTime.UtcNow, cancellationToken);
 
         var userId = currentUser.UserId!.Value;
         var folder = $"documents/{userId}";
@@ -78,6 +89,8 @@ public class UploadDocumentCommandHandler(
 
         document.SetHash(hash);
         document.SetCreatedBy(userId.ToString());
+        document.SetAiRiskAnalysis(JsonSerializer.Serialize(riskAnalysis, ContractJson.Options));
+        document.SetObligationSuggestion(obligationSuggestion.DueDate, obligationSuggestion.ObligationType, obligationSuggestion.Rationale);
 
         // Apply the request type's SLA — snapshot the deadline from the creation timestamp so that
         // later changes to the request type's SLA never affect this in-flight request.

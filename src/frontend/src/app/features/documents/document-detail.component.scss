@@ -147,6 +147,19 @@
     .summary-empty mat-icon { font-size: 28px; width: 28px; height: 28px; }
     .summary-empty p { margin: 0; font-size: 13px; }
 
+    .obligation-card { border: 1px solid #dbeafe; background: #f5f9ff; }
+    .obligation-details { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+    .obligation-row { display: flex; align-items: baseline; gap: 8px; width: 100%; }
+    .obligation-label { font-size: 12px; color: #9ca3af; min-width: 90px; }
+    .obligation-value { font-size: 14px; color: #374151; font-weight: 500; }
+    .obligation-suggested-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #7c3aed; background: #f3e8fd; border-radius: 8px; padding: 3px 8px; }
+    .obligation-suggested-chip mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .obligation-rationale { font-size: 12px; color: #9ca3af; margin: 0; line-height: 1.5; }
+    .obligation-edit-form { display: flex; flex-direction: column; gap: 12px; }
+    .obligation-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #6b7280; }
+    .obligation-field input { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit; }
+    .obligation-edit-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
 .role-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; background: #eef1f5; color: #5f6368; border-radius: 8px; padding: 1px 8px; margin-top: 3px; width: fit-content; }
 .role-chip mat-icon { font-size: 13px; width: 13px; height: 13px; }
 .role-chip.role-review { background: #e8f0fe; color: #1a73e8; }

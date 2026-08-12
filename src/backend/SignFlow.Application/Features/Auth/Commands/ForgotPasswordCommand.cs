@@ -31,7 +31,7 @@ public class ForgotPasswordCommandHandler(
         user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(24);
         await userManager.UpdateAsync(user);
 
-        await emailService.SendTemplateAsync(command.Email, "ForgotPassword", new { user.FullName, Token = Uri.EscapeDataString(token) }, "Reset your SignFlow password", cancellationToken);
+        await emailService.SendTemplateAsync(command.Email, "ForgotPassword", new { user.FullName, Token = Uri.EscapeDataString(token) }, "Reset your LegalDesk password", cancellationToken);
 
         logger.LogInformation("Password reset email sent to {Email}", command.Email);
     }

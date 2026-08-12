@@ -20,6 +20,8 @@ import { AuthService } from '../../core/auth/auth.service';
 import { DocumentDetail, WorkflowParticipant, AiSummaryDto } from '../../core/models';
 import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/workflow-visualizer.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
+import { ContractAnalysisPanelComponent } from './contract-analysis-panel.component';
+import { ContractCompliancePanelComponent } from './contract-compliance-panel.component';
 import { remainingTime, RemainingTime } from '../../core/utils/sla';
 
 @Component({
@@ -29,7 +31,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
     CommonModule, FormsModule, RouterLink,
     MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatStepperModule, MatChipsModule, MatDividerModule, MatTooltipModule, MatDialogModule,
-    MatSnackBarModule, WorkflowVisualizerComponent, CommentsPanelComponent, TranslatePipe
+    MatSnackBarModule, WorkflowVisualizerComponent, CommentsPanelComponent, ContractAnalysisPanelComponent,
+    ContractCompliancePanelComponent, TranslatePipe
   ],
   template: `
     <div class="detail-page">
@@ -373,6 +376,77 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 }
               </mat-card-content>
             </mat-card>
+
+            <!-- Contract Risk Analysis -->
+            <sf-contract-analysis-panel
+              [documentId]="doc()!.id"
+              [riskAnalysisJson]="doc()!.aiRiskAnalysisJson"
+              [generatedAt]="doc()!.aiRiskAnalysisGeneratedAt"
+              (analyzed)="load()">
+            </sf-contract-analysis-panel>
+
+            <!-- Regulatory Compliance Check -->
+            <sf-contract-compliance-panel
+              [documentId]="doc()!.id"
+              [complianceAnalysisJson]="doc()!.aiComplianceAnalysisJson"
+              [generatedAt]="doc()!.aiComplianceAnalysisGeneratedAt"
+              (analyzed)="load()">
+            </sf-contract-compliance-panel>
+
+            <!-- Obligation Tracking -->
+            <mat-card class="obligation-card">
+              <mat-card-header>
+                <mat-card-title class="ai-summary-title">
+                  <mat-icon class="ai-icon">event_available</mat-icon> {{ 'documents.detail.obligation.title' | translate }}
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (editingObligation()) {
+                  <div class="obligation-edit-form">
+                    <label class="obligation-field">
+                      <span>{{ 'documents.detail.obligation.dueDate' | translate }}</span>
+                      <input type="date" [(ngModel)]="obligationDueDateInput" />
+                    </label>
+                    <label class="obligation-field">
+                      <span>{{ 'documents.detail.obligation.type' | translate }}</span>
+                      <input type="text" [(ngModel)]="obligationTypeInput" />
+                    </label>
+                    <div class="obligation-edit-actions">
+                      <button mat-stroked-button (click)="cancelEditObligation()">{{ 'common.cancel' | translate }}</button>
+                      <button mat-flat-button color="primary" [disabled]="savingObligation() || !obligationDueDateInput || !obligationTypeInput"
+                        (click)="saveObligation()">{{ 'documents.detail.obligation.save' | translate }}</button>
+                    </div>
+                  </div>
+                } @else if (doc()!.obligationDueDate) {
+                  <div class="obligation-details">
+                    <div class="obligation-row">
+                      <span class="obligation-label">{{ 'documents.detail.obligation.dueDate' | translate }}</span>
+                      <span class="obligation-value">{{ doc()!.obligationDueDate | date:'MMM d, y' }}</span>
+                    </div>
+                    <div class="obligation-row">
+                      <span class="obligation-label">{{ 'documents.detail.obligation.type' | translate }}</span>
+                      <span class="obligation-value">{{ doc()!.obligationType }}</span>
+                    </div>
+                    @if (!doc()!.obligationConfirmed) {
+                      <div class="obligation-suggested-chip">
+                        <mat-icon>auto_awesome</mat-icon> {{ 'documents.detail.obligation.suggested' | translate }}
+                      </div>
+                      @if (doc()!.obligationRationale) {
+                        <p class="obligation-rationale">{{ doc()!.obligationRationale }}</p>
+                      }
+                    }
+                    @if (isOwner() || auth.isAdmin()) {
+                      <button mat-stroked-button (click)="startEditObligation()">{{ 'documents.detail.obligation.edit' | translate }}</button>
+                    }
+                  </div>
+                } @else {
+                  <div class="summary-empty">
+                    <mat-icon>event_available</mat-icon>
+                    <p>{{ 'documents.detail.obligation.none' | translate }}</p>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
           </div>
         </div>
       } @else if (error()) {
@@ -407,6 +481,11 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   readonly signedCount = () => this.doc()?.fields.filter(f => f.isSigned).length ?? 0;
   readonly reopening = signal(false);
   readonly uploadingRevision = signal(false);
+
+  readonly editingObligation = signal(false);
+  readonly savingObligation = signal(false);
+  obligationDueDateInput = '';
+  obligationTypeInput = '';
 
   /** Owner and admins can resolve/delete any comment thread. */
   readonly canModerate = () =>
@@ -498,6 +577,29 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     this.documentService.reopen(d.id).subscribe({
       next: () => { this.reopening.set(false); this.load(); },
       error: err => { this.reopening.set(false); this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.reopenFailed'), 'OK', { duration: 4000 }); }
+    });
+  }
+
+  startEditObligation(): void {
+    const d = this.doc();
+    this.obligationDueDateInput = d?.obligationDueDate ? d.obligationDueDate.substring(0, 10) : '';
+    this.obligationTypeInput = d?.obligationType ?? '';
+    this.editingObligation.set(true);
+  }
+
+  cancelEditObligation(): void {
+    this.editingObligation.set(false);
+  }
+
+  saveObligation(): void {
+    if (!this.obligationDueDateInput || !this.obligationTypeInput) return;
+    this.savingObligation.set(true);
+    this.documentService.updateObligation(this.documentId, this.obligationDueDateInput, this.obligationTypeInput.trim()).subscribe({
+      next: () => { this.savingObligation.set(false); this.editingObligation.set(false); this.load(); },
+      error: err => {
+        this.savingObligation.set(false);
+        this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.obligation.saveFailed'), 'OK', { duration: 4000 });
+      }
     });
   }
 

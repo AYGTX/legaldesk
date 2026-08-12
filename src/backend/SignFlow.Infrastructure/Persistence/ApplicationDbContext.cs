@@ -31,6 +31,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<HtmlTemplateField> HtmlTemplateFields => Set<HtmlTemplateField>();
     public DbSet<PdfTemplate> PdfTemplates => Set<PdfTemplate>();
     public DbSet<PdfTemplateField> PdfTemplateFields => Set<PdfTemplateField>();
+    public DbSet<Clause> Clauses => Set<Clause>();
+    public DbSet<RegulatoryText> RegulatoryTexts => Set<RegulatoryText>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

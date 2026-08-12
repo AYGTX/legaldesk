@@ -1,10 +1,14 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SignFlow.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace SignFlow.Infrastructure.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260704200000_AddHideRecipientIdentitiesToDocument")]
     public partial class AddHideRecipientIdentitiesToDocument : Migration
     {
         /// <inheritdoc />

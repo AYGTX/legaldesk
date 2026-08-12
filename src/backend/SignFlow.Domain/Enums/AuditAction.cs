@@ -28,5 +28,7 @@ public enum AuditAction
     AuthenticationEvent = 23,
     ChangesRequested = 24,
     RevisionUploaded = 25,
-    SignaturesVoided = 26
+    SignaturesVoided = 26,
+    ContractAnalysed = 27,
+    ComplianceAnalysed = 28
 }

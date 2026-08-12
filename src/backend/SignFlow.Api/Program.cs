@@ -31,12 +31,12 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.WithMachineName()
     .Enrich.WithThreadId()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} ({SourceContext}){NewLine}{Exception}")
-    .WriteTo.File("logs/signflow-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
+    .WriteTo.File("logs/legaldesk-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
     .CreateBootstrapLogger();
 
 try
 {
-    Log.Information("Starting SignFlow API...");
+    Log.Information("Starting LegalDesk API...");
 
     var builder = WebApplication.CreateBuilder(args);
 
@@ -110,7 +110,7 @@ try
         .AddHangfire(options => options.MinimumAvailableServers = 1, name: "hangfire", tags: ["background"]);
 
     builder.Services.AddOpenTelemetry()
-        .ConfigureResource(resource => resource.AddService("SignFlow.API"))
+        .ConfigureResource(resource => resource.AddService("LegalDesk.API"))
         .WithTracing(tracing => tracing
             .AddAspNetCoreInstrumentation())
         .WithMetrics(metrics => metrics
@@ -134,7 +134,7 @@ try
         app.MapOpenApi();
         app.MapScalarApiReference(options =>
         {
-            options.Title = "SignFlow API";
+            options.Title = "LegalDesk API";
             options.Theme = ScalarTheme.DeepSpace;
         });
     }
@@ -165,6 +165,12 @@ try
         "sla-expiration-sweep",
         job => job.SweepAsync(CancellationToken.None),
         "*/15 * * * *");
+
+    // Recurring obligation sweep: remind owners of upcoming contract renewal/expiry dates daily.
+    RecurringJob.AddOrUpdate<ObligationReminderJob>(
+        "obligation-reminder-sweep",
+        job => job.SweepAsync(CancellationToken.None),
+        "0 8 * * *");
 
     app.MapControllers();
     app.MapHub<SignFlowHub>("/hubs/signflow");
@@ -198,7 +204,7 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "SignFlow API terminated unexpectedly");
+    Log.Fatal(ex, "LegalDesk API terminated unexpectedly");
 }
 finally
 {

@@ -8,7 +8,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HtmlTemplateService } from '../../core/services/html-template.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { HtmlTemplateDto } from '../../core/models/html-template.models';
@@ -19,29 +19,29 @@ import { HtmlTemplateDto } from '../../core/models/html-template.models';
   imports: [
     CommonModule, RouterLink, FormsModule,
     MatButtonModule, MatIconModule, MatMenuModule,
-    MatProgressSpinnerModule, MatTooltipModule, MatSnackBarModule
+    MatProgressSpinnerModule, MatTooltipModule, MatSnackBarModule, TranslatePipe
   ],
   template: `
     <div class="ht-page">
       <div class="page-header">
         <div>
-          <h1 class="page-title">HTML Templates</h1>
-          <p class="page-sub">Create reusable form templates with pre-fillable fields and signature zones.</p>
+          <h1 class="page-title">{{ 'htmlTemplates.list.title' | translate }}</h1>
+          <p class="page-sub">{{ 'htmlTemplates.list.subtitle' | translate }}</p>
         </div>
         <a mat-flat-button [routerLink]="['new']" class="create-btn">
-          <mat-icon>add</mat-icon> New Template
+          <mat-icon>add</mat-icon> {{ 'htmlTemplates.list.newTemplate' | translate }}
         </a>
       </div>
 
       <div class="toolbar">
         <div class="search-wrap">
           <span class="material-symbols-outlined search-icon">search</span>
-          <input class="search-input" [(ngModel)]="search" (input)="onSearch()" placeholder="Search templates…" />
+          <input class="search-input" [(ngModel)]="search" (input)="onSearch()" [placeholder]="'htmlTemplates.list.searchPlaceholder' | translate" />
         </div>
         <div class="filter-pills">
-          <button class="pill" [class.active]="activeFilter() === null" (click)="setFilter(null)">All</button>
-          <button class="pill" [class.active]="activeFilter() === true" (click)="setFilter(true)">Active</button>
-          <button class="pill" [class.active]="activeFilter() === false" (click)="setFilter(false)">Inactive</button>
+          <button class="pill" [class.active]="activeFilter() === null" (click)="setFilter(null)">{{ 'templates.filterAllStatus' | translate }}</button>
+          <button class="pill" [class.active]="activeFilter() === true" (click)="setFilter(true)">{{ 'templates.filterActive' | translate }}</button>
+          <button class="pill" [class.active]="activeFilter() === false" (click)="setFilter(false)">{{ 'templates.filterInactive' | translate }}</button>
         </div>
       </div>
 
@@ -50,8 +50,8 @@ import { HtmlTemplateDto } from '../../core/models/html-template.models';
       } @else if (templates().length === 0) {
         <div class="empty-state">
           <span class="material-symbols-outlined empty-icon">description</span>
-          <p>No templates found.</p>
-          <a mat-stroked-button [routerLink]="['new']">Create your first template</a>
+          <p>{{ 'htmlTemplates.list.empty' | translate }}</p>
+          <a mat-stroked-button [routerLink]="['new']">{{ 'htmlTemplates.list.createFirst' | translate }}</a>
         </div>
       } @else {
         <div class="list-surface">
@@ -64,37 +64,37 @@ import { HtmlTemplateDto } from '../../core/models/html-template.models';
                 <div class="row-top">
                   <span class="tpl-name">{{ t.name }}</span>
                   @if (!t.isActive) {
-                    <span class="badge-inactive">Inactive</span>
+                    <span class="badge-inactive">{{ 'templates.inactive' | translate }}</span>
                   }
                 </div>
                 @if (t.description) {
                   <p class="tpl-desc">{{ t.description }}</p>
                 }
                 <div class="row-meta">
-                  <span>{{ t.fieldCount }} field{{ t.fieldCount !== 1 ? 's' : '' }}</span>
+                  <span>{{ 'templates.fields' | translate: { n: t.fieldCount } }}</span>
                   @if (t.defaultApproverName) {
                     <span class="sep">·</span>
-                    <span>Default approver: {{ t.defaultApproverName }}</span>
+                    <span>{{ 'templates.defaultApprover' | translate: { name: t.defaultApproverName } }}</span>
                   }
                   <span class="sep">·</span>
-                  <span>Created by {{ t.createdByName }}</span>
+                  <span>{{ 'templates.createdBy' | translate: { name: t.createdByName } }}</span>
                   <span class="sep">·</span>
                   <span>{{ t.createdAt | date:'mediumDate' }}</span>
                 </div>
               </div>
               <div class="row-actions">
-                <a mat-icon-button [routerLink]="[t.id, 'edit']" matTooltip="Edit template">
+                <a mat-icon-button [routerLink]="[t.id, 'edit']" [matTooltip]="'htmlTemplates.list.editTooltip' | translate">
                   <mat-icon>edit</mat-icon>
                 </a>
-                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="More">
+                <button mat-icon-button [matMenuTriggerFor]="menu" [matTooltip]="'common.more' | translate">
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
                   <a mat-menu-item [routerLink]="[t.id, 'edit']">
-                    <mat-icon>edit</mat-icon><span>Edit</span>
+                    <mat-icon>edit</mat-icon><span>{{ 'common.edit' | translate }}</span>
                   </a>
                   <button mat-menu-item (click)="deleteTemplate(t)">
-                    <mat-icon color="warn">delete</mat-icon><span>Delete</span>
+                    <mat-icon color="warn">delete</mat-icon><span>{{ 'common.delete' | translate }}</span>
                   </button>
                 </mat-menu>
               </div>
@@ -194,10 +194,10 @@ export class HtmlTemplatesListComponent implements OnInit {
   private doDelete(t: HtmlTemplateDto) {
     this.svc.delete(t.id).subscribe({
       next: () => {
-        this.snack.open('Template deleted', 'OK', { duration: 3000 });
+        this.snack.open(this.translate.instant('htmlTemplates.list.deleted'), 'OK', { duration: 3000 });
         this.load();
       },
-      error: () => this.snack.open('Failed to delete template', 'OK', { duration: 3000 })
+      error: () => this.snack.open(this.translate.instant('htmlTemplates.list.deleteFailed'), 'OK', { duration: 3000 })
     });
   }
 }

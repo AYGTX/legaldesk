@@ -58,6 +58,20 @@ public class DocumentsController(
         return NoContent();
     }
 
+    /// <summary>Confirm or override the AI-suggested obligation (renewal/expiry) date</summary>
+    [HttpPatch("{id:guid}/obligation")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<IActionResult> UpdateObligation(
+        [FromRoute] Guid id,
+        [FromBody] UpdateObligationRequest request,
+        [FromServices] ICommandHandler<UpdateObligationCommand> handler,
+        CancellationToken ct)
+    {
+        await handler.HandleAsync(new UpdateObligationCommand(id, request.DueDate, request.ObligationType), ct);
+        return NoContent();
+    }
+
     /// <summary>List documents with pagination, filtering and sorting</summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<DocumentSummaryDto>), 200)]
@@ -176,6 +190,36 @@ public class DocumentsController(
         return File(stream, "application/pdf", doc.FileName);
     }
 
+    /// <summary>Run a full legal review of the contract — gaps, weak clauses, proposed wording and the next obligation date</summary>
+    [HttpPost("{id:guid}/analyze")]
+    [ProducesResponseType(typeof(ContractAnalysisDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<ActionResult<ContractAnalysisDto>> Analyze(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto> analyzeHandler,
+        CancellationToken ct)
+    {
+        var result = await analyzeHandler.HandleAsync(new AnalyzeContractCommand(id), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Check the contract against the published regulatory watch registry — a keyword scan, not a legal opinion</summary>
+    [HttpPost("{id:guid}/compliance")]
+    [ProducesResponseType(typeof(ComplianceAnalysisDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<ActionResult<ComplianceAnalysisDto>> AnalyzeCompliance(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<AnalyzeComplianceCommand, ComplianceAnalysisDto> analyzeComplianceHandler,
+        CancellationToken ct)
+    {
+        var result = await analyzeComplianceHandler.HandleAsync(new AnalyzeComplianceCommand(id), ct);
+        return Ok(result);
+    }
+
     /// <summary>Get an AI-generated plain-English summary of a document</summary>
     [HttpGet("{id:guid}/summary")]
     [ProducesResponseType(typeof(AiDocumentSummaryDto), 200)]
@@ -212,5 +256,7 @@ public record UploadDocumentRequest(
     Guid? RequestTypeId = null);
 
 public record ReopenDocumentRequest(int? SlaHours);
+
+public record UpdateObligationRequest(DateTime DueDate, string ObligationType);
 
 public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);

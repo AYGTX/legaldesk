@@ -8,7 +8,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { ClausePickerDialogComponent } from '../clauses/clause-picker-dialog.component';
 import { HtmlTemplateService } from '../../core/services/html-template.service';
 import { UserService } from '../../core/services/user.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
@@ -23,22 +25,22 @@ const WORKFLOW_TYPES: { value: WorkflowType; labelKey: string }[] = [
   { value: 'Mixed', labelKey: 'designer.workflow.mixed' },
 ];
 
-const FIELD_TYPES: { value: HtmlFieldType; label: string; icon: string }[] = [
-  { value: 'Text', label: 'Text', icon: 'text_fields' },
-  { value: 'Textarea', label: 'Long text', icon: 'notes' },
-  { value: 'Date', label: 'Date', icon: 'calendar_today' },
-  { value: 'Number', label: 'Number', icon: 'tag' },
-  { value: 'Checkbox', label: 'Checkbox', icon: 'check_box' },
-  { value: 'Signature', label: 'Signature', icon: 'draw' },
+const FIELD_TYPES: { value: HtmlFieldType; labelKey: string; icon: string }[] = [
+  { value: 'Text', labelKey: 'htmlTemplateEditor.fieldType.Text', icon: 'text_fields' },
+  { value: 'Textarea', labelKey: 'htmlTemplateEditor.fieldType.Textarea', icon: 'notes' },
+  { value: 'Date', labelKey: 'htmlTemplateEditor.fieldType.Date', icon: 'calendar_today' },
+  { value: 'Number', labelKey: 'htmlTemplateEditor.fieldType.Number', icon: 'tag' },
+  { value: 'Checkbox', labelKey: 'htmlTemplateEditor.fieldType.Checkbox', icon: 'check_box' },
+  { value: 'Signature', labelKey: 'htmlTemplateEditor.fieldType.Signature', icon: 'draw' },
 ];
 
 const AUTO_FILL_OPTIONS = [
-  { value: 'user.fullName', label: 'Full name' },
-  { value: 'user.firstName', label: 'First name' },
-  { value: 'user.lastName', label: 'Last name' },
-  { value: 'user.email', label: 'Email' },
-  { value: 'user.company', label: 'Company' },
-  { value: 'user.department', label: 'Department' },
+  { value: 'user.fullName', labelKey: 'htmlTemplateEditor.autoFillOption.fullName' },
+  { value: 'user.firstName', labelKey: 'htmlTemplateEditor.autoFillOption.firstName' },
+  { value: 'user.lastName', labelKey: 'htmlTemplateEditor.autoFillOption.lastName' },
+  { value: 'user.email', labelKey: 'htmlTemplateEditor.autoFillOption.email' },
+  { value: 'user.company', labelKey: 'htmlTemplateEditor.autoFillOption.company' },
+  { value: 'user.department', labelKey: 'htmlTemplateEditor.autoFillOption.department' },
 ];
 
 @Component({
@@ -47,31 +49,31 @@ const AUTO_FILL_OPTIONS = [
   imports: [
     CommonModule, FormsModule, RouterLink,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatTooltipModule, TranslatePipe
+    MatSnackBarModule, MatTooltipModule, MatDialogModule, TranslatePipe
   ],
   template: `
     <div class="editor-page">
       <!-- Top bar -->
       <div class="top-bar">
-        <a mat-icon-button routerLink="/admin/html-templates" matTooltip="Back to templates">
+        <a mat-icon-button routerLink="/admin/html-templates" [matTooltip]="'htmlTemplateEditor.backToTemplates' | translate">
           <mat-icon>arrow_back</mat-icon>
         </a>
         <div class="top-title">
-          <input class="title-input" [(ngModel)]="name" placeholder="Template name…" />
+          <input class="title-input" [(ngModel)]="name" [placeholder]="'htmlTemplateEditor.namePlaceholder' | translate" />
         </div>
         <div class="top-actions">
           <button mat-stroked-button class="ai-btn" (click)="aiPanelOpen.set(true)">
             <span class="material-symbols-outlined ai-icon">auto_awesome</span>
-            Generate with AI
+            {{ 'htmlTemplateEditor.generateWithAi' | translate }}
           </button>
           <button mat-stroked-button (click)="togglePreview()">
             <mat-icon>{{ previewing() ? 'edit' : 'preview' }}</mat-icon>
-            {{ previewing() ? 'Edit' : 'Preview' }}
+            {{ previewing() ? ('common.edit' | translate) : ('htmlTemplateEditor.preview' | translate) }}
           </button>
           <button mat-flat-button class="save-btn" (click)="save()" [disabled]="saving()">
             @if (saving()) { <mat-spinner diameter="18"></mat-spinner> }
             @else { <mat-icon>save</mat-icon> }
-            {{ isEdit ? 'Update' : 'Create' }}
+            {{ isEdit ? ('common.update' | translate) : ('common.create' | translate) }}
           </button>
         </div>
       </div>
@@ -79,13 +81,13 @@ const AUTO_FILL_OPTIONS = [
       <!-- Meta row -->
       <div class="meta-row">
         <div class="meta-field">
-          <label>Description</label>
-          <input [(ngModel)]="description" placeholder="Optional description…" class="meta-input" />
+          <label>{{ 'common.description' | translate }}</label>
+          <input [(ngModel)]="description" [placeholder]="'htmlTemplateEditor.descriptionPlaceholder' | translate" class="meta-input" />
         </div>
         <div class="meta-field">
-          <label>Default approver</label>
+          <label>{{ 'htmlTemplateEditor.defaultApprover' | translate }}</label>
           <select [(ngModel)]="defaultApproverId" class="meta-select">
-            <option value="">— User picks at submit time —</option>
+            <option value="">{{ 'htmlTemplateEditor.userPicksAtSubmit' | translate }}</option>
             @for (u of users(); track u.id) {
               <option [value]="u.id">{{ u.fullName }} ({{ u.email }})</option>
             }
@@ -118,9 +120,9 @@ const AUTO_FILL_OPTIONS = [
         </div>
         @if (isEdit) {
           <div class="meta-field meta-toggle">
-            <label>Active</label>
+            <label>{{ 'htmlTemplateEditor.active' | translate }}</label>
             <button class="toggle-btn" [class.on]="isActive" (click)="isActive = !isActive">
-              {{ isActive ? 'Active' : 'Inactive' }}
+              {{ isActive ? ('htmlTemplateEditor.active' | translate) : ('htmlTemplateEditor.inactive' | translate) }}
             </button>
           </div>
         }
@@ -131,21 +133,25 @@ const AUTO_FILL_OPTIONS = [
         <!-- HTML editor / preview -->
         <div class="html-panel">
           <div class="panel-header">
-            <span class="panel-label">HTML Content</span>
-            <span class="panel-hint">Use <code>{{ curlyExample }}</code> placeholders — click "Insert" on a field to add one</span>
+            <span class="panel-label">{{ 'htmlTemplateEditor.htmlContentLabel' | translate }}</span>
+            <button class="clause-lib-btn" (click)="openClausePicker()"
+                    [matTooltip]="'clauses.picker.buttonTooltip' | translate">
+              <mat-icon>menu_book</mat-icon> {{ 'clauses.picker.button' | translate }}
+            </button>
+            <span class="panel-hint" [innerHTML]="'htmlTemplateEditor.panelHint' | translate: { example: curlyExample }"></span>
           </div>
           @if (previewing()) {
             <div class="preview-pane" [innerHTML]="previewHtml"></div>
           } @else {
             <textarea #htmlEditor class="html-textarea" [(ngModel)]="htmlContent"
-              [placeholder]="htmlPlaceholder" (paste)="onHtmlPaste()"></textarea>
+              [placeholder]="'htmlTemplateEditor.htmlPlaceholder' | translate" (paste)="onHtmlPaste()"></textarea>
           }
         </div>
 
         <!-- Field sidebar -->
         <div class="field-sidebar">
           <div class="panel-header">
-            <span class="panel-label">Fields</span>
+            <span class="panel-label">{{ 'htmlTemplateEditor.fieldsLabel' | translate }}</span>
             <button class="add-field-btn" (click)="addField()">
               <mat-icon>add</mat-icon>
             </button>
@@ -153,8 +159,8 @@ const AUTO_FILL_OPTIONS = [
 
           @if (fields().length === 0) {
             <div class="fields-empty">
-              <p>No fields yet.</p>
-              <p>Add fields to create interactive placeholders in your template.</p>
+              <p>{{ 'htmlTemplateEditor.noFieldsYet' | translate }}</p>
+              <p>{{ 'htmlTemplateEditor.noFieldsHint' | translate }}</p>
             </div>
           }
 
@@ -164,17 +170,17 @@ const AUTO_FILL_OPTIONS = [
                 <div class="field-card-header" (click)="toggleField(i)">
                   <span class="field-type-icon material-symbols-outlined">{{ iconFor(f.type) }}</span>
                   <div class="field-card-title">
-                    <span class="field-label-text">{{ f.label || '(no label)' }}</span>
+                    <span class="field-label-text">{{ f.label || ('htmlTemplateEditor.noLabelFallback' | translate) }}</span>
                     <span class="field-key-text">{{ toPlaceholder(f.fieldKey) }}</span>
                   </div>
                   <div class="field-card-badges">
-                    <span class="badge-role" [class.approver]="f.role === 'Approver'">{{ f.role }}</span>
+                    <span class="badge-role" [class.approver]="f.role === 'Approver'">{{ ('htmlTemplateEditor.role.' + f.role) | translate }}</span>
                   </div>
                   <div class="field-card-btns">
-                    <button class="insert-btn" (click)="insertPlaceholder(f.fieldKey, $event)" matTooltip="Insert into HTML">
+                    <button class="insert-btn" (click)="insertPlaceholder(f.fieldKey, $event)" [matTooltip]="'htmlTemplateEditor.insertIntoHtml' | translate">
                       <mat-icon>add_circle_outline</mat-icon>
                     </button>
-                    <button class="remove-btn" (click)="removeField(i, $event)" matTooltip="Remove">
+                    <button class="remove-btn" (click)="removeField(i, $event)" [matTooltip]="'htmlTemplateEditor.remove' | translate">
                       <mat-icon>delete_outline</mat-icon>
                     </button>
                     <mat-icon class="chevron">{{ expandedIdx() === i ? 'expand_less' : 'expand_more' }}</mat-icon>
@@ -184,39 +190,39 @@ const AUTO_FILL_OPTIONS = [
                 @if (expandedIdx() === i) {
                   <div class="field-card-body">
                     <div class="fc-row">
-                      <label>Key</label>
-                      <input [(ngModel)]="f.fieldKey" class="fc-input" placeholder="e.g. employeeName" (change)="sanitizeKey(f)" />
+                      <label>{{ 'htmlTemplateEditor.keyLabel' | translate }}</label>
+                      <input [(ngModel)]="f.fieldKey" class="fc-input" [placeholder]="'htmlTemplateEditor.keyPlaceholder' | translate" (change)="sanitizeKey(f)" />
                     </div>
                     <div class="fc-row">
-                      <label>Label</label>
-                      <input [(ngModel)]="f.label" class="fc-input" placeholder="Display label" />
+                      <label>{{ 'htmlTemplateEditor.labelLabel' | translate }}</label>
+                      <input [(ngModel)]="f.label" class="fc-input" [placeholder]="'htmlTemplateEditor.labelPlaceholder' | translate" />
                     </div>
                     <div class="fc-row">
-                      <label>Type</label>
+                      <label>{{ 'htmlTemplateEditor.typeLabel' | translate }}</label>
                       <select [(ngModel)]="f.type" class="fc-select">
                         @for (t of fieldTypes; track t.value) {
-                          <option [value]="t.value">{{ t.label }}</option>
+                          <option [value]="t.value">{{ t.labelKey | translate }}</option>
                         }
                       </select>
                     </div>
                     <div class="fc-row">
-                      <label>Role</label>
+                      <label>{{ 'htmlTemplateEditor.roleLabel' | translate }}</label>
                       <select [(ngModel)]="f.role" class="fc-select">
-                        <option value="Initiator">Initiator (fills before sending)</option>
-                        <option value="Approver">Approver (signs/fills after routing)</option>
+                        <option value="Initiator">{{ 'htmlTemplateEditor.roleInitiatorOption' | translate }}</option>
+                        <option value="Approver">{{ 'htmlTemplateEditor.roleApproverOption' | translate }}</option>
                       </select>
                     </div>
                     <div class="fc-row fc-check">
-                      <label>Required</label>
+                      <label>{{ 'common.required' | translate }}</label>
                       <input type="checkbox" [(ngModel)]="f.isRequired" />
                     </div>
                     @if (f.role === 'Initiator' && f.type !== 'Signature') {
                       <div class="fc-row">
-                        <label>Auto-fill</label>
+                        <label>{{ 'htmlTemplateEditor.autoFillLabel' | translate }}</label>
                         <select [(ngModel)]="f.autoFillFrom" class="fc-select">
-                          <option value="">None</option>
+                          <option value="">{{ 'htmlTemplateEditor.autoFillNone' | translate }}</option>
                           @for (a of autoFillOptions; track a.value) {
-                            <option [value]="a.value">{{ a.label }}</option>
+                            <option [value]="a.value">{{ a.labelKey | translate }}</option>
                           }
                         </select>
                       </div>
@@ -252,7 +258,7 @@ const AUTO_FILL_OPTIONS = [
             <div class="ai-panel-header">
               <div class="ai-panel-title">
                 <span class="material-symbols-outlined">auto_awesome</span>
-                <span>Generate with AI</span>
+                <span>{{ 'htmlTemplateEditor.generateWithAi' | translate }}</span>
               </div>
               <button mat-icon-button (click)="aiPanelOpen.set(false)">
                 <mat-icon>close</mat-icon>
@@ -260,9 +266,9 @@ const AUTO_FILL_OPTIONS = [
             </div>
 
             <div class="ai-panel-body">
-              <p class="ai-hint">Describe the contract or paste a draft. AI will generate the HTML layout and suggest the parameterised clauses automatically.</p>
+              <p class="ai-hint">{{ 'htmlTemplateEditor.aiHint' | translate }}</p>
               <textarea class="ai-prompt-textarea" [(ngModel)]="aiPrompt"
-                placeholder="Examples:&#10;• A B2B service contract with counterparty, scope, term, payment terms and signatures&#10;• An NDA with company name, effective date, duration and signature&#10;• Paste the raw text of an existing contract…"
+                [placeholder]="'htmlTemplateEditor.aiPromptPlaceholder' | translate"
                 rows="10"></textarea>
             </div>
 
@@ -271,12 +277,12 @@ const AUTO_FILL_OPTIONS = [
                 <span class="material-symbols-outlined">smart_toy</span> Groq AI
               </span>
               <div class="ai-footer-actions">
-                <button mat-stroked-button (click)="aiPanelOpen.set(false)">Cancel</button>
+                <button mat-stroked-button (click)="aiPanelOpen.set(false)">{{ 'common.cancel' | translate }}</button>
                 <button mat-flat-button class="ai-generate-btn" (click)="generateWithAi()" [disabled]="aiGenerating() || !aiPrompt.trim()">
                   @if (aiGenerating()) {
-                    <mat-spinner diameter="16"></mat-spinner> Generating…
+                    <mat-spinner diameter="16"></mat-spinner> {{ 'htmlTemplateEditor.generating' | translate }}
                   } @else {
-                    <span class="material-symbols-outlined">auto_awesome</span> Generate
+                    <span class="material-symbols-outlined">auto_awesome</span> {{ 'htmlTemplateEditor.generate' | translate }}
                   }
                 </button>
               </div>
@@ -322,6 +328,9 @@ const AUTO_FILL_OPTIONS = [
     .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #e8edf2; background: #f8faff; }
     .panel-label { font-size: 13px; font-weight: 500; color: #1f1f1f; }
     .panel-hint { font-size: 12px; color: #5f6368; }
+    .clause-lib-btn { display: inline-flex; align-items: center; gap: 5px; background: #f3e8fd; color: #7627bb; border: 1px solid #e4d0f7; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; }
+    .clause-lib-btn:hover { background: #ecdcfb; }
+    .clause-lib-btn mat-icon { font-size: 15px; width: 15px; height: 15px; }
     .panel-hint code { background: #e8f0fe; color: #0b57d0; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
 
     .html-textarea { flex: 1; width: 100%; border: none; outline: none; resize: none; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.6; padding: 16px; color: #1f1f1f; box-sizing: border-box; background: #fff; }
@@ -401,11 +410,11 @@ export class HtmlTemplateEditorComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+  private readonly dialog = inject(MatDialog);
 
   readonly fieldTypes = FIELD_TYPES;
   readonly autoFillOptions = AUTO_FILL_OPTIONS;
   readonly workflowTypes = WORKFLOW_TYPES;
-  readonly htmlPlaceholder = 'Write your HTML here…\n\nExample:\n<h2>Vacation Request</h2>\n<p>Employee: {{employeeName}}</p>';
   readonly curlyExample = '{{fieldKey}}';
 
   isEdit = false;
@@ -495,15 +504,34 @@ export class HtmlTemplateEditorComponent implements OnInit {
 
   insertPlaceholder(key: string, e: Event) {
     e.stopPropagation();
-    const placeholder = `{{${key}}}`;
+    this.insertAtCursor(`{{${key}}}`);
+  }
+
+  /**
+   * Opens the clause library and drops the chosen approved wording in at the cursor. Any
+   * {{placeholders}} the clause carries are picked up as fields by the same scan used for pasted HTML.
+   */
+  openClausePicker() {
+    this.dialog.open(ClausePickerDialogComponent, { width: '780px', maxWidth: '95vw' })
+      .afterClosed().subscribe(clause => {
+        if (!clause) return;
+        this.insertAtCursor(`\n${clause.body}\n`);
+        this.scanForNewFields();
+        this.snack.open(
+          this.translate.instant('clauses.picker.inserted', { title: clause.title }),
+          'OK', { duration: 3000 });
+      });
+  }
+
+  private insertAtCursor(text: string) {
     if (this.htmlEditorRef) {
       const ta = this.htmlEditorRef.nativeElement;
       const start = ta.selectionStart;
       const end = ta.selectionEnd;
-      this.htmlContent = this.htmlContent.slice(0, start) + placeholder + this.htmlContent.slice(end);
-      setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + placeholder.length; ta.focus(); }, 0);
+      this.htmlContent = this.htmlContent.slice(0, start) + text + this.htmlContent.slice(end);
+      setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + text.length; ta.focus(); }, 0);
     } else {
-      this.htmlContent += placeholder;
+      this.htmlContent += text;
     }
   }
 
@@ -575,11 +603,11 @@ export class HtmlTemplateEditorComponent implements OnInit {
         })));
         this.aiGenerating.set(false);
         this.aiPanelOpen.set(false);
-        this.snack.open('Template generated! Review and adjust as needed.', 'OK', { duration: 4000 });
+        this.snack.open(this.translate.instant('htmlTemplateEditor.templateGenerated'), 'OK', { duration: 4000 });
       },
       error: () => {
         this.aiGenerating.set(false);
-        this.snack.open('AI generation failed', 'OK', { duration: 3000 });
+        this.snack.open(this.translate.instant('htmlTemplateEditor.aiGenerationFailed'), 'OK', { duration: 3000 });
       }
     });
   }
@@ -590,11 +618,11 @@ export class HtmlTemplateEditorComponent implements OnInit {
 
   save() {
     if (!this.name.trim()) {
-      this.snack.open('Template name is required', 'OK', { duration: 3000 });
+      this.snack.open(this.translate.instant('htmlTemplateEditor.nameRequired'), 'OK', { duration: 3000 });
       return;
     }
     if (!this.htmlContent.trim()) {
-      this.snack.open('HTML content is required', 'OK', { duration: 3000 });
+      this.snack.open(this.translate.instant('htmlTemplateEditor.htmlContentRequired'), 'OK', { duration: 3000 });
       return;
     }
     this.saving.set(true);
@@ -621,10 +649,10 @@ export class HtmlTemplateEditorComponent implements OnInit {
       }).subscribe({
         next: () => {
           this.saving.set(false);
-          this.snack.open('Template updated', 'OK', { duration: 3000 });
+          this.snack.open(this.translate.instant('htmlTemplateEditor.templateUpdated'), 'OK', { duration: 3000 });
           this.router.navigate(['/admin/html-templates']);
         },
-        error: () => { this.saving.set(false); this.snack.open('Failed to save', 'OK', { duration: 3000 }); }
+        error: () => { this.saving.set(false); this.snack.open(this.translate.instant('htmlTemplateEditor.failedToSave'), 'OK', { duration: 3000 }); }
       });
     } else {
       this.svc.create({
@@ -639,10 +667,10 @@ export class HtmlTemplateEditorComponent implements OnInit {
       }).subscribe({
         next: () => {
           this.saving.set(false);
-          this.snack.open('Template created', 'OK', { duration: 3000 });
+          this.snack.open(this.translate.instant('htmlTemplateEditor.templateCreated'), 'OK', { duration: 3000 });
           this.router.navigate(['/admin/html-templates']);
         },
-        error: () => { this.saving.set(false); this.snack.open('Failed to create', 'OK', { duration: 3000 }); }
+        error: () => { this.saving.set(false); this.snack.open(this.translate.instant('htmlTemplateEditor.failedToCreate'), 'OK', { duration: 3000 }); }
       });
     }
   }
