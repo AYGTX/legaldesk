@@ -1,3 +1,5 @@
+import { ReadinessVerdict } from './contract-intelligence.model';
+
 export type DocumentStatus = 'Draft' | 'Pending' | 'Sent' | 'Completed' | 'Rejected' | 'Expired' | 'Cancelled' | 'WaitingForOthers' | 'ChangesRequested';
 export type FieldType = 'Signature' | 'Initials' | 'Date' | 'Name' | 'Email' | 'Company' | 'Title' | 'Text' | 'MultilineText' | 'Number' | 'Checkbox' | 'Radio' | 'Dropdown' | 'Image' | 'Stamp' | 'Attachment' | 'QrCode' | 'Barcode' | 'Custom';
 export type ApprovalType = 'Signature' | 'Approval' | 'Review' | 'ViewOnly' | 'Stamp' | 'Reject';
@@ -57,6 +59,10 @@ export interface DocumentDetail {
   aiRiskAnalysisGeneratedAt?: string;
   aiComplianceAnalysisJson?: string;
   aiComplianceAnalysisGeneratedAt?: string;
+  /** Pre-flight verdict, carried on the detail payload so the intelligence band renders immediately. */
+  readinessVerdict: ReadinessVerdict;
+  readinessScore?: number;
+  readinessEvaluatedAt?: string;
   obligationDueDate?: string;
   obligationType?: string;
   obligationRationale?: string;

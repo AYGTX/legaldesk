@@ -40,6 +40,11 @@ export const routes: Routes = [
         title: 'New Validation Request — LegalDesk'
       },
       {
+        path: 'review',
+        loadComponent: () => import('./features/review/contract-review.component').then(m => m.ContractReviewComponent),
+        title: 'Contract Review — LegalDesk'
+      },
+      {
         path: 'documents/upload',
         loadComponent: () => import('./features/documents/upload-document.component').then(m => m.UploadDocumentComponent),
         title: 'Upload Contract — LegalDesk'

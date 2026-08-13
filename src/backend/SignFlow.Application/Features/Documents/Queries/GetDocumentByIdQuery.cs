@@ -37,6 +37,11 @@ public record DocumentDetailDto(
     DateTime? AiRiskAnalysisGeneratedAt,
     string? AiComplianceAnalysisJson,
     DateTime? AiComplianceAnalysisGeneratedAt,
+    // Pre-flight verdict, threaded through so the detail page's intelligence band renders in the
+    // same round-trip. The to-do items themselves come from GET /readiness.
+    ReadinessVerdict ReadinessVerdict,
+    int? ReadinessScore,
+    DateTime? ReadinessEvaluatedAt,
     DateTime? ObligationDueDate,
     string? ObligationType,
     string? ObligationRationale,
@@ -120,6 +125,9 @@ public class GetDocumentByIdQueryHandler(
             document.AiRiskAnalysisGeneratedAt,
             document.AiComplianceAnalysisJson,
             document.AiComplianceAnalysisGeneratedAt,
+            document.ReadinessVerdict,
+            document.ReadinessScore,
+            document.ReadinessEvaluatedAt,
             document.ObligationDueDate,
             document.ObligationType,
             document.ObligationRationale,

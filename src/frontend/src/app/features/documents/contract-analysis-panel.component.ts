@@ -41,7 +41,7 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
     MatExpansionModule, MatTooltipModule, MatSnackBarModule, TranslatePipe
   ],
   template: `
-    <mat-card class="analysis-card">
+    <mat-card class="analysis-card" [class.wide]="wide">
       <mat-card-header>
         <mat-card-title class="analysis-title">
           <mat-icon class="ai-icon">gavel</mat-icon> {{ 'documents.detail.analysis.title' | translate }}
@@ -117,7 +117,7 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
               </h4>
               <mat-accordion multi>
                 @for (finding of group.findings; track finding.clauseType + finding.explanation) {
-                  <mat-expansion-panel>
+                  <mat-expansion-panel [expanded]="wide && isSevere(group.severity)">
                     <mat-expansion-panel-header>
                       <mat-panel-title class="finding-title">
                         <span class="finding-clause">{{ finding.clauseType }}</span>
@@ -184,6 +184,7 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
     .summary-empty p { margin: 0; font-size: 13px; }
 
     .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f0e0d0; }
+    .wide .profile-grid { grid-template-columns: repeat(3, 1fr); gap: 14px 28px; }
     .profile-item { display: flex; flex-direction: column; gap: 2px; }
     .profile-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; }
     .profile-value { font-size: 13px; color: #374151; }
@@ -222,6 +223,11 @@ export class ContractAnalysisPanelComponent {
   @Input({ required: true }) documentId!: string;
   @Input() riskAnalysisJson: string | null | undefined = null;
   @Input() generatedAt: string | null | undefined = null;
+  /**
+   * Full-width placement (the document's Intelligence tab) rather than the narrow sidebar: the
+   * contract profile spreads out and severe findings start open instead of collapsed.
+   */
+  @Input() wide = false;
   /** Fires after a successful analysis so the parent can reload the document (obligation may have changed too). */
   @Output() analyzed = new EventEmitter<void>();
 
@@ -266,6 +272,10 @@ export class ContractAnalysisPanelComponent {
     if (score >= 50) return 'risk-high';
     if (score >= 25) return 'risk-medium';
     return 'risk-low';
+  }
+
+  isSevere(severity: RiskSeverity): boolean {
+    return severity === 'Critical' || severity === 'High';
   }
 
   severityClass(severity: RiskSeverity): string {

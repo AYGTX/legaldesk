@@ -45,6 +45,12 @@ public class Document : BaseEntity
     public string? AiComplianceAnalysisJson { get; private set; }
     public DateTime? AiComplianceAnalysisGeneratedAt { get; private set; }
 
+    // Pre-flight readiness: is this contract fit to enter a validation circuit? Derived from the
+    // risk + compliance findings that are still open, never from a separate model call.
+    public ReadinessVerdict ReadinessVerdict { get; private set; } = ReadinessVerdict.NotEvaluated;
+    public int? ReadinessScore { get; private set; }
+    public DateTime? ReadinessEvaluatedAt { get; private set; }
+
     // Obligation tracking (renewal/expiry date), AI-suggested at upload time and owner-confirmable
     public DateTime? ObligationDueDate { get; private set; }
     public string? ObligationType { get; private set; }
@@ -87,6 +93,7 @@ public class Document : BaseEntity
     public ICollection<SignatureField> SignatureFields { get; private set; } = [];
     public ICollection<AuditLog> AuditLogs { get; private set; } = [];
     public ICollection<Comment> Comments { get; private set; } = [];
+    public ICollection<DocumentReadinessItem> ReadinessItems { get; private set; } = [];
 
     private Document() { }
 
@@ -196,6 +203,12 @@ public class Document : BaseEntity
         AiRiskAnalysisGeneratedAt = null;
         AiComplianceAnalysisJson = null;
         AiComplianceAnalysisGeneratedAt = null;
+        // The verdict described the previous file too. Existing to-do items are deliberately kept:
+        // the adjustments they ask for may or may not be in this revision, and the next pre-flight
+        // run reconciles them by SourceKey.
+        ReadinessVerdict = ReadinessVerdict.NotEvaluated;
+        ReadinessScore = null;
+        ReadinessEvaluatedAt = null;
         if (SlaHours.HasValue)
             ExpiresAt = DateTime.UtcNow.AddHours(SlaHours.Value);
         else if (ExpirationDays.HasValue)
@@ -248,6 +261,18 @@ public class Document : BaseEntity
     {
         AiComplianceAnalysisJson = complianceAnalysisJson;
         AiComplianceAnalysisGeneratedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Records the outcome of a pre-flight review. Called both after a full analysis and after an
+    /// owner ticks an item off, since resolving a finding changes the verdict without re-analysing.
+    /// </summary>
+    public void SetReadiness(ReadinessVerdict verdict, int score)
+    {
+        ReadinessVerdict = verdict;
+        ReadinessScore = score;
+        ReadinessEvaluatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 

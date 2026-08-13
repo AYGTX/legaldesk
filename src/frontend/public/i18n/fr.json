@@ -44,7 +44,8 @@
     "auditTrail": "Traçabilité",
     "reports": "Rapports",
     "administration": "Administration",
-    "capabilities": "Capacités"
+    "capabilities": "Capacités",
+    "review": "Revue de contrat"
   },
   "layout": {
     "tagline": "Gestion du cycle de vie contractuel",
@@ -503,7 +504,22 @@
       "versionsTitle": "Historique des versions",
       "currentVersion": "Version actuelle",
       "noChangeNote": "Aucune note de révision",
-      "versionTooltip": "Ce contrat a été révisé — consultez l'historique des versions"
+      "versionTooltip": "Ce contrat a été révisé — consultez l'historique des versions",
+      "tabs": {
+        "overview": "Vue d’ensemble",
+        "intelligence": "Intelligence juridique"
+      },
+      "readiness": {
+        "ctaTitle": "Ce contrat n’a pas encore été analysé",
+        "ctaHint": "Lancez la revue préalable pour savoir s’il peut être envoyé, et ce qu’il faut ajuster.",
+        "run": "Lancer la revue juridique",
+        "rerun": "Relancer la revue",
+        "running": "Analyse en cours…",
+        "failed": "La revue n’a pas pu aboutir. Veuillez réessayer.",
+        "sendAnyway": "La revue préalable laisse {{count}} point(s) ouvert(s) sur ce contrat. L’envoyer quand même ?",
+        "sendAnywayConfirm": "Envoyer quand même",
+        "sendBlocked": "Ce contrat comporte des points critiques non traités. Traitez-les ou écartez-les dans l’onglet Intelligence juridique avant de l’envoyer."
+      }
     },
     "upload": {
       "title": "Importer un contrat",
@@ -1134,6 +1150,42 @@
       "savePreferences": "Enregistrer les préférences",
       "necessaryOnly": "Nécessaires uniquement",
       "acceptAll": "Tout accepter"
+    },
+    "readiness": {
+      "scoreLabel": "Aptitude",
+      "scoreHint": "Aptitude globale à entrer dans un circuit de validation, d’après la qualité de rédaction et la couverture réglementaire.",
+      "riskLabel": "Risque",
+      "complianceLabel": "Conformité",
+      "verdict": {
+        "NotEvaluated": "Pas encore analysé",
+        "Ready": "Prêt à envoyer",
+        "NeedsWork": "Ajustements requis",
+        "Blocked": "Points bloquants"
+      },
+      "sentence": {
+        "notEvaluated": "Lancez la revue préalable pour savoir si ce contrat peut être envoyé.",
+        "blocked": "{{critical}} point(s) critique(s) à traiter ou à écarter avant de pouvoir envoyer ce contrat.",
+        "needsWork": "{{open}} point(s) encore ouvert(s), dont {{high}} significatif(s).",
+        "readyClean": "Aucun point bloquant — ce contrat peut entrer dans le circuit de validation.",
+        "readyAfterFixes": "Les {{handled}} point(s) signalé(s) ont été traités — ce contrat peut maintenant être envoyé."
+      },
+      "category": {
+        "Risk": "Rédaction",
+        "Compliance": "Réglementaire",
+        "Obligation": "Échéance",
+        "Structure": "Structure"
+      },
+      "checklist": {
+        "title": "Ajustements à apporter",
+        "empty": "Rien à ajuster — aucun point n’a été relevé sur ce contrat.",
+        "markResolved": "Marquer comme traité",
+        "dismiss": "Non applicable",
+        "dismissHint": "Écarter un point qui ne concerne pas ce contrat. Il cesse de peser sur le verdict.",
+        "reopen": "Rouvrir",
+        "showHandled": "Afficher les points traités ({{count}})",
+        "hideHandled": "Masquer les points traités ({{count}})",
+        "updateFailed": "Impossible de mettre à jour ce point. Veuillez réessayer."
+      }
     }
   },
   "reports": {
@@ -1677,7 +1729,7 @@
       },
       "aiReview": {
         "title": "Revue contractuelle assistée par IA",
-        "desc": "Chaque contrat déposé bénéficie d’une analyse instantanée par moteur de règles et d’une synthèse pré-signature. Depuis la fiche du contrat, une revue juridique complète par le modèle de langage peut être lancée à la demande : elle identifie le contrat, signale les clauses manquantes, faibles ou contradictoires avec leur gravité et une formulation proposée, et extrait la prochaine échéance de renouvellement ou d’expiration — avec repli sur l’analyse par règles si le modèle est indisponible."
+        "desc": "Chaque contrat déposé bénéficie d’une analyse instantanée par moteur de règles et d’une synthèse pré-signature. Depuis la fiche du contrat, une revue juridique complète par le modèle de langage peut être lancée à la demande : elle identifie le contrat, signale les clauses manquantes, faibles ou contradictoires avec leur gravité et une formulation proposée, et extrait la prochaine échéance de renouvellement ou d’expiration — avec repli sur l’analyse par règles si le modèle est indisponible. Un espace Revue de contrat dédié lance cette revue automatiquement au dépôt et la traduit en verdict d’aptitude assorti d’une liste d’ajustements à cocher ; le verdict lui-même repose sur un jeu de règles déterministe appliqué à ces constats — il ne constitue pas un avis juridique — et l’envoi d’un contrat comportant des points critiques non traités est bloqué."
       },
       "workflow": {
         "title": "Workflow de validation digitalisé",
@@ -1743,6 +1795,49 @@
     "footer": {
       "privacy": "Politique de confidentialité",
       "terms": "Conditions d’utilisation"
+    }
+  },
+  "review": {
+    "title": "Revue de contrat",
+    "subtitle": "Vérifiez un contrat avant qu’il n’entre dans un circuit de validation — et voyez exactement quoi corriger.",
+    "dropHere": "Déposez ici un contrat à analyser",
+    "orBrowse": "ou cliquez pour parcourir",
+    "hint": "PDF uniquement, jusqu’à 50 Mo. L’analyse démarre dès la validation.",
+    "analyse": "Analyser ce contrat",
+    "reviewAnother": "Analyser un autre contrat",
+    "requestTypeHint": "Le type de contrat détermine les textes réglementaires utilisés pour le contrôle de conformité.",
+    "whatWeCheck": "Ce que nous vérifions",
+    "failed": "La revue n’a pas pu aboutir. Veuillez réessayer.",
+    "disclaimer": "Cette revue est un outil d’assistance et non un avis juridique. Un relecteur qualifié reste responsable du contrat.",
+    "checks": {
+      "clauses": {
+        "title": "Clauses et rédaction",
+        "desc": "Clauses manquantes, faibles, ambiguës ou déséquilibrées, avec une proposition de rédaction pour chacune."
+      },
+      "regulatory": {
+        "title": "Couverture réglementaire",
+        "desc": "Vérifie si le contrat traite les textes suivis pour ce type de contrat."
+      },
+      "obligations": {
+        "title": "Échéances clés",
+        "desc": "Dates de renouvellement, d’expiration et de revue extraites du texte pour pouvoir être suivies."
+      }
+    },
+    "analysing": {
+      "title": "Analyse du contrat en cours",
+      "uploading": "Téléversement et extraction du texte…",
+      "reviewing": "Revue juridique et contrôle réglementaire en cours…",
+      "note": "Comptez jusqu’à une minute — la revue complète lit l’intégralité du contrat."
+    },
+    "next": {
+      "title": "Étapes suivantes",
+      "promote": "Envoyer en circuit de validation",
+      "blockedHint": "Traitez ou écartez d’abord les points critiques.",
+      "uploadRevision": "Téléverser une version corrigée",
+      "uploading": "Téléversement…",
+      "revisionUploaded": "Version corrigée téléversée — nouvelle analyse en cours.",
+      "rerun": "Relancer l’analyse",
+      "openContract": "Ouvrir la fiche complète du contrat"
     }
   }
 }

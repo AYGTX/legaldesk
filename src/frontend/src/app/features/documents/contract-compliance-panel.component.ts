@@ -18,7 +18,7 @@ import { ComplianceAnalysis } from '../../core/models';
     MatTooltipModule, MatSnackBarModule, TranslatePipe
   ],
   template: `
-    <mat-card class="compliance-card">
+    <mat-card class="compliance-card" [class.wide]="wide">
       <mat-card-header>
         <mat-card-title class="compliance-title">
           <mat-icon class="ai-icon">policy</mat-icon> {{ 'documents.detail.compliance.title' | translate }}
@@ -96,6 +96,7 @@ import { ComplianceAnalysis } from '../../core/models';
     .score-low { background: #fee2e2; color: #991b1b; }
 
     .finding-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .wide .finding-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
     .finding-row { display: flex; align-items: flex-start; gap: 10px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; }
     .finding-status-chip { font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }
     .status-addressed { background: #e6f4ea; color: #1e6b2e; }
@@ -110,6 +111,8 @@ export class ContractCompliancePanelComponent {
   @Input({ required: true }) documentId!: string;
   @Input() complianceAnalysisJson: string | null | undefined = null;
   @Input() generatedAt: string | null | undefined = null;
+  /** Full-width placement: the regulation list goes two-up instead of a single narrow column. */
+  @Input() wide = false;
   @Output() analyzed = new EventEmitter<void>();
 
   private readonly documentService = inject(DocumentService);

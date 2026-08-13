@@ -4,7 +4,8 @@ import { ApiService } from './api.service';
 import {
   DocumentDetail, DocumentSummary, DashboardData,
   FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto,
-  ContractAnalysisResponse, ComplianceAnalysisResponse
+  ContractAnalysisResponse, ComplianceAnalysisResponse,
+  Readiness, ReadinessItemStatus
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -39,8 +40,9 @@ export class DocumentService {
     return this.api.upload('/v1/documents', formData);
   }
 
-  send(id: string): Observable<void> {
-    return this.api.post<void>(`/v1/documents/${id}/send`);
+  /** `force` acknowledges a "needs work" pre-flight verdict; a blocked contract is never forceable. */
+  send(id: string, force = false): Observable<void> {
+    return this.api.post<void>(`/v1/documents/${id}/send`, { force });
   }
 
   /** Owner response to a change request: swaps in a revised PDF and returns the document to Draft. */
@@ -106,5 +108,23 @@ export class DocumentService {
   /** Checks the contract against the published regulatory watch registry — user-triggered. */
   analyzeCompliance(id: string): Observable<ComplianceAnalysisResponse> {
     return this.api.post<ComplianceAnalysisResponse>(`/v1/documents/${id}/compliance`, {});
+  }
+
+  /**
+   * Pre-flight review: runs the legal review and the regulatory check, then grades whether the
+   * contract is fit to send. Slow — it is the full model review plus the compliance scan.
+   */
+  evaluateReadiness(id: string): Observable<Readiness> {
+    return this.api.post<Readiness>(`/v1/documents/${id}/readiness`, {});
+  }
+
+  /** Reads the stored verdict and to-do list without re-running any analysis. */
+  getReadiness(id: string): Observable<Readiness> {
+    return this.api.get<Readiness>(`/v1/documents/${id}/readiness`);
+  }
+
+  /** Ticks a to-do off or dismisses it; the API re-grades and returns the new verdict. */
+  setReadinessItemStatus(id: string, itemId: string, status: ReadinessItemStatus, note?: string): Observable<Readiness> {
+    return this.api.patch<Readiness>(`/v1/documents/${id}/readiness/items/${itemId}`, { status, note });
   }
 }

@@ -174,6 +174,7 @@ export class LayoutComponent implements OnInit {
   private readonly navItems: NavItem[] = [
     { labelKey: 'nav.dashboard',      icon: 'dashboard',           path: '/dashboard' },
     { labelKey: 'nav.documents',      icon: 'description',         path: '/documents' },
+    { labelKey: 'nav.review',         icon: 'fact_check',          path: '/review' },
     { labelKey: 'nav.templates',      icon: 'article',             path: '/templates' },
     { labelKey: 'nav.auditTrail',     icon: 'history',             path: '/audit', roles: ['Administrator', 'Manager'] },
     { labelKey: 'nav.reports',        icon: 'monitoring',          path: '/reports', roles: ['Administrator', 'Manager'] },

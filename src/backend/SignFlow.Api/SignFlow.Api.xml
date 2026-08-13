@@ -178,7 +178,7 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.UploadRevision(System.Guid,SignFlow.Api.Controllers.V1.UploadRevisionRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.UploadRevisionCommand,SignFlow.Application.Features.Documents.Commands.UploadRevisionResult},System.Threading.CancellationToken)">
             <summary>Upload a revised PDF after changes were requested — voids field completion and returns the document to Draft for re-send</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Send(System.Guid,System.Threading.CancellationToken)">
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Send(System.Guid,SignFlow.Api.Controllers.V1.SendDocumentRequest,System.Threading.CancellationToken)">
             <summary>Send document for signing</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Delete(System.Guid,System.Threading.CancellationToken)">
@@ -193,11 +193,26 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.AnalyzeCompliance(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AnalyzeComplianceCommand,SignFlow.Application.Features.Documents.Commands.ComplianceAnalysisDto},System.Threading.CancellationToken)">
             <summary>Check the contract against the published regulatory watch registry — a keyword scan, not a legal opinion</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.EvaluateReadiness(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.EvaluateReadinessCommand,SignFlow.Application.Features.Documents.Queries.ReadinessDto},System.Threading.CancellationToken)">
+            <summary>Pre-flight review: run the legal and regulatory checks, then grade whether the contract is fit to send</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetReadiness(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetReadinessQuery,SignFlow.Application.Features.Documents.Queries.ReadinessDto},System.Threading.CancellationToken)">
+            <summary>Get the stored pre-flight verdict and its to-do list without re-running the analysis</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.SetReadinessItemStatus(System.Guid,System.Guid,SignFlow.Api.Controllers.V1.SetReadinessItemStatusRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.SetReadinessItemStatusCommand,SignFlow.Application.Features.Documents.Queries.ReadinessDto},System.Threading.CancellationToken)">
+            <summary>Resolve or dismiss one pre-flight to-do item — the verdict is re-graded from what stays open</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSummary(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
             <summary>Get an AI-generated plain-English summary of a document</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Stream(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentByIdQuery,SignFlow.Application.Features.Documents.Queries.DocumentDetailDto},System.Threading.CancellationToken)">
             <summary>Stream the original PDF inline (for in-browser rendering)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.SendDocumentRequest">
+            <summary>Force lets the owner send past a "needs work" verdict after acknowledging it.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SendDocumentRequest.#ctor(System.Boolean)">
+            <summary>Force lets the owner send past a "needs work" verdict after acknowledging it.</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.FieldsController">
             <summary>Signature field designer endpoints</summary>

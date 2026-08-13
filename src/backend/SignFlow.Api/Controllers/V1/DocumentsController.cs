@@ -157,9 +157,13 @@ public class DocumentsController(
     [HttpPost("{id:guid}/send")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
-    public async Task<IActionResult> Send([FromRoute] Guid id, CancellationToken ct)
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<IActionResult> Send(
+        [FromRoute] Guid id,
+        [FromBody] SendDocumentRequest? request,
+        CancellationToken ct)
     {
-        await sendHandler.HandleAsync(new SendDocumentCommand(id), ct);
+        await sendHandler.HandleAsync(new SendDocumentCommand(id, request?.Force ?? false), ct);
         return NoContent();
     }
 
@@ -220,6 +224,52 @@ public class DocumentsController(
         return Ok(result);
     }
 
+    /// <summary>Pre-flight review: run the legal and regulatory checks, then grade whether the contract is fit to send</summary>
+    [HttpPost("{id:guid}/readiness")]
+    [ProducesResponseType(typeof(ReadinessDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<ActionResult<ReadinessDto>> EvaluateReadiness(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<EvaluateReadinessCommand, ReadinessDto> readinessHandler,
+        CancellationToken ct)
+    {
+        var result = await readinessHandler.HandleAsync(new EvaluateReadinessCommand(id), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Get the stored pre-flight verdict and its to-do list without re-running the analysis</summary>
+    [HttpGet("{id:guid}/readiness")]
+    [ProducesResponseType(typeof(ReadinessDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<ActionResult<ReadinessDto>> GetReadiness(
+        [FromRoute] Guid id,
+        [FromServices] IQueryHandler<GetReadinessQuery, ReadinessDto> readinessQueryHandler,
+        CancellationToken ct)
+    {
+        var result = await readinessQueryHandler.HandleAsync(new GetReadinessQuery(id), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Resolve or dismiss one pre-flight to-do item — the verdict is re-graded from what stays open</summary>
+    [HttpPatch("{id:guid}/readiness/items/{itemId:guid}")]
+    [ProducesResponseType(typeof(ReadinessDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<ActionResult<ReadinessDto>> SetReadinessItemStatus(
+        [FromRoute] Guid id,
+        [FromRoute] Guid itemId,
+        [FromBody] SetReadinessItemStatusRequest request,
+        [FromServices] ICommandHandler<SetReadinessItemStatusCommand, ReadinessDto> setItemHandler,
+        CancellationToken ct)
+    {
+        var result = await setItemHandler.HandleAsync(
+            new SetReadinessItemStatusCommand(id, itemId, request.Status, request.Note), ct);
+        return Ok(result);
+    }
+
     /// <summary>Get an AI-generated plain-English summary of a document</summary>
     [HttpGet("{id:guid}/summary")]
     [ProducesResponseType(typeof(AiDocumentSummaryDto), 200)]
@@ -260,3 +310,8 @@ public record ReopenDocumentRequest(int? SlaHours);
 public record UpdateObligationRequest(DateTime DueDate, string ObligationType);
 
 public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);
+
+public record SetReadinessItemStatusRequest(ReadinessItemStatus Status, string? Note = null);
+
+/// <summary>Force lets the owner send past a "needs work" verdict after acknowledging it.</summary>
+public record SendDocumentRequest(bool Force = false);

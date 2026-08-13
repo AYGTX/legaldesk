@@ -64,12 +64,15 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<UpdateObligationCommand>, UpdateObligationCommandHandler>();
         services.AddScoped<ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto>, AnalyzeContractCommandHandler>();
         services.AddScoped<ICommandHandler<AnalyzeComplianceCommand, ComplianceAnalysisDto>, AnalyzeComplianceCommandHandler>();
+        services.AddScoped<ICommandHandler<EvaluateReadinessCommand, ReadinessDto>, EvaluateReadinessCommandHandler>();
+        services.AddScoped<ICommandHandler<SetReadinessItemStatusCommand, ReadinessDto>, SetReadinessItemStatusCommandHandler>();
 
         // Document query handlers
         services.AddScoped<IQueryHandler<GetDocumentsQuery, PagedResult<DocumentSummaryDto>>, GetDocumentsQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentByIdQuery, DocumentDetailDto>, GetDocumentByIdQueryHandler>();
         services.AddScoped<IQueryHandler<GetDashboardQuery, DashboardDto>, GetDashboardQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentSummaryQuery, AiDocumentSummaryDto>, GetDocumentSummaryQueryHandler>();
+        services.AddScoped<IQueryHandler<GetReadinessQuery, ReadinessDto>, GetReadinessQueryHandler>();
 
 
         // Field command handlers

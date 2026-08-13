@@ -61,6 +61,11 @@ public class DocumentConfiguration : IEntityTypeConfiguration<Document>
             .HasForeignKey(c => c.DocumentId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(d => d.ReadinessItems)
+            .WithOne(i => i.Document)
+            .HasForeignKey(i => i.DocumentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasMany(d => d.Versions)
             .WithOne(v => v.Document)
             .HasForeignKey(v => v.DocumentId)

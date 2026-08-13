@@ -71,3 +71,44 @@ export interface ComplianceAnalysisResponse {
   complianceAnalysisJson: string;
   generatedAt: string;
 }
+
+// ── Pre-flight readiness ────────────────────────────────────────────────────────
+
+export type ReadinessVerdict = 'NotEvaluated' | 'Ready' | 'NeedsWork' | 'Blocked';
+export type ReadinessItemCategory = 'Risk' | 'Compliance' | 'Obligation' | 'Structure';
+export type ReadinessItemStatus = 'Open' | 'Resolved' | 'Dismissed';
+
+/** One adjustment the pre-flight review says the contract needs. */
+export interface ReadinessItem {
+  id: string;
+  category: ReadinessItemCategory;
+  severity: RiskSeverity;
+  sourceKey: string;
+  title: string;
+  detail: string;
+  whyItMatters?: string;
+  recommendedAction?: string;
+  proposedLanguage?: string;
+  status: ReadinessItemStatus;
+  resolutionNote?: string;
+  resolvedAt?: string;
+}
+
+/**
+ * The pre-flight state of a contract. The API returns counts rather than a prose verdict so the
+ * sentence is built here, in the reader's language.
+ */
+export interface Readiness {
+  documentId: string;
+  verdict: ReadinessVerdict;
+  score?: number;
+  evaluatedAt?: string;
+  openCount: number;
+  criticalCount: number;
+  highCount: number;
+  handledCount: number;
+  /** Only populated by a fresh evaluation, not by the stored-state GET. */
+  riskScore?: number;
+  complianceScore?: number;
+  items: ReadinessItem[];
+}

@@ -44,7 +44,8 @@
     "auditTrail": "Traceability",
     "reports": "Reports",
     "administration": "Administration",
-    "capabilities": "Capabilities"
+    "capabilities": "Capabilities",
+    "review": "Contract Review"
   },
   "layout": {
     "tagline": "Contract Lifecycle Management",
@@ -503,7 +504,22 @@
       "versionsTitle": "Version History",
       "currentVersion": "Current version",
       "noChangeNote": "No change note",
-      "versionTooltip": "This contract has been revised — see the version history"
+      "versionTooltip": "This contract has been revised — see the version history",
+      "tabs": {
+        "overview": "Overview",
+        "intelligence": "Legal intelligence"
+      },
+      "readiness": {
+        "ctaTitle": "This contract has not been reviewed yet",
+        "ctaHint": "Run the pre-flight review to see whether it is fit to send, and what to adjust.",
+        "run": "Run the legal review",
+        "rerun": "Re-run the review",
+        "running": "Reviewing…",
+        "failed": "The review could not be completed. Please try again.",
+        "sendAnyway": "The pre-flight review left {{count}} issue(s) open on this contract. Send it anyway?",
+        "sendAnywayConfirm": "Send anyway",
+        "sendBlocked": "This contract has unresolved critical issues. Resolve or dismiss them in the Legal intelligence tab before sending."
+      }
     },
     "upload": {
       "title": "Upload Contract",
@@ -1134,6 +1150,42 @@
       "savePreferences": "Save preferences",
       "necessaryOnly": "Necessary only",
       "acceptAll": "Accept all"
+    },
+    "readiness": {
+      "scoreLabel": "Readiness",
+      "scoreHint": "Overall fitness to enter a validation circuit, from the drafting quality and the regulatory coverage.",
+      "riskLabel": "Risk",
+      "complianceLabel": "Compliance",
+      "verdict": {
+        "NotEvaluated": "Not reviewed yet",
+        "Ready": "Ready to send",
+        "NeedsWork": "Adjustments required",
+        "Blocked": "Blocking issues"
+      },
+      "sentence": {
+        "notEvaluated": "Run the pre-flight review to see whether this contract is fit to send.",
+        "blocked": "{{critical}} critical issue(s) must be resolved or dismissed before this contract can be sent.",
+        "needsWork": "{{open}} issue(s) still open, {{high}} of them significant.",
+        "readyClean": "No blocking issues found — this contract can enter the validation circuit.",
+        "readyAfterFixes": "All {{handled}} flagged issue(s) handled — this contract can now be sent."
+      },
+      "category": {
+        "Risk": "Drafting",
+        "Compliance": "Regulatory",
+        "Obligation": "Obligation",
+        "Structure": "Structure"
+      },
+      "checklist": {
+        "title": "Adjustments to make",
+        "empty": "Nothing to adjust — no issue was raised on this contract.",
+        "markResolved": "Mark as done",
+        "dismiss": "Not applicable",
+        "dismissHint": "Set aside a finding that does not apply to this contract. It stops counting against the verdict.",
+        "reopen": "Reopen",
+        "showHandled": "Show handled ({{count}})",
+        "hideHandled": "Hide handled ({{count}})",
+        "updateFailed": "Could not update this item. Please try again."
+      }
     }
   },
   "reports": {
@@ -1677,7 +1729,7 @@
       },
       "aiReview": {
         "title": "AI-assisted contract review",
-        "desc": "Every uploaded contract gets an instant rules-based scan and a pre-signature summary. From the contract page, a full legal-model review can be run on demand: it identifies the contract, flags missing, weak or contradictory clauses with severity and proposed wording, and extracts the next renewal or expiry date — falling back to the rules-based scan if the model is unavailable."
+        "desc": "Every uploaded contract gets an instant rules-based scan and a pre-signature summary. From the contract page, a full legal-model review can be run on demand: it identifies the contract, flags missing, weak or contradictory clauses with severity and proposed wording, and extracts the next renewal or expiry date — falling back to the rules-based scan if the model is unavailable. A dedicated Contract Review desk runs that review automatically on upload and turns it into a readiness verdict with a tick-off list of adjustments; the verdict itself is a deterministic rule set over those findings — not a legal opinion — and sending a contract with unresolved critical findings is blocked."
       },
       "workflow": {
         "title": "Digitalised validation workflow",
@@ -1743,6 +1795,49 @@
     "footer": {
       "privacy": "Privacy Policy",
       "terms": "Terms of Service"
+    }
+  },
+  "review": {
+    "title": "Contract review",
+    "subtitle": "Check a contract before it enters a validation circuit — and see exactly what to change.",
+    "dropHere": "Drop a contract here to review it",
+    "orBrowse": "or click to browse",
+    "hint": "PDF only, up to 50 MB. The analysis starts as soon as you submit.",
+    "analyse": "Analyse this contract",
+    "reviewAnother": "Review another",
+    "requestTypeHint": "The contract family decides which regulations the compliance check runs against.",
+    "whatWeCheck": "What we check",
+    "failed": "The review could not be completed. Please try again.",
+    "disclaimer": "This review is an assistance tool, not a legal opinion. A qualified reviewer stays responsible for the contract.",
+    "checks": {
+      "clauses": {
+        "title": "Clauses and drafting",
+        "desc": "Missing, weak, ambiguous or unbalanced clauses, with proposed wording for each."
+      },
+      "regulatory": {
+        "title": "Regulatory coverage",
+        "desc": "Whether the contract addresses the regulations tracked for this contract family."
+      },
+      "obligations": {
+        "title": "Key dates",
+        "desc": "Renewal, expiry and review dates extracted from the text so they can be tracked."
+      }
+    },
+    "analysing": {
+      "title": "Analysing the contract",
+      "uploading": "Uploading and extracting the text…",
+      "reviewing": "Legal review and regulatory check in progress…",
+      "note": "This takes up to a minute — the full review reads the whole contract."
+    },
+    "next": {
+      "title": "Next steps",
+      "promote": "Send to validation circuit",
+      "blockedHint": "Resolve or dismiss the critical issues first.",
+      "uploadRevision": "Upload a corrected version",
+      "uploading": "Uploading…",
+      "revisionUploaded": "Revision uploaded — re-analysing.",
+      "rerun": "Re-run the analysis",
+      "openContract": "Open the full contract file"
     }
   }
 }

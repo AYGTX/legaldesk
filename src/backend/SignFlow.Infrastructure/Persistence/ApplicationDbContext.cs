@@ -33,6 +33,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PdfTemplateField> PdfTemplateFields => Set<PdfTemplateField>();
     public DbSet<Clause> Clauses => Set<Clause>();
     public DbSet<RegulatoryText> RegulatoryTexts => Set<RegulatoryText>();
+    public DbSet<DocumentReadinessItem> DocumentReadinessItems => Set<DocumentReadinessItem>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

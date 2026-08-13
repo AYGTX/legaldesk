@@ -11,13 +11,16 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { HubService } from '../../core/services/hub.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { DocumentDetail, WorkflowParticipant, AiSummaryDto } from '../../core/models';
+import { DocumentDetail, WorkflowParticipant, AiSummaryDto, Readiness } from '../../core/models';
+import { ReadinessVerdictComponent } from '../../shared/readiness-verdict/readiness-verdict.component';
+import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
 import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/workflow-visualizer.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
 import { ContractAnalysisPanelComponent } from './contract-analysis-panel.component';
@@ -31,8 +34,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
     CommonModule, FormsModule, RouterLink,
     MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatStepperModule, MatChipsModule, MatDividerModule, MatTooltipModule, MatDialogModule,
-    MatSnackBarModule, WorkflowVisualizerComponent, CommentsPanelComponent, ContractAnalysisPanelComponent,
-    ContractCompliancePanelComponent, TranslatePipe
+    MatTabsModule, MatSnackBarModule, WorkflowVisualizerComponent, CommentsPanelComponent,
+    ContractAnalysisPanelComponent, ContractCompliancePanelComponent,
+    ReadinessVerdictComponent, ReadinessChecklistComponent, TranslatePipe
   ],
   template: `
     <div class="detail-page">
@@ -157,6 +161,48 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             </button>
           </div>
         }
+
+        <!--
+          Intelligence band. The legal read on the contract is the first thing on the page, above
+          the fold — before this it sat at the bottom of a 340px sidebar and was routinely missed.
+          Clicking anywhere on it opens the Intelligence tab where the detail lives.
+        -->
+        @if (doc()!.readinessVerdict === 'NotEvaluated') {
+          <div class="intel-band cta">
+            <div class="cta-text">
+              <mat-icon>fact_check</mat-icon>
+              <div>
+                <strong>{{ 'documents.detail.readiness.ctaTitle' | translate }}</strong>
+                <span>{{ 'documents.detail.readiness.ctaHint' | translate }}</span>
+              </div>
+            </div>
+            @if (canReview()) {
+              <button mat-flat-button color="primary" (click)="runReview()" [disabled]="reviewing()">
+                <mat-icon>auto_awesome</mat-icon>
+                {{ (reviewing() ? 'documents.detail.readiness.running' : 'documents.detail.readiness.run') | translate }}
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="intel-band" (click)="tabIndex.set(1)">
+            <sf-readiness-verdict [compact]="true"
+              [verdict]="doc()!.readinessVerdict"
+              [score]="doc()!.readinessScore"
+              [riskScore]="riskScore()"
+              [complianceScore]="complianceScore()"
+              [openCount]="readiness()?.openCount ?? 0"
+              [criticalCount]="readiness()?.criticalCount ?? 0"
+              [highCount]="readiness()?.highCount ?? 0"
+              [handledCount]="readiness()?.handledCount ?? 0">
+            </sf-readiness-verdict>
+          </div>
+        }
+
+        <mat-tab-group class="detail-tabs" [selectedIndex]="tabIndex()" (selectedIndexChange)="tabIndex.set($event)">
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">assignment</mat-icon> {{ 'documents.detail.tabs.overview' | translate }}
+            </ng-template>
 
         <div class="detail-layout">
           <!-- Left: Recipients & Workflow -->
@@ -344,6 +390,51 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               </mat-card>
             }
 
+          </div>
+        </div>
+          </mat-tab>
+
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">gavel</mat-icon> {{ 'documents.detail.tabs.intelligence' | translate }}
+              @if ((readiness()?.openCount ?? 0) > 0) {
+                <span class="tab-badge">{{ readiness()!.openCount }}</span>
+              }
+            </ng-template>
+
+            <!--
+              Full page width here, not the 340px rail: the analysis panel carries a contract
+              profile grid, severity-grouped findings and proposed wording, none of which fit in a
+              sidebar.
+            -->
+            <div class="intel-layout">
+              @if (readiness(); as r) {
+                <mat-card class="readiness-card">
+                  <mat-card-content>
+                    <div class="readiness-head">
+                      <sf-readiness-verdict
+                        [verdict]="r.verdict" [score]="r.score"
+                        [riskScore]="riskScore()" [complianceScore]="complianceScore()"
+                        [openCount]="r.openCount" [criticalCount]="r.criticalCount"
+                        [highCount]="r.highCount" [handledCount]="r.handledCount">
+                      </sf-readiness-verdict>
+                      @if (canReview()) {
+                        <button mat-stroked-button (click)="runReview()" [disabled]="reviewing()">
+                          <mat-icon>refresh</mat-icon>
+                          {{ (reviewing() ? 'documents.detail.readiness.running' : 'documents.detail.readiness.rerun') | translate }}
+                        </button>
+                      }
+                    </div>
+                    <sf-readiness-checklist
+                      [documentId]="doc()!.id"
+                      [items]="r.items"
+                      [readonly]="!canReview()"
+                      (changed)="onReadinessChanged($event)">
+                    </sf-readiness-checklist>
+                  </mat-card-content>
+                </mat-card>
+              }
+
             <!-- AI Summary -->
             <mat-card class="ai-summary-card">
               <mat-card-header>
@@ -378,7 +469,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             </mat-card>
 
             <!-- Contract Risk Analysis -->
-            <sf-contract-analysis-panel
+            <sf-contract-analysis-panel [wide]="true"
               [documentId]="doc()!.id"
               [riskAnalysisJson]="doc()!.aiRiskAnalysisJson"
               [generatedAt]="doc()!.aiRiskAnalysisGeneratedAt"
@@ -386,7 +477,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             </sf-contract-analysis-panel>
 
             <!-- Regulatory Compliance Check -->
-            <sf-contract-compliance-panel
+            <sf-contract-compliance-panel [wide]="true"
               [documentId]="doc()!.id"
               [complianceAnalysisJson]="doc()!.aiComplianceAnalysisJson"
               [generatedAt]="doc()!.aiComplianceAnalysisGeneratedAt"
@@ -447,8 +538,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 }
               </mat-card-content>
             </mat-card>
-          </div>
-        </div>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
       } @else if (error()) {
         <div class="error-state">
           <mat-icon>error_outline</mat-icon>
@@ -478,6 +570,25 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   readonly summaryLoading = signal(false);
   readonly summaryError = signal(false);
 
+  /** 0 = Overview, 1 = Legal intelligence. */
+  readonly tabIndex = signal(0);
+  readonly readiness = signal<Readiness | null>(null);
+  readonly reviewing = signal(false);
+
+  /** The stored analyses hold the sub-scores; parse them once rather than on every render. */
+  readonly riskScore = computed(() => this.scoreFrom(this.doc()?.aiRiskAnalysisJson, 'riskScore'));
+  readonly complianceScore = computed(() => this.scoreFrom(this.doc()?.aiComplianceAnalysisJson, 'complianceScore'));
+
+  private scoreFrom(json: string | undefined, key: 'riskScore' | 'complianceScore'): number | null {
+    if (!json) return null;
+    try {
+      const value = (JSON.parse(json) as Record<string, unknown>)[key];
+      return typeof value === 'number' ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
   readonly signedCount = () => this.doc()?.fields.filter(f => f.isSigned).length ?? 0;
   readonly reopening = signal(false);
   readonly uploadingRevision = signal(false);
@@ -492,6 +603,9 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     this.auth.isAdmin() || this.doc()?.owner.id === this.auth.user()?.id;
 
   readonly isOwner = () => this.doc()?.owner.id === this.auth.user()?.id;
+
+  /** Running the review and resolving its items are owner/admin actions; everyone else reads it. */
+  readonly canReview = () => this.isOwner() || this.auth.isAdmin();
 
   /** The participant whose change request paused the document. */
   readonly changeRequester = () =>
@@ -663,8 +777,44 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
         if (doc.aiSummary && doc.aiSummaryGeneratedAt) {
           this.summary.set({ summary: doc.aiSummary, generatedAt: doc.aiSummaryGeneratedAt });
         }
+        this.loadReadiness();
       },
       error: () => { this.error.set(this.translate.instant('documents.detail.notFound')); this.loading.set(false); }
+    });
+  }
+
+  /** The to-do items are a separate read — the detail payload only carries the headline verdict. */
+  private loadReadiness(): void {
+    this.documentService.getReadiness(this.documentId).subscribe({
+      next: r => this.readiness.set(r),
+      error: () => this.readiness.set(null)
+    });
+  }
+
+  onReadinessChanged(readiness: Readiness): void {
+    this.readiness.set(readiness);
+    // The verdict on the band comes off the document, which the API just re-graded.
+    const doc = this.doc();
+    if (doc) {
+      this.doc.set({ ...doc, readinessVerdict: readiness.verdict, readinessScore: readiness.score });
+    }
+  }
+
+  /** Full pre-flight review: the model legal review plus the regulatory check, then a re-grade. */
+  runReview(): void {
+    this.reviewing.set(true);
+    this.documentService.evaluateReadiness(this.documentId).subscribe({
+      next: r => {
+        this.reviewing.set(false);
+        this.readiness.set(r);
+        this.tabIndex.set(1);
+        // Reload for the refreshed risk/compliance JSON the panels below render from.
+        this.load();
+      },
+      error: err => {
+        this.reviewing.set(false);
+        this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.readiness.failed'), 'OK', { duration: 5000 });
+      }
     });
   }
 
@@ -682,14 +832,40 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
       message: this.translate.instant('documents.detail.confirmSend')
     }).subscribe(ok => {
       if (!ok) return;
-      this.sending.set(true);
-      this.documentService.send(this.documentId).subscribe({
-        next: () => { this.sending.set(false); this.load(); },
-        error: err => {
-          this.sending.set(false);
-          this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.sendFailed'), 'OK', { duration: 4000 });
+      this.doSend(false);
+    });
+  }
+
+  /**
+   * The API refuses to send a contract the pre-flight review flagged. A "needs work" verdict is an
+   * acknowledgeable warning (re-sent with force); a "blocked" one is not — it points the owner at
+   * the Intelligence tab instead.
+   */
+  private doSend(force: boolean): void {
+    this.sending.set(true);
+    this.documentService.send(this.documentId, force).subscribe({
+      next: () => { this.sending.set(false); this.load(); },
+      error: err => {
+        this.sending.set(false);
+        const errors = err.error?.errors as Record<string, string[]> | undefined;
+
+        if (errors?.['readinessWarning']) {
+          const open = this.readiness()?.openCount ?? 0;
+          this.confirmService.confirm({
+            message: this.translate.instant('documents.detail.readiness.sendAnyway', { count: open }),
+            confirmLabel: this.translate.instant('documents.detail.readiness.sendAnywayConfirm')
+          }).subscribe(ok => { if (ok) this.doSend(true); });
+          return;
         }
-      });
+
+        if (errors?.['readiness']) {
+          this.tabIndex.set(1);
+          this.snack.open(this.translate.instant('documents.detail.readiness.sendBlocked'), 'OK', { duration: 6000 });
+          return;
+        }
+
+        this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.sendFailed'), 'OK', { duration: 4000 });
+      }
     });
   }
 

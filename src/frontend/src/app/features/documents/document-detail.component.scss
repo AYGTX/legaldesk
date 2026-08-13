@@ -32,6 +32,30 @@
     .presence-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--g-green); animation: presence-pulse 2s ease-in-out infinite; }
     @keyframes presence-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
+    // Intelligence band — the legal verdict, above the fold, before anything else on the page.
+    .intel-band { margin-bottom: 18px; cursor: pointer; }
+    .intel-band.cta {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      cursor: default; background: var(--g-surface-variant); border: 1px dashed var(--g-border);
+      border-radius: 12px; padding: 14px 18px;
+    }
+    .cta-text { display: flex; align-items: center; gap: 12px; }
+    .cta-text mat-icon { color: var(--g-blue); font-size: 26px; width: 26px; height: 26px; }
+    .cta-text strong { display: block; font-size: 14px; color: var(--g-text); }
+    .cta-text span { font-size: 12.5px; color: var(--g-text-3); }
+
+    .detail-tabs ::ng-deep .mat-mdc-tab-body-content { padding-top: 18px; overflow-x: hidden; }
+    .tab-icon { font-size: 18px; width: 18px; height: 18px; margin-right: 7px; }
+    .tab-badge {
+      margin-left: 7px; min-width: 18px; padding: 0 5px; border-radius: 10px;
+      background: var(--g-red); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px;
+    }
+
+    // Intelligence tab: full width, so the analysis panel is no longer squeezed into a 340px rail.
+    .intel-layout { display: flex; flex-direction: column; gap: 16px; }
+    .readiness-head { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+    .readiness-head sf-readiness-verdict { flex: 1; min-width: 0; }
+
     .detail-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
     @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
     .left-column, .right-column { display: flex; flex-direction: column; gap: 16px; }

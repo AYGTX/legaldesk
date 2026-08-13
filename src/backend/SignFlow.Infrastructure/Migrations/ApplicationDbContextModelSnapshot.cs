@@ -833,6 +833,15 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid?>("PdfTemplateId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("ReadinessEvaluatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReadinessScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReadinessVerdict")
+                        .HasColumnType("int");
+
                     b.Property<Guid?>("RequestTypeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -911,6 +920,85 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasFilter("[VerificationCode] IS NOT NULL");
 
                     b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.DocumentReadinessItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Detail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ProposedLanguage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RecommendedAction")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("WhyItMatters")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("DocumentId", "SourceKey");
+
+                    b.ToTable("DocumentReadinessItems");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.DocumentVersion", b =>
@@ -2244,6 +2332,17 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("RequestType");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.DocumentReadinessItem", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Document", "Document")
+                        .WithMany("ReadinessItems")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.DocumentVersion", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.Document", "Document")
@@ -2487,6 +2586,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("AuditLogs");
 
                     b.Navigation("Comments");
+
+                    b.Navigation("ReadinessItems");
 
                     b.Navigation("Recipients");
 
