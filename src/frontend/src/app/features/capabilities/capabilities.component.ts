@@ -109,7 +109,7 @@ export class CapabilitiesComponent {
 
   /** Mirrors the requirements brief one bullet at a time, in the order it was written. */
   readonly capabilities: Capability[] = [
-    { id: 'generation',  icon: 'description',        status: 'partial',   route: '/templates' },
+    { id: 'generation',  icon: 'description',        status: 'available', route: '/templates' },
     { id: 'aiReview',    icon: 'auto_awesome',       status: 'available', route: '/documents' },
     { id: 'workflow',    icon: 'account_tree',       status: 'available', route: '/documents' },
     { id: 'versioning',  icon: 'history',            status: 'available', route: '/documents' },

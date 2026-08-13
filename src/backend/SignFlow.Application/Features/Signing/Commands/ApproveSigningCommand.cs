@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Enums;
 
 namespace SignFlow.Application.Features.Signing.Commands;
@@ -116,15 +117,15 @@ public class ApproveSigningCommandHandler(
                     .ToList();
 
                 // Render the HTML template from the snapshot taken at request-creation time —
-                // unaffected by the source template being edited or deleted later.
-                var htmlContent = recipient.Document.HtmlContentSnapshot ?? string.Empty;
-                var renderedHtml = System.Text.RegularExpressions.Regex.Replace(
-                    htmlContent, @"\{\{(\w+)\}\}", m =>
-                        filledValues.TryGetValue(m.Groups[1].Value, out var v)
-                            ? System.Net.WebUtility.HtmlEncode(v)
-                            : m.Value);
-                // Strip any remaining unmatched placeholders (approver sig fields, auto-fill keys)
-                renderedHtml = System.Text.RegularExpressions.Regex.Replace(renderedHtml, @"\{\{\w+\}\}", string.Empty);
+                // unaffected by the source template being edited or deleted later. This goes
+                // through the same renderer as the signing screen, so the PDF being sealed here is
+                // byte-identical to what the signer was shown.
+                var fieldTypes = await db.HtmlTemplateFields.AsNoTracking()
+                    .Where(f => f.HtmlTemplateId == recipient.Document.HtmlTemplateId!.Value)
+                    .ToDictionaryAsync(f => f.FieldKey, f => f.Type, cancellationToken);
+
+                var renderedHtml = HtmlContractRenderer.Render(
+                    recipient.Document.HtmlContentSnapshot, filledValues, fieldTypes);
 
                 var pdfStream = await htmlPdfGenerator.GenerateAsync(
                     renderedHtml, recipient.Document.Title, sigSummaries, cancellationToken);

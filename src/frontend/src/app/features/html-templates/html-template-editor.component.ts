@@ -11,6 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ClausePickerDialogComponent } from '../clauses/clause-picker-dialog.component';
+import { ConditionDialogComponent } from './condition-dialog.component';
 import { HtmlTemplateService } from '../../core/services/html-template.service';
 import { UserService } from '../../core/services/user.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
@@ -137,6 +138,10 @@ const AUTO_FILL_OPTIONS = [
             <button class="clause-lib-btn" (click)="openClausePicker()"
                     [matTooltip]="'clauses.picker.buttonTooltip' | translate">
               <mat-icon>menu_book</mat-icon> {{ 'clauses.picker.button' | translate }}
+            </button>
+            <button class="clause-lib-btn" (click)="wrapSelectionInCondition()"
+                    [matTooltip]="'htmlTemplateEditor.conditions.buttonTooltip' | translate">
+              <mat-icon>rule</mat-icon> {{ 'htmlTemplateEditor.conditions.button' | translate }}
             </button>
             <span class="panel-hint" [innerHTML]="'htmlTemplateEditor.panelHint' | translate: { example: curlyExample }"></span>
           </div>
@@ -521,6 +526,45 @@ export class HtmlTemplateEditorComponent implements OnInit {
           this.translate.instant('clauses.picker.inserted', { title: clause.title }),
           'OK', { duration: 3000 });
       });
+  }
+
+  /**
+   * Wraps the selected wording so it only appears when a condition holds. Works on any selection,
+   * not just an inserted clause — making existing template text conditional is the same operation.
+   *
+   * The markers go into the HTML content itself, so they travel into the document's immutable
+   * snapshot at request time and are evaluated by the backend against the values the initiator
+   * filled in. The field scanner ignores them (its regex only matches {{word}}).
+   */
+  wrapSelectionInCondition() {
+    const ta = this.htmlEditorRef?.nativeElement;
+    if (!ta || ta.selectionStart === ta.selectionEnd) {
+      this.snack.open(
+        this.translate.instant('htmlTemplateEditor.conditions.selectFirst'), 'OK', { duration: 4000 });
+      return;
+    }
+
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = this.htmlContent.slice(start, end);
+
+    this.dialog.open(ConditionDialogComponent, {
+      width: '620px',
+      maxWidth: '95vw',
+      data: {
+        fields: this.fields()
+          .filter(f => f.type !== 'Signature')
+          .map(f => ({ fieldKey: f.fieldKey, label: f.label, type: f.type }))
+      }
+    }).afterClosed().subscribe((expression: string | undefined) => {
+      if (!expression) return;
+      this.htmlContent =
+        this.htmlContent.slice(0, start) +
+        `${expression}\n${selected}\n{{/if}}` +
+        this.htmlContent.slice(end);
+      this.snack.open(
+        this.translate.instant('htmlTemplateEditor.conditions.applied'), 'OK', { duration: 3000 });
+    });
   }
 
   private insertAtCursor(text: string) {

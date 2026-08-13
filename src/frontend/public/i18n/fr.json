@@ -1431,6 +1431,29 @@
       "email": "E-mail",
       "company": "Entreprise",
       "department": "Département"
+    },
+    "conditions": {
+      "button": "Condition",
+      "buttonTooltip": "Rendre le texte sélectionné conditionnel",
+      "title": "Clause conditionnelle",
+      "hint": "Le texte sélectionné n'apparaîtra dans le contrat que si cette condition est remplie. Elle est évaluée sur la valeur saisie par le demandeur, à l'écran comme dans le PDF signé.",
+      "noFields": "Ce modèle ne comporte encore aucun champ. Ajoutez un champ avant de créer une condition.",
+      "field": "Champ",
+      "operator": "Condition",
+      "value": "Valeur",
+      "preview": "Marqueur inséré :",
+      "apply": "Appliquer la condition",
+      "selectFirst": "Sélectionnez d'abord le texte dans l'éditeur, puis ajoutez une condition.",
+      "applied": "Condition appliquée au texte sélectionné.",
+      "ops": {
+        "truthy": "est renseigné",
+        "eq": "est égal à",
+        "neq": "est différent de",
+        "gt": "est supérieur à",
+        "gte": "est au moins égal à",
+        "lt": "est inférieur à",
+        "lte": "est au plus égal à"
+      }
     }
   },
   "clauses": {
@@ -1725,7 +1748,7 @@
     "items": {
       "generation": {
         "title": "Génération et modèles de contrats",
-        "desc": "Modèles de contrats HTML et PDF réutilisables, paramétrage dynamique des champs, pré-remplissage selon le type de contrat et génération assistée par IA à partir d’un simple texte. Une bibliothèque de clauses partagée — rédactions bilingues validées, catégorisées, versionnées, avec cycle brouillon/validée — s’insère désormais directement dans un modèle. Restent à livrer : les clauses conditionnelles."
+        "desc": "Modèles de contrats HTML et PDF réutilisables, paramétrage dynamique des champs, pré-remplissage selon le type de contrat et génération assistée par IA à partir d’un simple texte. Une bibliothèque de clauses partagée — rédactions bilingues validées, catégorisées, versionnées, avec cycle brouillon/validée — s’insère directement dans un modèle. Toute rédaction peut devenir conditionnelle : elle n’apparaît que si un champ déjà collecté par le modèle satisfait la comparaison choisie. Ces conditions sont des tests déterministes portant sur ce seul champ — ni moteur de règles, ni ET/OU, ni imbrication — et elles sont évaluées par le même moteur de rendu pour l’écran de signature et le PDF signé, qui concordent donc toujours."
       },
       "aiReview": {
         "title": "Revue contractuelle assistée par IA",

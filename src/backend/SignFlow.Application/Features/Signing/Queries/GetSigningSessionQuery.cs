@@ -1,8 +1,8 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Enums;
 
 namespace SignFlow.Application.Features.Signing.Queries;
@@ -128,16 +128,19 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
         string? renderedHtml = null;
         if (isHtmlTemplate && recipient.Document.HtmlContentSnapshot is not null)
         {
-            var html = recipient.Document.HtmlContentSnapshot;
-            if (!string.IsNullOrEmpty(recipient.Document.FilledValuesJson))
-            {
-                var filled = JsonSerializer.Deserialize<Dictionary<string, string>>(recipient.Document.FilledValuesJson)
-                             ?? [];
-                html = Regex.Replace(html, @"\{\{(\w+)\}\}", m =>
-                    filled.TryGetValue(m.Groups[1].Value, out var v) ? System.Net.WebUtility.HtmlEncode(v) : m.Value);
-            }
-            // Remove any remaining {{placeholders}} (e.g. approver signature fields, auto-fill keys)
-            renderedHtml = Regex.Replace(html, @"\{\{\w+\}\}", string.Empty);
+            var filled = string.IsNullOrEmpty(recipient.Document.FilledValuesJson)
+                ? []
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(recipient.Document.FilledValuesJson) ?? [];
+
+            // Field types drive how a conditional clause compares its value (a Number field is
+            // compared numerically, a Date chronologically). Absent — because the source template
+            // was deleted — every field falls back to text and the contract still renders.
+            var fieldTypes = await db.HtmlTemplateFields.AsNoTracking()
+                .Where(f => f.HtmlTemplateId == recipient.Document.HtmlTemplateId!.Value)
+                .ToDictionaryAsync(f => f.FieldKey, f => f.Type, cancellationToken);
+
+            renderedHtml = HtmlContractRenderer.Render(
+                recipient.Document.HtmlContentSnapshot, filled, fieldTypes);
         }
 
         return new SigningSessionDto(

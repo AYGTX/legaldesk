@@ -1431,6 +1431,29 @@
       "email": "Email",
       "company": "Company",
       "department": "Department"
+    },
+    "conditions": {
+      "button": "Condition",
+      "buttonTooltip": "Make the selected wording conditional",
+      "title": "Conditional clause",
+      "hint": "The wording you selected will only appear in the contract when this condition is met. It is checked against the value the requester enters — on screen and in the signed PDF alike.",
+      "noFields": "This template has no fields yet. Add a field before creating a condition.",
+      "field": "Field",
+      "operator": "Condition",
+      "value": "Value",
+      "preview": "Marker inserted:",
+      "apply": "Apply condition",
+      "selectFirst": "Select the wording in the editor first, then add a condition.",
+      "applied": "Condition applied to the selected wording.",
+      "ops": {
+        "truthy": "is filled in",
+        "eq": "equals",
+        "neq": "does not equal",
+        "gt": "is greater than",
+        "gte": "is at least",
+        "lt": "is less than",
+        "lte": "is at most"
+      }
     }
   },
   "clauses": {
@@ -1725,7 +1748,7 @@
     "items": {
       "generation": {
         "title": "Contract generation and templates",
-        "desc": "Reusable HTML and PDF contract templates with dynamic parameters, fields auto-filled per contract type, and AI generation from a plain-text brief. A shared clause library of approved bilingual wording — with categories, versioning and a draft/approved lifecycle — is now insertable straight into a template. Conditional clauses are the remaining step."
+        "desc": "Reusable HTML and PDF contract templates with dynamic parameters, fields auto-filled per contract type, and AI generation from a plain-text brief. A shared clause library of approved bilingual wording — with categories, versioning and a draft/approved lifecycle — is insertable straight into a template. Any wording can be made conditional: it appears only when a field the template already collects satisfies a comparison you choose. Those conditions are deterministic tests over that one field — not a rules engine, and no AND/OR or nesting — and they are evaluated by the same renderer for the signing screen and the signed PDF, so both always agree."
       },
       "aiReview": {
         "title": "AI-assisted contract review",
