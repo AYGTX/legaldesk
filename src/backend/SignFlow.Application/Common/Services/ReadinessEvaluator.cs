@@ -69,18 +69,20 @@ public static class ReadinessEvaluator
         if (compliance is not null)
         {
             // Only gaps are actionable — an "Addressed" regulation needs no adjustment, and an
-            // "Unclear" one is a limitation of keyword matching rather than a defect in the contract.
+            // "Unclear" one is a limitation of the analysis rather than a defect in the contract.
             foreach (var f in compliance.Findings.Where(f => f.Status == "Gap"))
             {
                 items.Add(new ReadinessItemDraft(
                     ReadinessItemCategory.Compliance,
-                    High,
+                    // The model review grades each gap; the keyword scan cannot, and its gaps stay
+                    // High as they always have.
+                    f.Severity is null ? High : Normalise(f.Severity),
                     $"compliance:{f.RegulationId}",
                     f.RegulationTitle,
                     f.Explanation,
-                    null,
-                    null,
-                    null));
+                    f.WhyItMatters,
+                    f.RecommendedAction,
+                    f.ProposedLanguage));
             }
         }
 

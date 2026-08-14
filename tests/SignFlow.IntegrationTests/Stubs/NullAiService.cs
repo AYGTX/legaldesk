@@ -12,4 +12,6 @@ internal sealed class NullAiService : IAiService
         Task.FromResult(new ContractAnalysisResult(new ContractRiskAnalysis(0, [], DateTime.UtcNow), new ObligationSuggestion(null, null, null)));
     public Task<ComplianceAnalysis> AnalyzeContractComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default) =>
         Task.FromResult(new ComplianceAnalysis(100, [], DateTime.UtcNow));
+    public Task<ComplianceAnalysis> ReviewComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default) =>
+        Task.FromResult(new ComplianceAnalysis(100, [], DateTime.UtcNow));
 }

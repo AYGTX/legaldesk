@@ -477,7 +477,8 @@
           "Addressed": "Couvert",
           "Gap": "Écart",
           "Unclear": "Incertain"
-        }
+        },
+        "running": "Revue en cours — cela peut prendre plusieurs dizaines de secondes"
       },
       "obligation": {
         "title": "Suivi des obligations",
@@ -1828,7 +1829,7 @@
       },
       "compliance": {
         "title": "Analyse de conformité par IA",
-        "desc": "Depuis la fiche contrat, une analyse à la demande confronte le texte du contrat à chaque texte réglementaire publié et signale chacun comme couvert ou en écart. Il s’agit aujourd’hui d’une vérification par mots-clés derrière la même interface que l’analyse de risque — pas un avis juridique — conçue pour être branchée sur une revue par modèle complet comme l’est déjà l’analyse de risque."
+        "desc": "À la demande depuis la fiche contrat, une revue complète par le modèle juridique confronte le contrat à chaque texte réglementaire publié et indique, pour chacun, s’il est couvert, s’il constitue un écart ou s’il reste incertain — avec le raisonnement, la conséquence et la rédaction de clause qui comblerait l’écart. L’appréciation porte sur le fond et non sur la présence de mots-clés, et chaque écart est gradué pour que l’espace de revue puisse le hiérarchiser. Si le modèle est indisponible, le contrôle bascule sur l’analyse par mots-clés et l’indique dans le panneau. Cela reste une analyse, pas un avis juridique."
       },
       "riskMap": {
         "title": "Alertes réglementaires et cartographie des risques",

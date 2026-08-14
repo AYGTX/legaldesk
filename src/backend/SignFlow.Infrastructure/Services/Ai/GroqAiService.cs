@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Infrastructure.Extensions;
 
 namespace SignFlow.Infrastructure.Services.Ai;
@@ -462,6 +463,154 @@ public class GroqAiService(
         };
 
         return new ContractAnalysisResult(risk with { Limitations = limitations }, obligation);
+    }
+
+    private const string ComplianceAnalystSystemPrompt = """
+        You are an expert regulatory compliance analyst working inside a contract management
+        platform. You are given a contract and a numbered list of regulatory texts that the legal
+        team tracks. For each regulatory text, decide whether the contract substantively satisfies
+        what that text requires.
+
+        CORE PRINCIPLES
+        - Judge substance, not vocabulary. A contract can satisfy a regulation without using its
+          terminology, and can repeat its terminology while satisfying none of it.
+        - The "subject matter" words supplied with each regulation describe what it is about. They
+          are topic hints for you, NOT strings to search for. Never conclude "addressed" merely
+          because one of those words appears in the contract.
+        - Assess only against the regulatory texts supplied. Do not introduce other laws.
+        - Never invent statutes, articles, regulations, case law or citations. If it is not in the
+          supplied contract text or in the regulation entry, it does not exist.
+        - Do not assume a requirement is met because a related topic is mentioned nearby.
+        - "Unclear" is a legitimate and useful verdict. Use it when the contract touches the area
+          but you cannot tell whether the requirement is met, or when the supplied extract does not
+          contain enough to judge. An honest "unclear" is worth more than a confident guess.
+
+        PROCESS
+        For each numbered regulatory text:
+        1. Establish what the text actually requires of a contract of this kind.
+        2. Search the contract for provisions that would discharge that requirement.
+        3. Decide:
+           "Addressed" - the contract contains provisions that substantively meet the requirement.
+           "Gap"       - the contract is silent, or its provisions fall short of the requirement.
+           "Unclear"   - the contract is ambiguous, partial, or the supplied text is insufficient.
+        4. For a gap, assign severity by the exposure it creates:
+           "Critical" - unlawful, unenforceable, or exposing the business to sanction
+           "High"     - significant regulatory or legal exposure
+           "Medium"   - material shortfall that should normally be corrected
+           "Low"      - improvement or clarification recommended
+
+        OUTPUT
+        Respond with ONLY valid JSON in exactly this schema. No markdown, no commentary.
+        {
+          "limitations": ["what this review could not establish and why it matters"],
+          "findings": [
+            {
+              "regulationIndex": 1,
+              "status": "Gap",
+              "severity": "High",
+              "explanation": "what the contract does or does not say about this requirement",
+              "whyItMatters": "the regulatory or commercial consequence",
+              "recommendedAction": "what the reader should do",
+              "proposedLanguage": "clause text to insert, or null",
+              "contractReference": "clause or article this relates to, or null"
+            }
+          ]
+        }
+
+        OUTPUT RULES
+        - "regulationIndex" is the number the regulation was listed under. Return one finding for
+          EVERY numbered regulation, exactly once. Never invent an index that was not supplied.
+        - Valid "status" values: Addressed, Gap, Unclear. Nothing else.
+        - "severity" applies to a gap. Use null for "Addressed" and "Unclear".
+        - Use null for anything you cannot determine. Never fill a field with a guess.
+        - Provide "proposedLanguage" only where drafting language is appropriate. It must fit the
+          rest of the contract and must not contradict its existing provisions. Write it in the same
+          language as the contract.
+        - Do not output a compliance score. The platform computes it from your findings.
+        """;
+
+    public async Task<ComplianceAnalysis> ReviewComplianceAsync(
+        string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default)
+    {
+        // Nothing tracked applies to this contract — there is no question to put to the model.
+        if (activeRegulations.Count == 0)
+            return new ComplianceAnalysis(100, [], DateTime.UtcNow);
+
+        var settings = opts.Value;
+
+        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        {
+            logger.LogWarning("Groq ApiKey is not configured — falling back to the keyword compliance scan");
+            return await FallbackComplianceAsync(text, title, activeRegulations, ct);
+        }
+
+        try
+        {
+            var truncated = text.Length > settings.AnalysisMaxInputChars
+                ? text[..settings.AnalysisMaxInputChars] + "…"
+                : text;
+
+            var userMessage = new StringBuilder()
+                .AppendLine($"Contract title: {title}")
+                .AppendLine()
+                .AppendLine("REGULATORY TEXTS TO CHECK AGAINST:")
+                .AppendLine(ComplianceResponseMapper.FormatRegulations(activeRegulations))
+                .AppendLine("CONTRACT:")
+                .AppendLine(truncated)
+                .ToString();
+
+            var content = StripCodeFences(await ChatAsync(
+                ComplianceAnalystSystemPrompt,
+                userMessage,
+                settings.AnalysisModel,
+                settings.AnalysisMaxTokens,
+                0.2,
+                "groq-analysis",
+                ct));
+
+            using var parsed = JsonDocument.Parse(content);
+            var result = ComplianceResponseMapper.FromModelResponse(parsed.RootElement, activeRegulations, DateTime.UtcNow);
+
+            // Every regulation coming back unassessed means the reply carried nothing usable —
+            // a keyword scan at least says something about the contract.
+            if (result.Findings.All(f => f.Status == ComplianceResponseMapper.StatusUnclear))
+            {
+                logger.LogWarning("Compliance review reached no verdict on any regulation — falling back to the keyword scan");
+                return await FallbackComplianceAsync(text, title, activeRegulations, ct);
+            }
+
+            if (text.Length > settings.AnalysisMaxInputChars)
+            {
+                var limitations = result.Limitations ?? [];
+                limitations.Add("Only the first part of the contract was reviewed — it exceeds the length the analysis accepts. Provisions later in the document were not assessed.");
+                result = result with { Limitations = limitations };
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Compliance review failed — falling back to the keyword compliance scan");
+            return await FallbackComplianceAsync(text, title, activeRegulations, ct);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the compliance panel usable when the model is unreachable, unconfigured or returns
+    /// something unparseable: the keyword scan runs instead, and says so.
+    /// </summary>
+    private async Task<ComplianceAnalysis> FallbackComplianceAsync(
+        string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct)
+    {
+        var scan = await AnalyzeContractComplianceAsync(text, title, activeRegulations, ct);
+
+        return scan with
+        {
+            Limitations =
+            [
+                "The full compliance review was unavailable — a keyword scan was used instead. It only checks whether each regulation's tracked terms appear in the contract, which is not a judgement about whether the contract satisfies it."
+            ]
+        };
     }
 
     // ---------------------------------------------------------------------------------------

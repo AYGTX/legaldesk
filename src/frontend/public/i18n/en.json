@@ -477,7 +477,8 @@
           "Addressed": "Addressed",
           "Gap": "Gap",
           "Unclear": "Unclear"
-        }
+        },
+        "running": "Reviewing — this can take tens of seconds"
       },
       "obligation": {
         "title": "Obligation Tracking",
@@ -1828,7 +1829,7 @@
       },
       "compliance": {
         "title": "AI compliance analysis",
-        "desc": "On demand from the contract page, a scan checks the contract text against every published regulatory text and flags each one as addressed or a gap. Today this is a keyword-presence check behind the same interface the risk scan uses — not a legal opinion — designed to plug into a full model review the same way the risk scan already does."
+        "desc": "On demand from the contract page, a full legal-model review confronts the contract with every published regulatory text and returns, for each one, whether it is addressed, a gap or unclear — with the reasoning, the consequence, and the clause wording that would close the gap. It judges substance rather than the presence of keywords, and grades each gap so the review desk can rank it. If the model is unavailable the check degrades to the keyword scan and says so on the panel. It remains an analysis, not a legal opinion."
       },
       "riskMap": {
         "title": "Regulatory alerts and risk mapping",

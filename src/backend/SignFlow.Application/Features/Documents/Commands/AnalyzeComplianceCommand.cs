@@ -10,9 +10,10 @@ using SignFlow.Domain.Enums;
 namespace SignFlow.Application.Features.Documents.Commands;
 
 /// <summary>
-/// Checks a contract against the published regulatory watch registry on demand — a keyword scan,
-/// not a legal opinion. Scoped to the contract's family when the regulatory text is scoped, and to
-/// every unscoped published text.
+/// Reviews a contract against the published regulatory watch registry on demand — a full model
+/// review, falling back to the keyword scan when the model is unavailable, and in neither case a
+/// legal opinion. Scoped to the contract's family when the regulatory text is scoped, and to every
+/// unscoped published text.
 /// </summary>
 public record AnalyzeComplianceCommand(Guid DocumentId) : ICommand<ComplianceAnalysisDto>;
 
@@ -50,7 +51,7 @@ public class AnalyzeComplianceCommandHandler(
         await using var pdfStream = await storage.DownloadAsync(document.StoragePath, cancellationToken);
         var text = await pdfService.ExtractTextAsync(pdfStream, cancellationToken);
 
-        var result = await aiService.AnalyzeContractComplianceAsync(text, document.Title, regulations, cancellationToken);
+        var result = await aiService.ReviewComplianceAsync(text, document.Title, regulations, cancellationToken);
 
         document.SetAiComplianceAnalysis(JsonSerializer.Serialize(result, ContractJson.Options));
         await db.SaveChangesAsync(cancellationToken);

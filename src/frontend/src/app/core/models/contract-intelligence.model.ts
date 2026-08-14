@@ -58,12 +58,21 @@ export interface ComplianceFinding {
   regulationTitle: string;
   status: ComplianceStatus;
   explanation: string;
+  // Only the full model review fills these in — the keyword scan it falls back to, and any
+  // analysis stored before the review existed, leave them undefined. Severity is set on gaps only.
+  severity?: RiskSeverity;
+  whyItMatters?: string;
+  recommendedAction?: string;
+  proposedLanguage?: string;
+  contractReference?: string;
 }
 
 export interface ComplianceAnalysis {
   complianceScore: number;
   findings: ComplianceFinding[];
   analyzedAt: string;
+  /** What the review could not establish — shown to the reader rather than guessed at. */
+  limitations?: string[];
 }
 
 /** Response of POST /documents/{id}/compliance. */

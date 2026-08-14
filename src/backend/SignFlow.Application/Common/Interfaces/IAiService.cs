@@ -18,19 +18,45 @@ public interface IAiService
     /// <summary>Fast, offline keyword match of a contract against the published regulatory watch registry.</summary>
     Task<ComplianceAnalysis> AnalyzeContractComplianceAsync(
         string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default);
+
+    /// <summary>
+    /// Full compliance review by the language model — judges whether the contract substantively
+    /// satisfies each published regulatory text rather than whether its keywords appear, and proposes
+    /// the wording that closes each gap. Slow (tens of seconds), so this is invoked on demand.
+    /// </summary>
+    Task<ComplianceAnalysis> ReviewComplianceAsync(
+        string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default);
 }
 
 /// <summary>Minimal regulatory-text data the compliance scan needs — not the full registry entity.</summary>
 public record RegulatoryTextSummary(Guid Id, string Title, string Keywords, string? Reference);
 
-/// <summary>One regulation's compliance status against a contract: "Addressed", "Gap" or "Unclear".</summary>
-public record ComplianceFinding(Guid RegulationId, string RegulationTitle, string Status, string Explanation);
+/// <summary>
+/// One regulation's compliance status against a contract: "Addressed", "Gap" or "Unclear".
+/// Everything past <paramref name="Explanation"/> is only populated by the full model review — the
+/// keyword scan and analyses persisted before it existed leave them null.
+/// </summary>
+public record ComplianceFinding(
+    Guid RegulationId,
+    string RegulationTitle,
+    string Status,
+    string Explanation,
+    string? Severity = null,
+    string? WhyItMatters = null,
+    string? RecommendedAction = null,
+    string? ProposedLanguage = null,
+    string? ContractReference = null);
 
 /// <summary>
 /// Result of a compliance scan against the published regulatory watch registry. ComplianceScore is
-/// the percentage of checked regulations found "Addressed" in the contract text.
+/// the percentage of checked regulations found "Addressed" in the contract text. Limitations records
+/// what the review could not establish, so the gap is visible rather than silently guessed at.
 /// </summary>
-public record ComplianceAnalysis(int ComplianceScore, List<ComplianceFinding> Findings, DateTime AnalyzedAt);
+public record ComplianceAnalysis(
+    int ComplianceScore,
+    List<ComplianceFinding> Findings,
+    DateTime AnalyzedAt,
+    List<string>? Limitations = null);
 
 /// <summary>
 /// One finding in a <see cref="ContractRiskAnalysis"/>. Severity is "Critical", "High", "Medium" or "Low";

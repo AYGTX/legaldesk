@@ -57,8 +57,15 @@ public class EvaluateReadinessCommandHandler(
         await using var pdfStream = await storage.DownloadAsync(document.StoragePath, cancellationToken);
         var text = await pdfService.ExtractTextAsync(pdfStream, cancellationToken);
 
-        var review = await aiService.AnalyzeContractAsync(text, document.Title, DateTime.UtcNow, cancellationToken);
-        var compliance = await aiService.AnalyzeContractComplianceAsync(text, document.Title, regulations, cancellationToken);
+        // Both are model reviews of the same text and each takes tens of seconds. Run them
+        // concurrently: sequentially the desk would take as long as the two combined, and this is
+        // the screen a reviewer sits and waits on.
+        var reviewTask = aiService.AnalyzeContractAsync(text, document.Title, DateTime.UtcNow, cancellationToken);
+        var complianceTask = aiService.ReviewComplianceAsync(text, document.Title, regulations, cancellationToken);
+        await Task.WhenAll(reviewTask, complianceTask);
+
+        var review = await reviewTask;
+        var compliance = await complianceTask;
 
         document.SetAiRiskAnalysis(JsonSerializer.Serialize(review.Risk, ContractJson.Options));
         document.SetAiComplianceAnalysis(JsonSerializer.Serialize(compliance, ContractJson.Options));
