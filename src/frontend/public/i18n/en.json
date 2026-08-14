@@ -256,7 +256,8 @@
       "completed": "Completed",
       "pending": "Pending",
       "drafts": "Drafts",
-      "changesRequested": "Changes Requested"
+      "changesRequested": "Changes Requested",
+      "expiringSoon": "Expiring Soon"
     },
     "activity": {
       "title": "Recent Activity",
@@ -519,6 +520,34 @@
         "sendAnyway": "The pre-flight review left {{count}} issue(s) open on this contract. Send it anyway?",
         "sendAnywayConfirm": "Send anyway",
         "sendBlocked": "This contract has unresolved critical issues. Resolve or dismiss them in the Legal intelligence tab before sending."
+      },
+      "contractTerm": {
+        "title": "Contract term",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "noticePeriod": "Notice period",
+        "days": "days",
+        "autoRenews": "Auto-renews",
+        "autoRenewsHint": "This contract renews automatically unless notice is given before the notice deadline.",
+        "noticeDeadline": "Notice deadline",
+        "derivedHint": "Calculated from the end date and the notice period — never entered or stored separately.",
+        "remaining": "Time remaining",
+        "daysRemaining": "{{days}} day(s) remaining",
+        "endedAgo": "Ended {{days}} day(s) ago",
+        "edit": "Edit term",
+        "record": "Record the term",
+        "save": "Save",
+        "saveFailed": "Failed to save the contract term",
+        "none": "No term recorded for this contract",
+        "unconfirmed": "Unconfirmed",
+        "stage": {
+          "Unknown": "Not tracked",
+          "NotStarted": "Not yet in force",
+          "InForce": "In force",
+          "NoticeDeadlinePassed": "Notice deadline passed",
+          "ExpiringSoon": "Expiring soon",
+          "Expired": "Expired"
+        }
       }
     },
     "upload": {
@@ -1240,6 +1269,21 @@
       "avgScore": "Avg. risk score",
       "bySeverity": "Findings by severity",
       "topClauseTypes": "Most frequent risk clauses"
+    },
+    "lifecycle": {
+      "title": "Contract lifecycle",
+      "hint": "Where executed contracts sit in their own terms, computed from the dates recorded on each contract. Nothing is stored, so this is current as of the moment the page is opened.",
+      "empty": "No executed contract has a term recorded yet.",
+      "tracked": "Contracts tracked",
+      "in30": "Ending in 30 days",
+      "in90": "Ending in 90 days",
+      "noticePassed": "Notice deadline passed",
+      "byStage": "By lifecycle stage",
+      "byFamily": "Ending within 90 days, by contract type",
+      "contract": "Contract",
+      "endDate": "End date",
+      "noticeDeadline": "Notice deadline",
+      "daysLeft": "Days left"
     }
   },
   "signing": {
@@ -1768,7 +1812,7 @@
       },
       "obligations": {
         "title": "Contractual obligation tracking",
-        "desc": "Renewal and expiry dates are carried on the contract itself, proposed automatically from the contract text at upload and confirmed by the owner. A daily sweep raises each obligation to its owner as the deadline approaches, so a renewal window is never missed silently."
+        "desc": "A dated duty read out of the contract text at upload — a review, a milestone, a decision to take — proposed automatically and confirmed or overridden by the owner. A daily sweep raises each obligation to its owner as the deadline approaches. The contract’s own term is tracked separately, under execution monitoring."
       },
       "reporting": {
         "title": "Dashboards and reporting",
@@ -1776,7 +1820,7 @@
       },
       "execution": {
         "title": "Execution monitoring and alerts",
-        "desc": "Email, in-app and real-time notification channels are in place and already fire on deadlines, reminders and escalations. Extending them to obligation and renewal alerts is the remaining work."
+        "desc": "Email, in-app and real-time channels fire on signing deadlines, reminders and escalations. Executed contracts are swept once a day against the term recorded on them: the owner is alerted 90, 60, 30 and 7 days before expiry, again the day the notice deadline passes, and once the contract has lapsed — each milestone exactly once. From the notice deadline onwards the alert also reaches administrators and managers, so a departed owner is never the only person told. The sweep reads the dates entered on each contract; it does not monitor anything outside LegalDesk."
       },
       "regWatch": {
         "title": "Integrated regulatory watch",

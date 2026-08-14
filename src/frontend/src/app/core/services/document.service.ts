@@ -5,7 +5,7 @@ import {
   DocumentDetail, DocumentSummary, DashboardData,
   FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto,
   ContractAnalysisResponse, ComplianceAnalysisResponse,
-  Readiness, ReadinessItemStatus
+  Readiness, ReadinessItemStatus, ContractTermUpdate
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -60,6 +60,11 @@ export class DocumentService {
 
   updateObligation(id: string, dueDate: string, obligationType: string): Observable<void> {
     return this.api.patch<void>(`/v1/documents/${id}/obligation`, { dueDate, obligationType });
+  }
+
+  /** Records the negotiated term; re-arms the lifecycle alert ladder against the new dates. */
+  updateContractTerm(id: string, term: ContractTermUpdate): Observable<void> {
+    return this.api.patch<void>(`/v1/documents/${id}/term`, term);
   }
 
   delete(id: string): Observable<void> {

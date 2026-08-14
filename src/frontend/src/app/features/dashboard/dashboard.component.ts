@@ -316,6 +316,16 @@ export class DashboardComponent implements OnInit {
         route: '/documents',
         queryParam: { status: 'ChangesRequested' },
       }] : []),
+      // Lifecycle state — only surfaces while one of the user's contracts is running out.
+      ...(d.expiringSoon > 0 ? [{
+        label: this.translate.instant('dashboard.stats.expiringSoon'),
+        value: d.expiringSoon,
+        icon: 'update',
+        color: '#b45309',
+        bgColor: '#fffbeb',
+        route: '/documents',
+        queryParam: { status: 'Completed' },
+      }] : []),
       {
         label: this.translate.instant('dashboard.stats.drafts'),
         value: d.drafts,

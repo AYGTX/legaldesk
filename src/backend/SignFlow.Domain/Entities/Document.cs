@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
@@ -57,6 +58,22 @@ public class Document : BaseEntity
     public string? ObligationRationale { get; private set; }
     public bool ObligationConfirmed { get; private set; }
     public DateTime? LastObligationReminderSentAt { get; private set; }
+
+    // Contract term — the lifecycle envelope the contract runs inside, distinct from an obligation:
+    // an obligation is a dated duty extracted from the text, the term is "in force from X to Y,
+    // auto-renews or not, notice must be given N days ahead". Entered by the owner, never guessed.
+    // The notice deadline is deliberately NOT stored: it is derived from ContractEndDate and
+    // NoticePeriodDays wherever it is needed, so the two can never drift apart.
+    public DateTime? ContractStartDate { get; private set; }
+    public DateTime? ContractEndDate { get; private set; }
+    public bool AutoRenews { get; private set; }
+    public int? NoticePeriodDays { get; private set; }
+    public bool TermConfirmed { get; private set; }
+    // The last rung of the alert ladder already sent, so each milestone fires exactly once.
+    // This replaces the blunt time-based throttle used for obligation reminders.
+    [MaxLength(32)]
+    public string? LastTermAlertStage { get; private set; }
+    public DateTime? LastTermAlertSentAt { get; private set; }
 
     // Request type & SLA (snapshot taken at creation so later config changes don't affect in-flight requests)
     public Guid? RequestTypeId { get; private set; }
@@ -209,6 +226,8 @@ public class Document : BaseEntity
         ReadinessVerdict = ReadinessVerdict.NotEvaluated;
         ReadinessScore = null;
         ReadinessEvaluatedAt = null;
+        // The contract term is deliberately kept, like a human-confirmed obligation date: the paper
+        // changed, but the dates the parties negotiated did not.
         if (SlaHours.HasValue)
             ExpiresAt = DateTime.UtcNow.AddHours(SlaHours.Value);
         else if (ExpirationDays.HasValue)
@@ -299,6 +318,31 @@ public class Document : BaseEntity
     public void MarkObligationReminderSent()
     {
         LastObligationReminderSentAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Records the negotiated contract term. Re-dating a contract clears the alert ladder so the
+    /// milestones are re-armed against the new end date — otherwise moving an end date forward
+    /// would silently skip every rung already sent against the old one.
+    /// </summary>
+    public void SetContractTerm(DateTime? startDate, DateTime? endDate, bool autoRenews, int? noticePeriodDays)
+    {
+        ContractStartDate = startDate;
+        ContractEndDate = endDate;
+        AutoRenews = autoRenews;
+        NoticePeriodDays = noticePeriodDays;
+        TermConfirmed = true;
+        LastTermAlertStage = null;
+        LastTermAlertSentAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>Records which rung of the alert ladder has been sent, so it never fires twice.</summary>
+    public void MarkTermAlertSent(string stage)
+    {
+        LastTermAlertStage = stage;
+        LastTermAlertSentAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 

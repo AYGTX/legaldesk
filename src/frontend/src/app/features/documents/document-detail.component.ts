@@ -25,6 +25,7 @@ import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/wo
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
 import { ContractAnalysisPanelComponent } from './contract-analysis-panel.component';
 import { ContractCompliancePanelComponent } from './contract-compliance-panel.component';
+import { ContractTermPanelComponent } from './contract-term-panel.component';
 import { remainingTime, RemainingTime } from '../../core/utils/sla';
 
 @Component({
@@ -35,7 +36,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
     MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatStepperModule, MatChipsModule, MatDividerModule, MatTooltipModule, MatDialogModule,
     MatTabsModule, MatSnackBarModule, WorkflowVisualizerComponent, CommentsPanelComponent,
-    ContractAnalysisPanelComponent, ContractCompliancePanelComponent,
+    ContractAnalysisPanelComponent, ContractCompliancePanelComponent, ContractTermPanelComponent,
     ReadinessVerdictComponent, ReadinessChecklistComponent, TranslatePipe
   ],
   template: `
@@ -483,6 +484,18 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               [generatedAt]="doc()!.aiComplianceAnalysisGeneratedAt"
               (analyzed)="load()">
             </sf-contract-compliance-panel>
+
+            <!-- Contract term & lifecycle -->
+            <sf-contract-term-panel [wide]="true"
+              [documentId]="doc()!.id"
+              [contractStartDate]="doc()!.contractStartDate"
+              [contractEndDate]="doc()!.contractEndDate"
+              [autoRenews]="doc()!.autoRenews"
+              [noticePeriodDays]="doc()!.noticePeriodDays"
+              [termConfirmed]="doc()!.termConfirmed"
+              [canEdit]="isOwner() || auth.isAdmin()"
+              (saved)="load()">
+            </sf-contract-term-panel>
 
             <!-- Obligation Tracking -->
             <mat-card class="obligation-card">

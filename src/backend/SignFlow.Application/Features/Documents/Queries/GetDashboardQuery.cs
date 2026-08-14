@@ -16,7 +16,9 @@ public record DashboardDto(
     int TotalDocuments,
     List<RecentActivityDto> RecentActivity,
     List<DocumentSummaryDto> PendingDocuments,
-    int ChangesRequested = 0);
+    int ChangesRequested = 0,
+    /// <summary>The user's own executed contracts whose term ends within 30 days.</summary>
+    int ExpiringSoon = 0);
 
 public record RecentActivityDto(Guid DocumentId, string DocumentTitle, AuditAction Action, string? ActorName, DateTime Timestamp, string? Description);
 
@@ -47,6 +49,15 @@ public class GetDashboardQueryHandler(
         var changesRequested = await ownedDocs.CountAsync(d => d.Status == DocumentStatus.ChangesRequested, cancellationToken);
         var total = await ownedDocs.CountAsync(cancellationToken);
 
+        // Executed contracts of this user's whose term runs out inside the "expiring soon" window.
+        var soonCutoff = DateTime.UtcNow.Date.AddDays(30);
+        var expiringSoon = await ownedDocs.CountAsync(
+            d => d.Status == DocumentStatus.Completed
+                 && d.ContractEndDate != null
+                 && d.ContractEndDate >= DateTime.UtcNow.Date
+                 && d.ContractEndDate <= soonCutoff,
+            cancellationToken);
+
         var recentActivity = await db.AuditLogs.AsNoTracking()
             .Where(a => db.Documents.Any(d => d.Id == a.DocumentId && d.OwnerId == userId))
             .OrderByDescending(a => a.Timestamp)
@@ -67,6 +78,6 @@ public class GetDashboardQueryHandler(
                 d.RequestType != null ? d.RequestType.Name : null))
             .ToListAsync(cancellationToken);
 
-        return new DashboardDto(pendingSignatures, waitingForOthers, completed, rejected, expired, drafts, total, recentActivity, pendingDocuments, changesRequested);
+        return new DashboardDto(pendingSignatures, waitingForOthers, completed, rejected, expired, drafts, total, recentActivity, pendingDocuments, changesRequested, expiringSoon);
     }
 }

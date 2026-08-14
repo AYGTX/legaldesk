@@ -12,5 +12,6 @@ public enum NotificationType
     CommentMention = 7,
     ChangesRequested = 8,
     ObligationDue = 9,
-    RegulatoryAlert = 10
+    RegulatoryAlert = 10,
+    ContractTermAlert = 11
 }

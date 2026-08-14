@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,7 +18,7 @@ import { ComplianceAnalysis } from '../../core/models';
     MatTooltipModule, MatSnackBarModule, TranslatePipe
   ],
   template: `
-    <mat-card class="compliance-card" [class.wide]="wide">
+    <mat-card class="compliance-card" [class.wide]="wide()">
       <mat-card-header>
         <mat-card-title class="compliance-title">
           <mat-icon class="ai-icon">policy</mat-icon> {{ 'documents.detail.compliance.title' | translate }}
@@ -33,8 +33,8 @@ import { ComplianceAnalysis } from '../../core/models';
               <ng-container>{{ (complianceAnalysis() ? 'documents.detail.compliance.rerun' : 'documents.detail.compliance.run') | translate }}</ng-container>
             }
           </button>
-          @if (generatedAt) {
-            <span class="compliance-meta">{{ 'documents.detail.generated' | translate: { date: (generatedAt | date:'MMM d, y') } }}</span>
+          @if (generatedAt()) {
+            <span class="compliance-meta">{{ 'documents.detail.generated' | translate: { date: (generatedAt() | date:'MMM d, y') } }}</span>
           }
         </div>
 
@@ -108,12 +108,15 @@ import { ComplianceAnalysis } from '../../core/models';
   `]
 })
 export class ContractCompliancePanelComponent {
-  @Input({ required: true }) documentId!: string;
-  @Input() complianceAnalysisJson: string | null | undefined = null;
-  @Input() generatedAt: string | null | undefined = null;
+  // Signal inputs, not @Input() properties: `complianceAnalysis` below is a computed, and a
+  // computed that reads plain properties has nothing to invalidate it — it would cache the first
+  // result forever and go stale the moment the parent reloads.
+  readonly documentId = input.required<string>();
+  readonly complianceAnalysisJson = input<string | null | undefined>(null);
+  readonly generatedAt = input<string | null | undefined>(null);
   /** Full-width placement: the regulation list goes two-up instead of a single narrow column. */
-  @Input() wide = false;
-  @Output() analyzed = new EventEmitter<void>();
+  readonly wide = input(false);
+  readonly analyzed = output<void>();
 
   private readonly documentService = inject(DocumentService);
   private readonly translate = inject(TranslateService);
@@ -122,14 +125,15 @@ export class ContractCompliancePanelComponent {
   readonly analysisError = signal<string | null>(null);
 
   readonly complianceAnalysis = computed<ComplianceAnalysis | null>(() => {
-    if (!this.complianceAnalysisJson) return null;
-    try { return JSON.parse(this.complianceAnalysisJson) as ComplianceAnalysis; } catch { return null; }
+    const json = this.complianceAnalysisJson();
+    if (!json) return null;
+    try { return JSON.parse(json) as ComplianceAnalysis; } catch { return null; }
   });
 
   runAnalysis(): void {
     this.analyzing.set(true);
     this.analysisError.set(null);
-    this.documentService.analyzeCompliance(this.documentId).subscribe({
+    this.documentService.analyzeCompliance(this.documentId()).subscribe({
       next: () => { this.analyzing.set(false); this.analyzed.emit(); },
       error: err => {
         this.analyzing.set(false);

@@ -172,6 +172,14 @@ try
         job => job.SweepAsync(CancellationToken.None),
         "0 8 * * *");
 
+    // Recurring contract term sweep: walk executed contracts through their expiry milestones and
+    // escalate to the legal team once the notice window has closed. Runs an hour before the
+    // obligation sweep so the two don't compete for the same connections.
+    RecurringJob.AddOrUpdate<ContractTermAlertJob>(
+        "contract-term-alert-sweep",
+        job => job.SweepAsync(CancellationToken.None),
+        "0 7 * * *");
+
     app.MapControllers();
     app.MapHub<SignFlowHub>("/hubs/signflow");
 

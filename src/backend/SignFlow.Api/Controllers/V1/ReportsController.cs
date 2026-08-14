@@ -17,6 +17,7 @@ namespace SignFlow.Api.Controllers.V1;
 public class ReportsController(
     IQueryHandler<GetAdminReportQuery, AdminReportDto> reportHandler,
     IQueryHandler<GetRiskMapQuery, RiskMapDto> riskMapHandler,
+    IQueryHandler<GetContractLifecycleQuery, ContractLifecycleDto> lifecycleHandler,
     IQueryHandler<GetOrgAuditLogQuery, PagedResult<OrgAuditLogDto>> auditLogHandler) : ControllerBase
 {
     /// <summary>Get the organization-wide reporting overview (volume, outcomes, SLA, revision activity)</summary>
@@ -36,6 +37,16 @@ public class ReportsController(
     public async Task<ActionResult<RiskMapDto>> GetRiskMap(CancellationToken ct)
     {
         var result = await riskMapHandler.HandleAsync(new GetRiskMapQuery(), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Get the contract portfolio's lifecycle position: what is expiring, renewing or lapsed</summary>
+    [HttpGet("lifecycle")]
+    [ProducesResponseType(typeof(ContractLifecycleDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    public async Task<ActionResult<ContractLifecycleDto>> GetLifecycle(CancellationToken ct)
+    {
+        var result = await lifecycleHandler.HandleAsync(new GetContractLifecycleQuery(), ct);
         return Ok(result);
     }
 

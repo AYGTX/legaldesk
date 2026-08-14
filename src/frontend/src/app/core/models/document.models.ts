@@ -67,6 +67,12 @@ export interface DocumentDetail {
   obligationType?: string;
   obligationRationale?: string;
   obligationConfirmed: boolean;
+  /** Contract term. The lifecycle stage and notice deadline are derived from these — see evaluateContractTerm. */
+  contractStartDate?: string;
+  contractEndDate?: string;
+  autoRenews: boolean;
+  noticePeriodDays?: number;
+  termConfirmed: boolean;
   hideRecipientIdentities: boolean;
   owner: OwnerInfo;
   recipients: RecipientInfo[];
@@ -178,6 +184,8 @@ export interface DashboardData {
   recentActivity: RecentActivity[];
   pendingDocuments: DocumentSummary[];
   changesRequested: number;
+  /** The user's own executed contracts whose term ends within 30 days. */
+  expiringSoon: number;
 }
 
 export interface RecentActivity {

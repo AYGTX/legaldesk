@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,7 +41,7 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
     MatExpansionModule, MatTooltipModule, MatSnackBarModule, TranslatePipe
   ],
   template: `
-    <mat-card class="analysis-card" [class.wide]="wide">
+    <mat-card class="analysis-card" [class.wide]="wide()">
       <mat-card-header>
         <mat-card-title class="analysis-title">
           <mat-icon class="ai-icon">gavel</mat-icon> {{ 'documents.detail.analysis.title' | translate }}
@@ -56,8 +56,8 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
               <ng-container>{{ (riskAnalysis() ? 'documents.detail.analysis.rerun' : 'documents.detail.analysis.run') | translate }}</ng-container>
             }
           </button>
-          @if (generatedAt) {
-            <span class="summary-meta">{{ 'documents.detail.generated' | translate: { date: (generatedAt | date:'MMM d, y') } }}</span>
+          @if (generatedAt()) {
+            <span class="summary-meta">{{ 'documents.detail.generated' | translate: { date: (generatedAt() | date:'MMM d, y') } }}</span>
           }
         </div>
 
@@ -117,7 +117,7 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
               </h4>
               <mat-accordion multi>
                 @for (finding of group.findings; track finding.clauseType + finding.explanation) {
-                  <mat-expansion-panel [expanded]="wide && isSevere(group.severity)">
+                  <mat-expansion-panel [expanded]="wide() && isSevere(group.severity)">
                     <mat-expansion-panel-header>
                       <mat-panel-title class="finding-title">
                         <span class="finding-clause">{{ finding.clauseType }}</span>
@@ -220,16 +220,19 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
   `]
 })
 export class ContractAnalysisPanelComponent {
-  @Input({ required: true }) documentId!: string;
-  @Input() riskAnalysisJson: string | null | undefined = null;
-  @Input() generatedAt: string | null | undefined = null;
+  // Signal inputs, not @Input() properties: `riskAnalysis` and `groupedFindings` below are
+  // computed values, and a computed that reads plain properties has nothing to invalidate it —
+  // it would cache the first result forever and go stale the moment the parent reloads.
+  readonly documentId = input.required<string>();
+  readonly riskAnalysisJson = input<string | null | undefined>(null);
+  readonly generatedAt = input<string | null | undefined>(null);
   /**
    * Full-width placement (the document's Intelligence tab) rather than the narrow sidebar: the
    * contract profile spreads out and severe findings start open instead of collapsed.
    */
-  @Input() wide = false;
+  readonly wide = input(false);
   /** Fires after a successful analysis so the parent can reload the document (obligation may have changed too). */
-  @Output() analyzed = new EventEmitter<void>();
+  readonly analyzed = output<void>();
 
   private readonly documentService = inject(DocumentService);
   private readonly dialog = inject(MatDialog);
@@ -240,8 +243,9 @@ export class ContractAnalysisPanelComponent {
   readonly analysisError = signal<string | null>(null);
 
   readonly riskAnalysis = computed<ContractRiskAnalysis | null>(() => {
-    if (!this.riskAnalysisJson) return null;
-    try { return JSON.parse(this.riskAnalysisJson) as ContractRiskAnalysis; } catch { return null; }
+    const json = this.riskAnalysisJson();
+    if (!json) return null;
+    try { return JSON.parse(json) as ContractRiskAnalysis; } catch { return null; }
   });
 
   readonly groupedFindings = computed(() => {
@@ -258,7 +262,7 @@ export class ContractAnalysisPanelComponent {
   runAnalysis(): void {
     this.analyzing.set(true);
     this.analysisError.set(null);
-    this.documentService.analyzeContract(this.documentId).subscribe({
+    this.documentService.analyzeContract(this.documentId()).subscribe({
       next: () => { this.analyzing.set(false); this.analyzed.emit(); },
       error: err => {
         this.analyzing.set(false);

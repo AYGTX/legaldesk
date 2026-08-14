@@ -1,3 +1,5 @@
+import { LifecycleStage } from './contract-intelligence.model';
+
 /** Organization-wide reporting overview — mirrors AdminReportDto (admin/manager only). */
 export interface AdminReport {
   totalRequests: number;
@@ -65,6 +67,40 @@ export interface ContractFamilyRisk {
   requestTypeName: string;
   count: number;
   avgRiskScore: number;
+}
+
+/** Portfolio view of where executed contracts sit in their terms — mirrors ContractLifecycleDto. */
+export interface ContractLifecycle {
+  totalTracked: number;
+  expiringIn30Days: number;
+  expiringIn60Days: number;
+  expiringIn90Days: number;
+  noticeDeadlinePassed: number;
+  byStage: LifecycleStageCount[];
+  upcoming: UpcomingContract[];
+  byRequestType: ContractFamilyLifecycle[];
+}
+
+export interface LifecycleStageCount {
+  stage: LifecycleStage;
+  count: number;
+}
+
+export interface UpcomingContract {
+  documentId: string;
+  title: string;
+  requestTypeName?: string;
+  endDate: string;
+  noticeDeadline?: string;
+  autoRenews: boolean;
+  daysToEnd: number;
+  stage: LifecycleStage;
+}
+
+export interface ContractFamilyLifecycle {
+  requestTypeName: string;
+  count: number;
+  expiringIn90Days: number;
 }
 
 /** A single entry in the organization-wide audit log — mirrors OrgAuditLogDto (admin/manager only). */

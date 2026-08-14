@@ -734,6 +734,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<DateTime?>("AiSummaryGeneratedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("AutoRenews")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
@@ -741,6 +744,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ContractEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ContractStartDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -805,9 +814,19 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<DateTime?>("LastObligationReminderSentAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("LastTermAlertSentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastTermAlertStage")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<string>("Message")
                         .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("NoticePeriodDays")
+                        .HasColumnType("int");
 
                     b.Property<bool>("ObligationConfirmed")
                         .HasColumnType("bit");
@@ -872,6 +891,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("Tags")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("TermConfirmed")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Title")
                         .IsRequired()

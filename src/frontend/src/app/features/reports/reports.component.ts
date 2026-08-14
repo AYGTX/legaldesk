@@ -4,15 +4,16 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ReportService } from '../../core/services/report.service';
-import { AdminReport, MonthlyVolume, RiskMap } from '../../core/models';
+import { AdminReport, ContractLifecycle, MonthlyVolume, RiskMap } from '../../core/models';
 
 /** Organization-wide analytics for administrators and managers (server enforces the roles). */
 @Component({
   selector: 'sf-reports',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, TranslatePipe],
+  imports: [CommonModule, RouterLink, MatCardModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, TranslatePipe],
   template: `
     <div class="reports-page">
       <div class="page-header">
@@ -210,6 +211,85 @@ import { AdminReport, MonthlyVolume, RiskMap } from '../../core/models';
           </mat-card-content>
         </mat-card>
 
+        <!-- Contract lifecycle -->
+        <mat-card class="table-card">
+          <mat-card-header>
+            <mat-card-title>{{ 'reports.lifecycle.title' | translate }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="risk-map-hint">{{ 'reports.lifecycle.hint' | translate }}</p>
+
+            @if (loadingLifecycle()) {
+              <div class="loading-state"><mat-spinner diameter="32"></mat-spinner></div>
+            } @else if (lifecycle(); as lc) {
+              @if (lc.totalTracked === 0) {
+                <p class="empty-note">{{ 'reports.lifecycle.empty' | translate }}</p>
+              } @else {
+                <div class="risk-map-kpis">
+                  <div class="kpi"><span class="kpi-value">{{ lc.totalTracked }}</span><span class="kpi-label">{{ 'reports.lifecycle.tracked' | translate }}</span></div>
+                  <div class="kpi"><span class="kpi-value" [class.c-amber]="lc.expiringIn30Days > 0">{{ lc.expiringIn30Days }}</span><span class="kpi-label">{{ 'reports.lifecycle.in30' | translate }}</span></div>
+                  <div class="kpi"><span class="kpi-value">{{ lc.expiringIn90Days }}</span><span class="kpi-label">{{ 'reports.lifecycle.in90' | translate }}</span></div>
+                  <div class="kpi"><span class="kpi-value" [class.c-red]="lc.noticeDeadlinePassed > 0">{{ lc.noticeDeadlinePassed }}</span><span class="kpi-label">{{ 'reports.lifecycle.noticePassed' | translate }}</span></div>
+                </div>
+
+                <div class="risk-map-grid">
+                  <div class="risk-bar-block">
+                    <h4>{{ 'reports.lifecycle.byStage' | translate }}</h4>
+                    @for (s of lc.byStage; track s.stage) {
+                      <div class="risk-bar-row">
+                        <span class="risk-bar-label">{{ ('documents.detail.contractTerm.stage.' + s.stage) | translate }}</span>
+                        <div class="risk-bar-track"><div class="risk-bar-fill" [ngClass]="'stage-' + s.stage.toLowerCase()" [style.width.%]="barPercent(s.count, maxStageCount())"></div></div>
+                        <span class="risk-bar-count">{{ s.count }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="risk-bar-block">
+                    <h4>{{ 'reports.lifecycle.byFamily' | translate }}</h4>
+                    @for (f of lc.byRequestType; track f.requestTypeName) {
+                      <div class="risk-bar-row">
+                        <span class="risk-bar-label">{{ f.requestTypeName }}</span>
+                        <div class="risk-bar-track"><div class="risk-bar-fill neutral" [style.width.%]="barPercent(f.expiringIn90Days, maxFamilyExpiring())"></div></div>
+                        <span class="risk-bar-count">{{ f.expiringIn90Days }}/{{ f.count }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (lc.upcoming.length > 0) {
+                  <table class="report-table risk-map-table">
+                    <thead>
+                      <tr>
+                        <th>{{ 'reports.lifecycle.contract' | translate }}</th>
+                        <th>{{ 'reports.lifecycle.endDate' | translate }}</th>
+                        <th>{{ 'reports.lifecycle.noticeDeadline' | translate }}</th>
+                        <th class="num">{{ 'reports.lifecycle.daysLeft' | translate }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (c of lc.upcoming; track c.documentId) {
+                        <tr>
+                          <td>
+                            <a [routerLink]="['/documents', c.documentId]">{{ c.title }}</a>
+                            @if (c.autoRenews) {
+                              <mat-icon class="renew-hint" [matTooltip]="'documents.detail.contractTerm.autoRenewsHint' | translate">autorenew</mat-icon>
+                            }
+                          </td>
+                          <td>{{ c.endDate | date:'MMM d, y' }}</td>
+                          <td [class.c-red]="c.stage === 'NoticeDeadlinePassed'">
+                            {{ c.noticeDeadline ? (c.noticeDeadline | date:'MMM d, y') : '—' }}
+                          </td>
+                          <td class="num">{{ c.daysToEnd }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              }
+            }
+          </mat-card-content>
+        </mat-card>
+
       } @else if (error()) {
         <div class="error-state">
           <mat-icon>lock</mat-icon>
@@ -284,6 +364,11 @@ import { AdminReport, MonthlyVolume, RiskMap } from '../../core/models';
     .risk-bar-label.severity-low { color: #15803d; }
     .risk-bar-count { font-size: 12px; color: var(--g-text-3); min-width: 24px; text-align: right; }
     .risk-map-table { margin-top: 8px; }
+    .risk-bar-fill.stage-expired, .risk-bar-fill.stage-noticedeadlinepassed { background: #dc2626; }
+    .risk-bar-fill.stage-expiringsoon { background: #f59e0b; }
+    .risk-bar-fill.stage-inforce { background: #16a34a; }
+    .risk-bar-fill.stage-notstarted, .risk-bar-fill.stage-unknown { background: #9ca3af; }
+    .renew-hint { font-size: 15px; width: 15px; height: 15px; color: #6750a4; vertical-align: middle; margin-left: 4px; cursor: help; }
   `]
 })
 export class ReportsComponent implements OnInit {
@@ -297,6 +382,9 @@ export class ReportsComponent implements OnInit {
   readonly loadingRiskMap = signal(true);
   readonly riskMap = signal<RiskMap | null>(null);
 
+  readonly loadingLifecycle = signal(true);
+  readonly lifecycle = signal<ContractLifecycle | null>(null);
+
   private readonly maxMonthly = computed(() =>
     Math.max(1, ...(this.report()?.monthlyVolume.flatMap(m => [m.created, m.completed]) ?? [1])));
 
@@ -305,6 +393,12 @@ export class ReportsComponent implements OnInit {
 
   readonly maxClauseCount = computed(() =>
     Math.max(1, ...(this.riskMap()?.topClauseTypes.map(c => c.count) ?? [1])));
+
+  readonly maxStageCount = computed(() =>
+    Math.max(1, ...(this.lifecycle()?.byStage.map(s => s.count) ?? [1])));
+
+  readonly maxFamilyExpiring = computed(() =>
+    Math.max(1, ...(this.lifecycle()?.byRequestType.map(f => f.expiringIn90Days) ?? [1])));
 
   barHeight(value: number): number {
     return Math.round((value / this.maxMonthly()) * 120);
@@ -333,6 +427,11 @@ export class ReportsComponent implements OnInit {
     this.reportService.getRiskMap().subscribe({
       next: rm => { this.riskMap.set(rm); this.loadingRiskMap.set(false); },
       error: () => this.loadingRiskMap.set(false)
+    });
+
+    this.reportService.getContractLifecycle().subscribe({
+      next: lc => { this.lifecycle.set(lc); this.loadingLifecycle.set(false); },
+      error: () => this.loadingLifecycle.set(false)
     });
   }
 }

@@ -62,6 +62,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<ReopenDocumentCommand>, ReopenDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateObligationCommand>, UpdateObligationCommandHandler>();
+        services.AddScoped<ICommandHandler<UpdateContractTermCommand>, UpdateContractTermCommandHandler>();
         services.AddScoped<ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto>, AnalyzeContractCommandHandler>();
         services.AddScoped<ICommandHandler<AnalyzeComplianceCommand, ComplianceAnalysisDto>, AnalyzeComplianceCommandHandler>();
         services.AddScoped<ICommandHandler<EvaluateReadinessCommand, ReadinessDto>, EvaluateReadinessCommandHandler>();
@@ -95,6 +96,7 @@ public static class ApplicationServiceExtensions
         // Reports (admin/manager analytics)
         services.AddScoped<IQueryHandler<GetAdminReportQuery, AdminReportDto>, GetAdminReportQueryHandler>();
         services.AddScoped<IQueryHandler<GetRiskMapQuery, RiskMapDto>, GetRiskMapQueryHandler>();
+        services.AddScoped<IQueryHandler<GetContractLifecycleQuery, ContractLifecycleDto>, GetContractLifecycleQueryHandler>();
 
         // Audit
         services.AddScoped<IQueryHandler<GetAuditTrailQuery, PagedResult<AuditLogDto>>, GetAuditTrailQueryHandler>();

@@ -256,7 +256,8 @@
       "completed": "Terminés",
       "pending": "En attente",
       "drafts": "Brouillons",
-      "changesRequested": "Modifications demandées"
+      "changesRequested": "Modifications demandées",
+      "expiringSoon": "Échéance proche"
     },
     "activity": {
       "title": "Activité récente",
@@ -519,6 +520,34 @@
         "sendAnyway": "La revue préalable laisse {{count}} point(s) ouvert(s) sur ce contrat. L’envoyer quand même ?",
         "sendAnywayConfirm": "Envoyer quand même",
         "sendBlocked": "Ce contrat comporte des points critiques non traités. Traitez-les ou écartez-les dans l’onglet Intelligence juridique avant de l’envoyer."
+      },
+      "contractTerm": {
+        "title": "Durée du contrat",
+        "startDate": "Date d’effet",
+        "endDate": "Date d’échéance",
+        "noticePeriod": "Préavis",
+        "days": "jours",
+        "autoRenews": "Reconduction tacite",
+        "autoRenewsHint": "Ce contrat se reconduit automatiquement si aucune dénonciation n’est notifiée avant la date limite de préavis.",
+        "noticeDeadline": "Date limite de préavis",
+        "derivedHint": "Calculée à partir de la date d’échéance et du préavis — jamais saisie ni stockée séparément.",
+        "remaining": "Temps restant",
+        "daysRemaining": "{{days}} jour(s) restant(s)",
+        "endedAgo": "Échu depuis {{days}} jour(s)",
+        "edit": "Modifier la durée",
+        "record": "Enregistrer la durée",
+        "save": "Enregistrer",
+        "saveFailed": "Échec de l’enregistrement de la durée du contrat",
+        "none": "Aucune durée enregistrée pour ce contrat",
+        "unconfirmed": "À confirmer",
+        "stage": {
+          "Unknown": "Non suivi",
+          "NotStarted": "Pas encore en vigueur",
+          "InForce": "En vigueur",
+          "NoticeDeadlinePassed": "Préavis expiré",
+          "ExpiringSoon": "Échéance proche",
+          "Expired": "Échu"
+        }
       }
     },
     "upload": {
@@ -1240,6 +1269,21 @@
       "avgScore": "Score de risque moy.",
       "bySeverity": "Constats par sévérité",
       "topClauseTypes": "Clauses à risque les plus fréquentes"
+    },
+    "lifecycle": {
+      "title": "Cycle de vie des contrats",
+      "hint": "Position des contrats signés dans leur durée, calculée à partir des dates enregistrées sur chaque contrat. Rien n’est stocké : le résultat reflète l’instant où la page est ouverte.",
+      "empty": "Aucun contrat signé n’a encore de durée enregistrée.",
+      "tracked": "Contrats suivis",
+      "in30": "Échéance sous 30 jours",
+      "in90": "Échéance sous 90 jours",
+      "noticePassed": "Préavis expiré",
+      "byStage": "Par étape du cycle de vie",
+      "byFamily": "Échéance sous 90 jours, par type de contrat",
+      "contract": "Contrat",
+      "endDate": "Date d’échéance",
+      "noticeDeadline": "Date limite de préavis",
+      "daysLeft": "Jours restants"
     }
   },
   "signing": {
@@ -1768,7 +1812,7 @@
       },
       "obligations": {
         "title": "Suivi des obligations contractuelles",
-        "desc": "Les dates de renouvellement et d’échéance sont portées par le contrat lui-même, proposées automatiquement à partir du texte au dépôt puis confirmées par le responsable. Une surveillance quotidienne remonte chaque obligation à son responsable à l’approche du terme, afin qu’aucune fenêtre de renouvellement ne passe inaperçue."
+        "desc": "Une échéance extraite du texte du contrat au dépôt — une revue, un jalon, une décision à prendre — proposée automatiquement puis confirmée ou corrigée par le propriétaire. Un balayage quotidien remonte chaque obligation à son propriétaire à l’approche de la date. La durée du contrat elle-même est suivie séparément, dans le suivi d’exécution."
       },
       "reporting": {
         "title": "Tableaux de bord et reporting",
@@ -1776,7 +1820,7 @@
       },
       "execution": {
         "title": "Suivi d’exécution et alertes",
-        "desc": "Les canaux de notification par e-mail, dans l’application et en temps réel sont en place et se déclenchent déjà sur les échéances, les relances et les escalades. Leur extension aux alertes d’obligation et de renouvellement reste à faire."
+        "desc": "Les canaux e-mail, dans l’application et en temps réel se déclenchent sur les échéances de signature, les relances et les escalades. Les contrats signés font en outre l’objet d’un balayage quotidien fondé sur la durée enregistrée : le propriétaire est alerté 90, 60, 30 et 7 jours avant l’échéance, de nouveau le jour où la date limite de préavis est dépassée, puis une fois le contrat échu — chaque jalon une seule fois. À partir du préavis dépassé, l’alerte est également transmise aux administrateurs et aux gestionnaires, afin qu’un propriétaire ayant quitté l’entreprise ne soit jamais le seul informé. Le balayage s’appuie sur les dates saisies sur chaque contrat ; il ne surveille rien en dehors de LegalDesk."
       },
       "regWatch": {
         "title": "Veille réglementaire intégrée",

@@ -120,6 +120,7 @@ public static class InfrastructureServiceExtensions
         services.AddHangfireServer();
         services.AddScoped<SlaExpirationJob>();
         services.AddScoped<ObligationReminderJob>();
+        services.AddScoped<ContractTermAlertJob>();
 
         // SignalR
         services.AddSignalR(options =>

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { AdminReport, OrgAuditLogEntry, PagedResult, RiskMap } from '../models';
+import { AdminReport, ContractLifecycle, OrgAuditLogEntry, PagedResult, RiskMap } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class ReportService {
@@ -15,6 +15,11 @@ export class ReportService {
   /** Portfolio-level risk map aggregated from existing contract risk analyses — server enforces Administrator/Manager roles. */
   getRiskMap(): Observable<RiskMap> {
     return this.api.get<RiskMap>('/v1/reports/risk-map');
+  }
+
+  /** Where executed contracts sit in their terms — server enforces Administrator/Manager roles. */
+  getContractLifecycle(): Observable<ContractLifecycle> {
+    return this.api.get<ContractLifecycle>('/v1/reports/lifecycle');
   }
 
   /** Organization-wide audit log across all documents — server enforces Administrator/Manager roles. */

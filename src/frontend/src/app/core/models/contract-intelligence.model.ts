@@ -72,6 +72,23 @@ export interface ComplianceAnalysisResponse {
   generatedAt: string;
 }
 
+// ── Contract term ───────────────────────────────────────────────────────────────
+
+/**
+ * Where an executed contract sits in its own term. Derived from the recorded dates rather than
+ * stored, so it cannot go stale — mirrors the backend LifecycleStage enum.
+ */
+export type LifecycleStage =
+  | 'Unknown' | 'NotStarted' | 'InForce' | 'NoticeDeadlinePassed' | 'ExpiringSoon' | 'Expired';
+
+/** Payload for PATCH /documents/{id}/term. */
+export interface ContractTermUpdate {
+  startDate: string | null;
+  endDate: string | null;
+  autoRenews: boolean;
+  noticePeriodDays: number | null;
+}
+
 // ── Pre-flight readiness ────────────────────────────────────────────────────────
 
 export type ReadinessVerdict = 'NotEvaluated' | 'Ready' | 'NeedsWork' | 'Blocked';

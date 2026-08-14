@@ -21,7 +21,10 @@ const ICONS: Record<NotificationType, string> = {
   WorkflowFinished: 'verified',
   DelegationRequest: 'forward',
   CommentMention: 'comment',
-  ChangesRequested: 'published_with_changes'
+  ChangesRequested: 'published_with_changes',
+  ObligationDue: 'event_repeat',
+  RegulatoryAlert: 'gavel',
+  ContractTermAlert: 'update'
 };
 
 const COLORS: Record<NotificationType, string> = {
@@ -33,7 +36,10 @@ const COLORS: Record<NotificationType, string> = {
   WorkflowFinished: '#1e6b2e',
   DelegationRequest:'#6750a4',
   CommentMention:   '#0b57d0',
-  ChangesRequested: '#b26a00'
+  ChangesRequested: '#b26a00',
+  ObligationDue:    '#7a5900',
+  RegulatoryAlert:  '#6750a4',
+  ContractTermAlert:'#b26a00'
 };
 
 @Component({

@@ -72,6 +72,24 @@ public class DocumentsController(
         return NoContent();
     }
 
+    /// <summary>Record the negotiated contract term that drives the lifecycle alerts</summary>
+    [HttpPatch("{id:guid}/term")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<IActionResult> UpdateContractTerm(
+        [FromRoute] Guid id,
+        [FromBody] UpdateContractTermRequest request,
+        [FromServices] ICommandHandler<UpdateContractTermCommand> handler,
+        CancellationToken ct)
+    {
+        await handler.HandleAsync(
+            new UpdateContractTermCommand(
+                id, request.StartDate, request.EndDate, request.AutoRenews, request.NoticePeriodDays),
+            ct);
+        return NoContent();
+    }
+
     /// <summary>List documents with pagination, filtering and sorting</summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<DocumentSummaryDto>), 200)]
@@ -308,6 +326,12 @@ public record UploadDocumentRequest(
 public record ReopenDocumentRequest(int? SlaHours);
 
 public record UpdateObligationRequest(DateTime DueDate, string ObligationType);
+
+public record UpdateContractTermRequest(
+    DateTime? StartDate,
+    DateTime? EndDate,
+    bool AutoRenews,
+    int? NoticePeriodDays);
 
 public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);
 
