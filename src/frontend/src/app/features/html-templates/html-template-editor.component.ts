@@ -32,6 +32,7 @@ const FIELD_TYPES: { value: HtmlFieldType; labelKey: string; icon: string }[] = 
   { value: 'Date', labelKey: 'htmlTemplateEditor.fieldType.Date', icon: 'calendar_today' },
   { value: 'Number', labelKey: 'htmlTemplateEditor.fieldType.Number', icon: 'tag' },
   { value: 'Checkbox', labelKey: 'htmlTemplateEditor.fieldType.Checkbox', icon: 'check_box' },
+  { value: 'Dropdown', labelKey: 'htmlTemplateEditor.fieldType.Dropdown', icon: 'arrow_drop_down_circle' },
   { value: 'Signature', labelKey: 'htmlTemplateEditor.fieldType.Signature', icon: 'draw' },
 ];
 
@@ -42,6 +43,9 @@ const AUTO_FILL_OPTIONS = [
   { value: 'user.email', labelKey: 'htmlTemplateEditor.autoFillOption.email' },
   { value: 'user.company', labelKey: 'htmlTemplateEditor.autoFillOption.company' },
   { value: 'user.department', labelKey: 'htmlTemplateEditor.autoFillOption.department' },
+  { value: 'system.today', labelKey: 'htmlTemplateEditor.autoFillOption.today' },
+  { value: 'system.now', labelKey: 'htmlTemplateEditor.autoFillOption.now' },
+  { value: 'request.title', labelKey: 'htmlTemplateEditor.autoFillOption.requestTitle' },
 ];
 
 @Component({
@@ -221,6 +225,42 @@ const AUTO_FILL_OPTIONS = [
                       <label>{{ 'common.required' | translate }}</label>
                       <input type="checkbox" [(ngModel)]="f.isRequired" />
                     </div>
+                    @if (f.type === 'Dropdown') {
+                      <div class="fc-row">
+                        <label>{{ 'htmlTemplateEditor.optionsLabel' | translate }}</label>
+                        <input class="fc-input" [ngModel]="optionsText(f)" (ngModelChange)="setOptions(f, $event)"
+                               [placeholder]="'htmlTemplateEditor.optionsPlaceholder' | translate" />
+                      </div>
+                    }
+                    @if (f.role === 'Initiator' && f.type !== 'Signature' && !f.autoFillFrom) {
+                      <div class="fc-row">
+                        <label>{{ 'htmlTemplateEditor.defaultValueLabel' | translate }} <span class="fc-hint">{{ 'htmlTemplateEditor.defaultValueHint' | translate }}</span></label>
+                        @switch (f.type) {
+                          @case ('Checkbox') {
+                            <select class="fc-select" [ngModel]="f.defaultValue ?? ''" (ngModelChange)="f.defaultValue = $event">
+                              <option value="">{{ 'htmlTemplateEditor.defaultNone' | translate }}</option>
+                              <option value="true">{{ 'common.yes' | translate }}</option>
+                              <option value="false">{{ 'common.no' | translate }}</option>
+                            </select>
+                          }
+                          @case ('Dropdown') {
+                            <select class="fc-select" [ngModel]="f.defaultValue ?? ''" (ngModelChange)="f.defaultValue = $event">
+                              <option value="">{{ 'htmlTemplateEditor.defaultNone' | translate }}</option>
+                              @for (o of optionsList(f); track o) { <option [value]="o">{{ o }}</option> }
+                            </select>
+                          }
+                          @case ('Date') {
+                            <input class="fc-input" type="date" [ngModel]="f.defaultValue ?? ''" (ngModelChange)="f.defaultValue = $event" />
+                          }
+                          @case ('Number') {
+                            <input class="fc-input" type="number" [ngModel]="f.defaultValue ?? ''" (ngModelChange)="f.defaultValue = ('' + ($event ?? ''))" />
+                          }
+                          @default {
+                            <input class="fc-input" type="text" [ngModel]="f.defaultValue ?? ''" (ngModelChange)="f.defaultValue = $event" />
+                          }
+                        }
+                      </div>
+                    }
                     @if (f.role === 'Initiator' && f.type !== 'Signature') {
                       <div class="fc-row">
                         <label>{{ 'htmlTemplateEditor.autoFillLabel' | translate }}</label>
@@ -242,6 +282,14 @@ const AUTO_FILL_OPTIONS = [
                           }
                         </select>
                       </div>
+                      @if (!isPlaced(f.fieldKey)) {
+                        <div class="fc-warn">
+                          <span>{{ 'htmlTemplateEditor.signatureNotPlaced' | translate }}</span>
+                          <button type="button" class="insert-btn" (click)="insertPlaceholder(f.fieldKey, $event)">
+                            {{ 'htmlTemplateEditor.insertIntoHtml' | translate }}
+                          </button>
+                        </div>
+                      }
                       @if (workflowType() === 'Mixed') {
                         <div class="fc-row">
                           <label>{{ 'htmlTemplateEditor.stage' | translate }} <span class="fc-hint">{{ 'htmlTemplateEditor.stageHint' | translate }}</span></label>
@@ -298,6 +346,7 @@ const AUTO_FILL_OPTIONS = [
     </div>
   `,
   styles: [`
+    .fc-warn { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; padding: 6px 10px; border-radius: 8px; background: #fef7e0; color: #b06000; font-size: 12px; }
     :host { display: block; height: 100%; }
     .editor-page { display: flex; flex-direction: column; height: calc(100vh - 64px); gap: 0; }
 
@@ -474,6 +523,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
           order: f.order,
           autoFillFrom: f.autoFillFrom ?? '',
           optionsJson: f.optionsJson ?? '',
+          defaultValue: f.defaultValue ?? '',
           preAssignedApproverId: f.preAssignedApproverId ?? '',
           workflowStage: f.workflowStage ?? 1
         })));
@@ -505,6 +555,26 @@ export class HtmlTemplateEditorComponent implements OnInit {
     e.stopPropagation();
     this.fields.update(arr => arr.filter((_, idx) => idx !== i));
     if (this.expandedIdx() === i) this.expandedIdx.set(null);
+  }
+
+  /** True when the text has a `{{key}}` for this field — for a signature, that is where its signature will be drawn. */
+  isPlaced(key: string): boolean {
+    return this.htmlContent.includes(`{{${key}}}`);
+  }
+
+  /** The choices of a dropdown, typed as a comma-separated list and stored as JSON (the same shape the PDF designer uses). */
+  optionsText(f: HtmlTemplateFieldInput): string { return this.optionsList(f).join(', '); }
+
+  optionsList(f: HtmlTemplateFieldInput): string[] {
+    if (!f.optionsJson) return [];
+    try { return JSON.parse(f.optionsJson) as string[]; } catch { return []; }
+  }
+
+  setOptions(f: HtmlTemplateFieldInput, text: string): void {
+    const list = text.split(',').map(o => o.trim()).filter(Boolean);
+    f.optionsJson = list.length ? JSON.stringify(list) : '';
+    // A default that is no longer one of the choices would be refused when a request is created.
+    if (f.defaultValue && !list.includes(f.defaultValue)) f.defaultValue = '';
   }
 
   insertPlaceholder(key: string, e: Event) {
@@ -675,6 +745,8 @@ export class HtmlTemplateEditorComponent implements OnInit {
       ...f,
       order: i + 1,
       autoFillFrom: f.autoFillFrom || undefined,
+      optionsJson: f.optionsJson || undefined,
+      defaultValue: f.defaultValue || undefined,
       preAssignedApproverId: f.preAssignedApproverId || undefined,
       workflowStage: f.workflowStage || 1
     }));

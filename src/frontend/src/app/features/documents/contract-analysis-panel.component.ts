@@ -132,7 +132,7 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
                     @if (finding.whyItMatters) {
                       <div class="finding-block">
                         <span class="finding-block-label">{{ 'documents.detail.analysis.whyItMatters' | translate }}</span>
-                        <p>{{ finding.whyItMatters }}</p>
+                        <p class="pre-line">{{ finding.whyItMatters }}</p>
                       </div>
                     }
                     @if (finding.recommendedAction) {
@@ -217,6 +217,7 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
     .proposed-language { white-space: pre-wrap; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; margin: 0 0 8px; line-height: 1.5; }
     .finding-actions { display: flex; gap: 8px; }
     .finding-reference { font-size: 11.5px; color: #9ca3af; margin: 6px 0 0; }
+    .pre-line { white-space: pre-line; }
   `]
 })
 export class ContractAnalysisPanelComponent {

@@ -80,6 +80,9 @@ export interface DocumentDetail {
   workflow?: WorkflowInfo;
   version: number;
   versions?: DocumentVersionInfo[];
+  /** Set for contracts built from a template ('Html' | 'Pdf'); their owner revises answers, never the file. */
+  templateKind?: 'Html' | 'Pdf' | null;
+  templateRevisions?: TemplateRevision[];
 }
 
 export interface DocumentVersionInfo {
@@ -238,3 +241,49 @@ export interface RecipientInputDto {
   roleLabel?: string;
 }
 
+
+/** One line of a PDF page replaced in the browser editor. PDF points, origin top-left (PDF.js at scale 1). */
+export interface PdfTextEdit {
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize: number;
+  text: string;
+}
+
+/** One answer that differs between two versions of a template contract. */
+export interface TemplateFieldChange {
+  fieldKey: string;
+  label: string;
+  oldValue?: string;
+  newValue?: string;
+}
+
+/** What changed between two versions of a template contract, and who changed it. */
+export interface TemplateRevision {
+  fromVersion: number;
+  toVersion: number;
+  changeNote?: string;
+  changedByName?: string;
+  createdAt: string;
+  changes: TemplateFieldChange[];
+}
+
+export interface TemplateRevisionFormField {
+  fieldKey: string;
+  label: string;
+  type: string;
+  isRequired: boolean;
+  optionsJson?: string;
+}
+
+/** The form an owner fills again after a reviewer asked for changes on a template contract. */
+export interface TemplateRevisionForm {
+  templateKind: string;
+  currentVersion: number;
+  fields: TemplateRevisionFormField[];
+  values: Record<string, string>;
+  changeRequests: { requestedBy: string; reason?: string }[];
+}

@@ -26,6 +26,7 @@ import {
   REGULATORY_JURISDICTIONS
 } from '../../core/models';
 import { RegulatoryTextDialogComponent } from './regulatory-text-dialog.component';
+import { RegulatoryArticlesDialogComponent } from './regulatory-articles-dialog.component';
 
 @Component({
   selector: 'sf-regulatory-watch',
@@ -115,11 +116,22 @@ import { RegulatoryTextDialogComponent } from './regulatory-text-dialog.componen
                     <span class="chip jurisdiction">{{ ('regulatoryWatch.jurisdiction.' + t.jurisdiction) | translate }}</span>
                     <span class="chip lang">{{ t.language | uppercase }}</span>
                     <span class="chip status" [ngClass]="'status-' + t.status.toLowerCase()">{{ ('regulatoryWatch.status.' + t.status) | translate }}</span>
+                    @if (t.verifiedAt) {
+                      <span class="chip verified" [matTooltip]="('regulatoryWatch.verifiedTooltip' | translate: { name: t.verifiedByName || '—', date: (t.verifiedAt | date:'mediumDate') })">
+                        <mat-icon class="chip-icon">verified</mat-icon> {{ 'regulatoryWatch.verified' | translate }}
+                      </span>
+                    } @else {
+                      <span class="chip unverified" [matTooltip]="'regulatoryWatch.unverifiedTooltip' | translate">
+                        <mat-icon class="chip-icon">report</mat-icon> {{ 'regulatoryWatch.unverified' | translate }}
+                      </span>
+                    }
+                    <span class="chip articles">{{ 'regulatoryWatch.articleCount' | translate: { count: t.articleCount ?? 0 } }}</span>
                   </div>
                 </div>
                 <button mat-icon-button [matMenuTriggerFor]="menu"><mat-icon>more_vert</mat-icon></button>
                 <mat-menu #menu="matMenu">
                   <button mat-menu-item (click)="openDialog(t)"><mat-icon>edit</mat-icon> {{ 'common.edit' | translate }}</button>
+                  <button mat-menu-item (click)="openArticles(t)"><mat-icon>gavel</mat-icon> {{ 'regulatoryWatch.manageArticles' | translate }}</button>
                   @if (isAdmin()) {
                     @if (t.status !== 'Published') {
                       <button mat-menu-item (click)="setStatus(t, 'Published')"><mat-icon>publish</mat-icon> {{ 'regulatoryWatch.publish' | translate }}</button>
@@ -199,6 +211,12 @@ export class RegulatoryWatchComponent implements OnInit {
   openDialog(text: RegulatoryText | null): void {
     this.dialog.open(RegulatoryTextDialogComponent, { data: { text }, width: '720px', maxWidth: '95vw' })
       .afterClosed().subscribe(saved => { if (saved) this.load(); });
+  }
+
+  /** The text of the law, article by article, and the sign-off against the official source. */
+  openArticles(text: RegulatoryText): void {
+    this.dialog.open(RegulatoryArticlesDialogComponent, { data: { text }, width: '920px', maxWidth: '96vw', disableClose: true })
+      .afterClosed().subscribe(changed => { if (changed) this.load(); });
   }
 
   setStatus(text: RegulatoryText, status: RegulatoryTextStatus): void {

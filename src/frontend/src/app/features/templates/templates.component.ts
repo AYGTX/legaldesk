@@ -30,12 +30,17 @@ import { TemplateKind, UnifiedTemplate, fromHtmlTemplate, fromPdfTemplate } from
         </div>
         @if (canManage()) {
           <div class="manage-links">
-            <a mat-stroked-button routerLink="/admin/html-templates/new">
-              <mat-icon>article</mat-icon> {{ 'templates.createHtml' | translate }}
-            </a>
-            <a mat-stroked-button routerLink="/pdf-templates/new">
-              <mat-icon>picture_as_pdf</mat-icon> {{ 'templates.createPdf' | translate }}
-            </a>
+            <!-- Filtered to one kind, the page offers exactly one way to add a template: that kind's. -->
+            @if (kindFilter() !== 'pdf') {
+              <a mat-stroked-button routerLink="/admin/html-templates/new">
+                <mat-icon>article</mat-icon> {{ 'templates.createHtml' | translate }}
+              </a>
+            }
+            @if (kindFilter() !== 'html') {
+              <a mat-stroked-button routerLink="/pdf-templates/new">
+                <mat-icon>picture_as_pdf</mat-icon> {{ 'templates.createPdf' | translate }}
+              </a>
+            }
           </div>
         }
       </div>
@@ -133,8 +138,11 @@ export class TemplatesComponent implements OnInit {
   });
 
   ngOnInit() {
-    const kind = this.route.snapshot.queryParamMap.get('kind');
-    if (kind === 'html' || kind === 'pdf') this.kindFilter.set(kind);
+    // The menu links here with ?kind=pdf / ?kind=html, and the page is reused when only the query changes.
+    this.route.queryParamMap.subscribe(params => {
+      const kind = params.get('kind');
+      this.kindFilter.set(kind === 'html' || kind === 'pdf' ? kind : null);
+    });
     this.load();
   }
 
@@ -167,7 +175,7 @@ export class TemplatesComponent implements OnInit {
 
   useTemplate(t: UnifiedTemplate) {
     if (t.kind === 'html') {
-      this.router.navigate(['/requests/new'], { queryParams: { templateId: t.id } });
+      this.router.navigate(['/requests/from-html-template'], { queryParams: { templateId: t.id } });
     } else {
       this.router.navigate(['/pdf-templates', t.id, 'new']);
     }

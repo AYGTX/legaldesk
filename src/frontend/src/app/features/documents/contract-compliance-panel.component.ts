@@ -9,7 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
-import { ComplianceAnalysis, ComplianceStatus } from '../../core/models';
+import { CitationStatus, ComplianceAnalysis, ComplianceStatus } from '../../core/models';
 
 /** Gaps first: they are the only status that asks the reader to do something. */
 const COMPLIANCE_STATUS_ORDER: ComplianceStatus[] = ['Gap', 'Unclear', 'Addressed'];
@@ -58,6 +58,42 @@ const COMPLIANCE_STATUS_ORDER: ComplianceStatus[] = ['Gap', 'Unclear', 'Addresse
             </div>
           }
 
+          @if (ca.relevantLaw?.length) {
+            <div class="relevant-law">
+              <h4 class="relevant-law-title">
+                <mat-icon>gavel</mat-icon>
+                {{ 'documents.detail.compliance.relevantLaw.title' | translate: { count: ca.relevantLaw!.length } }}
+              </h4>
+              <p class="relevant-law-intro">{{ 'documents.detail.compliance.relevantLaw.intro' | translate }}</p>
+              <mat-accordion multi>
+                @for (match of ca.relevantLaw; track $index) {
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                      <mat-panel-title class="clause-title">
+                        <span class="clause-text">{{ clauseHeading(match.clause) }}</span>
+                        <span class="clause-cites">
+                          @for (a of match.articles; track a.articleId) {
+                            <span class="law-chip">{{ shortCitation(a.citation) }}</span>
+                          }
+                        </span>
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+                    <blockquote class="clause-quote">{{ match.clause }}</blockquote>
+                    @for (a of match.articles; track a.articleId) {
+                      <div class="law-article">
+                        <div class="law-article-head">
+                          <mat-icon class="citation-verified">verified</mat-icon>
+                          <span class="legal-citation">{{ a.citation }}</span>
+                        </div>
+                        <p class="law-article-text">{{ a.text }}</p>
+                      </div>
+                    }
+                  </mat-expansion-panel>
+                }
+              </mat-accordion>
+            </div>
+          }
+
           <div class="compliance-score-row">
             <span class="compliance-score-badge" [ngClass]="scoreClass(ca.complianceScore)">
               {{ 'documents.detail.compliance.score' | translate: { score: ca.complianceScore } }}
@@ -81,6 +117,12 @@ const COMPLIANCE_STATUS_ORDER: ComplianceStatus[] = ['Gap', 'Unclear', 'Addresse
                       <mat-expansion-panel-header>
                         <mat-panel-title class="finding-title">
                           <span class="finding-regulation">{{ finding.regulationTitle }}</span>
+                          @if (finding.citationStatus) {
+                            <mat-icon class="citation-icon" [ngClass]="'citation-' + finding.citationStatus.toLowerCase()"
+                                      [matTooltip]="('documents.detail.compliance.citation.' + finding.citationStatus) | translate">
+                              {{ citationIcon(finding.citationStatus) }}
+                            </mat-icon>
+                          }
                           @if (finding.severity) {
                             <span class="finding-severity-chip" [ngClass]="'severity-' + finding.severity.toLowerCase()">
                               {{ ('documents.detail.severity' + finding.severity) | translate }}
@@ -91,10 +133,27 @@ const COMPLIANCE_STATUS_ORDER: ComplianceStatus[] = ['Gap', 'Unclear', 'Addresse
 
                       <p class="finding-explanation">{{ finding.explanation }}</p>
 
+                      @if (finding.legalCitation && finding.citationStatus) {
+                        <div class="finding-block legal-basis" [ngClass]="'citation-' + finding.citationStatus.toLowerCase()">
+                          <span class="finding-block-label">{{ 'documents.detail.compliance.legalBasis' | translate }}</span>
+                          <div class="legal-basis-head">
+                            <span class="legal-citation">{{ finding.legalCitation }}</span>
+                            <span class="citation-chip">
+                              <mat-icon>{{ citationIcon(finding.citationStatus) }}</mat-icon>
+                              {{ ('documents.detail.compliance.citation.' + finding.citationStatus) | translate }}
+                            </span>
+                          </div>
+                          @if (finding.legalQuote) {
+                            <blockquote class="legal-quote" [class.rejected]="finding.citationStatus === 'Rejected'">{{ finding.legalQuote }}</blockquote>
+                          }
+                          <p class="citation-hint">{{ ('documents.detail.compliance.citation.' + finding.citationStatus + 'Hint') | translate }}</p>
+                        </div>
+                      }
+
                       @if (finding.whyItMatters) {
                         <div class="finding-block">
                           <span class="finding-block-label">{{ 'documents.detail.analysis.whyItMatters' | translate }}</span>
-                          <p>{{ finding.whyItMatters }}</p>
+                          <p class="pre-line">{{ finding.whyItMatters }}</p>
                         </div>
                       }
                       @if (finding.recommendedAction) {
@@ -174,6 +233,40 @@ const COMPLIANCE_STATUS_ORDER: ComplianceStatus[] = ['Gap', 'Unclear', 'Addresse
     .proposed-language { white-space: pre-wrap; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; margin: 0 0 8px; line-height: 1.5; }
     .finding-actions { display: flex; gap: 8px; }
     .finding-reference { font-size: 11.5px; color: #9ca3af; margin: 6px 0 0; }
+
+    .relevant-law { margin-bottom: 16px; }
+    .relevant-law-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #1e3a8a; margin: 0 0 2px; }
+    .relevant-law-title mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .relevant-law-intro { margin: 0 0 8px; font-size: 12px; color: #6b7280; }
+    .clause-title { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+    .clause-text { font-size: 13px; font-weight: 600; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+    .clause-cites { display: flex; flex-wrap: wrap; gap: 4px; }
+    .law-chip { font-size: 10.5px; font-weight: 600; background: #e0e7ff; color: #1e3a8a; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+    .clause-quote { margin: 0 0 10px; padding: 6px 10px; font-size: 12.5px; color: #4b5563; background: #f9fafb; border-left: 3px solid #d1d5db; border-radius: 0 4px 4px 0; line-height: 1.5; }
+    .law-article { border-left: 3px solid #1e6b2e; background: #fff; border-radius: 0 6px 6px 0; padding: 8px 10px; margin-bottom: 8px; }
+    .law-article-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .law-article-head mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .law-article-text { margin: 0; font-size: 12.5px; color: #374151; line-height: 1.55; white-space: pre-wrap; }
+
+    .citation-icon { font-size: 16px; width: 16px; height: 16px; flex-shrink: 0; }
+    .legal-basis { border-left: 3px solid #d1d5db; padding: 8px 10px; border-radius: 0 6px 6px 0; background: #fff; }
+    .legal-basis-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .legal-citation { font-size: 13px; font-weight: 600; color: #374151; }
+    .citation-chip { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+    .citation-chip mat-icon { font-size: 13px; width: 13px; height: 13px; }
+    .legal-quote { margin: 0 0 6px; padding: 6px 10px; font-size: 12.5px; font-style: italic; color: #374151; background: #f9fafb; border-radius: 4px; line-height: 1.5; }
+    .legal-quote.rejected { text-decoration: line-through; color: #9ca3af; }
+    .citation-hint { margin: 0; font-size: 11.5px; color: #6b7280; }
+    .citation-verified.legal-basis { border-left-color: #1e6b2e; }
+    .citation-verified .citation-chip, mat-icon.citation-verified { color: #1e6b2e; }
+    .citation-verified .citation-chip { background: #e6f4ea; }
+    .citation-unverified.legal-basis, .citation-pending.legal-basis { border-left-color: #d97706; }
+    .citation-unverified .citation-chip, .citation-pending .citation-chip { background: #fef3c7; color: #92400e; }
+    mat-icon.citation-unverified, mat-icon.citation-pending { color: #d97706; }
+    .citation-rejected.legal-basis { border-left-color: #b91c1c; }
+    .citation-rejected .citation-chip { background: #fee2e2; color: #991b1b; }
+    mat-icon.citation-rejected { color: #b91c1c; }
+    .pre-line { white-space: pre-line; }
   `]
 })
 export class ContractCompliancePanelComponent {
@@ -217,6 +310,33 @@ export class ContractCompliancePanelComponent {
         this.analysisError.set(err.error?.detail ?? this.translate.instant('documents.detail.compliance.failed'));
       }
     });
+  }
+
+  /** The clause's own title when it has one ("Article 8 - Force majeure"), else its opening words. */
+  clauseHeading(clause: string): string {
+    const title = clause.match(/^(.{3,90}?)(?:\.\s|:\s|$)/);
+    const text = title ? title[1] : clause;
+    return text.length > 90 ? text.slice(0, 90) + '…' : text;
+  }
+
+  /** Compact chip: "Loi n° 2004-63, art. 7", "COC, art. 282", "Code de commerce, art. 654". */
+  shortCitation(citation: string): string {
+    const plain = citation.replace(/\s*\([^)]*\)/g, '');
+    const article = plain.match(/,\s*(art\.\s*.+)$/)?.[1] ?? '';
+    const law = plain.match(/n°\s*([\d-]+)/);
+    if (law) return `Loi ${law[1]}, ${article}`;
+    const source = plain.replace(/,\s*art\..*$/, '')
+      .replace('Code des obligations et des contrats', 'COC')
+      .replace('Code des sociétés commerciales', 'CSC');
+    return `${source}, ${article}`;
+  }
+
+  citationIcon(status: CitationStatus): string {
+    switch (status) {
+      case 'Verified': return 'verified';
+      case 'Rejected': return 'gpp_bad';
+      default: return 'help_outline';
+    }
   }
 
   scoreClass(score: number): string {

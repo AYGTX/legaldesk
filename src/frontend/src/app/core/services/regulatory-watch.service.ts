@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
+  ArticleSplit,
+  RegulatoryArticle,
   RegulatoryCategory,
   RegulatoryJurisdiction,
   RegulatoryText,
@@ -45,6 +47,25 @@ export class RegulatoryWatchService {
 
   setStatus(id: string, status: RegulatoryTextStatus): Observable<void> {
     return this.api.patch<void>(`/v1/regulatory-texts/${id}/status`, { status });
+  }
+
+  /** How pasted law text would be cut into articles — for a person to check before saving. */
+  previewArticles(rawText: string): Observable<ArticleSplit> {
+    return this.api.post<ArticleSplit>('/v1/regulatory-texts/articles/preview', { rawText });
+  }
+
+  getArticles(id: string): Observable<RegulatoryArticle[]> {
+    return this.api.get<RegulatoryArticle[]>(`/v1/regulatory-texts/${id}/articles`);
+  }
+
+  /** Replaces the articles. Withdraws any earlier verification. */
+  saveArticles(id: string, articles: { number: string; text: string }[]): Observable<void> {
+    return this.api.put<void>(`/v1/regulatory-texts/${id}/articles`, { articles });
+  }
+
+  /** Signs off the stored articles as the official text, in the name of the signed-in user. */
+  verify(id: string): Observable<void> {
+    return this.api.post<void>(`/v1/regulatory-texts/${id}/verify`, {});
   }
 
   delete(id: string): Observable<void> {

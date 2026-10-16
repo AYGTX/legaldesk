@@ -1,7 +1,7 @@
 import { WorkflowType } from './document.models';
 
 /** Field types supported by the PDF-template flow (mirrors backend PdfFieldType). */
-export type PdfFieldType = 'Text' | 'Date' | 'Number' | 'Checkbox' | 'Signature' | 'Dropdown';
+export type PdfFieldType = 'Text' | 'Date' | 'Number' | 'Checkbox' | 'Signature' | 'Dropdown' | 'Textarea';
 
 /** Who fills a field at runtime (mirrors backend PdfFieldFillRole). */
 export type PdfFieldFillRole = 'Requester' | 'Approver' | 'System';

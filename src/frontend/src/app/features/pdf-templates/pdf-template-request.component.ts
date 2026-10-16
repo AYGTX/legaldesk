@@ -83,6 +83,9 @@ import { formatSla } from '../../core/utils/sla';
                           </mat-select>
                         </mat-form-field>
                       }
+                      @case ('Textarea') {
+                        <textarea class="ti ta" rows="3" [(ngModel)]="values[f.fieldKey]" [placeholder]="f.label"></textarea>
+                      }
                       @case ('Date') {
                         <input class="ti" type="date" [(ngModel)]="values[f.fieldKey]" />
                       }
@@ -190,6 +193,7 @@ import { formatSla } from '../../core/utils/sla';
     </div>
   `,
   styles: [`
+    .ti.ta { height: auto; padding: 8px 10px; resize: vertical; font-family: inherit; }
     .req-page { max-width: 1500px; margin: 0 auto; }
     .req-header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
     .req-title { font-size: 22px; font-weight: 500; margin: 0; }
@@ -310,7 +314,7 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
   previewValueFor(f: PdfTemplateFieldDto): string {
     if (f.fillRole === 'Approver') return '';
     if (f.autoFillFrom) return this.resolveAutoFill(f.autoFillFrom) ?? this.values[f.fieldKey] ?? '';
-    return this.values[f.fieldKey] ?? f.defaultValue ?? '';
+    return String(this.values[f.fieldKey] ?? f.defaultValue ?? '');
   }
 
   /** Who will sign an approver field, reflecting the current picker selection so the preview stays live. */
@@ -426,7 +430,7 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
 
   submit(): void {
     // Validate required requester fields.
-    const missing = this.requesterFields().filter(f => f.isRequired && !(this.values[f.fieldKey] ?? '').trim());
+    const missing = this.requesterFields().filter(f => f.isRequired && !String(this.values[f.fieldKey] ?? '').trim());
     if (missing.length > 0) {
       this.snack.open(this.translate.instant('pdfTemplates.request.missingRequired', { fields: missing.map(f => f.label).join(', ') }), 'OK', { duration: 5000 });
       return;
@@ -447,7 +451,7 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
 
     this.submitting.set(true);
     this.svc.submit(this.templateId, {
-      filledValues: this.values,
+      filledValues: Object.fromEntries(Object.entries(this.values).map(([k, v]) => [k, String(v ?? '')])),
       approvers: approverSelections.length ? approverSelections : undefined,
       title: this.title.trim() || undefined,
       message: this.message.trim() || undefined

@@ -37,15 +37,120 @@
     "english": "Anglais",
     "french": "Français"
   },
+  "newContractRequest": {
+    "title": "Nouvelle demande de contrat",
+    "subtitle": "Importez le contrat, laissez l'IA le relire d'abord, réglez ses constats, puis choisissez les participants et envoyez.",
+    "back": "Retour",
+    "saving": "Enregistrement…",
+    "uploading": "Import en cours…",
+    "uploadAndReview": "Importer et analyser",
+    "uploadFailed": "Impossible d'importer le fichier",
+    "steps": {
+      "request": "Demande",
+      "review": "Revue IA",
+      "resolve": "Régler",
+      "people": "Participants",
+      "send": "Envoi"
+    },
+    "drop": {
+      "title": "Déposez le contrat ici",
+      "browse": "ou cliquez pour parcourir",
+      "hint": "PDF uniquement, jusqu'à 100 Mo. Un PDF numérisé sans texte ne peut pas être analysé.",
+      "pdfOnly": "Seuls les fichiers PDF sont pris en charge."
+    },
+    "fields": {
+      "title": "Titre du contrat",
+      "type": "Type de contrat",
+      "typeNone": "Aucun type",
+      "typeHint": "Le type fixe le délai et détermine les textes réglementaires vérifiés par la revue."
+    },
+    "review": {
+      "title": "L'IA lit votre contrat",
+      "note": "Cela prend quelques instants. Personne d'autre ne voit le contrat avant que vous l'envoyiez.",
+      "failedTitle": "La revue n'a pas pu s'exécuter",
+      "failedHint": "Le contrat est enregistré en brouillon. Réessayez, ou continuez sans la revue.",
+      "retry": "Réessayer",
+      "skip": "Continuer sans revue"
+    },
+    "resolve": {
+      "fixTitle": "Corrigez ce que vous pouvez",
+      "fixHint": "Modifiez le contrat : la revue est relancée sur la nouvelle version.",
+      "editText": "Modifier le texte dans le navigateur",
+      "uploadFix": "Importer un fichier corrigé",
+      "rerun": "Relancer la revue",
+      "fixUploaded": "Fichier corrigé importé.",
+      "none": "Ce contrat n'a pas encore de revue.",
+      "blockedHint": "Des constats critiques subsistent. Vous pouvez définir les participants, mais le contrat ne pourra pas être envoyé avant qu'ils soient corrigés ou acceptés par un manager.",
+      "continue": "Continuer vers les participants"
+    },
+    "people": {
+      "title": "Qui participe",
+      "hint": "Choisissez des personnes de votre organisation ou ajoutez un signataire externe. L'ordre compte dans un circuit séquentiel.",
+      "sequential": "L'un après l'autre",
+      "parallel": "Tous en même temps",
+      "pick": "Choisir une personne…",
+      "external": "Signataire externe…",
+      "name": "Nom complet",
+      "email": "Adresse e-mail",
+      "roleLabel": "Rôle dans ce contrat (facultatif, ex. Service juridique)",
+      "add": "Ajouter un participant",
+      "signaturesAuto": "Une zone de signature est placée pour chaque signataire sur la dernière page. Vous pouvez la déplacer dans le concepteur avant l'envoi.",
+      "previewHint": "Les cadres bleus montrent où chaque signataire signera. Vous pouvez les déplacer dans le concepteur avant l'envoi.",
+      "unnamedSigner": "Signataire",
+      "save": "Enregistrer et continuer",
+      "incomplete": "Chaque participant doit avoir un nom et une adresse e-mail.",
+      "badEmail": "{{email}} n'est pas une adresse e-mail valide.",
+      "duplicate": "{{email}} apparaît plusieurs fois.",
+      "saveFailed": "Impossible d'enregistrer les participants.",
+      "roles": {
+        "Signature": "Signe",
+        "Approval": "Approuve",
+        "Review": "Relit",
+        "ViewOnly": "Consulte seulement",
+        "Stamp": "Appose le cachet",
+        "Reject": "Relit"
+      }
+    },
+    "send": {
+      "title": "Vérifier et envoyer",
+      "contract": "Contrat",
+      "review": "Revue IA",
+      "deadline": "délai",
+      "openItems": "{{count}} constat(s) encore ouvert(s)",
+      "verdict": {
+        "Ready": "Prêt à envoyer",
+        "NeedsWork": "À retravailler",
+        "Blocked": "Bloqué",
+        "NotEvaluated": "Non analysé"
+      },
+      "acknowledge": "Je sais que {{count}} constat(s) restent ouverts et je veux envoyer le contrat quand même.",
+      "blocked": "Des constats critiques sont encore ouverts. Corrigez-les, ou demandez à un manager de les accepter, avant l'envoi.",
+      "adjustFields": "Ajuster les zones de signature",
+      "button": "Envoyer pour approbation",
+      "sending": "Envoi…",
+      "failed": "Impossible d'envoyer le contrat."
+    },
+    "sent": {
+      "title": "Envoyé pour approbation",
+      "hint": "Le premier participant a été notifié. Suivez l'avancement sur la page du contrat.",
+      "open": "Ouvrir le contrat",
+      "another": "Commencer une autre demande"
+    }
+  },
   "nav": {
     "dashboard": "Tableau de bord",
     "documents": "Contrats",
-    "templates": "Modèles de contrats",
+    "templates": "Modèles",
     "auditTrail": "Traçabilité",
     "reports": "Rapports",
     "administration": "Administration",
     "capabilities": "Capacités",
-    "review": "Revue de contrat"
+    "review": "Revue de contrat",
+    "allContracts": "Tous les contrats",
+    "uploadFile": "Importer un nouveau fichier",
+    "usePdfTemplate": "Utiliser un modèle PDF",
+    "useHtmlTemplate": "Utiliser un modèle HTML",
+    "insights": "Analyses"
   },
   "layout": {
     "tagline": "Gestion du cycle de vie contractuel",
@@ -467,6 +572,21 @@
       },
       "compliance": {
         "title": "Conformité réglementaire",
+        "legalBasis": "Fondement juridique",
+        "relevantLaw": {
+          "title": "Droit applicable ({{count}} clauses rapprochées)",
+          "intro": "Chaque clause du contrat rapprochée des articles de loi vérifiés de votre corpus juridique. Recherche effectuée sur ce serveur, sans envoyer le contrat à l'extérieur."
+        },
+        "citation": {
+          "Verified": "Loi vérifiée",
+          "Unverified": "Non confirmée",
+          "Rejected": "Citation rejetée",
+          "Pending": "Non vérifiée",
+          "VerifiedHint": "Cette citation figure mot à mot dans l'article, et l'article a été vérifié par rapport à la source officielle.",
+          "UnverifiedHint": "Cette citation n'a pas pu être confirmée par rapport à une loi vérifiée. Vérifiez-la avant de vous y fier.",
+          "RejectedHint": "Cette citation ne figure pas dans l'article cité. La constatation n'a aucun fondement juridique confirmé.",
+          "PendingHint": "Cette citation n'a pas été vérifiée dans le corpus juridique."
+        },
         "run": "Vérifier la conformité",
         "rerun": "Revérifier la conformité",
         "failed": "Échec de la vérification de conformité",
@@ -501,6 +621,53 @@
       "changeNotePlaceholder": "Qu'est-ce qui a changé dans cette révision ? (facultatif)",
       "uploadRevision": "Importer la révision",
       "uploadingRevision": "Import en cours…",
+      "reviseAnswers": {
+        "button": "Réviser les réponses",
+        "title": "Réviser vos réponses",
+        "loading": "Chargement du formulaire…",
+        "hint": "La version {{version}} est conservée telle quelle. Vos modifications deviennent la version {{next}} et repartent vers les relecteurs.",
+        "aReviewer": "Un relecteur",
+        "noReason": "a demandé des modifications.",
+        "changed": "modifié",
+        "noteLabel": "Qu'avez-vous modifié ? (facultatif)",
+        "changedCount": "{{count}} réponse(s) modifiée(s)",
+        "nothingChanged": "Aucune modification pour l'instant",
+        "send": "Envoyer la version révisée",
+        "sending": "Envoi…",
+        "sent": "Version {{version}} renvoyée pour approbation.",
+        "failed": "Impossible d'envoyer la version révisée",
+        "loadFailed": "Impossible d'ouvrir le formulaire de révision",
+        "missing": "Réponses obligatoires manquantes : {{fields}}"
+      },
+      "revisionHistory": {
+        "title": "Ce qui a changé entre les versions",
+        "latest": "dernière",
+        "empty": "(vide)"
+      },
+      "continueSetup": "Poursuivre la préparation",
+      "myAction": {
+        "title": "C'est votre tour",
+        "hint": "Parcourez le contrat ci-dessous — détails, participants, historique — puis continuez quand vous êtes prêt."
+      },
+      "editText": {
+        "button": "Modifier le texte",
+        "title": "Modifier le texte du contrat",
+        "hint": "Cliquez sur une ligne pour la modifier. Les lignes modifiées passent en orange ; rien n'est enregistré avant la sauvegarde.",
+        "changes": "{{count}} modifiée(s)",
+        "page": "Page {{n}} sur {{total}}",
+        "loading": "Chargement du PDF…",
+        "noText": "Cette page ne contient aucun texte modifiable — il peut s'agir d'une image numérisée.",
+        "save": "Enregistrer comme nouvelle version",
+        "saving": "Enregistrement…",
+        "cancel": "Annuler",
+        "revert": "Annuler la modification de cette ligne",
+        "undo": "Annuler (Ctrl+Z)",
+        "redo": "Rétablir (Ctrl+Y)",
+        "saved": "Version {{version}} enregistrée avec vos modifications.",
+        "failed": "Impossible d'enregistrer les modifications",
+        "loadFailed": "Impossible d'ouvrir le PDF pour modification",
+        "limits": "Le texte ne se réorganise pas : une ligne plus longue est réduite pour tenir. Le texte d'origine reste dans la version précédente."
+      },
       "revisionUploaded": "Révision v{{version}} importée. Vérifiez les champs, puis renvoyez le contrat.",
       "revisionFailed": "Échec de l'import de la révision",
       "versionsTitle": "Historique des versions",
@@ -549,6 +716,26 @@
           "ExpiringSoon": "Échéance proche",
           "Expired": "Échu"
         }
+      },
+      "compare": {
+        "open": "Comparer les versions",
+        "title": "Comparaison des versions",
+        "from": "De",
+        "to": "À",
+        "version": "v{{version}}",
+        "versionCurrent": "v{{version}} (actuelle)",
+        "run": "Comparer",
+        "running": "Lecture des deux versions et construction du comparatif…",
+        "pickTwo": "Choisissez deux versions différentes à comparer.",
+        "added": "ajoutées",
+        "removed": "supprimées",
+        "modified": "modifiées",
+        "unchanged": "inchangées",
+        "noChanges": "Aucune modification de rédaction entre ces deux versions.",
+        "changesOnly": "Modifications uniquement",
+        "failed": "La comparaison n’a pas pu être produite.",
+        "downloadVersion": "Télécharger la v{{version}}",
+        "downloadFailed": "Cette version n’a pas pu être téléchargée."
       }
     },
     "upload": {
@@ -1118,6 +1305,10 @@
     }
   },
   "shared": {
+    "pdfPreview": {
+      "loading": "Chargement du contrat…",
+      "failed": "Impossible d'afficher le contrat."
+    },
     "approverPicker": {
       "approverN": "Approbateur {{n}}",
       "existingUser": "Utilisateur existant",
@@ -1211,6 +1402,11 @@
         "markResolved": "Marquer comme traité",
         "dismiss": "Non applicable",
         "dismissHint": "Écarter un point qui ne concerne pas ce contrat. Il cesse de peser sur le verdict.",
+        "accept": "Accepter avec un motif",
+        "acceptHint": "Un constat critique peut être accepté par un manager, avec un motif consigné dans la piste d'audit.",
+        "acceptRole": "Seul un manager ou un administrateur peut accepter un constat critique. Corrigez-le, ou sollicitez le juridique.",
+        "acceptReason": "Pourquoi peut-on envoyer ce contrat avec ce constat ?",
+        "acceptConfirm": "Accepter le constat",
         "reopen": "Rouvrir",
         "showHandled": "Afficher les points traités ({{count}})",
         "hideHandled": "Masquer les points traités ({{count}})",
@@ -1288,6 +1484,38 @@
     }
   },
   "signing": {
+    "gate": {
+      "title": "Avant de continuer",
+      "subtitle": "Lisez le contrat ci-dessous, puis consultez ce que la revue IA a relevé. Vous pourrez agir sur cette demande une fois votre confirmation donnée.",
+      "verdict": {
+        "Ready": "Prêt",
+        "NeedsWork": "À retravailler",
+        "Blocked": "Bloqué",
+        "NotEvaluated": "Non analysé"
+      },
+      "readiness": "Préparation",
+      "risk": "Risque",
+      "compliance": "Conformité",
+      "openCount": "{{count}} ouvert(s) dont {{critical}} critique(s)",
+      "noFindings": "La revue n'a rien relevé.",
+      "status": {
+        "Resolved": "Corrigé",
+        "Dismissed": "Accepté"
+      },
+      "showAll": "Afficher les {{count}} constats",
+      "showFewer": "Afficher moins",
+      "showReview": "Afficher la revue",
+      "hideReview": "Masquer la revue",
+      "restricted": "La revue IA de ce contrat n'est montrée qu'aux membres de l'organisation. Lisez attentivement le document avant de continuer.",
+      "noReview": "Aucune revue IA n'a été lancée sur ce contrat. Lisez attentivement le document avant de continuer.",
+      "confirm": "J'ai lu le document.",
+      "confirmWithReview": "J'ai lu le document et la revue IA.",
+      "continue": "Confirmer et continuer",
+      "done": "Vous avez confirmé avoir lu le document et sa revue IA.",
+      "doneNoReview": "Vous avez confirmé avoir lu le document.",
+      "mustConfirm": "Confirmez avoir lu le document avant d'agir sur cette demande.",
+      "failed": "Impossible d'enregistrer votre confirmation. Réessayez."
+    },
     "topbar": {
       "backToFields": "Retour aux champs",
       "approveSubmit": "Approuver et soumettre",
@@ -1434,6 +1662,12 @@
     "noFieldsHint": "Ajoutez des champs pour créer des espaces réservés interactifs dans votre modèle de contrat.",
     "noLabelFallback": "(sans libellé)",
     "insertIntoHtml": "Insérer dans le contrat",
+    "optionsLabel": "Choix",
+    "optionsPlaceholder": "Séparés par des virgules, ex. Congé annuel, Congé maladie",
+    "defaultValueLabel": "Valeur par défaut",
+    "defaultValueHint": "(préremplie ; l'expéditeur peut la modifier)",
+    "defaultNone": "Aucune valeur par défaut",
+    "signatureNotPlaced": "Cette signature n'est placée nulle part dans le texte : elle apparaîtra dans une section de signatures à la fin du contrat. Insérez-la à l'endroit où le signataire doit signer.",
     "remove": "Supprimer",
     "keyLabel": "Clé",
     "keyPlaceholder": "ex. nomCocontractant",
@@ -1467,7 +1701,8 @@
       "Date": "Date",
       "Number": "Nombre",
       "Checkbox": "Case à cocher",
-      "Signature": "Signature"
+      "Signature": "Signature",
+      "Dropdown": "Liste déroulante"
     },
     "autoFillOption": {
       "fullName": "Nom complet",
@@ -1475,7 +1710,10 @@
       "lastName": "Nom",
       "email": "E-mail",
       "company": "Entreprise",
-      "department": "Département"
+      "department": "Département",
+      "today": "Date du jour",
+      "now": "Date et heure actuelles",
+      "requestTitle": "Titre de la demande"
     },
     "conditions": {
       "button": "Condition",
@@ -1636,7 +1874,8 @@
     },
     "language": {
       "en": "Anglais",
-      "fr": "Français"
+      "fr": "Français",
+      "ar": "Arabe"
     },
     "dialog": {
       "createTitle": "Ajouter un texte réglementaire",
@@ -1658,7 +1897,42 @@
       "keywordsPlaceholder": "données personnelles, responsable de traitement, violation de données",
       "keywordsHint": "Termes séparés par des virgules recherchés par l'analyse de conformité dans le texte d'un contrat.",
       "create": "Ajouter le texte",
-      "operationFailed": "L'opération a échoué"
+      "operationFailed": "L'opération a échoué",
+      "sourceUrl": "Source officielle",
+      "sourceUrlPlaceholder": "https://…",
+      "sourceUrlHint": "Où lire le texte officiel (numéro du journal officiel ou portail législatif). Obligatoire pour vérifier."
+    },
+    "verified": "Vérifié",
+    "unverified": "Non vérifié",
+    "verifiedTooltip": "Validé par {{name}} le {{date}} par rapport à la source officielle.",
+    "unverifiedTooltip": "Ces termes n'ont pas été comparés au texte officiel. Ne pas s'y fier comme à la loi.",
+    "articleCount": "{{count}} article(s)",
+    "manageArticles": "Articles et vérification",
+    "articles": {
+      "title": "Articles",
+      "reference": "Référence officielle",
+      "source": "Source officielle",
+      "missing": "non renseignée",
+      "verifiedBy": "Vérifié par {{name}} le {{date}}",
+      "notVerified": "Non vérifié — rien ici n'est présenté comme la loi tant qu'une personne ne l'a pas validé.",
+      "pasteLabel": "Collez le texte officiel",
+      "pastePlaceholder": "Collez la loi telle que publiée. Chaque article doit commencer sur sa propre ligne, comme « Article 1 - » ou « الفصل 1 ».",
+      "split": "Découper en articles",
+      "splitReplaces": "La liste ci-dessous sera remplacée.",
+      "preamble": "Texte avant le premier article (non conservé)",
+      "count": "{{count}} article(s)",
+      "add": "Ajouter un article",
+      "empty": "Aucun article pour l'instant.",
+      "numberPlaceholder": "N°",
+      "textPlaceholder": "Texte de l'article, mot pour mot",
+      "confirm": "J'ai comparé ces articles à la source officielle, mot pour mot, et ils correspondent.",
+      "editWithdraws": "Modifier un article retire la vérification.",
+      "save": "Enregistrer les articles",
+      "verify": "Vérifier",
+      "loadFailed": "Impossible de charger les articles.",
+      "splitFailed": "Impossible de découper le texte.",
+      "saveFailed": "Impossible d'enregistrer les articles.",
+      "verifyFailed": "Impossible de vérifier ce texte."
     }
   },
   "htmlTemplates": {
@@ -1722,6 +1996,29 @@
       "preAssignedApprover": "Approbateur pré-assigné",
       "approverAtRequestTime": "Choisi à la création de la demande",
       "workflowStage": "Étape du flux",
+      "removeSelected": "Supprimer la sélection ({{count}})",
+      "removeSelectedHint": "Supprimer tous les champs cochés (touche Suppr)",
+      "removedFields": "{{count}} champ(s) supprimé(s). Enregistrez pour conserver la modification.",
+      "multiSelectHint": "Ctrl+clic (ou Maj+clic) pour cocher plusieurs champs, Ctrl+A pour tout cocher.",
+      "path": {
+        "title": "Circuit d'approbation",
+        "empty": "Aucune signature d'approbateur. Ajoutez un champ signature et définissez son rôle sur Approbateur.",
+        "parallel": "Signent en parallèle",
+        "chosenAtRequest": "Choisi lors de la création de la demande",
+        "fixedApprover": "Approbateur fixe",
+        "moveUp": "Avancer",
+        "moveDown": "Reculer",
+        "requestTime": "{{count}} approbateur(s) seront demandés lors de la création d'une demande.",
+        "allFixed": "Tous les approbateurs sont fixés — rien à choisir lors de la création d'une demande.",
+        "stageHint": "Les étapes ne s'appliquent qu'aux circuits mixtes. Choisir une étape supérieure à 1 passe ce modèle en circuit mixte.",
+        "switchedToMixed": "Circuit passé en mixte pour que l'étape s'applique.",
+        "warn": {
+          "noApprover": "Aucun champ signature d'approbateur — ce modèle ne peut pas être envoyé en signature.",
+          "stageGap": "Étapes utilisées : {{stages}}. Numérotez-les 1, 2, 3… sans trou.",
+          "stagesIgnored": "{{count}} champ(s) d'approbateur ont une étape, mais les étapes sont ignorées hors circuit mixte.",
+          "stageNoSignature": "Aucune signature n'est dans la même étape que : {{fields}}. Ils suivront le premier approbateur."
+        }
+      },
       "removeField": "Supprimer le champ",
       "selectOrDragHint": "Glissez un type de champ sur la page, ou sélectionnez un champ placé pour le configurer.",
       "defaultApprover": "Approbateur par défaut",
@@ -1735,6 +2032,7 @@
     },
     "fieldTypes": {
       "Text": "Texte",
+      "Textarea": "Texte sur plusieurs lignes",
       "Date": "Date",
       "Number": "Nombre",
       "Checkbox": "Case à cocher",
@@ -1805,7 +2103,7 @@
       },
       "versioning": {
         "title": "Versioning automatique",
-        "desc": "Une demande de révision met le circuit en pause, archive la version précédente avec sa note de modification, invalide les signatures recueillies tout en les conservant comme preuve, puis relance la validation sur la nouvelle version."
+        "desc": "Une demande de révision met le circuit en pause, archive la version précédente avec sa note de modification, invalide les signatures recueillies tout en les conservant comme preuve, puis relance la validation sur la nouvelle version. Toute version archivée peut être consultée ou téléchargée, et deux versions se comparent clause par clause pour montrer exactement quelle rédaction a changé."
       },
       "archive": {
         "title": "Centralisation et archivage sécurisé",

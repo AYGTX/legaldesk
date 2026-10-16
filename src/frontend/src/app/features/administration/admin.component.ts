@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { MatTableModule } from '@angular/material/table';
@@ -9,7 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
@@ -29,9 +28,9 @@ import { RequestTypesComponent } from './request-types.component';
   selector: 'sf-admin',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, ReactiveFormsModule,
+    CommonModule, ReactiveFormsModule,
     MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule,
-    MatChipsModule, MatProgressSpinnerModule, MatTabsModule,
+    MatChipsModule, MatProgressSpinnerModule,
     MatFormFieldModule, MatInputModule, MatMenuModule, MatDividerModule,
     MatTooltipModule, MatDialogModule, MatSnackBarModule,
     RequestTypesComponent, TranslatePipe
@@ -40,13 +39,12 @@ import { RequestTypesComponent } from './request-types.component';
     <div class="admin-page">
       <div class="page-header">
         <div>
-          <h1 class="page-title">{{ 'admin.pageTitle' | translate }}</h1>
+          <h1 class="page-title">{{ sectionTitleKey() | translate }}</h1>
           <p class="page-subtitle">{{ 'admin.pageSubtitle' | translate }}</p>
         </div>
       </div>
 
-      <mat-tab-group>
-        <mat-tab [label]="'admin.tabs.users' | translate">
+        @if (section() === 'users') {
           <div class="tab-content">
             <div class="toolbar">
               <mat-form-field appearance="outline" class="search-field">
@@ -151,67 +149,21 @@ import { RequestTypesComponent } from './request-types.component';
                              (page)="onPage($event)" showFirstLastButtons></mat-paginator>
             </div>
           </div>
-        </mat-tab>
+        }
 
-        <mat-tab [label]="'admin.tabs.requestTypes' | translate">
+        @if (section() === 'types') {
           <div class="tab-content">
             <sf-request-types></sf-request-types>
           </div>
-        </mat-tab>
+        }
 
-        <mat-tab [label]="'admin.tabs.htmlTemplates' | translate">
-          <div class="tab-content">
-            <div class="ht-admin-card">
-              <div class="ht-admin-icon"><mat-icon>description</mat-icon></div>
-              <div class="ht-admin-body">
-                <h3>{{ 'admin.htmlTemplates.title' | translate }}</h3>
-                <p>{{ 'admin.htmlTemplates.description' | translate }}</p>
-              </div>
-              <a mat-flat-button color="primary" routerLink="/admin/html-templates">
-                <mat-icon>open_in_new</mat-icon> {{ 'admin.htmlTemplates.manage' | translate }}
-              </a>
-            </div>
-          </div>
-        </mat-tab>
-
-        <mat-tab [label]="'admin.tabs.clauses' | translate">
-          <div class="tab-content">
-            <div class="ht-admin-card">
-              <div class="ht-admin-icon"><mat-icon>menu_book</mat-icon></div>
-              <div class="ht-admin-body">
-                <h3>{{ 'admin.clauses.title' | translate }}</h3>
-                <p>{{ 'admin.clauses.description' | translate }}</p>
-              </div>
-              <a mat-flat-button color="primary" routerLink="/admin/clauses">
-                <mat-icon>open_in_new</mat-icon> {{ 'admin.clauses.manage' | translate }}
-              </a>
-            </div>
-          </div>
-        </mat-tab>
-
-        <mat-tab [label]="'admin.tabs.regulatoryWatch' | translate">
-          <div class="tab-content">
-            <div class="ht-admin-card">
-              <div class="ht-admin-icon"><mat-icon>travel_explore</mat-icon></div>
-              <div class="ht-admin-body">
-                <h3>{{ 'admin.regulatoryWatch.title' | translate }}</h3>
-                <p>{{ 'admin.regulatoryWatch.description' | translate }}</p>
-              </div>
-              <a mat-flat-button color="primary" routerLink="/admin/regulatory-watch">
-                <mat-icon>open_in_new</mat-icon> {{ 'admin.regulatoryWatch.manage' | translate }}
-              </a>
-            </div>
-          </div>
-        </mat-tab>
-
-        <mat-tab [label]="'admin.tabs.systemSettings' | translate">
+        @if (section() === 'settings') {
           <div class="tab-content coming-soon">
             <mat-icon>settings</mat-icon>
             <h3>{{ 'admin.systemSettings.title' | translate }}</h3>
             <p>{{ 'admin.systemSettings.description' | translate }}</p>
           </div>
-        </mat-tab>
-      </mat-tab-group>
+        }
     </div>
   `,
   styleUrl: './admin.component.scss'
@@ -223,6 +175,15 @@ export class AdminComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+  private readonly route = inject(ActivatedRoute);
+
+  /** Which section of the page the menu opened: `/admin?tab=users | types | settings` (users when absent). */
+  readonly section = signal<'users' | 'types' | 'settings'>('users');
+  readonly sectionTitleKey = () => ({
+    users: 'admin.tabs.users',
+    types: 'admin.tabs.requestTypes',
+    settings: 'admin.tabs.systemSettings'
+  }[this.section()]);
 
   readonly columns = ['user', 'roles', 'company', 'department', 'status', 'joined', 'actions'];
   readonly loading = signal(true);
@@ -241,6 +202,11 @@ export class AdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.route.queryParamMap.subscribe(params => {
+      const tab = params.get('tab');
+      this.section.set(tab === 'types' || tab === 'settings' ? tab : 'users');
+    });
+
     this.load();
     this.userService.getRoles().subscribe({
       next: r => this.roles.set(r),

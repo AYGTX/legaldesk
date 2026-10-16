@@ -9,6 +9,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HtmlTemplateService } from '../../core/services/html-template.service';
+import { TemplateCardComponent } from '../../shared/template-card/template-card.component';
+import { fromHtmlTemplate } from '../../core/models/template-gallery.model';
 import { UserService } from '../../core/services/user.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -28,18 +30,23 @@ type Step = 'pick' | 'fill' | 'done';
   imports: [
     CommonModule, FormsModule, RouterLink,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, TranslatePipe,
-    ApproverPickerComponent, RequestStepperComponent, RequestSuccessComponent
+    ApproverPickerComponent, RequestStepperComponent, RequestSuccessComponent, TemplateCardComponent
   ],
   template: `
-    <div class="nr-page" [class.wide]="step() === 'fill'">
+    <div class="nr-page" [class.wide]="step() !== 'done'">
       <div class="page-header">
         <a mat-icon-button routerLink="/requests" class="back-btn">
           <mat-icon>arrow_back</mat-icon>
         </a>
-        <div>
+        <div class="header-text">
           <h1 class="page-title">{{ 'requests.new.pageTitle' | translate }}</h1>
           <p class="page-sub">{{ 'requests.new.pageSub' | translate }}</p>
         </div>
+        @if (step() === 'pick' && canManageTemplates()) {
+          <a mat-stroked-button routerLink="/admin/html-templates/new" class="create-template-btn">
+            <mat-icon>article</mat-icon> {{ 'templates.createHtml' | translate }}
+          </a>
+        }
       </div>
 
       <!-- Step indicator -->
@@ -61,31 +68,9 @@ type Step = 'pick' | 'fill' | 'done';
               <p>{{ 'requests.new.noTemplates' | translate }}</p>
             </div>
           } @else {
-            <div class="template-grid">
-              @for (t of templates(); track t.id) {
-                <div class="tpl-card" (click)="selectTemplate(t)">
-                  <div class="tpl-icon">
-                    <span class="material-symbols-outlined">article</span>
-                  </div>
-                  <div class="tpl-body">
-                    <span class="tpl-name">{{ t.name }}</span>
-                    @if (t.description) {
-                      <p class="tpl-desc">{{ t.description }}</p>
-                    }
-                    <div class="tpl-meta">
-                      <span>{{ (t.fieldCount === 1 ? 'requests.new.fieldCount' : 'requests.new.fieldCountPlural') | translate: { count: t.fieldCount } }}</span>
-                      @if (t.defaultApproverName) {
-                        <span class="sep">·</span>
-                        <span>{{ 'requests.new.approverName' | translate: { name: t.defaultApproverName } }}</span>
-                      }
-                      @if (t.workflowType !== 'Sequential') {
-                        <span class="sep">·</span>
-                        <span>{{ workflowLabelKey(t.workflowType) | translate }}</span>
-                      }
-                    </div>
-                  </div>
-                  <mat-icon class="tpl-arrow">chevron_right</mat-icon>
-                </div>
+            <div class="list-surface">
+              @for (t of galleryTemplates(); track t.id) {
+                <sf-template-card [template]="t" [canManage]="false" (use)="selectTemplate(t)" />
               }
             </div>
           }
@@ -131,6 +116,11 @@ type Step = 'pick' | 'fill' | 'done';
                     <input type="text" [value]="filledValues[f.fieldKey] ?? ''" class="form-input autofill-input" readonly />
                   } @else if (f.type === 'Textarea') {
                     <textarea [(ngModel)]="filledValues[f.fieldKey]" class="form-textarea" [placeholder]="f.label" rows="3"></textarea>
+                  } @else if (f.type === 'Dropdown') {
+                    <select [(ngModel)]="filledValues[f.fieldKey]" class="form-input">
+                      <option value=""></option>
+                      @for (o of optionsOf(f); track o) { <option [value]="o">{{ o }}</option> }
+                    </select>
                   } @else if (f.type === 'Checkbox') {
                     <div class="checkbox-wrap">
                       <input type="checkbox" [id]="f.fieldKey"
@@ -231,18 +221,9 @@ type Step = 'pick' | 'fill' | 'done';
     .empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px; color: #9aa0a6; }
     .empty-state .material-symbols-outlined { font-size: 40px; }
 
-    .template-grid { display: flex; flex-direction: column; gap: 0; border: 1px solid #c7d0dc; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
-    .tpl-card { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #e8edf2; cursor: pointer; transition: background 0.1s; }
-    .tpl-card:last-child { border-bottom: none; }
-    .tpl-card:hover { background: #f0f4f9; }
-    .tpl-icon { width: 44px; height: 44px; border-radius: 10px; background: #e8f0fe; color: #0b57d0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .tpl-icon .material-symbols-outlined { font-size: 22px; }
-    .tpl-body { flex: 1; min-width: 0; }
-    .tpl-name { font-size: 14px; font-weight: 500; color: #1f1f1f; display: block; margin-bottom: 2px; }
-    .tpl-desc { font-size: 13px; color: #5f6368; margin: 0 0 4px; }
-    .tpl-meta { font-size: 12px; color: #80868b; display: flex; gap: 4px; }
-    .sep { color: #c7d0dc; }
-    .tpl-arrow { color: #9aa0a6; }
+    .list-surface { border: 1px solid #c7d0dc; border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .header-text { flex: 1; }
+    .create-template-btn { align-self: flex-start; }
 
     /* Fill form */
     .fill-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e8edf2; }
@@ -364,13 +345,19 @@ export class NewRequestComponent implements OnInit {
       if (field?.type === 'Signature') {
         return `<span class="ph-sig">${this.escapeHtml(field.label)}</span>`;
       }
-      const value = this.filledValues[key];
-      if (value && value.trim()) return this.escapeHtml(value);
+      const value = this.filledValue(key);
+      if (value.trim()) return this.escapeHtml(value);
       const label = field?.label ?? key;
       return `<span class="ph-empty">${this.escapeHtml(label)}</span>`;
     });
 
     return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  /** Field values as text — a type="number" input stores a JS number, not a string. */
+  private filledValue(key: string): string {
+    const value: unknown = this.filledValues[key];
+    return value === null || value === undefined ? '' : String(value);
   }
 
   private escapeHtml(value: string): string {
@@ -385,6 +372,15 @@ export class NewRequestComponent implements OnInit {
     const templateId = this.route.snapshot.queryParamMap.get('templateId');
     if (templateId) this.selectTemplateById(templateId);
   }
+
+  /** Creating a template is a manager task; everyone else only picks. */
+  readonly canManageTemplates = () => {
+    const roles = this.auth.user()?.roles ?? [];
+    return roles.includes('Administrator') || roles.includes('Manager');
+  };
+
+  /** The gallery card takes the unified template shape; this page lists HTML templates only. */
+  readonly galleryTemplates = computed(() => this.templates().map(fromHtmlTemplate));
 
   workflowLabelKey(w: string): string {
     return w === 'Parallel' ? 'designer.workflow.parallel' : w === 'Mixed' ? 'designer.workflow.mixed' : 'designer.workflow.sequential';
@@ -403,7 +399,7 @@ export class NewRequestComponent implements OnInit {
     });
   }
 
-  selectTemplate(t: HtmlTemplateDto) {
+  selectTemplate(t: { id: string }) {
     this.selectTemplateById(t.id);
   }
 
@@ -446,9 +442,27 @@ export class NewRequestComponent implements OnInit {
         f.autoFillFrom === 'user.lastName' ? user.lastName :
         f.autoFillFrom === 'user.email' ? user.email :
         f.autoFillFrom === 'user.department' ? user.department :
+        f.autoFillFrom === 'user.company' ? user.company :
         null;
       if (value) this.filledValues[f.fieldKey] = value;
     }
+
+    // Request-level sources and the template's own defaults, so the form opens with what the server would fill anyway.
+    const today = new Date().toISOString().slice(0, 10);
+    const sources: Record<string, string> = {
+      'system.today': today,
+      'system.now': `${today} ${new Date().toISOString().slice(11, 16)}`,
+      'request.title': this.selectedTemplate()?.name ?? ''
+    };
+    for (const f of fields) {
+      if (f.autoFillFrom && sources[f.autoFillFrom] && !this.filledValues[f.fieldKey]) this.filledValues[f.fieldKey] = sources[f.autoFillFrom];
+      else if (!f.autoFillFrom && f.role === 'Initiator' && f.defaultValue && !this.filledValues[f.fieldKey]) this.filledValues[f.fieldKey] = f.defaultValue;
+    }
+  }
+
+  optionsOf(f: HtmlTemplateFieldDto): string[] {
+    if (!f.optionsJson) return [];
+    try { return JSON.parse(f.optionsJson) as string[]; } catch { return []; }
   }
 
   goBack() {
@@ -470,7 +484,7 @@ export class NewRequestComponent implements OnInit {
 
     // Validate required non-autofill fields
     const missing = this.initiatorFields()
-      .filter(f => f.isRequired && !f.autoFillFrom && !this.filledValues[f.fieldKey]?.trim())
+      .filter(f => f.isRequired && !f.autoFillFrom && !this.filledValue(f.fieldKey).trim())
       .map(f => f.label);
     if (missing.length > 0) {
       this.snack.open(this.translate.instant('requests.new.missingFields', { fields: missing.join(', ') }), 'OK', { duration: 4000 });
@@ -479,7 +493,7 @@ export class NewRequestComponent implements OnInit {
 
     this.submitting.set(true);
     this.svc.submit(t.id, {
-      filledValues: this.filledValues,
+      filledValues: Object.fromEntries(Object.entries(this.filledValues).map(([k, v]) => [k, String(v ?? '')])),
       approvers: this.selectedApprovers.length > 0
         ? this.selectedApprovers.map(e => e.mode === 'user'
             ? { userId: e.userId }

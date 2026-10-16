@@ -32,10 +32,17 @@ export const routes: Routes = [
       },
       {
         path: 'requests',
+        pathMatch: 'full',
         redirectTo: 'documents'
       },
       {
+        // Old address of the page below; links and bookmarks keep working (the query string is carried over).
         path: 'requests/new',
+        pathMatch: 'full',
+        redirectTo: 'requests/from-html-template'
+      },
+      {
+        path: 'requests/from-html-template',
         loadComponent: () => import('./features/requests/new-request.component').then(m => m.NewRequestComponent),
         title: 'New Validation Request — LegalDesk'
       },
@@ -43,6 +50,11 @@ export const routes: Routes = [
         path: 'review',
         loadComponent: () => import('./features/review/contract-review.component').then(m => m.ContractReviewComponent),
         title: 'Contract Review — LegalDesk'
+      },
+      {
+        path: 'documents/new-request',
+        loadComponent: () => import('./features/documents/new-contract-request.component').then(m => m.NewContractRequestComponent),
+        title: 'New Contract Request — LegalDesk'
       },
       {
         path: 'documents/upload',

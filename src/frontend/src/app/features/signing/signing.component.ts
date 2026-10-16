@@ -18,6 +18,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { SigningService } from '../../core/services/signing.service';
+import { ReviewGateComponent } from '../../shared/review-gate/review-gate.component';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { SigningSession, AssignedField, SignatureType, ChecklistItemInfo } from '../../core/models';
 import { SignatureDialogComponent } from './signature-dialog.component';
@@ -34,7 +35,7 @@ import { environment } from '../../../environments/environment';
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatDialogModule, MatFormFieldModule, MatInputModule,
     MatStepperModule, MatChipsModule, MatTooltipModule, MatSnackBarModule,
-    WorkflowVisualizerComponent, CommentsPanelComponent, TranslatePipe
+    WorkflowVisualizerComponent, CommentsPanelComponent, ReviewGateComponent, TranslatePipe
   ],
   template: `
     <div class="signing-layout">
@@ -73,7 +74,7 @@ import { environment } from '../../../environments/environment';
               <button mat-stroked-button (click)="reviewMode.set(false)">
                 <mat-icon>arrow_back</mat-icon> {{ 'signing.topbar.backToFields' | translate }}
               </button>
-              <button mat-flat-button color="primary" (click)="approve()" [disabled]="approving() || !checklistComplete()"
+              <button mat-flat-button color="primary" (click)="approve()" [disabled]="approving() || !checklistComplete() || !gateCleared()"
                       [matTooltip]="!checklistComplete() ? ('signing.checklist.incompleteTooltip' | translate) : ''">
                 <mat-icon>verified</mat-icon>
                 {{ (approving() ? 'signing.topbar.submitting' : 'signing.topbar.approveSubmit') | translate }}
@@ -90,7 +91,7 @@ import { environment } from '../../../environments/environment';
                 <mat-icon>cancel</mat-icon> {{ 'signing.topbar.decline' | translate }}
               </button>
               <button mat-flat-button color="primary" (click)="finish()"
-                      [disabled]="!allFieldsSigned() || finishing()">
+                      [disabled]="!allFieldsSigned() || finishing() || !gateCleared()">
                 <mat-icon>rate_review</mat-icon>
                 {{ (finishing() ? 'signing.topbar.loadingEllipsis' : (isNonSigner() ? 'signing.topbar.reviewApprove' : 'signing.topbar.reviewSubmit')) | translate }}
               </button>
@@ -103,6 +104,10 @@ import { environment } from '../../../environments/environment';
         <div class="loading-state"><mat-spinner diameter="48"></mat-spinner><p>{{ 'signing.loadingDocument' | translate }}</p></div>
       } @else if (session()) {
 
+        @if (showReviewGate()) {
+          <sf-review-gate [gate]="session()!.reviewGate!" [busy]="acknowledging()" (confirmed)="acknowledgeReview()" />
+        }
+
         @if (session()!.recipient.approvalType === 'ViewOnly') {
           <!-- Viewer experience: read + comment, never a workflow gate -->
           <div class="status-screen viewer">
@@ -110,7 +115,7 @@ import { environment } from '../../../environments/environment';
             <h2>{{ 'signing.viewer.title' | translate }}</h2>
             <p>{{ 'signing.viewer.body' | translate: { title: session()!.documentTitle } }}</p>
             @if (session()!.isHtmlTemplate && session()!.renderedHtmlContent) {
-              <div class="viewer-doc" [innerHTML]="session()!.renderedHtmlContent"></div>
+              <div class="viewer-doc" [innerHTML]="session()!.renderedHtmlContent" (click)="onHtmlClick($event)"></div>
             } @else {
               <button mat-flat-button color="primary" (click)="downloadDocument()" [disabled]="downloading()">
                 <mat-icon>open_in_new</mat-icon>
@@ -339,7 +344,7 @@ import { environment } from '../../../environments/environment';
           <!-- HTML Template Signing View -->
           <div class="html-signing-body">
             <div class="html-doc-panel">
-              <div class="html-doc-content" [innerHTML]="session()!.renderedHtmlContent"></div>
+              <div class="html-doc-content" [innerHTML]="session()!.renderedHtmlContent" (click)="onHtmlClick($event)"></div>
             </div>
             <div class="html-sig-panel">
               @if (session()!.fields.length > 0) {
@@ -785,8 +790,59 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // ---- Review gate ---------------------------------------------------------------------------
+
+  readonly acknowledging = signal(false);
+
+  /** The participant has a task but has not yet confirmed they read the contract (and its review). */
+  readonly gateCleared = () => {
+    const gate = this.session()?.reviewGate;
+    return !gate?.required || gate.acknowledged;
+  };
+
+  /** Shown on the participant's turn, while there is still something for them to do. */
+  readonly showReviewGate = () => {
+    const s = this.session();
+    return !!s?.reviewGate?.required
+      && s.isMyTurn && !s.isCompleted && !s.isRejected && !s.isExpired
+      && s.documentStatus !== 'ChangesRequested';
+  };
+
+  acknowledgeReview(): void {
+    this.acknowledging.set(true);
+    this.signingService.acknowledgeReview(this.token).subscribe({
+      next: () => {
+        this.acknowledging.set(false);
+        this.session.update(s => s?.reviewGate ? { ...s, reviewGate: { ...s.reviewGate, acknowledged: true } } : s);
+      },
+      error: () => {
+        this.acknowledging.set(false);
+        this.snackBar.open(this.translate.instant('signing.gate.failed'), this.translate.instant('signing.dismiss'), { duration: 6000 });
+      }
+    });
+  }
+
+  /**
+   * A signature placeholder in an HTML contract is drawn where the template put it. The one that is the viewer's own
+   * (`sig-mine`) is the same action as the "Click to sign" panel beside the text, so it opens the same dialog.
+   */
+  onHtmlClick(event: Event): void {
+    const slot = (event.target as HTMLElement | null)?.closest('.sig-slot.sig-mine') as HTMLElement | null;
+    if (!slot || !this.session()?.isMyTurn) return;
+
+    const field = this.session()?.fields.find(f => f.id === slot.id.replace('sig-slot-', ''));
+    if (field) this.clickField(field);
+  }
+
   clickField(field: AssignedField): void {
     if (field.isSigned) return;
+
+    // Acting on the request starts with confirming the document was read; the card above the contract is where.
+    if (!this.gateCleared()) {
+      this.snackBar.open(this.translate.instant('signing.gate.mustConfirm'), this.translate.instant('signing.dismiss'), { duration: 5000 });
+      return;
+    }
+
     this.currentFieldId.set(field.id);
 
     if (field.fieldType === 'Signature' || field.fieldType === 'Initials' || field.fieldType === 'Stamp') {

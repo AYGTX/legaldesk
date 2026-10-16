@@ -435,9 +435,12 @@ export class DocumentsListComponent implements OnInit {
     return remainingTime(expiresAt);
   }
 
+  /**
+   * Opens the contract page, where the participant can read everything about the document first. The
+   * contract page carries the button that continues to the signing screen.
+   */
   openSigning(r: ReceivedRequest): void {
-    const url = `${window.location.origin}/sign/${r.secureToken}`;
-    window.open(url, '_blank');
+    this.router.navigate(['/documents', r.documentId]);
   }
 
   private loadReceived(): void {

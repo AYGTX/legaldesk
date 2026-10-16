@@ -25,6 +25,40 @@ export interface SigningSession {
   linkExpiresAt?: string;
   /** Lets the signing UI show the paused state ('ChangesRequested') to every participant. */
   documentStatus: DocumentStatus;
+  /** What the participant must read before acting, and whether they already confirmed it. */
+  reviewGate?: ReviewGate;
+}
+
+export type ReviewVerdictName = 'NotEvaluated' | 'Ready' | 'NeedsWork' | 'Blocked';
+
+export interface ReviewGate {
+  /** The participant has a task (sign, approve, review), so they confirm they read the contract first. */
+  required: boolean;
+  acknowledged: boolean;
+  /** The AI review is for the organisation's own members; outside signers read the contract without it. */
+  reviewRestricted: boolean;
+  review?: AiReview;
+}
+
+export interface AiReview {
+  verdict: ReviewVerdictName;
+  score?: number | null;
+  riskScore?: number | null;
+  complianceScore?: number | null;
+  openCount: number;
+  criticalCount: number;
+  handledCount: number;
+  items: AiReviewItem[];
+}
+
+export interface AiReviewItem {
+  severity: string;
+  title: string;
+  detail: string;
+  whyItMatters?: string;
+  recommendedAction?: string;
+  status: 'Open' | 'Resolved' | 'Dismissed';
+  resolutionNote?: string;
 }
 
 export interface RecipientSession {

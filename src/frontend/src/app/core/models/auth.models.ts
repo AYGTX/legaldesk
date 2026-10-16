@@ -30,6 +30,7 @@ export interface UserInfo {
   avatarUrl?: string;
   mfaEnabled: boolean;
   department?: string;
+  company?: string;
 }
 
 export interface RefreshTokenRequest {

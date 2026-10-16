@@ -26,6 +26,7 @@ import {
 } from '../../core/models/pdf-template.models';
 import { WorkflowType, UserDto, RequestType } from '../../core/models';
 import { formatSla } from '../../core/utils/sla';
+import { buildApprovalPath, compactStages } from './approval-path.util';
 
 interface TemplateField {
   tempId: string;
@@ -46,6 +47,7 @@ interface TemplateField {
 
 const PDF_FIELD_DEFS: { type: PdfFieldType; icon: string; width: number; height: number }[] = [
   { type: 'Text', icon: 'short_text', width: 180, height: 36 },
+  { type: 'Textarea', icon: 'notes', width: 260, height: 90 },
   { type: 'Date', icon: 'calendar_today', width: 140, height: 36 },
   { type: 'Number', icon: 'pin', width: 120, height: 36 },
   { type: 'Checkbox', icon: 'check_box', width: 28, height: 28 },
@@ -94,6 +96,14 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
           </div>
         }
 
+        @if (checkedCount() > 0) {
+          <button mat-stroked-button color="warn" class="remove-selected-btn" (click)="removeChecked()"
+                  [matTooltip]="'pdfTemplates.designer.removeSelectedHint' | translate">
+            <mat-icon>delete_sweep</mat-icon>
+            {{ 'pdfTemplates.designer.removeSelected' | translate: { count: checkedCount() } }}
+          </button>
+        }
+
         <button mat-flat-button class="save-btn" [disabled]="saving() || !name.trim()" (click)="save()">
           <mat-icon>save</mat-icon> {{ saving() ? ('designer.toolbar.saving' | translate) : ('common.save' | translate) }}
         </button>
@@ -117,6 +127,7 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
             <div class="legend-item"><span class="dot" [style.background]="roleColors.Approver"></span>{{ 'pdfTemplates.fillRoles.Approver' | translate }}</div>
             <div class="legend-item"><span class="dot" [style.background]="roleColors.System"></span>{{ 'pdfTemplates.fillRoles.System' | translate }}</div>
           </div>
+          <div class="multi-hint">{{ 'pdfTemplates.designer.multiSelectHint' | translate }}</div>
         </div>
 
         <!-- Canvas -->
@@ -132,12 +143,13 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
               <div class="grid-overlay" [style.background-size]="gridSize + 'px ' + gridSize + 'px'"></div>
             }
             @for (f of pageFields(); track f.tempId) {
-              <div class="placed-field" [class.selected]="selected()?.tempId === f.tempId"
+              <div class="placed-field" [class.selected]="selected()?.tempId === f.tempId" [class.checked]="isChecked(f)"
                    [style.left.px]="f.x" [style.top.px]="f.y" [style.width.px]="f.width" [style.height.px]="f.height"
                    [style.border-color]="roleColor(f)" [style.background]="roleColor(f) + '18'"
                    (mousedown)="startFieldDrag($event, f)" (click)="selectField(f, $event)"
                    [matTooltip]="f.label + ' · ' + (('pdfTemplates.fillRoles.' + f.fillRole) | translate)">
                 <div class="pf-header" [style.background]="roleColor(f)">
+                  @if (stepOf(f); as n) { <span class="stage-badge">{{ n }}</span> }
                   <mat-icon>{{ iconFor(f.type) }}</mat-icon><span>{{ f.label }}</span>
                 </div>
                 <div class="resize-handle" (mousedown)="startResize($event, f)"></div>
@@ -201,9 +213,10 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
                 </mat-select>
               </mat-form-field>
 
-              @if (workflowType() === 'Mixed') {
-                <label class="pl">{{ 'pdfTemplates.designer.workflowStage' | translate }}</label>
-                <input class="pi" type="number" min="1" [ngModel]="sel.workflowStage" (ngModelChange)="updateProp('workflowStage', +$event || 1)" />
+              <label class="pl">{{ 'pdfTemplates.designer.workflowStage' | translate }}</label>
+              <input class="pi" type="number" min="1" [ngModel]="sel.workflowStage" (ngModelChange)="updateProp('workflowStage', +$event || 1)" />
+              @if (workflowType() !== 'Mixed') {
+                <div class="stage-hint">{{ 'pdfTemplates.designer.path.stageHint' | translate }}</div>
               }
             }
 
@@ -217,6 +230,7 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
             <button mat-stroked-button color="warn" class="del-btn" (click)="deleteField(sel, $event)">
               <mat-icon>delete</mat-icon> {{ 'pdfTemplates.designer.removeField' | translate }}
             </button>
+            <ng-container *ngTemplateOutlet="pathPanel"></ng-container>
           </div>
         } @else {
           <div class="props empty-props">
@@ -240,10 +254,66 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
               <mat-checkbox [checked]="isActive()" (change)="isActive.set($event.checked)">{{ 'pdfTemplates.designer.active' | translate }}</mat-checkbox>
               <mat-checkbox [checked]="hideIdentities()" (change)="hideIdentities.set($event.checked)">{{ 'designer.anon.hideIdentities' | translate }}</mat-checkbox>
             </div>
+            <ng-container *ngTemplateOutlet="pathPanel"></ng-container>
           </div>
         }
       </div>
     </div>
+
+    <ng-template #pathPanel>
+      <div class="path-box">
+        <div class="path-head"><mat-icon>route</mat-icon> {{ 'pdfTemplates.designer.path.title' | translate }}</div>
+
+        @if (path().steps.length === 0) {
+          <div class="path-empty">{{ 'pdfTemplates.designer.path.empty' | translate }}</div>
+        }
+
+        @for (step of path().steps; track step.index) {
+          <div class="path-step">
+            <span class="step-badge" [style.background]="stepColor(step.index)">{{ step.index }}</span>
+            <div class="step-body">
+              @if (step.signers.length > 1) {
+                <div class="step-par"><mat-icon>call_split</mat-icon> {{ 'pdfTemplates.designer.path.parallel' | translate }}</div>
+              }
+              @for (s of step.signers; track s.tempId) {
+                <div class="signer" [class.signer-selected]="selected()?.tempId === s.tempId" (click)="selectById(s.tempId)">
+                  <div class="signer-text">
+                    <span class="signer-label">{{ s.label }}</span>
+                    <span class="signer-who" [class.pending]="s.atRequestTime">{{ whoLabel(s) }}</span>
+                  </div>
+                  @if (workflowType() !== 'Parallel') {
+                    <div class="signer-moves">
+                      <button type="button" (click)="moveSigner(s.tempId, -1); $event.stopPropagation()"
+                              [disabled]="!canMove(s.tempId, -1)" [attr.aria-label]="'pdfTemplates.designer.path.moveUp' | translate">
+                        <mat-icon>keyboard_arrow_up</mat-icon>
+                      </button>
+                      <button type="button" (click)="moveSigner(s.tempId, 1); $event.stopPropagation()"
+                              [disabled]="!canMove(s.tempId, 1)" [attr.aria-label]="'pdfTemplates.designer.path.moveDown' | translate">
+                        <mat-icon>keyboard_arrow_down</mat-icon>
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        @if (path().steps.length > 0) {
+          <div class="path-summary">
+            @if (path().requestTimeCount > 0) {
+              {{ 'pdfTemplates.designer.path.requestTime' | translate: { count: path().requestTimeCount } }}
+            } @else {
+              {{ 'pdfTemplates.designer.path.allFixed' | translate }}
+            }
+          </div>
+        }
+
+        @for (w of path().warnings; track w.code) {
+          <div class="path-warning"><mat-icon>warning_amber</mat-icon> {{ ('pdfTemplates.designer.path.warn.' + w.code) | translate: w.params }}</div>
+        }
+      </div>
+    </ng-template>
   `,
   styles: [`
     :host { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -285,6 +355,9 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
                         linear-gradient(to bottom, rgba(11,87,208,0.12) 1px, transparent 1px); }
     .placed-field { position: absolute; z-index: 2; border: 2px solid; border-radius: 4px; cursor: move; box-sizing: border-box; }
     .placed-field.selected { box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor; }
+    .placed-field.checked { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #d93025; }
+    .multi-hint { margin-top: 14px; font-size: 11px; color: #80868b; line-height: 1.4; }
+    .remove-selected-btn { border-radius: 18px !important; }
     .pf-header { display: flex; align-items: center; gap: 4px; color: #fff; font-size: 11px; padding: 1px 4px; height: 18px; overflow: hidden; white-space: nowrap; }
     .pf-header mat-icon { font-size: 13px; width: 13px; height: 13px; }
     .resize-handle { position: absolute; right: -4px; bottom: -4px; width: 12px; height: 12px; background: #fff; border: 2px solid currentColor; border-radius: 50%; cursor: nwse-resize; }
@@ -306,6 +379,31 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
     .del-btn { width: 100%; margin-top: 16px; }
     .empty-props { display: flex; flex-direction: column; align-items: center; color: #80868b; text-align: center; }
     .empty-props > mat-icon { font-size: 40px; width: 40px; height: 40px; margin: 24px 0 8px; opacity: 0.4; }
+    .stage-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; border-radius: 8px; background: #fff; color: #202124; font-size: 11px; font-weight: 600; padding: 0 3px; margin-right: 3px; }
+    .stage-hint { font-size: 11px; color: #80868b; margin-top: 4px; }
+    .path-box { margin-top: 20px; border-top: 1px solid #e8edf2; padding-top: 14px; text-align: left; width: 100%; }
+    .path-head { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #202124; margin-bottom: 8px; }
+    .path-head mat-icon { font-size: 18px; width: 18px; height: 18px; color: #5f6368; }
+    .path-empty { font-size: 12px; color: #80868b; }
+    .path-step { display: flex; gap: 8px; margin-bottom: 8px; }
+    .step-badge { flex: 0 0 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .step-body { flex: 1; min-width: 0; border-left: 2px solid #e8edf2; padding-left: 8px; }
+    .step-par { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #5f6368; margin-bottom: 2px; }
+    .step-par mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .signer { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+    .signer:hover { background: #f1f3f4; }
+    .signer-selected { background: #e8f0fe; }
+    .signer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .signer-label { font-size: 12px; font-weight: 500; color: #202124; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .signer-who { font-size: 11px; color: #188038; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .signer-who.pending { color: #b06000; }
+    .signer-moves { display: flex; flex-direction: column; }
+    .signer-moves button { border: none; background: transparent; padding: 0; height: 16px; width: 20px; cursor: pointer; color: #5f6368; line-height: 1; }
+    .signer-moves button:disabled { opacity: 0.25; cursor: default; }
+    .signer-moves mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .path-summary { font-size: 12px; color: #3c4043; background: #f1f3f4; border-radius: 6px; padding: 6px 8px; margin: 4px 0 8px; }
+    .path-warning { display: flex; gap: 6px; font-size: 12px; color: #b06000; background: #fef7e0; border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; }
+    .path-warning mat-icon { font-size: 16px; width: 16px; height: 16px; flex: 0 0 auto; }
     .default-approver-box { width: 100%; margin-top: 24px; border-top: 1px solid #e8edf2; padding-top: 16px; text-align: left; display: flex; flex-direction: column; gap: 8px; }
   `]
 })
@@ -333,6 +431,9 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   readonly pageCount = signal(1);
   readonly saving = signal(false);
   readonly selected = signal<TemplateField | null>(null);
+  /** Fields ticked for bulk actions with Ctrl/Shift+click or Ctrl+A. Separate from `selected`, which drives the properties panel. */
+  readonly checked = signal<ReadonlySet<string>>(new Set());
+  readonly checkedCount = computed(() => this.checked().size);
   readonly fields = signal<TemplateField[]>([]);
   readonly users = signal<UserDto[]>([]);
   readonly requestTypes = signal<RequestType[]>([]);
@@ -356,6 +457,79 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   readonly pageFields = computed(() => this.fields().filter(f => f.page === this.currentPage()));
 
   roleColor(f: TemplateField): string { return ROLE_COLORS[f.fillRole]; }
+
+  // ---- Approval path ---------------------------------------------------------------------------
+
+  /** The approval path the server will build from the current fields, workflow type and default approver. */
+  readonly path = computed(() => buildApprovalPath(this.fields(), this.workflowType(), this.defaultApproverId()));
+
+  /**
+   * Colour is reserved for fill responsibility (see the legend), so a step is shown by its number alone;
+   * the step badges use the Approver colour because steps only exist for approvers.
+   */
+  stepColor(_step: number): string { return ROLE_COLORS.Approver; }
+
+  stepOf(f: TemplateField): number | undefined { return this.path().stepOf.get(f.tempId); }
+
+  whoLabel(s: { approverId?: string; atRequestTime: boolean }): string {
+    if (s.atRequestTime) return this.translate.instant('pdfTemplates.designer.path.chosenAtRequest');
+    const user = this.users().find(u => u.id === s.approverId);
+    return user?.fullName ?? this.translate.instant('pdfTemplates.designer.path.fixedApprover');
+  }
+
+  async selectById(tempId: string): Promise<void> {
+    const f = this.fields().find(x => x.tempId === tempId);
+    if (!f) return;
+    this.selected.set(f);
+    if (f.page !== this.currentPage()) {
+      this.currentPage.set(f.page);
+      await this.renderPage(f.page);
+    }
+  }
+
+  /** Signature fields in the order the server uses (field order). */
+  private signatureIds(): string[] {
+    return this.fields().filter(f => f.fillRole === 'Approver' && f.type === 'Signature').map(f => f.tempId);
+  }
+
+  canMove(tempId: string, direction: -1 | 1): boolean {
+    if (this.workflowType() === 'Mixed') {
+      const f = this.fields().find(x => x.tempId === tempId);
+      if (!f) return false;
+      // Up needs an earlier stage to move to; down always can (it opens a new stage when it is the last one).
+      return direction === 1 || (f.workflowStage || 1) > 1;
+    }
+    const ids = this.signatureIds();
+    const i = ids.indexOf(tempId);
+    return direction === -1 ? i > 0 : i >= 0 && i < ids.length - 1;
+  }
+
+  /** Sequential: swaps the signature with its neighbour. Mixed: moves it one stage earlier or later. */
+  moveSigner(tempId: string, direction: -1 | 1): void {
+    if (!this.canMove(tempId, direction)) return;
+
+    if (this.workflowType() === 'Mixed') {
+      this.fields.update(fs => {
+        const moved = fs.map(f => f.tempId === tempId
+          ? { ...f, workflowStage: Math.max(1, (f.workflowStage || 1) + direction) }
+          : f);
+        const renumbered = compactStages(moved);
+        return moved.map(f => renumbered.has(f.tempId) ? { ...f, workflowStage: renumbered.get(f.tempId)! } : f);
+      });
+    } else {
+      const ids = this.signatureIds();
+      const neighbour = ids[ids.indexOf(tempId) + direction];
+      this.fields.update(fs => {
+        const next = [...fs];
+        const a = next.findIndex(f => f.tempId === tempId);
+        const b = next.findIndex(f => f.tempId === neighbour);
+        [next[a], next[b]] = [next[b], next[a]];
+        return next;
+      });
+    }
+    const current = this.selected();
+    if (current) this.syncSelected(current.tempId);
+  }
   iconFor(type: PdfFieldType): string { return PDF_FIELD_DEFS.find(d => d.type === type)?.icon ?? 'edit'; }
   optionsText(f: TemplateField): string {
     if (!f.optionsJson) return '';
@@ -464,7 +638,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
     const field: TemplateField = {
       tempId: uuidv4(),
       fieldKey: this.uniqueKey(def.type.toLowerCase()),
-      label: this.translate.instant('pdfTemplates.fieldTypes.' + def.type),
+      label: this.nextLabel(this.translate.instant('pdfTemplates.fieldTypes.' + def.type)),
       type: def.type,
       fillRole: def.type === 'Signature' ? 'Approver' : 'Requester',
       page: this.currentPage(),
@@ -479,6 +653,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   startFieldDrag(event: MouseEvent, field: TemplateField): void {
     if (event.button !== 0 || (event.target as HTMLElement).closest('.resize-handle, .pf-del')) return;
     event.preventDefault();
+    if (this.isMultiSelectGesture(event)) { this.toggleChecked(field); return; }
     this.selectField(field);
     const canvas = this.pdfCanvasRef.nativeElement;
     const startRect = canvas.getBoundingClientRect();
@@ -513,14 +688,53 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
     if (this.suppressCanvasClick) return;
     if ((event.target as HTMLElement).closest('.placed-field')) return;
     this.selected.set(null);
+    this.checked.set(new Set());
   }
 
-  selectField(field: TemplateField, event?: MouseEvent): void { event?.stopPropagation(); this.selected.set(field); }
+  selectField(field: TemplateField, event?: MouseEvent): void {
+    event?.stopPropagation();
+    // A modifier-click is a multi-select toggle, handled on mousedown — the click that follows must not collapse it.
+    if (event && this.isMultiSelectGesture(event)) return;
+    this.checked.set(new Set());
+    this.selected.set(field);
+  }
+
+  private isMultiSelectGesture(event: MouseEvent): boolean {
+    return event.ctrlKey || event.metaKey || event.shiftKey;
+  }
+
+  isChecked(f: TemplateField): boolean { return this.checked().has(f.tempId); }
+
+  /** Adds or removes a field from the multi-selection; the first toggle also takes in the field already selected. */
+  private toggleChecked(field: TemplateField): void {
+    const next = new Set(this.checked());
+    const current = this.selected();
+    if (current && next.size === 0) next.add(current.tempId);
+    if (next.has(field.tempId)) next.delete(field.tempId); else next.add(field.tempId);
+    this.checked.set(next);
+    this.selected.set(null);   // the properties panel edits one field; with several ticked it would be ambiguous
+  }
+
+  /** Removes every ticked field. Nothing is saved until Save, so leaving the page undoes it. */
+  removeChecked(): void {
+    const ids = this.checked();
+    if (ids.size === 0) return;
+    const count = ids.size;
+    this.fields.update(fs => fs.filter(f => !ids.has(f.tempId)));
+    this.checked.set(new Set());
+    this.selected.set(null);
+    this.snack.open(this.translate.instant('pdfTemplates.designer.removedFields', { count }), 'OK', { duration: 3000 });
+  }
 
   deleteField(field: TemplateField, event: Event): void {
     event.stopPropagation();
     this.fields.update(fs => fs.filter(f => f.tempId !== field.tempId));
     if (this.selected()?.tempId === field.tempId) this.selected.set(null);
+    if (this.checked().has(field.tempId)) {
+      const next = new Set(this.checked());
+      next.delete(field.tempId);
+      this.checked.set(next);
+    }
   }
 
   updateProp<K extends keyof TemplateField>(prop: K, value: TemplateField[K]): void {
@@ -537,6 +751,12 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       return next;
     }));
     this.syncSelected(sel.tempId);
+
+    // Stages only mean something on a Mixed template — choosing one is a clear request for that.
+    if (prop === 'workflowStage' && (value as number) > 1 && this.workflowType() !== 'Mixed') {
+      this.workflowType.set('Mixed');
+      this.snack.open(this.translate.instant('pdfTemplates.designer.path.switchedToMixed'), 'OK', { duration: 4000 });
+    }
   }
 
   updateOptions(text: string): void {
@@ -546,6 +766,16 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
 
   private syncSelected(tempId: string): void {
     this.selected.set(this.fields().find(f => f.tempId === tempId) ?? null);
+  }
+
+  /** "Text" → "Text 1", then "Text 2"…: continues from the highest number already used for this type. */
+  private nextLabel(base: string): string {
+    const prefix = `${base} `;
+    const highest = this.fields().reduce((max, f) => {
+      const suffix = f.label.startsWith(prefix) ? f.label.slice(prefix.length) : '';
+      return /^\d+$/.test(suffix) ? Math.max(max, Number(suffix)) : max;
+    }, 0);
+    return `${prefix}${highest + 1}`;
   }
 
   private uniqueKey(base: string): string {
@@ -571,8 +801,16 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   }
 
   private handleKeydown = (event: KeyboardEvent): void => {
-    if (event.key === 'Delete' && this.selected() && !(event.target as HTMLElement).matches('input,textarea')) {
-      this.deleteField(this.selected()!, event);
+    const typing = (event.target as HTMLElement).matches('input,textarea');
+    if (typing) return;
+
+    if (event.key === 'Delete') {
+      if (this.checked().size > 0) this.removeChecked();
+      else if (this.selected()) this.deleteField(this.selected()!, event);
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+      event.preventDefault();
+      this.selected.set(null);
+      this.checked.set(new Set(this.fields().map(f => f.tempId)));
     }
   };
 

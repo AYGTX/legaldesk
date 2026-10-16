@@ -5,7 +5,7 @@ import {
   DocumentDetail, DocumentSummary, DashboardData,
   FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto,
   ContractAnalysisResponse, ComplianceAnalysisResponse,
-  Readiness, ReadinessItemStatus, ContractTermUpdate
+  Readiness, ReadinessItemStatus, ContractTermUpdate, VersionComparison, PdfTextEdit, TemplateRevisionForm
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -53,6 +53,21 @@ export class DocumentService {
     return this.api.upload(`/v1/documents/${id}/revision`, formData);
   }
 
+  /** The answers an owner may change after changes were requested on a template contract, with what was asked. */
+  getRevisionForm(id: string): Observable<TemplateRevisionForm> {
+    return this.api.get<TemplateRevisionForm>(`/v1/documents/${id}/revision-form`);
+  }
+
+  /** Revises a template contract by its answers: keeps the old version, creates the next, restarts the circuit. */
+  reviseAnswers(id: string, filledValues: Record<string, string>, changeNote?: string): Observable<{ documentId: string; version: number; pageCount: number }> {
+    return this.api.post(`/v1/documents/${id}/revise-answers`, { filledValues, changeNote: changeNote?.trim() || null });
+  }
+
+  /** Applies in-browser text edits to the stored PDF and saves the result as a new version. */
+  editPdf(id: string, edits: PdfTextEdit[], changeNote?: string): Observable<{ documentId: string; version: number; pageCount: number }> {
+    return this.api.post(`/v1/documents/${id}/edit-pdf`, { edits, changeNote: changeNote?.trim() || null });
+  }
+
   /** Admin: reopen an expired request, restarting its SLA clock. */
   reopen(id: string, slaHours?: number): Observable<void> {
     return this.api.post<void>(`/v1/documents/${id}/reopen`, { slaHours: slaHours ?? null });
@@ -73,6 +88,16 @@ export class DocumentService {
 
   download(id: string): Observable<Blob> {
     return this.api.download(`/v1/documents/${id}/download`);
+  }
+
+  /** Downloads one superseded version's PDF. The filename carries the version — see DocumentVersionAccess. */
+  downloadVersion(id: string, versionNumber: number): Observable<Blob> {
+    return this.api.download(`/v1/documents/${id}/versions/${versionNumber}/download`);
+  }
+
+  /** Redlines two versions against each other. Both PDFs are re-read server-side, so this is not instant. */
+  compareVersions(id: string, from: number, to: number): Observable<VersionComparison> {
+    return this.api.get<VersionComparison>(`/v1/documents/${id}/versions/compare`, { from, to });
   }
 
   /** Streams the original PDF inline as a Blob through the authenticated HTTP client (JWT attached). */

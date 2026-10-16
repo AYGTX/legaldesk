@@ -26,6 +26,9 @@ import { CommentsPanelComponent } from '../../shared/comments-panel/comments-pan
 import { ContractAnalysisPanelComponent } from './contract-analysis-panel.component';
 import { ContractCompliancePanelComponent } from './contract-compliance-panel.component';
 import { ContractTermPanelComponent } from './contract-term-panel.component';
+import { VersionCompareDialogComponent, VersionCompareDialogData } from './version-compare-dialog.component';
+import { PdfTextEditorDialogComponent, PdfTextEditorDialogData } from './pdf-text-editor-dialog.component';
+import { TemplateRevisionDialogComponent, TemplateRevisionDialogData } from './template-revision-dialog.component';
 import { remainingTime, RemainingTime } from '../../core/utils/sla';
 
 @Component({
@@ -87,6 +90,16 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
 
           <div class="header-actions">
             @if (doc()!.status === 'Draft') {
+              @if (isOwner() && !doc()!.templateKind) {
+                <a mat-stroked-button [routerLink]="['/documents/new-request']" [queryParams]="{ documentId: doc()!.id }">
+                  <mat-icon>checklist</mat-icon> {{ 'documents.detail.continueSetup' | translate }}
+                </a>
+              }
+              @if (canEditText()) {
+                <button mat-stroked-button (click)="editText()">
+                  <mat-icon>edit_note</mat-icon> {{ 'documents.detail.editText.button' | translate }}
+                </button>
+              }
               <button mat-stroked-button [routerLink]="['/documents', doc()!.id, 'designer']">
                 <mat-icon>edit</mat-icon> {{ 'documents.detail.designFields' | translate }}
               </button>
@@ -128,19 +141,72 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 </span>
               </div>
             </div>
-            @if (isOwner()) {
+            @if (isOwner() && doc()!.templateKind) {
+              <div class="revision-form">
+                <button mat-flat-button class="crb-upload-btn" (click)="reviseAnswers()">
+                  <mat-icon>edit_note</mat-icon> {{ 'documents.detail.reviseAnswers.button' | translate }}
+                </button>
+              </div>
+            } @else if (isOwner()) {
               <div class="revision-form">
                 <input class="note-input" #noteInput
                        [placeholder]="'documents.detail.changeNotePlaceholder' | translate"
                        [disabled]="uploadingRevision()" />
                 <input type="file" accept="application/pdf" hidden #revisionInput
                        (change)="onRevisionFile($event, noteInput.value)" />
+                @if (canEditText()) {
+                  <button mat-stroked-button (click)="editText()" [disabled]="uploadingRevision()">
+                    <mat-icon>edit_note</mat-icon> {{ 'documents.detail.editText.button' | translate }}
+                  </button>
+                }
                 <button mat-flat-button class="crb-upload-btn" (click)="revisionInput.click()" [disabled]="uploadingRevision()">
                   <mat-icon>upload_file</mat-icon>
                   {{ (uploadingRevision() ? 'documents.detail.uploadingRevision' : 'documents.detail.uploadRevision') | translate }}
                 </button>
               </div>
             }
+          </div>
+        }
+
+        <!-- What the owner changed between versions of a template contract -->
+        @if (revisionsNewestFirst().length > 0) {
+          <div class="rev-history">
+            <div class="rev-title"><mat-icon>history</mat-icon> {{ 'documents.detail.revisionHistory.title' | translate }}</div>
+            @for (rev of revisionsNewestFirst(); track rev.toVersion; let first = $first) {
+              <div class="rev-item" [class.rev-latest]="first">
+                <div class="rev-head">
+                  <strong>v{{ rev.fromVersion }} → v{{ rev.toVersion }}</strong>
+                  @if (rev.changedByName) { <span>· {{ rev.changedByName }}</span> }
+                  <span>· {{ rev.createdAt | date:'medium' }}</span>
+                  @if (first) { <span class="rev-badge">{{ 'documents.detail.revisionHistory.latest' | translate }}</span> }
+                </div>
+                @if (rev.changeNote) { <div class="rev-note">{{ rev.changeNote }}</div> }
+                <table class="rev-table">
+                  @for (c of rev.changes; track c.fieldKey) {
+                    <tr>
+                      <td class="rev-field">{{ c.label }}</td>
+                      <td class="rev-old">{{ c.oldValue || ('documents.detail.revisionHistory.empty' | translate) }}</td>
+                      <td class="rev-arrow">→</td>
+                      <td class="rev-new">{{ c.newValue || ('documents.detail.revisionHistory.empty' | translate) }}</td>
+                    </tr>
+                  }
+                </table>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Participant action: the signing screen is one click away, once they have read everything here -->
+        @if (myAction(); as action) {
+          <div class="my-action-banner">
+            <mat-icon>{{ action.icon }}</mat-icon>
+            <div class="my-action-text">
+              <strong>{{ 'documents.detail.myAction.title' | translate }}</strong>
+              <span>{{ 'documents.detail.myAction.hint' | translate }}</span>
+            </div>
+            <button mat-flat-button color="primary" (click)="continueToAction(action.token)">
+              <mat-icon>{{ action.icon }}</mat-icon> {{ action.labelKey | translate }}
+            </button>
           </div>
         }
 
@@ -255,9 +321,11 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     @if (r.signedAt) {
                       <span class="recipient-time">{{ r.signedAt | date:'MMM d' }}</span>
                     }
-                    <button mat-icon-button class="copy-link-btn" (click)="copyLink(r.secureToken)" [matTooltip]="'documents.detail.copySigningLink' | translate">
-                      <mat-icon>link</mat-icon>
-                    </button>
+                    @if (r.secureToken) {
+                      <button mat-icon-button class="copy-link-btn" (click)="copyLink(r.secureToken)" [matTooltip]="'documents.detail.copySigningLink' | translate">
+                        <mat-icon>link</mat-icon>
+                      </button>
+                    }
                   </div>
                   @if (r.approvalType === 'Review' || r.approvalType === 'Approval') {
                     @if (isOwner() && doc()!.status === 'Draft') {
@@ -367,13 +435,26 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             <!-- Version history (only present once a revision was uploaded) -->
             @if ((doc()!.versions?.length ?? 0) > 0) {
               <mat-card class="versions-card">
-                <mat-card-header><mat-card-title>{{ 'documents.detail.versionsTitle' | translate }}</mat-card-title></mat-card-header>
+                <mat-card-header>
+                  <mat-card-title>{{ 'documents.detail.versionsTitle' | translate }}</mat-card-title>
+                </mat-card-header>
                 <mat-card-content>
+                  @if (!doc()!.templateKind) {
+                    <button mat-stroked-button class="compare-versions-btn" (click)="compareVersions()">
+                      <mat-icon>compare_arrows</mat-icon>
+                      {{ 'documents.detail.compare.open' | translate }}
+                    </button>
+                  }
+
                   <div class="version-row">
                     <span class="version-badge current">v{{ doc()!.version }}</span>
                     <div class="version-info">
                       <span class="version-note">{{ 'documents.detail.currentVersion' | translate }}</span>
                     </div>
+                    <button mat-icon-button (click)="downloadVersion(doc()!.version)"
+                      [matTooltip]="'documents.detail.compare.downloadVersion' | translate: { version: doc()!.version }">
+                      <mat-icon>download</mat-icon>
+                    </button>
                   </div>
                   @for (v of doc()!.versions; track v.id) {
                     <div class="version-row">
@@ -385,6 +466,10 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                           {{ v.createdAt | date:'MMM d, y' }}
                         </span>
                       </div>
+                      <button mat-icon-button (click)="downloadVersion(v.versionNumber)"
+                        [matTooltip]="'documents.detail.compare.downloadVersion' | translate: { version: v.versionNumber }">
+                        <mat-icon>download</mat-icon>
+                      </button>
                     </div>
                   }
                 </mat-card-content>
@@ -574,6 +659,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   private readonly translate = inject(TranslateService);
   private readonly snack = inject(MatSnackBar);
   private readonly confirmService = inject(ConfirmService);
+  private readonly dialog = inject(MatDialog);
 
   readonly loading = signal(true);
   readonly doc = signal<DocumentDetail | null>(null);
@@ -687,6 +773,40 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
       next: () => this.load(),
       error: err => this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.checklist.saveFailed'), 'OK', { duration: 4000 })
     });
+  }
+
+  private static readonly ACTIONS: Record<string, { labelKey: string; icon: string }> = {
+    Signature: { labelKey: 'requests.signNow', icon: 'draw' },
+    Stamp: { labelKey: 'requests.signNow', icon: 'draw' },
+    Approval: { labelKey: 'requests.approveNow', icon: 'fact_check' },
+    Review: { labelKey: 'requests.reviewNow', icon: 'rate_review' },
+    ViewOnly: { labelKey: 'requests.viewNow', icon: 'visibility' }
+  };
+
+  /**
+   * What the signed-in participant has to do next, if it is their turn: their own recipient row, an active
+   * contract and a workflow step of theirs that is in progress (the same rule "My requests" uses).
+   */
+  readonly myAction = () => {
+    const d = this.doc();
+    const email = this.auth.user()?.email?.toLowerCase();
+    if (!d || !email) return null;
+    if (!['InProgress', 'Pending', 'WaitingForOthers'].includes(d.status)) return null;
+
+    const me = d.recipients.find(r => r.email.toLowerCase() === email && r.secureToken);
+    if (!me) return null;
+
+    const myTurn = d.workflow?.steps?.length
+      ? d.workflow.steps.some(s => s.recipientId === me.id && s.status === 'InProgress')
+      : !d.recipients.some(o => o.order < me.order && (o.status === 'Pending' || o.status === 'InProgress'));
+    if (!myTurn || !['Pending', 'InProgress'].includes(me.status)) return null;
+
+    const action = DocumentDetailComponent.ACTIONS[me.approvalType] ?? DocumentDetailComponent.ACTIONS['Signature'];
+    return { ...action, token: me.secureToken };
+  };
+
+  continueToAction(token: string): void {
+    this.router.navigate(['/sign', token]);
   }
 
   copyLink(secureToken: string): void {
@@ -890,6 +1010,76 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
       a.download = `${this.doc()?.title ?? 'document'}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
+    });
+  }
+
+  /** The version is in the filename: two drafts sharing one name is how the wrong one gets circulated. */
+  downloadVersion(versionNumber: number): void {
+    this.documentService.downloadVersion(this.documentId, versionNumber).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${this.doc()?.title ?? 'document'}-v${versionNumber}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.snack.open(this.translate.instant('documents.detail.compare.downloadFailed'), 'OK', { duration: 4000 })
+    });
+  }
+
+  /** Owner of a PDF contract that is still editable: a draft, or one a participant sent back. */
+  readonly canEditText = () => {
+    const d = this.doc();
+    return !!d && this.isOwner()
+      && (d.status === 'Draft' || d.status === 'ChangesRequested')
+      && !d.templateKind
+      && d.fileName.toLowerCase().endsWith('.pdf');
+  };
+
+  readonly revisionsNewestFirst = () => [...(this.doc()?.templateRevisions ?? [])].reverse();
+
+  /** Opens the form the owner fills again; the contract returns to the reviewers once it is sent. */
+  reviseAnswers(): void {
+    const detail = this.doc();
+    if (!detail) return;
+
+    this.dialog.open(TemplateRevisionDialogComponent, {
+      data: { documentId: this.documentId, documentTitle: detail.title } satisfies TemplateRevisionDialogData,
+      width: '640px',
+      maxWidth: '96vw',
+      disableClose: true
+    }).afterClosed().subscribe(result => {
+      if (result) this.load();
+    });
+  }
+
+  editText(): void {
+    const detail = this.doc();
+    if (!detail) return;
+
+    this.dialog.open(PdfTextEditorDialogComponent, {
+      data: { documentId: this.documentId, documentTitle: detail.title } satisfies PdfTextEditorDialogData,
+      width: '1000px',
+      maxWidth: '96vw',
+      disableClose: true
+    }).afterClosed().subscribe(result => {
+      if (result) this.load();
+    });
+  }
+
+  compareVersions(): void {
+    const detail = this.doc();
+    if (!detail) return;
+
+    this.dialog.open(VersionCompareDialogComponent, {
+      data: {
+        documentId: this.documentId,
+        documentTitle: detail.title,
+        currentVersion: detail.version,
+        versions: detail.versions ?? []
+      } satisfies VersionCompareDialogData,
+      maxWidth: '95vw'
     });
   }
 }

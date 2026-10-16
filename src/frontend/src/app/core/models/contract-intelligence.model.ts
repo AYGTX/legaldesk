@@ -65,6 +65,27 @@ export interface ComplianceFinding {
   recommendedAction?: string;
   proposedLanguage?: string;
   contractReference?: string;
+  // The article of law the finding rests on, as cited by the review and checked against the legal corpus.
+  legalArticleId?: string;
+  legalCitation?: string;
+  legalQuote?: string;
+  citationStatus?: CitationStatus;
+}
+
+/** Verified: quote found word for word in a verified article. Unverified: found, but not confirmed as law. Rejected: not in the article. */
+export type CitationStatus = 'Verified' | 'Unverified' | 'Rejected' | 'Pending';
+
+export interface LegalArticleRef {
+  articleId: string;
+  citation: string;
+  text: string;
+  score: number;
+}
+
+/** A contract clause and the verified articles of law the corpus search matched it to — no AI involved. */
+export interface ClauseLawMatch {
+  clause: string;
+  articles: LegalArticleRef[];
 }
 
 export interface ComplianceAnalysis {
@@ -73,6 +94,7 @@ export interface ComplianceAnalysis {
   analyzedAt: string;
   /** What the review could not establish — shown to the reader rather than guessed at. */
   limitations?: string[];
+  relevantLaw?: ClauseLawMatch[];
 }
 
 /** Response of POST /documents/{id}/compliance. */

@@ -75,6 +75,7 @@ export interface RegulatoryTextDialogData {
             <mat-select formControlName="language">
               <mat-option value="en">{{ 'regulatoryWatch.language.en' | translate }}</mat-option>
               <mat-option value="fr">{{ 'regulatoryWatch.language.fr' | translate }}</mat-option>
+              <mat-option value="ar">{{ 'regulatoryWatch.language.ar' | translate }}</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
@@ -92,6 +93,12 @@ export interface RegulatoryTextDialogData {
             <mat-datepicker #picker></mat-datepicker>
           </mat-form-field>
         </div>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>{{ 'regulatoryWatch.dialog.sourceUrl' | translate }}</mat-label>
+          <input matInput formControlName="sourceUrl" [placeholder]="'regulatoryWatch.dialog.sourceUrlPlaceholder' | translate" />
+          <mat-hint>{{ 'regulatoryWatch.dialog.sourceUrlHint' | translate }}</mat-hint>
+        </mat-form-field>
 
         <mat-form-field appearance="outline" class="full">
           <mat-label>{{ 'regulatoryWatch.dialog.scope' | translate }}</mat-label>
@@ -158,6 +165,7 @@ export class RegulatoryTextDialogComponent implements OnInit {
     jurisdiction: [this.data.text?.jurisdiction ?? 'Tunisia', Validators.required],
     language: [this.data.text?.language ?? 'en', Validators.required],
     reference: [this.data.text?.reference ?? ''],
+    sourceUrl: [this.data.text?.sourceUrl ?? ''],
     effectiveDate: [this.data.text?.effectiveDate ? new Date(this.data.text.effectiveDate) : null],
     requestTypeId: [this.data.text?.requestTypeId ?? null],
     summary: [this.data.text?.summary ?? '', Validators.required],
@@ -185,7 +193,8 @@ export class RegulatoryTextDialogComponent implements OnInit {
       language: v.language! as RegulatoryLanguage,
       reference: v.reference || null,
       effectiveDate: v.effectiveDate ? (v.effectiveDate as Date).toISOString() : null,
-      requestTypeId: v.requestTypeId || null
+      requestTypeId: v.requestTypeId || null,
+      sourceUrl: v.sourceUrl?.trim() || null
     };
 
     const req$: Observable<unknown> = this.isEdit

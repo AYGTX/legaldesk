@@ -1,6 +1,6 @@
 import { WorkflowType } from './document.models';
 
-export type HtmlFieldType = 'Text' | 'Textarea' | 'Date' | 'Number' | 'Checkbox' | 'Signature';
+export type HtmlFieldType = 'Text' | 'Textarea' | 'Date' | 'Number' | 'Checkbox' | 'Signature' | 'Dropdown';
 export type HtmlFieldRole = 'Initiator' | 'Approver';
 
 export interface HtmlTemplateFieldDto {
@@ -16,6 +16,8 @@ export interface HtmlTemplateFieldDto {
   preAssignedApproverId?: string;
   preAssignedApproverName?: string;
   workflowStage: number;
+  /** What the request form starts this field as when nothing else fills it. */
+  defaultValue?: string;
 }
 
 export interface HtmlTemplateDto {
@@ -65,6 +67,7 @@ export interface HtmlTemplateFieldInput {
   optionsJson?: string;
   preAssignedApproverId?: string;
   workflowStage: number;
+  defaultValue?: string;
 }
 
 export interface CreateHtmlTemplateRequest {

@@ -8,6 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ClauseDialogComponent, ClauseDialogData } from '../../features/clauses/clause-dialog.component';
 import {
   ClauseCategory, Readiness, ReadinessItem, ReadinessItemStatus, RISK_SEVERITY_ORDER
@@ -86,7 +87,7 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
               @if (item.whyItMatters) {
                 <div class="item-block">
                   <span class="item-block-label">{{ 'documents.detail.analysis.whyItMatters' | translate }}</span>
-                  <p>{{ item.whyItMatters }}</p>
+                  <p class="pre-line">{{ item.whyItMatters }}</p>
                 </div>
               }
               @if (item.recommendedAction) {
@@ -121,11 +122,20 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
                             (click)="setStatus(item, 'Resolved')">
                       <mat-icon>check</mat-icon> {{ 'shared.readiness.checklist.markResolved' | translate }}
                     </button>
-                    <button mat-stroked-button [disabled]="busyId() !== null"
-                            (click)="setStatus(item, 'Dismissed')"
-                            [matTooltip]="'shared.readiness.checklist.dismissHint' | translate">
-                      <mat-icon>block</mat-icon> {{ 'shared.readiness.checklist.dismiss' | translate }}
-                    </button>
+                    @if (item.severity === 'Critical') {
+                      <!-- Accepting a critical finding is a legal call: a manager, with a reason that goes on record. -->
+                      <button mat-stroked-button [disabled]="busyId() !== null || !canAcceptCritical()"
+                              (click)="startAccept(item)"
+                              [matTooltip]="(canAcceptCritical() ? 'shared.readiness.checklist.acceptHint' : 'shared.readiness.checklist.acceptRole') | translate">
+                        <mat-icon>gavel</mat-icon> {{ 'shared.readiness.checklist.accept' | translate }}
+                      </button>
+                    } @else {
+                      <button mat-stroked-button [disabled]="busyId() !== null"
+                              (click)="setStatus(item, 'Dismissed')"
+                              [matTooltip]="'shared.readiness.checklist.dismissHint' | translate">
+                        <mat-icon>block</mat-icon> {{ 'shared.readiness.checklist.dismiss' | translate }}
+                      </button>
+                    }
                   } @else {
                     <button mat-stroked-button [disabled]="busyId() !== null"
                             (click)="setStatus(item, 'Open')">
@@ -133,6 +143,20 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
                     </button>
                   }
                 </div>
+                @if (acceptingId() === item.id) {
+                  <div class="accept-box">
+                    <label>{{ 'shared.readiness.checklist.acceptReason' | translate }}</label>
+                    <textarea rows="2" [value]="acceptReason()" (input)="acceptReason.set($any($event.target).value)"></textarea>
+                    <div class="inline-actions">
+                      <button mat-flat-button color="primary"
+                              [disabled]="busyId() !== null || acceptReason().trim().length === 0"
+                              (click)="confirmAccept(item)">
+                        {{ 'shared.readiness.checklist.acceptConfirm' | translate }}
+                      </button>
+                      <button mat-button (click)="acceptingId.set(null)">{{ 'common.cancel' | translate }}</button>
+                    </div>
+                  </div>
+                }
               }
             </mat-expansion-panel>
           }
@@ -173,7 +197,11 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
     .proposed-language { white-space: pre-wrap; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; background: var(--g-surface-variant); border: 1px solid var(--g-border-light); border-radius: 6px; padding: 10px; margin: 0 0 8px; line-height: 1.5; }
     .inline-actions, .item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .item-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--g-border-light); }
+    .accept-box { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #fef7e0; display: flex; flex-direction: column; gap: 6px; }
+    .accept-box label { font-size: 12px; font-weight: 500; color: #b06000; }
+    .accept-box textarea { width: 100%; box-sizing: border-box; border: 1px solid #e8c36a; border-radius: 6px; padding: 8px; font: inherit; font-size: 13px; }
     .resolution-note { font-size: 12px; font-style: italic; color: var(--g-text-muted); margin: 0 0 8px; }
+    .pre-line { white-space: pre-line; }
   `]
 })
 export class ReadinessChecklistComponent {
@@ -189,6 +217,15 @@ export class ReadinessChecklistComponent {
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+  private readonly auth = inject(AuthService);
+
+  /** Only a manager or administrator may accept a critical finding; the API enforces the same rule. */
+  readonly canAcceptCritical = computed(() => {
+    const roles = this.auth.user()?.roles ?? [];
+    return roles.includes('Administrator') || roles.includes('Manager');
+  });
+  readonly acceptingId = signal<string | null>(null);
+  readonly acceptReason = signal('');
 
   readonly busyId = signal<string | null>(null);
   readonly showHandled = signal(false);
@@ -218,11 +255,21 @@ export class ReadinessChecklistComponent {
     }
   }
 
-  setStatus(item: ReadinessItem, status: ReadinessItemStatus): void {
+  startAccept(item: ReadinessItem): void {
+    this.acceptReason.set('');
+    this.acceptingId.set(item.id);
+  }
+
+  confirmAccept(item: ReadinessItem): void {
+    this.setStatus(item, 'Dismissed', this.acceptReason().trim());
+  }
+
+  setStatus(item: ReadinessItem, status: ReadinessItemStatus, note?: string): void {
     this.busyId.set(item.id);
-    this.documentService.setReadinessItemStatus(this.documentId(), item.id, status).subscribe({
+    this.documentService.setReadinessItemStatus(this.documentId(), item.id, status, note).subscribe({
       next: readiness => {
         this.busyId.set(null);
+        this.acceptingId.set(null);
         this.changed.emit(readiness);
       },
       error: () => {
