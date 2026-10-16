@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using PdfSharp.Drawing;
+using PdfSharp.Drawing.Layout;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 using SignFlow.Application.Common.Interfaces;
@@ -62,7 +63,8 @@ public class PdfStampService(
             }
             else if (!string.IsNullOrEmpty(field.TextValue))
             {
-                DrawText(gfx, field.TextValue, x, y, w, h);
+                if (field.FieldType == FieldType.MultilineText) DrawWrappedText(gfx, field.TextValue, x, y, w, h);
+                else DrawText(gfx, field.TextValue, x, y, w, h);
             }
         }
 
@@ -124,6 +126,20 @@ public class PdfStampService(
         gfx.Save();
         gfx.IntersectClip(rect);
         gfx.DrawString(text, font, XBrushes.Black, rect, XStringFormats.CenterLeft);
+        gfx.Restore();
+    }
+
+    /// <summary>
+    /// A multi-line field: the text wraps inside the box instead of running off its right edge, and anything that
+    /// still does not fit is clipped at the bottom rather than drawn over the page.
+    /// </summary>
+    private static void DrawWrappedText(XGraphics gfx, string text, double x, double y, double w, double h)
+    {
+        var font = new XFont("Arial", 10, XFontStyleEx.Regular);
+        var rect = new XRect(x + 2, y + 1, Math.Max(10, w - 4), Math.Max(10, h - 2));
+        gfx.Save();
+        gfx.IntersectClip(rect);
+        new XTextFormatter(gfx) { Alignment = XParagraphAlignment.Left }.DrawString(text, font, XBrushes.Black, rect, XStringFormats.TopLeft);
         gfx.Restore();
     }
 

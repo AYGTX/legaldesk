@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using SignFlow.Application.Common.Interfaces;
@@ -60,7 +61,12 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<SendDocumentCommand>, SendDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteDocumentCommand>, DeleteDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<ReopenDocumentCommand>, ReopenDocumentCommandHandler>();
+        services.AddScoped<IContractTextProvider, ContractTextProvider>();
+        services.AddScoped<IGroundedComplianceReview, GroundedComplianceReview>();
+        services.AddScoped<ILegalPlaybookService, LegalPlaybookService>();
         services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
+        services.AddScoped<ICommandHandler<EditDocumentPdfCommand, UploadRevisionResult>, EditDocumentPdfCommandHandler>();
+        services.AddScoped<ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult>, ReviseFromTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateObligationCommand>, UpdateObligationCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateContractTermCommand>, UpdateContractTermCommandHandler>();
         services.AddScoped<ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto>, AnalyzeContractCommandHandler>();
@@ -74,6 +80,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IQueryHandler<GetDashboardQuery, DashboardDto>, GetDashboardQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentSummaryQuery, AiDocumentSummaryDto>, GetDocumentSummaryQueryHandler>();
         services.AddScoped<IQueryHandler<GetReadinessQuery, ReadinessDto>, GetReadinessQueryHandler>();
+        services.AddScoped<IQueryHandler<GetTemplateRevisionFormQuery, TemplateRevisionFormDto>, GetTemplateRevisionFormQueryHandler>();
+        services.AddScoped<IQueryHandler<GetDocumentVersionFileQuery, DocumentVersionFileDto>, GetDocumentVersionFileQueryHandler>();
+        services.AddScoped<IQueryHandler<CompareDocumentVersionsQuery, VersionComparisonDto>, CompareDocumentVersionsQueryHandler>();
 
 
         // Field command handlers
@@ -90,6 +99,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<SignFieldCommand, SignFieldResult>, SignFieldCommandHandler>();
         services.AddScoped<ICommandHandler<ApproveSigningCommand, ApproveSigningResult>, ApproveSigningCommandHandler>();
         services.AddScoped<ICommandHandler<RejectDocumentCommand>, RejectDocumentCommandHandler>();
+        services.AddScoped<ICommandHandler<AcknowledgeReviewCommand>, AcknowledgeReviewCommandHandler>();
         services.AddScoped<ICommandHandler<RequestChangesCommand>, RequestChangesCommandHandler>();
         services.AddScoped<IQueryHandler<GetSigningSessionQuery, SigningSessionDto>, GetSigningSessionQueryHandler>();
 
@@ -154,6 +164,10 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<UpdateRegulatoryTextCommand>, UpdateRegulatoryTextCommandHandler>();
         services.AddScoped<ICommandHandler<SetRegulatoryTextStatusCommand>, SetRegulatoryTextStatusCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteRegulatoryTextCommand>, DeleteRegulatoryTextCommandHandler>();
+        services.AddScoped<IQueryHandler<PreviewRegulatoryArticlesQuery, ArticleSplit>, PreviewRegulatoryArticlesQueryHandler>();
+        services.AddScoped<IQueryHandler<GetRegulatoryArticlesQuery, List<RegulatoryArticleDto>>, GetRegulatoryArticlesQueryHandler>();
+        services.AddScoped<ICommandHandler<SaveRegulatoryArticlesCommand>, SaveRegulatoryArticlesCommandHandler>();
+        services.AddScoped<ICommandHandler<VerifyRegulatoryTextCommand>, VerifyRegulatoryTextCommandHandler>();
 
         // Vacations
         services.AddScoped<IQueryHandler<GetMyVacationsQuery, List<VacationDto>>, GetMyVacationsQueryHandler>();

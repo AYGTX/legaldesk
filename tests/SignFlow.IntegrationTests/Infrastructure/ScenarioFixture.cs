@@ -49,6 +49,8 @@ public sealed class ScenarioFixture : IDisposable
         services.AddSingleton<INotificationHub, NullNotificationHub>();
         services.AddSingleton<IStorageService, NullStorageService>();
         services.AddSingleton<IPdfService, NullPdfService>();
+        services.AddSingleton<IPdfStampService, NullPdfStampService>();
+        services.AddSingleton<IHtmlTemplatePdfGenerator, NullHtmlTemplatePdfGenerator>();
         services.AddSingleton<IVirusScanService, NullVirusScanService>();
         services.AddSingleton<IAuditService, NullAuditService>();
         services.AddSingleton<IAiService, NullAiService>();
@@ -85,6 +87,18 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<IStorageService>(),
             sp.GetRequiredService<IAuditService>(),
             NullLogger<SignFieldCommandHandler>.Instance));
+
+        // Signing a field no longer advances the workflow — the recipient approves explicitly
+        // once every required field is satisfied, and that step is what completes the document.
+        services.AddScoped(sp => new ApproveSigningCommandHandler(
+            sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<IWorkflowEngine>(),
+            sp.GetRequiredService<IStorageService>(),
+            sp.GetRequiredService<IPdfStampService>(),
+            sp.GetRequiredService<IHtmlTemplatePdfGenerator>(),
+            sp.GetRequiredService<IAuditService>(),
+            sp.GetRequiredService<INotificationHub>(),
+            NullLogger<ApproveSigningCommandHandler>.Instance));
 
         _provider = services.BuildServiceProvider();
     }

@@ -53,7 +53,11 @@ public class GetPublishedRegulatoryTextsQueryHandler(
                 r.Status, r.EffectiveDate, r.RequestTypeId,
                 r.RequestType != null ? r.RequestType.Name : null,
                 r.CreatedByUser != null ? r.CreatedByUser.FullName : null,
-                r.CreatedAt, r.UpdatedAt))
+                r.CreatedAt, r.UpdatedAt,
+                r.SourceUrl,
+                r.Articles.Count(),
+                r.VerifiedAt,
+                db.Users.Where(u => u.Id == r.VerifiedById).Select(u => u.FirstName + " " + u.LastName).FirstOrDefault()))
             .ToListAsync(cancellationToken);
     }
 }

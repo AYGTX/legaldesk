@@ -95,7 +95,8 @@ public class UpdateHtmlTemplateCommandHandler(
                 f.AutoFillFrom,
                 f.OptionsJson,
                 f.PreAssignedApproverId,
-                f.WorkflowStage);
+                f.WorkflowStage,
+                f.DefaultValue);
             db.HtmlTemplateFields.Add(field);
         }
 

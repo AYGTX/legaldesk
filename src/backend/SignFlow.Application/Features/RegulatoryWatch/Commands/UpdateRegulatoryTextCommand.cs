@@ -18,7 +18,8 @@ public record UpdateRegulatoryTextCommand(
     string Language,
     string? Reference,
     DateTime? EffectiveDate,
-    Guid? RequestTypeId) : ICommand;
+    Guid? RequestTypeId,
+    string? SourceUrl = null) : ICommand;
 
 public class UpdateRegulatoryTextCommandValidator : AbstractValidator<UpdateRegulatoryTextCommand>
 {
@@ -29,8 +30,11 @@ public class UpdateRegulatoryTextCommandValidator : AbstractValidator<UpdateRegu
         RuleFor(x => x.Summary).NotEmpty();
         RuleFor(x => x.Keywords).NotEmpty().MaximumLength(1000);
         RuleFor(x => x.Reference).MaximumLength(300);
-        RuleFor(x => x.Language).NotEmpty().Must(l => l is "en" or "fr")
-            .WithMessage("Language must be 'en' or 'fr'.");
+        RuleFor(x => x.Language).NotEmpty().Must(l => l is "en" or "fr" or "ar")
+            .WithMessage("Language must be 'en', 'fr' or 'ar'.");
+        RuleFor(x => x.SourceUrl).MaximumLength(500)
+            .Must(u => string.IsNullOrWhiteSpace(u) || (Uri.TryCreate(u, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"))
+            .WithMessage("The source must be a web address (http or https).");
     }
 }
 
@@ -56,7 +60,8 @@ public class UpdateRegulatoryTextCommandHandler(
             command.Language,
             command.Reference,
             command.EffectiveDate,
-            command.RequestTypeId);
+            command.RequestTypeId,
+            command.SourceUrl);
 
         text.SetUpdatedBy(currentUser.UserId!.Value.ToString());
         await db.SaveChangesAsync(cancellationToken);

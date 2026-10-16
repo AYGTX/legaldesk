@@ -57,8 +57,9 @@ public static class ReadinessEvaluator
                 items.Add(new ReadinessItemDraft(
                     ReadinessItemCategory.Risk,
                     Normalise(f.Severity),
-                    $"risk:{f.ClauseType}",
-                    f.ClauseType,
+                    // The clause is part of the key: two penalty clauses are two things to fix, not one.
+                    f.ContractReference is null ? $"risk:{f.ClauseType}" : $"risk:{f.ClauseType}|{f.ContractReference}",
+                    f.ContractReference is null ? f.ClauseType : $"{f.ClauseType} · {f.ContractReference}",
                     f.Explanation,
                     f.WhyItMatters,
                     f.RecommendedAction,

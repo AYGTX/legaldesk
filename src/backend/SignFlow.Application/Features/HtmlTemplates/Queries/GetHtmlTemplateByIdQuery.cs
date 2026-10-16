@@ -20,7 +20,8 @@ public record HtmlTemplateFieldDto(
     string? OptionsJson,
     Guid? PreAssignedApproverId,
     string? PreAssignedApproverName,
-    int WorkflowStage);
+    int WorkflowStage,
+    string? DefaultValue = null);
 
 public record HtmlTemplateDetailDto(
     Guid Id,
@@ -87,7 +88,8 @@ public class GetHtmlTemplateByIdQueryHandler(
                 f.OptionsJson,
                 f.PreAssignedApproverId,
                 f.PreAssignedApprover is not null ? $"{f.PreAssignedApprover.FirstName} {f.PreAssignedApprover.LastName}" : null,
-                f.WorkflowStage)).ToList(),
+                f.WorkflowStage,
+                f.DefaultValue)).ToList(),
             template.RequestTypeId,
             template.RequestType?.Name,
             template.RequestType?.SlaHours);

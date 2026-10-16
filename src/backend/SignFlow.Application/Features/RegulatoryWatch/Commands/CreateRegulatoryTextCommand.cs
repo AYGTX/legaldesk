@@ -16,7 +16,8 @@ public record CreateRegulatoryTextCommand(
     string Language,
     string? Reference,
     DateTime? EffectiveDate,
-    Guid? RequestTypeId) : ICommand<Guid>;
+    Guid? RequestTypeId,
+    string? SourceUrl = null) : ICommand<Guid>;
 
 public class CreateRegulatoryTextCommandValidator : AbstractValidator<CreateRegulatoryTextCommand>
 {
@@ -26,8 +27,11 @@ public class CreateRegulatoryTextCommandValidator : AbstractValidator<CreateRegu
         RuleFor(x => x.Summary).NotEmpty();
         RuleFor(x => x.Keywords).NotEmpty().MaximumLength(1000);
         RuleFor(x => x.Reference).MaximumLength(300);
-        RuleFor(x => x.Language).NotEmpty().Must(l => l is "en" or "fr")
-            .WithMessage("Language must be 'en' or 'fr'.");
+        RuleFor(x => x.Language).NotEmpty().Must(l => l is "en" or "fr" or "ar")
+            .WithMessage("Language must be 'en', 'fr' or 'ar'.");
+        RuleFor(x => x.SourceUrl).MaximumLength(500)
+            .Must(u => string.IsNullOrWhiteSpace(u) || (Uri.TryCreate(u, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"))
+            .WithMessage("The source must be a web address (http or https).");
     }
 }
 
@@ -53,7 +57,8 @@ public class CreateRegulatoryTextCommandHandler(
             command.Language,
             command.Reference,
             command.EffectiveDate,
-            command.RequestTypeId);
+            command.RequestTypeId,
+            command.SourceUrl);
 
         text.SetCreatedBy(userId.ToString());
         db.RegulatoryTexts.Add(text);

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 
@@ -65,6 +66,20 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
         if (!template.IsActive)
             throw new ConflictException("This template is no longer active.");
 
+        var initiator = await db.Users.FindAsync([initiatorId], cancellationToken)
+            ?? throw new ForbiddenAccessException();
+
+        var title = command.Title ?? template.Name;
+
+        // A blank answer takes the template's default; an auto-fill source then overwrites whatever the client sent.
+        // Both come before the required check, so a field the app fills itself is never reported as missing.
+        ApplyDefaults(template.Fields, command.FilledValues);
+        ApplyAutoFill(template.Fields, command.FilledValues, initiator, title);
+
+        TemplateAnswerRules.RequireListedOptions(
+            template.Fields.Select(f => (f.FieldKey, f.Label, f.Type.ToString(), f.OptionsJson)),
+            command.FilledValues);
+
         // Validate required initiator fields
         var requiredMissing = template.Fields
             .Where(f => f.Role == HtmlTemplateFieldRole.Initiator && f.IsRequired && f.Type != HtmlTemplateFieldType.Signature)
@@ -122,13 +137,6 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
             }
         }
 
-        var initiator = await db.Users.FindAsync([initiatorId], cancellationToken)
-            ?? throw new ForbiddenAccessException();
-
-        // Auto-fill profile fields (overwrites whatever the client sent)
-        ApplyAutoFill(template.Fields, command.FilledValues, initiator);
-
-        var title = command.Title ?? template.Name;
         var filledJson = JsonSerializer.Serialize(command.FilledValues);
 
         // Create document — use a placeholder path since there is no physical file yet
@@ -192,6 +200,7 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
                     x: 0, y: 0, width: 200, height: 80,
                     recipientId: recipient.Id);
                 sigField.UpdateProperties(sf.Label, null, null, sf.IsRequired, false, null, null, null);
+                sigField.SetTemplateKey(sf.FieldKey);
                 db.SignatureFields.Add(sigField);
             }
         }
@@ -215,10 +224,22 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
         return document.Id;
     }
 
+    private static void ApplyDefaults(IEnumerable<HtmlTemplateField> fields, Dictionary<string, string> values)
+    {
+        foreach (var field in fields.Where(f => f.Role == HtmlTemplateFieldRole.Initiator
+                                                 && f.Type != HtmlTemplateFieldType.Signature
+                                                 && !string.IsNullOrEmpty(f.DefaultValue)))
+        {
+            if (!values.TryGetValue(field.FieldKey, out var current) || string.IsNullOrWhiteSpace(current))
+                values[field.FieldKey] = field.DefaultValue!;
+        }
+    }
+
     private static void ApplyAutoFill(
         IEnumerable<HtmlTemplateField> fields,
         Dictionary<string, string> values,
-        ApplicationUser user)
+        ApplicationUser user,
+        string requestTitle)
     {
         foreach (var field in fields.Where(f => !string.IsNullOrEmpty(f.AutoFillFrom)))
         {
@@ -230,7 +251,7 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
                 "user.email" => user.Email ?? string.Empty,
                 "user.company" => user.Company ?? string.Empty,
                 "user.department" => user.Department ?? string.Empty,
-                _ => null
+                _ => TemplateAnswerRules.ResolveRequestSource(field.AutoFillFrom, requestTitle)
             };
 
             if (resolved is not null)

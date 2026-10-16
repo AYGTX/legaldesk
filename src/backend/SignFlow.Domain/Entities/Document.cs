@@ -237,6 +237,17 @@ public class Document : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// A template contract revised by changing its answers: the file and the field layout stay as they are, only the
+    /// filled values change. Everything else is the same as a revision upload — new version, back to Draft, analyses
+    /// and readiness cleared. The calling command keeps the outgoing version's answers on a DocumentVersion row.
+    /// </summary>
+    public void ApplyTemplateRevision(string filledValuesJson)
+    {
+        ApplyRevision(FileName, StoragePath, FileSizeBytes, PageCount, Hash ?? string.Empty);
+        FilledValuesJson = filledValuesJson;
+    }
+
     public void SetHtmlSource(Guid htmlTemplateId, string filledValuesJson, string htmlContentSnapshot)
     {
         HtmlTemplateId = htmlTemplateId;

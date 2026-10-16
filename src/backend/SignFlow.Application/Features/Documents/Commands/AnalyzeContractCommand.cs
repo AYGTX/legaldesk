@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Application.Common.Serialization;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
@@ -26,9 +27,9 @@ public record ContractAnalysisDto(
 
 public class AnalyzeContractCommandHandler(
     IApplicationDbContext db,
-    IStorageService storage,
-    IPdfService pdfService,
+    IContractTextProvider textProvider,
     IAiService aiService,
+    ILegalPlaybookService playbook,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<AnalyzeContractCommandHandler> logger) : ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto>
@@ -43,14 +44,10 @@ public class AnalyzeContractCommandHandler(
         if (!isAdmin && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
-        // HTML-template documents carry no PDF to read.
-        if (document.HtmlTemplateId.HasValue)
-            throw new Common.Exceptions.ValidationException("Only PDF contracts can be analysed.");
-
-        await using var pdfStream = await storage.DownloadAsync(document.StoragePath, cancellationToken);
-        var text = await pdfService.ExtractTextAsync(pdfStream, cancellationToken);
+        var text = await textProvider.GetTextAsync(document, cancellationToken);
 
         var result = await aiService.AnalyzeContractAsync(text, document.Title, DateTime.UtcNow, cancellationToken);
+        result = result with { Risk = await playbook.AttachToRiskAsync(result.Risk, cancellationToken) };
 
         document.SetAiRiskAnalysis(JsonSerializer.Serialize(result.Risk, ContractJson.Options));
 

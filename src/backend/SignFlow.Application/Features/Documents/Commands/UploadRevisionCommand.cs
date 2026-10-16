@@ -62,13 +62,19 @@ public class UploadRevisionCommandHandler(
         if (document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
-        if (document.Status != DocumentStatus.ChangesRequested)
-            throw new ConflictException("A revision can only be uploaded after a participant requested changes.");
+        // A draft is revised while its owner prepares it (fixing what the pre-flight review found); a sent contract
+        // only after a participant sent it back.
+        if (document.Status is not (DocumentStatus.Draft or DocumentStatus.ChangesRequested))
+            throw new ConflictException("A revision can only be uploaded to a draft, or after a participant requested changes.");
 
         // HTML-template documents have no owner-managed PDF: their "revision" would be editing
         // the filled values/snapshot, which is a different mechanic (deferred).
         if (document.HtmlTemplateId.HasValue)
             throw new ConflictException("Revisions are only supported for PDF-based documents.");
+
+        // A PDF-template contract's file and layout belong to the template; its owner revises the answers instead.
+        if (document.PdfTemplateId.HasValue)
+            throw new ConflictException("This contract was built from a template: revise its answers instead of uploading a file.");
 
         var scanResult = await virusScan.ScanAsync(command.FileStream, command.FileName, cancellationToken);
         if (!scanResult.IsSafe)

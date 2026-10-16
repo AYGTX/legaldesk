@@ -63,7 +63,7 @@ public class HtmlTemplatesController(
                 request.DefaultApproverId,
                 request.Fields?.Select(f => new HtmlTemplateFieldInput(
                     f.FieldKey, f.Label, f.Type, f.Role, f.IsRequired, f.Order, f.AutoFillFrom, f.OptionsJson,
-                    f.PreAssignedApproverId, f.WorkflowStage)).ToList(),
+                    f.PreAssignedApproverId, f.WorkflowStage, f.DefaultValue)).ToList(),
                 request.WorkflowType,
                 request.HideRecipientIdentities,
                 request.RequestTypeId), ct);
@@ -88,7 +88,7 @@ public class HtmlTemplatesController(
                 request.IsActive,
                 request.Fields.Select(f => new HtmlTemplateFieldInput(
                     f.FieldKey, f.Label, f.Type, f.Role, f.IsRequired, f.Order, f.AutoFillFrom, f.OptionsJson,
-                    f.PreAssignedApproverId, f.WorkflowStage)).ToList(),
+                    f.PreAssignedApproverId, f.WorkflowStage, f.DefaultValue)).ToList(),
                 request.WorkflowType,
                 request.HideRecipientIdentities,
                 request.RequestTypeId), ct);
@@ -150,7 +150,8 @@ public record HtmlTemplateFieldRequest(
     string? AutoFillFrom = null,
     string? OptionsJson = null,
     Guid? PreAssignedApproverId = null,
-    int WorkflowStage = 1);
+    int WorkflowStage = 1,
+    string? DefaultValue = null);
 
 public record CreateHtmlTemplateRequest(
     string Name,

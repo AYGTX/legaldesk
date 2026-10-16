@@ -86,8 +86,18 @@ public class Recipient : BaseEntity
     /// Signature rows and ViewedAt are kept as evidence/history; the signing link is extended
     /// so round-2 participants aren't locked out by a token minted for round 1.
     /// </summary>
+    /// <summary>
+    /// When this participant confirmed they had read the document and the AI review before acting. A participant who
+    /// has to sign, approve or review cannot do so until this is set; a new version of the contract clears it, because
+    /// what they read is no longer what they are being asked to act on.
+    /// </summary>
+    public DateTime? ReviewAcknowledgedAt { get; private set; }
+
+    public void AcknowledgeReview() => ReviewAcknowledgedAt ??= DateTime.UtcNow;
+
     public void ResetForRevision()
     {
+        ReviewAcknowledgedAt = null;
         Status = WorkflowStepStatus.Pending;
         SignedAt = null;
         SignedIp = null;

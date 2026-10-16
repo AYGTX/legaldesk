@@ -37,6 +37,18 @@ public class SetReadinessItemStatusCommandHandler(
         var item = document.ReadinessItems.FirstOrDefault(i => i.Id == command.ItemId)
             ?? throw new NotFoundException(nameof(DocumentReadinessItem), command.ItemId);
 
+        // A critical finding is the one a contract must not go out with. Fixing it is anyone's job; accepting it
+        // anyway is a legal judgement, so it takes a manager (or administrator) and a reason the audit trail keeps.
+        if (command.Status == ReadinessItemStatus.Dismissed
+            && string.Equals(item.Severity, "Critical", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!isAdmin && !currentUser.IsInRole("Manager"))
+                throw new ForbiddenAccessException("Only a manager or administrator can accept a critical finding. Fix it, or ask legal.");
+
+            if (string.IsNullOrWhiteSpace(command.Note))
+                throw new Common.Exceptions.ValidationException("Give a reason for accepting a critical finding.");
+        }
+
         item.SetStatus(command.Status, currentUser.UserId, command.Note);
 
         var open = document.ReadinessItems.Where(i => i.Status == ReadinessItemStatus.Open).ToList();

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 
@@ -52,6 +53,8 @@ public class SignFieldCommandHandler(
 
         if (recipient.ApprovalType == ApprovalType.ViewOnly)
             throw new ConflictException("View-only participants cannot sign fields.");
+
+        ReviewGateRules.Require(recipient);
 
         if (recipient.Document.Status == DocumentStatus.ChangesRequested)
             throw new ConflictException("Changes have been requested on this document — it is paused until the owner uploads a revision.");

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 
@@ -59,11 +60,18 @@ public record DocumentDetailDto(
     List<SignatureFieldDto> Fields,
     WorkflowDto? Workflow,
     int Version = 1,
-    List<DocumentVersionDto>? Versions = null);
+    List<DocumentVersionDto>? Versions = null,
+    string? TemplateKind = null,
+    List<TemplateRevisionDto>? TemplateRevisions = null);
 
 public record OwnerDto(Guid Id, string FullName, string Email, string? AvatarUrl);
 public record RecipientDto(Guid Id, string Name, string Email, int Order, ApprovalType ApprovalType, WorkflowStepStatus Status, string SecureToken, DateTime? SignedAt, DateTime? ViewedAt, string? RoleLabel = null, string? DeclineReason = null, List<ChecklistItemDto>? ChecklistItems = null);
 public record ChecklistItemDto(Guid Id, string Text, int Order, bool IsChecked);
+/// <summary>
+/// What changed between two versions of a template contract: the answers that differ, with who changed them and why.
+/// Lets a reviewer asked to look again see exactly what the owner changed since the version they sent back.
+/// </summary>
+public record TemplateRevisionDto(int FromVersion, int ToVersion, string? ChangeNote, string? ChangedByName, DateTime CreatedAt, List<FieldChange> Changes);
 public record DocumentVersionDto(Guid Id, int VersionNumber, long FileSizeBytes, string? ChangeNote, string? ChangedByName, DateTime CreatedAt);
 public record SignatureFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, Guid? RecipientId, string? Label, string? Placeholder, bool IsRequired, bool IsSigned, DateTime? SignedAt, int ZIndex, string? FontFamily, float? FontSize, string? FontColor, string? BackgroundColor, string? BorderColor, string? Options, string? DefaultValue, string? ValidationRule, bool IsReadOnly, string? Tooltip, string? GroupName = null);
 public record WorkflowDto(Guid Id, WorkflowType Type, WorkflowStepStatus Status, int CurrentStepOrder, List<WorkflowStepDto> Steps);
@@ -96,12 +104,26 @@ public class GetDocumentByIdQueryHandler(
                 throw new ForbiddenAccessException();
         }
 
+        // A signing token is a credential: whoever holds it can act as that recipient. The owner and admins
+        // manage the circuit and need them all; a participant only ever gets their own.
+        var seesAllTokens = isAdmin || document.OwnerId == userId;
+        var viewerEmail = currentUser.UserEmail;
+        string TokenFor(Recipient r) =>
+            seesAllTokens || string.Equals(r.Email, viewerEmail, StringComparison.OrdinalIgnoreCase)
+                ? r.SecureToken
+                : string.Empty;
+
         var changerIds = document.Versions.Select(v => v.ChangedById).Distinct().ToList();
         Dictionary<Guid, string> changerNames = changerIds.Count == 0
             ? []
             : await db.Users.AsNoTracking()
                 .Where(u => changerIds.Contains(u.Id))
                 .ToDictionaryAsync(u => u.Id, u => u.FullName, cancellationToken);
+
+        var templateKind = TemplateRevisionSupport.KindOf(document);
+        var templateRevisions = templateKind is null
+            ? null
+            : await BuildTemplateRevisionsAsync(document, changerNames, cancellationToken);
 
         return new DocumentDetailDto(
             document.Id,
@@ -148,7 +170,7 @@ public class GetDocumentByIdQueryHandler(
             new OwnerDto(document.Owner.Id, document.Owner.FullName, document.Owner.Email!, document.Owner.AvatarUrl),
             document.Recipients
                 .OrderBy(r => r.Order)
-                .Select(r => new RecipientDto(r.Id, r.Name, r.Email, r.Order, r.ApprovalType, r.Status, r.SecureToken, r.SignedAt, r.ViewedAt, r.RoleLabel, r.DeclineReason,
+                .Select(r => new RecipientDto(r.Id, r.Name, r.Email, r.Order, r.ApprovalType, r.Status, TokenFor(r), r.SignedAt, r.ViewedAt, r.RoleLabel, r.DeclineReason,
                     r.ChecklistItems.OrderBy(c => c.Order).Select(c => new ChecklistItemDto(c.Id, c.Text, c.Order, c.IsChecked)).ToList()))
                 .ToList(),
             document.SignatureFields
@@ -170,6 +192,41 @@ public class GetDocumentByIdQueryHandler(
                     v.Id, v.VersionNumber, v.FileSizeBytes, v.ChangeNote,
                     changerNames.TryGetValue(v.ChangedById, out var name) ? name : null,
                     v.CreatedAt))
-                .ToList());
+                .ToList(),
+            templateKind,
+            templateRevisions);
+    }
+
+    /// <summary>
+    /// One entry per revision, oldest first: the answers a version had, against the next version's. A version kept
+    /// before answers were stored with it (a file revision) cannot be compared and is skipped.
+    /// </summary>
+    private async Task<List<TemplateRevisionDto>> BuildTemplateRevisionsAsync(
+        Document document, Dictionary<Guid, string> changerNames, CancellationToken cancellationToken)
+    {
+        var fields = await TemplateRevisionSupport.LoadFieldsAsync(db, document, cancellationToken) ?? [];
+        var kept = document.Versions.OrderBy(v => v.VersionNumber).ToList();
+
+        var revisions = new List<TemplateRevisionDto>();
+        for (var i = 0; i < kept.Count; i++)
+        {
+            var from = kept[i];
+            if (string.IsNullOrWhiteSpace(from.FilledValuesJson)) continue;
+
+            var nextJson = i + 1 < kept.Count ? kept[i + 1].FilledValuesJson : document.FilledValuesJson;
+            if (string.IsNullOrWhiteSpace(nextJson)) continue;
+
+            var changes = TemplateRevisionSupport.Diff(
+                TemplateRevisionSupport.ParseValues(from.FilledValuesJson),
+                TemplateRevisionSupport.ParseValues(nextJson),
+                fields);
+
+            revisions.Add(new TemplateRevisionDto(
+                from.VersionNumber, from.VersionNumber + 1, from.ChangeNote,
+                changerNames.TryGetValue(from.ChangedById, out var name) ? name : null,
+                from.CreatedAt, changes));
+        }
+
+        return revisions;
     }
 }

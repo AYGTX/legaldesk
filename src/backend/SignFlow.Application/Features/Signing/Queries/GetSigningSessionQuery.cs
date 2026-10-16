@@ -31,7 +31,37 @@ public record SigningSessionDto(
     // Expiry of this specific signing link (distinct from the document's overall SLA deadline above)
     DateTime? LinkExpiresAt = null,
     // Lets the signing UI show the paused/changes-requested state to every participant
-    DocumentStatus DocumentStatus = DocumentStatus.InProgress);
+    DocumentStatus DocumentStatus = DocumentStatus.InProgress,
+    // What the participant must read before acting, and whether they already confirmed it
+    ReviewGateDto? ReviewGate = null);
+
+/// <param name="Required">The participant has a task, so they must read the document (and the review) before acting.</param>
+/// <param name="Acknowledged">They already confirmed it.</param>
+/// <param name="ReviewRestricted">
+/// The AI review is not shown to this participant. It lists risks and gaps in the contract, which is the owner's
+/// side of the table: it is shown to people with an account in the organisation, not to outside signers.
+/// </param>
+/// <param name="Review">The stored review, when there is one and the participant may see it.</param>
+public record ReviewGateDto(bool Required, bool Acknowledged, bool ReviewRestricted, AiReviewDto? Review);
+
+public record AiReviewDto(
+    ReadinessVerdict Verdict,
+    int? Score,
+    int? RiskScore,
+    int? ComplianceScore,
+    int OpenCount,
+    int CriticalCount,
+    int HandledCount,
+    List<AiReviewItemDto> Items);
+
+public record AiReviewItemDto(
+    string Severity,
+    string Title,
+    string Detail,
+    string? WhyItMatters,
+    string? RecommendedAction,
+    ReadinessItemStatus Status,
+    string? ResolutionNote);
 
 public record RecipientSessionDto(Guid Id, string Name, string Email, ApprovalType ApprovalType, WorkflowStepStatus Status, string? RoleLabel = null, List<ChecklistItemSessionDto>? ChecklistItems = null);
 public record ChecklistItemSessionDto(Guid Id, string Text, int Order, bool IsChecked);
@@ -139,8 +169,15 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
                 .Where(f => f.HtmlTemplateId == recipient.Document.HtmlTemplateId!.Value)
                 .ToDictionaryAsync(f => f.FieldKey, f => f.Type, cancellationToken);
 
+            // A signature placeholder in the text becomes a slot showing who signs there and where they stand: the
+            // viewer's own (to click), someone else's still to come, or already signed. The words are names and a
+            // date only, so the slot reads the same in any language; the signing screen styles it by class.
+            var signatureSlots = await BuildSignatureSlotsAsync(
+                recipient.DocumentId, recipient.Id, hide, orderedForDisplay.ToDictionary(x => x.r.Id, x => x.displayOrder),
+                allRecipients.ToDictionary(r => r.Id, r => r.Name), cancellationToken);
+
             renderedHtml = HtmlContractRenderer.Render(
-                recipient.Document.HtmlContentSnapshot, filled, fieldTypes);
+                recipient.Document.HtmlContentSnapshot, filled, fieldTypes, signatureSlots);
         }
 
         return new SigningSessionDto(
@@ -163,6 +200,80 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
             isHtmlTemplate,
             renderedHtml,
             recipient.TokenExpiresAt,
-            recipient.Document.Status);
+            recipient.Document.Status,
+            await BuildReviewGateAsync(recipient, cancellationToken));
+    }
+
+    private async Task<ReviewGateDto> BuildReviewGateAsync(Domain.Entities.Recipient recipient, CancellationToken cancellationToken)
+    {
+        var required = ReviewGateRules.Applies(recipient)
+                       && recipient.Status is not (WorkflowStepStatus.Completed or WorkflowStepStatus.Rejected);
+        var acknowledged = recipient.ReviewAcknowledgedAt is not null;
+
+        // Findings about the contract are for the organisation's side: shown to participants who have an account.
+        var email = recipient.Email.Trim().ToLower();
+        var isMember = await db.Users.AsNoTracking().AnyAsync(u => u.Email != null && u.Email.ToLower() == email, cancellationToken);
+        if (!required || !isMember)
+            return new ReviewGateDto(required, acknowledged, ReviewRestricted: required, Review: null);
+
+        var document = recipient.Document;
+        if (document.ReadinessVerdict == ReadinessVerdict.NotEvaluated)
+            return new ReviewGateDto(required, acknowledged, ReviewRestricted: false, Review: null);
+
+        var items = await db.DocumentReadinessItems.AsNoTracking()
+            .Where(i => i.DocumentId == document.Id)
+            .ToListAsync(cancellationToken);
+
+        var open = items.Where(i => i.Status == ReadinessItemStatus.Open).ToList();
+        var review = new AiReviewDto(
+            document.ReadinessVerdict,
+            document.ReadinessScore,
+            Documents.Queries.ReadinessDto.ScoreFrom(document.AiRiskAnalysisJson, "riskScore"),
+            Documents.Queries.ReadinessDto.ScoreFrom(document.AiComplianceAnalysisJson, "complianceScore"),
+            open.Count,
+            open.Count(i => string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase)),
+            items.Count - open.Count,
+            items
+                .OrderBy(i => i.Status == ReadinessItemStatus.Open ? 0 : 1)
+                .ThenBy(i => Array.IndexOf(["Critical", "High", "Medium", "Low"], i.Severity))
+                .Select(i => new AiReviewItemDto(i.Severity, i.Title, i.Detail, i.WhyItMatters, i.RecommendedAction, i.Status, i.ResolutionNote))
+                .ToList());
+
+        return new ReviewGateDto(required, acknowledged, ReviewRestricted: false, Review: review);
+    }
+
+    private async Task<Dictionary<string, string>> BuildSignatureSlotsAsync(
+        Guid documentId,
+        Guid viewerId,
+        bool hideIdentities,
+        IReadOnlyDictionary<Guid, int> displayOrder,
+        IReadOnlyDictionary<Guid, string> names,
+        CancellationToken cancellationToken)
+    {
+        var fields = await db.SignatureFields.AsNoTracking()
+            .Where(f => f.DocumentId == documentId && f.TemplateKey != null)
+            .ToListAsync(cancellationToken);
+
+        var slots = new Dictionary<string, string>();
+        foreach (var f in fields)
+        {
+            var name = f.RecipientId is { } rid && names.TryGetValue(rid, out var n)
+                ? (hideIdentities && rid != viewerId
+                    ? $"Recipient {(displayOrder.TryGetValue(rid, out var order) ? order : 0)}"
+                    : n)
+                : string.Empty;
+
+            var (state, mark, extra) = f.IsSigned
+                ? ("sig-signed", "&#10004;", f.SignedAt is { } at ? $"<span class=\"sig-date\">{at:yyyy-MM-dd}</span>" : string.Empty)
+                : f.RecipientId == viewerId
+                    ? ("sig-mine", "&#9998;", string.Empty)
+                    : ("sig-waiting", "&#8987;", string.Empty);
+
+            slots[f.TemplateKey!] =
+                $"<span class=\"sig-slot {state}\" id=\"sig-slot-{f.Id}\"><span class=\"sig-mark\">{mark}</span>" +
+                $"<span class=\"sig-name\">{System.Net.WebUtility.HtmlEncode(name)}</span>{extra}</span>";
+        }
+
+        return slots;
     }
 }

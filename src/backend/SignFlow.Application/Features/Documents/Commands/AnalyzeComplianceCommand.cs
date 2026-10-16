@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Application.Common.Serialization;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
@@ -21,9 +22,8 @@ public record ComplianceAnalysisDto(string ComplianceAnalysisJson, DateTime Gene
 
 public class AnalyzeComplianceCommandHandler(
     IApplicationDbContext db,
-    IStorageService storage,
-    IPdfService pdfService,
-    IAiService aiService,
+    IContractTextProvider textProvider,
+    IGroundedComplianceReview complianceReview,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<AnalyzeComplianceCommandHandler> logger) : ICommandHandler<AnalyzeComplianceCommand, ComplianceAnalysisDto>
@@ -38,20 +38,18 @@ public class AnalyzeComplianceCommandHandler(
         if (!isAdmin && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
-        // HTML-template documents carry no PDF to read.
-        if (document.HtmlTemplateId.HasValue)
-            throw new Common.Exceptions.ValidationException("Only PDF contracts can be analysed.");
-
-        var regulations = await db.RegulatoryTexts.AsNoTracking()
+        var published = await db.RegulatoryTexts.AsNoTracking()
             .Where(r => r.Status == RegulatoryTextStatus.Published
                         && (r.RequestTypeId == null || r.RequestTypeId == document.RequestTypeId))
-            .Select(r => new RegulatoryTextSummary(r.Id, r.Title, r.Keywords, r.Reference))
+            .Select(r => new { Summary = new RegulatoryTextSummary(r.Id, r.Title, r.Keywords, r.Reference), r.Language })
             .ToListAsync(cancellationToken);
 
-        await using var pdfStream = await storage.DownloadAsync(document.StoragePath, cancellationToken);
-        var text = await pdfService.ExtractTextAsync(pdfStream, cancellationToken);
+        var text = await textProvider.GetTextAsync(document, cancellationToken);
 
-        var result = await aiService.ReviewComplianceAsync(text, document.Title, regulations, cancellationToken);
+        var regulations = ContractLanguage.Filter(published, r => r.Language, ContractLanguage.Detect(text))
+            .Select(r => r.Summary).ToList();
+
+        var result = await complianceReview.ReviewAsync(text, document.Title, regulations, cancellationToken);
 
         document.SetAiComplianceAnalysis(JsonSerializer.Serialize(result, ContractJson.Options));
         await db.SaveChangesAsync(cancellationToken);

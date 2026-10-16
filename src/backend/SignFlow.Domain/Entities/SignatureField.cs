@@ -120,6 +120,14 @@ public class SignatureField : BaseEntity
     public void AssignToRecipient(Guid recipientId) => RecipientId = recipientId;
 
     public void SetZIndex(int zIndex) => ZIndex = zIndex;
+    /// <summary>
+    /// For a contract built from an HTML template: the key of the signature placeholder this field stands for
+    /// (<c>{{legalSignature}}</c>), so the signature can be shown where the template put it. Null for every other field.
+    /// </summary>
+    public string? TemplateKey { get; private set; }
+
+    public void SetTemplateKey(string? key) => TemplateKey = key;
+
     public void SetOptions(string options) => Options = options;
     public void SetGroupName(string groupName) => GroupName = groupName;
     public void SetVisibilityRules(string rules) => VisibilityRules = rules;

@@ -32,5 +32,7 @@ public enum AuditAction
     ContractAnalysed = 27,
     ComplianceAnalysed = 28,
     ReadinessEvaluated = 29,
-    ReadinessItemUpdated = 30
+    ReadinessItemUpdated = 30,
+    VersionsCompared = 31,
+    ReviewAcknowledged = 32
 }

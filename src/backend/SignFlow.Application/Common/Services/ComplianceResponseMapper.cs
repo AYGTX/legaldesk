@@ -21,6 +21,9 @@ public static class ComplianceResponseMapper
     public const string StatusGap = "Gap";
     public const string StatusUnclear = "Unclear";
 
+    /// <summary>The model cited an article; the corpus has not confirmed the quote yet.</summary>
+    public const string CitationPending = "Pending";
+
     private const string NotAssessedExplanation =
         "The review did not reach a conclusion on this regulatory text. It has not been checked against the contract.";
 
@@ -48,6 +51,23 @@ public static class ComplianceResponseMapper
     }
 
     /// <summary>
+    /// Renders the verified articles as the numbered block the prompt refers to ("A1", "A2", ...). The 1-based
+    /// position is the "articleIndex" the model answers with.
+    /// </summary>
+    public static string FormatArticles(IReadOnlyList<LegalArticleContext> articles)
+    {
+        var sb = new StringBuilder();
+
+        for (var i = 0; i < articles.Count; i++)
+        {
+            sb.Append('A').Append(i + 1).Append(". ").AppendLine(articles[i].Citation);
+            sb.Append("   ").AppendLine(articles[i].Text.ReplaceLineEndings(" "));
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// Maps the model's reply onto <paramref name="regulations"/>. Every regulation sent is returned
     /// exactly once: one the model skipped comes back as "Unclear" rather than vanishing, so the
     /// finding count always equals the number of texts the contract was checked against and the score
@@ -56,8 +76,10 @@ public static class ComplianceResponseMapper
     public static ComplianceAnalysis FromModelResponse(
         JsonElement root,
         IReadOnlyList<RegulatoryTextSummary> regulations,
-        DateTime analyzedAt)
+        DateTime analyzedAt,
+        IReadOnlyList<LegalArticleContext>? articles = null)
     {
+        articles ??= [];
         var byIndex = new Dictionary<int, ComplianceFinding>();
 
         if (root.ValueKind == JsonValueKind.Object
@@ -78,6 +100,12 @@ public static class ComplianceResponseMapper
                 var regulation = regulations[index.Value - 1];
                 var status = NormalizeStatus(ReadString(finding, "status"));
 
+                // Same rule as regulations: the article is named by its position in the prompt, and an index that
+                // was never sent is a citation the model made up — it is dropped, not repaired.
+                var articleIndex = ReadIndex(finding, "articleIndex");
+                var article = articleIndex is >= 1 && articleIndex <= articles.Count ? articles[articleIndex.Value - 1] : null;
+                var quote = article is null ? null : ReadString(finding, "quote");
+
                 byIndex[index.Value] = new ComplianceFinding(
                     regulation.Id,
                     regulation.Title,
@@ -89,7 +117,11 @@ public static class ComplianceResponseMapper
                     ReadString(finding, "whyItMatters"),
                     ReadString(finding, "recommendedAction"),
                     ReadString(finding, "proposedLanguage"),
-                    ReadString(finding, "contractReference"));
+                    ReadString(finding, "contractReference"),
+                    article?.ArticleId,
+                    article?.Citation,
+                    quote,
+                    article is null ? null : CitationPending);
             }
         }
 

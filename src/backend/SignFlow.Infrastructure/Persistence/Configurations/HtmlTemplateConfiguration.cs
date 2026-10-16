@@ -53,6 +53,7 @@ public class HtmlTemplateFieldConfiguration : IEntityTypeConfiguration<HtmlTempl
         builder.Property(f => f.Label).HasMaxLength(200).IsRequired();
         builder.Property(f => f.AutoFillFrom).HasMaxLength(100);
         builder.Property(f => f.OptionsJson).HasMaxLength(2000);
+        builder.Property(f => f.DefaultValue).HasMaxLength(1000);
         builder.Property(f => f.CreatedBy).HasMaxLength(50);
         builder.Property(f => f.UpdatedBy).HasMaxLength(50);
 

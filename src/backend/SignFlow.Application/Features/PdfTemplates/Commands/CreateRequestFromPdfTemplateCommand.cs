@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Application.Features.HtmlTemplates.Commands; // reuse ApproverSelection
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
@@ -72,6 +73,10 @@ public class CreateRequestFromPdfTemplateCommandHandler(
 
         // Auto-fill first so required-field validation sees system-populated values too.
         ApplyAutoFill(template.Fields, command.FilledValues, initiator, title);
+
+        TemplateAnswerRules.RequireListedOptions(
+            template.Fields.Select(f => (f.FieldKey, f.Label, f.Type.ToString(), f.OptionsJson)),
+            command.FilledValues);
 
         // Validate required requester fields (signature fields are filled during signing, not here).
         var requiredMissing = template.Fields
@@ -263,10 +268,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
                 "user.email" => user.Email ?? string.Empty,
                 "user.company" => user.Company ?? string.Empty,
                 "user.department" => user.Department ?? string.Empty,
-                "system.today" => DateTime.UtcNow.ToString("yyyy-MM-dd"),
-                "system.now" => DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
-                "request.title" => title,
-                _ => null
+                _ => TemplateAnswerRules.ResolveRequestSource(field.AutoFillFrom, title)
             };
 
             if (resolved is not null)

@@ -1,77 +1,27 @@
 using System.Globalization;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Services;
-using SignFlow.Infrastructure.Extensions;
+using SignFlow.Infrastructure.Services.Ai.Llm;
 
 namespace SignFlow.Infrastructure.Services.Ai;
 
-public class GroqAiService(
-    IOptions<GroqSettings> opts,
-    IHttpClientFactory httpFactory,
-    ILogger<GroqAiService> logger) : IAiService
+/// <summary>
+/// The AI features, independent of which model runs them: <see cref="ILlmProvider"/> is the strategy (Groq, a
+/// local model, or none). Every model-backed method falls back to its rules-based version when the provider is
+/// not configured or fails.
+/// </summary>
+public class LlmAiService(
+    ILlmProvider llm,
+    ILogger<LlmAiService> logger) : IAiService
 {
-    private const string GroqEndpoint = "https://api.groq.com/openai/v1/chat/completions";
     private const int MaxInputChars = 12_000;
 
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-    };
-
-    /// <summary>Single round-trip to Groq's chat completions endpoint; returns the assistant message content.</summary>
-    private async Task<string> ChatAsync(
-        string systemPrompt,
-        string userMessage,
-        string model,
-        int maxTokens,
-        double temperature,
-        string clientName,
-        CancellationToken ct)
-    {
-        var body = new
-        {
-            model,
-            max_tokens = maxTokens,
-            temperature,
-            messages = new[]
-            {
-                new { role = "system", content = systemPrompt },
-                new { role = "user", content = userMessage }
-            }
-        };
-
-        var json = JsonSerializer.Serialize(body, JsonOpts);
-        using var request = new HttpRequestMessage(HttpMethod.Post, GroqEndpoint)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json")
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", opts.Value.ApiKey);
-
-        using var client = httpFactory.CreateClient(clientName);
-        var response = await client.SendAsync(request, ct);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var err = await response.Content.ReadAsStringAsync(ct);
-            logger.LogError("Groq API error {Status}: {Body}", response.StatusCode, err);
-            response.EnsureSuccessStatusCode();
-        }
-
-        var responseJson = await response.Content.ReadAsStringAsync(ct);
-        using var doc = JsonDocument.Parse(responseJson);
-
-        return doc.RootElement
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString() ?? string.Empty;
-    }
+    private Task<string> ChatAsync(string systemPrompt, string userMessage, LlmTask task, double temperature, CancellationToken ct, int? maxTokens = null) =>
+        llm.CompleteAsync(new LlmRequest(systemPrompt, userMessage, task, temperature, maxTokens), ct);
 
     /// <summary>Models sometimes wrap their JSON in a markdown fence despite being told not to.</summary>
     private static string StripCodeFences(string content)
@@ -84,9 +34,7 @@ public class GroqAiService(
 
     public async Task<GeneratedHtmlTemplate> GenerateHtmlFromTextAsync(string userText, CancellationToken ct = default)
     {
-        var settings = opts.Value;
-
-        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        if (!llm.IsConfigured)
             return new GeneratedHtmlTemplate("<p>AI not configured.</p>", "Untitled Template", []);
 
         var truncated = userText.Length > MaxInputChars ? userText[..MaxInputChars] : userText;
@@ -134,7 +82,7 @@ public class GroqAiService(
             """;
 
         var content = StripCodeFences(
-            await ChatAsync(systemPrompt, truncated, settings.Model, 2048, 0.4, "groq", ct));
+            await ChatAsync(systemPrompt, truncated, LlmTask.Quick, 0.4, ct, maxTokens: 2048));
 
         try
         {
@@ -171,11 +119,9 @@ public class GroqAiService(
 
     public async Task<string> SummarizeDocumentAsync(string text, string title, CancellationToken ct = default)
     {
-        var settings = opts.Value;
-
-        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        if (!llm.IsConfigured)
         {
-            logger.LogWarning("Groq ApiKey is not configured — returning empty summary");
+            logger.LogWarning("No language model configured ({Provider}) — returning empty summary", llm.Name);
             return string.Empty;
         }
 
@@ -190,10 +136,8 @@ public class GroqAiService(
         return await ChatAsync(
             systemPrompt,
             $"Document title: {title}\n\n{truncated}",
-            settings.Model,
-            settings.MaxTokens,
+            LlmTask.Quick,
             0.3,
-            "groq",
             ct);
     }
 
@@ -308,30 +252,25 @@ public class GroqAiService(
     public async Task<ContractAnalysisResult> AnalyzeContractAsync(
         string text, string title, DateTime referenceDate, CancellationToken ct = default)
     {
-        var settings = opts.Value;
-
-        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        if (!llm.IsConfigured)
         {
-            logger.LogWarning("Groq ApiKey is not configured — falling back to the rules-based contract scan");
+            logger.LogWarning("No language model configured ({Provider}) — falling back to the rules-based contract scan", llm.Name);
             return await FallbackAnalysisAsync(text, title, referenceDate, ct);
         }
 
         try
         {
-            var truncated = text.Length > settings.AnalysisMaxInputChars
-                ? text[..settings.AnalysisMaxInputChars] + "…"
-                : text;
+            var maxChars = llm.AnalysisMaxInputChars;
+            var truncated = text.Length > maxChars ? text[..maxChars] + "…" : text;
 
             var content = StripCodeFences(await ChatAsync(
                 ContractAnalystSystemPrompt,
                 $"Contract title: {title}\nToday's date: {referenceDate:yyyy-MM-dd}\n\n{truncated}",
-                settings.AnalysisModel,
-                settings.AnalysisMaxTokens,
+                LlmTask.Analysis,
                 0.2,
-                "groq-analysis",
                 ct));
 
-            var result = ParseAnalysis(content, text.Length > settings.AnalysisMaxInputChars);
+            var result = ParseAnalysis(content, text.Length > maxChars);
 
             if (result.Risk.Findings.Count == 0)
             {
@@ -459,7 +398,9 @@ public class GroqAiService(
 
         var limitations = new List<string>
         {
-            "The full legal analysis was unavailable — a rules-based keyword scan was used instead. It detects common risk patterns only and is not a substitute for legal review."
+            ContractLanguage.Detect(text) == "fr"
+                ? "L'analyse juridique complète n'était pas disponible : une analyse par mots-clés a été utilisée à la place. Elle ne détecte que les schémas de risque courants et ne remplace pas une revue juridique."
+                : "The full legal analysis was unavailable — a rules-based keyword scan was used instead. It detects common risk patterns only and is not a substitute for legal review."
         };
 
         return new ContractAnalysisResult(risk with { Limitations = limitations }, obligation);
@@ -512,10 +453,22 @@ public class GroqAiService(
               "whyItMatters": "the regulatory or commercial consequence",
               "recommendedAction": "what the reader should do",
               "proposedLanguage": "clause text to insert, or null",
-              "contractReference": "clause or article this relates to, or null"
+              "contractReference": "clause or article this relates to, or null",
+              "articleIndex": 2,
+              "quote": "the exact sentence of that legal article the finding relies on, or null"
             }
           ]
         }
+
+        LEGAL ARTICLES
+        You may also be given a list "LEGAL ARTICLES" numbered A1, A2, ... These are verified articles of
+        law, word for word. They are the only law you may cite.
+        - When a finding rests on one of them, set "articleIndex" to its number (2 for A2) and copy into
+          "quote" the sentence you rely on, character for character, from that article. Do not translate,
+          shorten, correct or paraphrase it. Every quote is checked against the article automatically and
+          rejected if it does not match exactly.
+        - If no supplied article supports the finding, set "articleIndex" and "quote" to null. Never cite an
+          article from memory, and never cite one that was not supplied.
 
         OUTPUT RULES
         - "regulationIndex" is the number the regulation was listed under. Return one finding for
@@ -530,46 +483,46 @@ public class GroqAiService(
         """;
 
     public async Task<ComplianceAnalysis> ReviewComplianceAsync(
-        string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default)
+        string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations,
+        IReadOnlyList<LegalArticleContext>? legalArticles = null, CancellationToken ct = default)
     {
         // Nothing tracked applies to this contract — there is no question to put to the model.
         if (activeRegulations.Count == 0)
             return new ComplianceAnalysis(100, [], DateTime.UtcNow);
 
-        var settings = opts.Value;
-
-        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        if (!llm.IsConfigured)
         {
-            logger.LogWarning("Groq ApiKey is not configured — falling back to the keyword compliance scan");
+            logger.LogWarning("No language model configured ({Provider}) — falling back to the keyword compliance scan", llm.Name);
             return await FallbackComplianceAsync(text, title, activeRegulations, ct);
         }
 
+        legalArticles ??= [];
+
         try
         {
-            var truncated = text.Length > settings.AnalysisMaxInputChars
-                ? text[..settings.AnalysisMaxInputChars] + "…"
-                : text;
+            var maxChars = llm.AnalysisMaxInputChars;
+            var truncated = text.Length > maxChars ? text[..maxChars] + "…" : text;
 
-            var userMessage = new StringBuilder()
+            var message = new StringBuilder()
                 .AppendLine($"Contract title: {title}")
                 .AppendLine()
                 .AppendLine("REGULATORY TEXTS TO CHECK AGAINST:")
-                .AppendLine(ComplianceResponseMapper.FormatRegulations(activeRegulations))
-                .AppendLine("CONTRACT:")
-                .AppendLine(truncated)
-                .ToString();
+                .AppendLine(ComplianceResponseMapper.FormatRegulations(activeRegulations));
+
+            if (legalArticles.Count > 0)
+                message.AppendLine("LEGAL ARTICLES:").AppendLine(ComplianceResponseMapper.FormatArticles(legalArticles));
+
+            var userMessage = message.AppendLine("CONTRACT:").AppendLine(truncated).ToString();
 
             var content = StripCodeFences(await ChatAsync(
                 ComplianceAnalystSystemPrompt,
                 userMessage,
-                settings.AnalysisModel,
-                settings.AnalysisMaxTokens,
+                LlmTask.Analysis,
                 0.2,
-                "groq-analysis",
                 ct));
 
             using var parsed = JsonDocument.Parse(content);
-            var result = ComplianceResponseMapper.FromModelResponse(parsed.RootElement, activeRegulations, DateTime.UtcNow);
+            var result = ComplianceResponseMapper.FromModelResponse(parsed.RootElement, activeRegulations, DateTime.UtcNow, legalArticles);
 
             // Every regulation coming back unassessed means the reply carried nothing usable —
             // a keyword scan at least says something about the contract.
@@ -579,7 +532,7 @@ public class GroqAiService(
                 return await FallbackComplianceAsync(text, title, activeRegulations, ct);
             }
 
-            if (text.Length > settings.AnalysisMaxInputChars)
+            if (text.Length > maxChars)
             {
                 var limitations = result.Limitations ?? [];
                 limitations.Add("Only the first part of the contract was reviewed — it exceeds the length the analysis accepts. Provisions later in the document were not assessed.");
@@ -608,64 +561,40 @@ public class GroqAiService(
         {
             Limitations =
             [
-                "The full compliance review was unavailable — a keyword scan was used instead. It only checks whether each regulation's tracked terms appear in the contract, which is not a judgement about whether the contract satisfies it."
+                ContractLanguage.Detect(text) == "fr"
+                    ? "La revue de conformité complète n'était pas disponible : une analyse par mots-clés a été utilisée à la place. Elle vérifie seulement si les thèmes suivis pour chaque texte apparaissent dans le contrat, ce qui ne constitue pas un jugement de conformité."
+                    : "The full compliance review was unavailable — a keyword scan was used instead. It only checks whether each regulation's tracked terms appear in the contract, which is not a judgement about whether the contract satisfies it."
             ]
         };
     }
 
     // ---------------------------------------------------------------------------------------
     // Rules-based scan — instant and offline. Runs at upload time so the risk card is populated
-    // before anyone asks for the full review, and backs that review up when Groq is unavailable.
+    // before anyone asks for the full review, and backs that review up when the model is unavailable.
     // ---------------------------------------------------------------------------------------
 
-    public Task<ContractRiskAnalysis> AnalyzeContractRiskAsync(string text, string title, CancellationToken ct = default)
-    {
-        var findings = new List<RiskFinding>();
-
-        void FlagIfPresent(string[] triggers, string clauseType, string severity, string explanation)
-        {
-            if (triggers.Any(t => text.Contains(t, StringComparison.OrdinalIgnoreCase)))
-                findings.Add(new RiskFinding(clauseType, severity, explanation));
-        }
-
-        FlagIfPresent(["unlimited liability", "sole discretion"], "Liability",
-            "High", "Language suggesting unlimited liability or one-sided discretion was detected.");
-        FlagIfPresent(["automatic renewal", "automatically renew", "tacit renewal"], "Auto-renewal",
-            "Medium", "The contract appears to renew automatically unless actively cancelled.");
-        FlagIfPresent(["indemnify", "hold harmless"], "Indemnification",
-            "Medium", "An indemnification / hold-harmless clause was detected.");
-        FlagIfPresent(["exclusiv", "non-compete"], "Exclusivity",
-            "Medium", "An exclusivity or non-compete restriction was detected.");
-        FlagIfPresent(["penalty", "liquidated damages"], "Penalty clause",
-            "Medium", "A penalty or liquidated-damages clause was detected.");
-
-        if (!text.Contains("terminat", StringComparison.OrdinalIgnoreCase))
-            findings.Add(new RiskFinding("Termination rights", "High", "No clear termination clause found in an automated scan."));
-
-        if (findings.Count == 0)
-            findings.Add(new RiskFinding("General", "Low", "No high-risk patterns detected in an automated scan."));
-
-        var score = Math.Min(100, findings.Sum(f => f.Severity == "High" ? 25 : f.Severity == "Medium" ? 12 : 0) + (findings.Count == 1 && findings[0].Severity == "Low" ? 15 : 0));
-
-        return Task.FromResult(new ContractRiskAnalysis(score, findings, DateTime.UtcNow));
-    }
+    public Task<ContractRiskAnalysis> AnalyzeContractRiskAsync(string text, string title, CancellationToken ct = default) =>
+        Task.FromResult(ContractRuleEngine.Analyze(text));
 
     public Task<ComplianceAnalysis> AnalyzeContractComplianceAsync(
         string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default)
     {
         var findings = new List<ComplianceFinding>();
+        var fr = ContractLanguage.Detect(text) == "fr";
 
-        // KEYWORD-BASED MATCH (no HTTP call, instant) — swap for an LLM call here
+        // Keyword match: no model, instant.
         foreach (var regulation in activeRegulations)
         {
             var keywords = regulation.Keywords.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var addressed = keywords.Any(k => k.Length > 0 && text.Contains(k, StringComparison.OrdinalIgnoreCase));
+            var matched = keywords.Where(k => k.Length > 0 && text.Contains(k, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            findings.Add(addressed
-                ? new ComplianceFinding(regulation.Id, regulation.Title, "Addressed",
-                    "Language matching this regulation's tracked keywords was found in an automated scan.")
-                : new ComplianceFinding(regulation.Id, regulation.Title, "Gap",
-                    "No language addressing this regulation's tracked keywords was found in an automated scan."));
+            findings.Add(matched.Count > 0
+                ? new ComplianceFinding(regulation.Id, regulation.Title, "Addressed", fr
+                    ? $"Le contrat aborde les thèmes suivis pour ce texte ({string.Join(", ", matched)}). Analyse automatique par mots-clés : cela ne prouve pas la conformité."
+                    : $"The contract covers this text's tracked topics ({string.Join(", ", matched)}). Automated keyword scan: this does not prove compliance.")
+                : new ComplianceFinding(regulation.Id, regulation.Title, "Gap", fr
+                    ? $"Aucun des thèmes suivis pour ce texte n'apparaît dans le contrat ({string.Join(", ", keywords)}). Vérifiez si le contrat devrait les traiter."
+                    : $"None of this text's tracked topics appear in the contract ({string.Join(", ", keywords)}). Check whether the contract should address them."));
         }
 
         var score = findings.Count == 0

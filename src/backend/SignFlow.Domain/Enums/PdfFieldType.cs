@@ -13,5 +13,8 @@ public enum PdfFieldType
     Number,
     Checkbox,
     Signature,
-    Dropdown
+    Dropdown,
+
+    /// <summary>Several lines of text in a larger box; wraps when stamped.</summary>
+    Textarea
 }

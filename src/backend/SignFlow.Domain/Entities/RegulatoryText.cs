@@ -33,6 +33,21 @@ public class RegulatoryText : BaseEntity
     public Guid? RequestTypeId { get; private set; }
     public RequestType? RequestType { get; private set; }
 
+    /// <summary>Where the official text can be read: the gazette issue or the legislation portal page.</summary>
+    public string? SourceUrl { get; private set; }
+
+    /// <summary>
+    /// A person checked the stored articles against the official source and signed off. Only a text with this set
+    /// may be presented as law; everything else is a note someone typed. Any change to what was checked — the
+    /// articles, the reference or the source — clears it.
+    /// </summary>
+    public Guid? VerifiedById { get; private set; }
+    public DateTime? VerifiedAt { get; private set; }
+    public bool IsVerified => VerifiedAt.HasValue;
+
+    /// <summary>The law word for word, article by article. Empty for a text that only has a summary.</summary>
+    public ICollection<RegulatoryArticle> Articles { get; private set; } = [];
+
     public Guid CreatedById { get; private set; }
     public ApplicationUser CreatedByUser { get; private set; } = null!;
 
@@ -48,9 +63,11 @@ public class RegulatoryText : BaseEntity
         string language = "en",
         string? reference = null,
         DateTime? effectiveDate = null,
-        Guid? requestTypeId = null)
+        Guid? requestTypeId = null,
+        string? sourceUrl = null)
         => new()
         {
+            SourceUrl = sourceUrl,
             Title = title,
             Category = category,
             Jurisdiction = jurisdiction,
@@ -73,8 +90,16 @@ public class RegulatoryText : BaseEntity
         string language,
         string? reference,
         DateTime? effectiveDate,
-        Guid? requestTypeId)
+        Guid? requestTypeId,
+        string? sourceUrl = null)
     {
+        // What a verifier attested to is "these articles are the text published at this source". Changing the reference
+        // or the source changes that claim, so the sign-off no longer stands.
+        if (!string.Equals(Reference, reference, StringComparison.Ordinal)
+            || !string.Equals(SourceUrl, sourceUrl, StringComparison.Ordinal))
+            ClearVerification();
+
+        SourceUrl = sourceUrl;
         Title = title;
         Category = category;
         Jurisdiction = jurisdiction;
@@ -85,6 +110,19 @@ public class RegulatoryText : BaseEntity
         EffectiveDate = effectiveDate;
         RequestTypeId = requestTypeId;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MarkVerified(Guid userId)
+    {
+        VerifiedById = userId;
+        VerifiedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ClearVerification()
+    {
+        VerifiedById = null;
+        VerifiedAt = null;
     }
 
     public void SetStatus(RegulatoryTextStatus status)

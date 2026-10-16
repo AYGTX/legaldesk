@@ -42,6 +42,12 @@ public class HtmlTemplateField : BaseEntity
     /// </summary>
     public int WorkflowStage { get; private set; } = 1;
 
+    /// <summary>
+    /// What the field starts as on the request form when nothing else fills it (an auto-fill source wins). The
+    /// initiator can change it; a blank answer takes it when the request is created.
+    /// </summary>
+    public string? DefaultValue { get; private set; }
+
     private HtmlTemplateField() { }
 
     public static HtmlTemplateField Create(
@@ -55,7 +61,8 @@ public class HtmlTemplateField : BaseEntity
         string? autoFillFrom = null,
         string? optionsJson = null,
         Guid? preAssignedApproverId = null,
-        int workflowStage = 1)
+        int workflowStage = 1,
+        string? defaultValue = null)
         => new()
         {
             HtmlTemplateId = templateId,
@@ -68,7 +75,8 @@ public class HtmlTemplateField : BaseEntity
             AutoFillFrom = autoFillFrom,
             OptionsJson = optionsJson,
             PreAssignedApproverId = preAssignedApproverId,
-            WorkflowStage = workflowStage
+            WorkflowStage = workflowStage,
+            DefaultValue = defaultValue
         };
 
     public void Update(
@@ -80,7 +88,8 @@ public class HtmlTemplateField : BaseEntity
         string? autoFillFrom,
         string? optionsJson,
         Guid? preAssignedApproverId,
-        int workflowStage)
+        int workflowStage,
+        string? defaultValue = null)
     {
         Label = label;
         Type = type;
@@ -91,6 +100,7 @@ public class HtmlTemplateField : BaseEntity
         OptionsJson = optionsJson;
         PreAssignedApproverId = preAssignedApproverId;
         WorkflowStage = workflowStage;
+        DefaultValue = defaultValue;
         UpdatedAt = DateTime.UtcNow;
     }
 }

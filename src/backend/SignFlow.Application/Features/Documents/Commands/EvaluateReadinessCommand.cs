@@ -23,9 +23,10 @@ public record EvaluateReadinessCommand(Guid DocumentId) : ICommand<ReadinessDto>
 
 public class EvaluateReadinessCommandHandler(
     IApplicationDbContext db,
-    IStorageService storage,
-    IPdfService pdfService,
+    IContractTextProvider textProvider,
     IAiService aiService,
+    IGroundedComplianceReview complianceReview,
+    ILegalPlaybookService playbook,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<EvaluateReadinessCommandHandler> logger) : ICommandHandler<EvaluateReadinessCommand, ReadinessDto>
@@ -41,30 +42,31 @@ public class EvaluateReadinessCommandHandler(
         if (!isAdmin && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
-        // HTML-template documents carry no PDF to read.
-        if (document.HtmlTemplateId.HasValue)
-            throw new Common.Exceptions.ValidationException("Only PDF contracts can be reviewed.");
-
         // Same scoping rule as AnalyzeComplianceCommand: unscoped texts apply to everyone, scoped
         // ones only to their own contract family.
-        var regulations = await db.RegulatoryTexts.AsNoTracking()
+        var published = await db.RegulatoryTexts.AsNoTracking()
             .Where(r => r.Status == RegulatoryTextStatus.Published
                         && (r.RequestTypeId == null || r.RequestTypeId == document.RequestTypeId))
-            .Select(r => new RegulatoryTextSummary(r.Id, r.Title, r.Keywords, r.Reference))
+            .Select(r => new { Summary = new RegulatoryTextSummary(r.Id, r.Title, r.Keywords, r.Reference), r.Language })
             .ToListAsync(cancellationToken);
 
-        // One text extraction feeds both analyses.
-        await using var pdfStream = await storage.DownloadAsync(document.StoragePath, cancellationToken);
-        var text = await pdfService.ExtractTextAsync(pdfStream, cancellationToken);
+        // One reading of the contract feeds both analyses.
+        var text = await textProvider.GetTextAsync(document, cancellationToken);
+
+        // Each law is registered once per language; checking a French contract against the English entry only
+        // produces a false gap.
+        var regulations = ContractLanguage.Filter(published, r => r.Language, ContractLanguage.Detect(text))
+            .Select(r => r.Summary).ToList();
 
         // Both are model reviews of the same text and each takes tens of seconds. Run them
         // concurrently: sequentially the desk would take as long as the two combined, and this is
         // the screen a reviewer sits and waits on.
         var reviewTask = aiService.AnalyzeContractAsync(text, document.Title, DateTime.UtcNow, cancellationToken);
-        var complianceTask = aiService.ReviewComplianceAsync(text, document.Title, regulations, cancellationToken);
+        var complianceTask = complianceReview.ReviewAsync(text, document.Title, regulations, cancellationToken);
         await Task.WhenAll(reviewTask, complianceTask);
 
         var review = await reviewTask;
+        review = review with { Risk = await playbook.AttachToRiskAsync(review.Risk, cancellationToken) };
         var compliance = await complianceTask;
 
         document.SetAiRiskAnalysis(JsonSerializer.Serialize(review.Risk, ContractJson.Options));

@@ -7,5 +7,8 @@ public enum HtmlTemplateFieldType
     Date,
     Number,
     Checkbox,
-    Signature
+    Signature,
+
+    /// <summary>One of a fixed list of choices (<c>OptionsJson</c>), like a PDF template's dropdown.</summary>
+    Dropdown
 }

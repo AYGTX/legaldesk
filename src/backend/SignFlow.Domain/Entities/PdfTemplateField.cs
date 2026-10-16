@@ -108,6 +108,7 @@ public class PdfTemplateField : BaseEntity
         PdfFieldType.Number => FieldType.Number,
         PdfFieldType.Checkbox => FieldType.Checkbox,
         PdfFieldType.Dropdown => FieldType.Dropdown,
+        PdfFieldType.Textarea => FieldType.MultilineText,
         _ => FieldType.Text
     };
 }

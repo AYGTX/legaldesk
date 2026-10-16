@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Domain.Entities;
@@ -19,6 +20,7 @@ using SignFlow.Infrastructure.Services.Security;
 using SignFlow.Infrastructure.Services.Notifications;
 using SignFlow.Infrastructure.Services.SignalR;
 using SignFlow.Infrastructure.Services.Ai;
+using SignFlow.Infrastructure.Services.Ai.Llm;
 using SignFlow.Infrastructure.Services.Storage;
 
 namespace SignFlow.Infrastructure.Extensions;
@@ -57,6 +59,8 @@ public static class InfrastructureServiceExtensions
         services.Configure<StorageSettings>(configuration.GetSection("Storage"));
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
         services.Configure<GroqSettings>(configuration.GetSection("Groq"));
+        services.Configure<LocalLlmSettings>(configuration.GetSection("LocalLlm"));
+        services.Configure<LegalCorpusSettings>(configuration.GetSection("LegalCorpus"));
 
         // JWT Authentication
         var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()!;
@@ -129,21 +133,33 @@ public static class InfrastructureServiceExtensions
             options.MaximumReceiveMessageSize = 128 * 1024;
         });
 
-        // Named HttpClient for Groq (sets a sensible timeout)
-        services.AddHttpClient("groq", client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(30);
-        });
+        // Language model strategy: Ai:Provider picks Groq, a local OpenAI-compatible server (Ollama), or None.
+        var aiProvider = configuration.GetSection("Ai").Get<AiSettings>()?.Provider ?? "Groq";
+        var localLlm = configuration.GetSection("LocalLlm").Get<LocalLlmSettings>() ?? new LocalLlmSettings();
+        var isLocal = aiProvider.Equals("Local", StringComparison.OrdinalIgnoreCase);
 
-        // Full contract review runs for tens of seconds — it gets its own client so that
-        // summaries and template generation keep failing fast on the 30s one above.
-        services.AddHttpClient("groq-analysis", client =>
+        services.AddHttpClient(OpenAiCompatibleProvider.QuickClient, client =>
+            client.Timeout = TimeSpan.FromSeconds(isLocal ? 120 : 30));
+        // Full contract review runs for tens of seconds (minutes on a local model) — it gets its own client so
+        // that summaries and template generation keep failing fast on the one above.
+        services.AddHttpClient(OpenAiCompatibleProvider.AnalysisClient, client =>
+            client.Timeout = TimeSpan.FromSeconds(isLocal ? localLlm.AnalysisTimeoutSeconds : 120));
+
+        switch (aiProvider.ToLowerInvariant())
         {
-            client.Timeout = TimeSpan.FromSeconds(120);
-        });
+            case "local": services.AddScoped<ILlmProvider, LocalLlmProvider>(); break;
+            case "none": services.AddScoped<ILlmProvider, NoLlmProvider>(); break;
+            case "groq": services.AddScoped<ILlmProvider, GroqLlmProvider>(); break;
+            default: throw new InvalidOperationException($"Unknown Ai:Provider '{aiProvider}'. Use Groq, Local or None.");
+        }
+
+        var corpusSettings = configuration.GetSection("LegalCorpus").Get<LegalCorpusSettings>() ?? new LegalCorpusSettings();
+        services.AddHttpClient(LegalCorpusClient.HttpClientName, client =>
+            client.Timeout = TimeSpan.FromSeconds(corpusSettings.TimeoutSeconds));
+        services.AddScoped<ILegalCorpusClient, LegalCorpusClient>();
 
         // Application services
-        services.AddScoped<IAiService, GroqAiService>();
+        services.AddScoped<IAiService, LlmAiService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IStorageService, LocalStorageService>();
         services.AddScoped<IEmailService, MailKitEmailService>();
@@ -153,6 +169,7 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IVirusScanService, VirusScanService>();
         services.AddScoped<IWorkflowEngine, WorkflowEngine>();
         services.AddScoped<IPdfStampService, PdfStampService>();
+        services.AddScoped<IPdfTextEditService, PdfTextEditService>();
         services.AddScoped<IHtmlTemplatePdfGenerator, HtmlTemplatePdfGenerator>();
         services.AddScoped<INotificationHub, NotificationHubService>();
         services.AddScoped<INotificationService, NotificationService>();
@@ -166,8 +183,18 @@ public static class InfrastructureServiceExtensions
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseSeeder");
+
+        // Off unless asked for: the demo portfolio is business data, and a production database
+        // must never acquire nine contracts and a signed audit trail by starting the API.
+        var demoContracts = configuration.GetValue<bool>("Demo:SeedContracts")
+            ? new DatabaseSeeder.DemoContractSeedContext(
+                scope.ServiceProvider.GetRequiredService<IStorageService>(),
+                scope.ServiceProvider.GetRequiredService<IPdfService>())
+            : null;
 
         await context.Database.MigrateAsync();
-        await DatabaseSeeder.SeedAsync(context, userManager, roleManager);
+        await DatabaseSeeder.SeedAsync(context, userManager, roleManager, demoContracts, logger);
     }
 }

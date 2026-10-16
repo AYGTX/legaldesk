@@ -73,6 +73,6 @@ public class RegisterCommandHandler(
             accessToken,
             refreshToken,
             DateTime.UtcNow.AddMinutes(60),
-            new UserInfo(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, roles, null, false, user.Department));
+            new UserInfo(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, roles, null, false, user.Department, user.Company));
     }
 }

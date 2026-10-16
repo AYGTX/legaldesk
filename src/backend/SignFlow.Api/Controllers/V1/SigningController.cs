@@ -20,6 +20,7 @@ public class SigningController(
     ICommandHandler<SignFieldCommand, SignFieldResult> signHandler,
     ICommandHandler<ApproveSigningCommand, ApproveSigningResult> approveHandler,
     ICommandHandler<RejectDocumentCommand> rejectHandler,
+    ICommandHandler<AcknowledgeReviewCommand> acknowledgeHandler,
     IStorageService storageService) : ControllerBase
 {
     /// <summary>Get the signing session for a recipient</summary>
@@ -67,6 +68,19 @@ public class SigningController(
 
         var result = await signHandler.HandleAsync(command, ct);
         return Ok(result);
+    }
+
+    /// <summary>Confirm the document and its AI review were read — required before signing, approving or reviewing</summary>
+    [HttpPost("{token}/acknowledge-review")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<IActionResult> AcknowledgeReview([FromRoute] string token, CancellationToken ct)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var userAgent = Request.Headers.UserAgent.ToString();
+        await acknowledgeHandler.HandleAsync(new AcknowledgeReviewCommand(token, ip, userAgent), ct);
+        return NoContent();
     }
 
     /// <summary>Approve signing after reviewing all filled fields — stamps PDF and advances workflow</summary>

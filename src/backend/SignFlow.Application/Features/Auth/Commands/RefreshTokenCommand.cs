@@ -51,6 +51,6 @@ public class RefreshTokenCommandHandler(
             newAccessToken,
             newRefreshToken,
             DateTime.UtcNow.AddMinutes(60),
-            new UserInfo(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, roles, user.AvatarUrl, user.MfaEnabled, user.Department));
+            new UserInfo(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, roles, user.AvatarUrl, user.MfaEnabled, user.Department, user.Company));
     }
 }

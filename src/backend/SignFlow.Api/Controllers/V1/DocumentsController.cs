@@ -171,6 +171,52 @@ public class DocumentsController(
         return Ok(result);
     }
 
+    /// <summary>The form an owner fills again after changes were requested on a template contract: the changeable answers, their current values, and what the reviewer asked for</summary>
+    [HttpGet("{id:guid}/revision-form")]
+    [ProducesResponseType(typeof(TemplateRevisionFormDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<ActionResult<TemplateRevisionFormDto>> GetRevisionForm(
+        [FromRoute] Guid id,
+        [FromServices] IQueryHandler<GetTemplateRevisionFormQuery, TemplateRevisionFormDto> formHandler,
+        CancellationToken ct)
+    {
+        var result = await formHandler.HandleAsync(new GetTemplateRevisionFormQuery(id), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Revise a template contract by changing its answers — keeps the old version, creates the next one and sends the circuit again</summary>
+    [HttpPost("{id:guid}/revise-answers")]
+    [ProducesResponseType(typeof(UploadRevisionResult), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<ActionResult<UploadRevisionResult>> ReviseAnswers(
+        [FromRoute] Guid id,
+        [FromBody] ReviseAnswersRequest request,
+        [FromServices] ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult> reviseHandler,
+        CancellationToken ct)
+    {
+        var result = await reviseHandler.HandleAsync(new ReviseFromTemplateCommand(id, request.FilledValues ?? [], request.ChangeNote), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Edit the text of a PDF contract in the browser — applied to the stored file and saved as a new version</summary>
+    [HttpPost("{id:guid}/edit-pdf")]
+    [ProducesResponseType(typeof(UploadRevisionResult), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<ActionResult<UploadRevisionResult>> EditPdf(
+        [FromRoute] Guid id,
+        [FromBody] EditPdfRequest request,
+        [FromServices] ICommandHandler<EditDocumentPdfCommand, UploadRevisionResult> editHandler,
+        CancellationToken ct)
+    {
+        var result = await editHandler.HandleAsync(new EditDocumentPdfCommand(id, request.Edits, request.ChangeNote), ct);
+        return Ok(result);
+    }
+
     /// <summary>Send document for signing</summary>
     [HttpPost("{id:guid}/send")]
     [ProducesResponseType(204)]
@@ -301,6 +347,37 @@ public class DocumentsController(
         return Ok(result);
     }
 
+    /// <summary>Download a specific version of the contract (as attachment)</summary>
+    [HttpGet("{id:guid}/versions/{versionNumber:int}/download")]
+    [ProducesResponseType(typeof(FileResult), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<IActionResult> DownloadVersion(
+        [FromRoute] Guid id,
+        [FromRoute] int versionNumber,
+        [FromServices] IQueryHandler<GetDocumentVersionFileQuery, DocumentVersionFileDto> versionHandler,
+        CancellationToken ct)
+    {
+        var file = await versionHandler.HandleAsync(new GetDocumentVersionFileQuery(id, versionNumber), ct);
+        var stream = await storageService.DownloadAsync(file.StoragePath, ct);
+        return File(stream, "application/pdf", file.FileName);
+    }
+
+    /// <summary>Redline two versions of the contract against each other</summary>
+    [HttpGet("{id:guid}/versions/compare")]
+    [ProducesResponseType(typeof(VersionComparisonDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<ActionResult<VersionComparisonDto>> CompareVersions(
+        [FromRoute] Guid id,
+        [FromQuery] int from,
+        [FromQuery] int to,
+        [FromServices] IQueryHandler<CompareDocumentVersionsQuery, VersionComparisonDto> compareHandler,
+        CancellationToken ct)
+    {
+        var result = await compareHandler.HandleAsync(new CompareDocumentVersionsQuery(id, from, to), ct);
+        return Ok(result);
+    }
+
     /// <summary>Stream the original PDF inline (for in-browser rendering)</summary>
     [HttpGet("{id:guid}/stream")]
     [ProducesResponseType(typeof(FileResult), 200)]
@@ -333,6 +410,8 @@ public record UpdateContractTermRequest(
     bool AutoRenews,
     int? NoticePeriodDays);
 
+public record ReviseAnswersRequest(Dictionary<string, string>? FilledValues, string? ChangeNote = null);
+public record EditPdfRequest(List<PdfTextEdit> Edits, string? ChangeNote = null);
 public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);
 
 public record SetReadinessItemStatusRequest(ReadinessItemStatus Status, string? Note = null);

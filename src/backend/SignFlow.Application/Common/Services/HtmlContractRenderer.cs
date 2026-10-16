@@ -43,13 +43,17 @@ public static class HtmlContractRenderer
     /// optional: when a template has been deleted since the request was raised, every field is
     /// treated as text, which keeps old contracts rendering rather than failing.
     ///
+    /// <paramref name="signatureSlots"/> maps a signature placeholder key to the HTML that stands in for the signer's
+    /// signature at that spot; without an entry the placeholder leaves no trace, as before.
+    ///
     /// Order matters. Conditions resolve first, so the surviving branch still holds live
     /// placeholders; substitution runs second; leftovers are stripped last.
     /// </summary>
     public static string Render(
         string? html,
         IReadOnlyDictionary<string, string>? filledValues,
-        IReadOnlyDictionary<string, HtmlTemplateFieldType>? fieldTypes = null)
+        IReadOnlyDictionary<string, HtmlTemplateFieldType>? fieldTypes = null,
+        IReadOnlyDictionary<string, string>? signatureSlots = null)
     {
         if (string.IsNullOrEmpty(html))
             return string.Empty;
@@ -59,8 +63,15 @@ public static class HtmlContractRenderer
 
         var result = ResolveConditionals(html, values, types);
 
+        // An answer wins over a signature slot of the same name; a signature placeholder becomes the HTML the caller
+        // supplied for it (already safe — it is built from ids and encoded names, never from template input).
         result = Placeholder.Replace(result, m =>
-            values.TryGetValue(m.Groups[1].Value, out var v) ? WebUtility.HtmlEncode(v) : m.Value);
+        {
+            var key = m.Groups[1].Value;
+            if (values.TryGetValue(key, out var v)) return WebUtility.HtmlEncode(v);
+            if (signatureSlots is not null && signatureSlots.TryGetValue(key, out var slot)) return slot;
+            return m.Value;
+        });
 
         // Remaining {{placeholders}} are approver signature fields and auto-fill keys that were
         // never filled — they are structure, not content, so they leave no trace.
@@ -126,7 +137,7 @@ public static class HtmlContractRenderer
             HtmlTemplateFieldType.Checkbox => CompareEquality(IsTrue(actual) == IsTrue(expected), op),
             // Ordering two pieces of prose has no meaning a lawyer would recognise, so text
             // supports equality only; a relational operator on text is treated as unsatisfiable.
-            HtmlTemplateFieldType.Text or HtmlTemplateFieldType.Textarea =>
+            HtmlTemplateFieldType.Text or HtmlTemplateFieldType.Textarea or HtmlTemplateFieldType.Dropdown =>
                 CompareEquality(string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase), op),
             // A signature is not a condition input.
             _ => false

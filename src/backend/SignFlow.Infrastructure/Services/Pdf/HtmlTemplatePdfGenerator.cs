@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 
 namespace SignFlow.Infrastructure.Services.Pdf;
 
@@ -15,8 +16,17 @@ public class HtmlTemplatePdfGenerator(
         List<HtmlTemplatePdfSignature> signatures,
         CancellationToken ct = default)
     {
-        // Build signature HTML block appended after the form content
-        var sigBlock = await BuildSignatureBlockAsync(signatures, ct);
+        // A signature with a template key goes where the template placed its placeholder; whatever is left over
+        // (no placeholder in the text, or an older contract without keys) is appended in a section at the end.
+        var inlineBlocks = new Dictionary<string, string>();
+        foreach (var sig in signatures.Where(s => !string.IsNullOrEmpty(s.TemplateKey)))
+            inlineBlocks[sig.TemplateKey!] = await BuildSignatureRowAsync(sig, ct);
+
+        var (placedHtml, placedKeys) = HtmlSignatureSlots.Apply(renderedHtmlContent, inlineBlocks);
+        renderedHtmlContent = placedHtml;
+
+        var sigBlock = await BuildSignatureBlockAsync(
+            signatures.Where(s => string.IsNullOrEmpty(s.TemplateKey) || !placedKeys.Contains(s.TemplateKey)).ToList(), ct);
 
         // $$""" — two-dollar raw string: CSS uses single { } as literals; interpolations use {{ }}
         var fullHtml = $$"""
@@ -59,34 +69,37 @@ public class HtmlTemplatePdfGenerator(
 
         var rows = new System.Text.StringBuilder();
         foreach (var sig in signatures)
-        {
-            var imgTag = string.Empty;
-            try
-            {
-                var imgStream = await storage.DownloadAsync(sig.ImageStoragePath, ct);
-                using var ms = new MemoryStream();
-                await imgStream.CopyToAsync(ms, ct);
-                var b64 = Convert.ToBase64String(ms.ToArray());
-                imgTag = $"""<img class="sig-img" src="data:image/png;base64,{b64}" alt="Signature"/>""";
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Could not load signature image from {Path}", sig.ImageStoragePath);
-                imgTag = """<div style="width:220px;height:60px;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;color:#9aa0a6;font-size:11px;">[signature]</div>""";
-            }
-
-            rows.Append($"""
-                <div class="sig-row">
-                  {imgTag}
-                  <div class="sig-meta">
-                    <strong>{System.Net.WebUtility.HtmlEncode(sig.SignerName)}</strong>
-                    Signed: {sig.SignedAt:yyyy-MM-dd HH:mm} UTC
-                  </div>
-                </div>
-                """);
-        }
+            rows.Append(await BuildSignatureRowAsync(sig, ct));
 
         return $"""<div class="sig-section"><h3>Signatures</h3>{rows}</div>""";
+    }
+
+    private async Task<string> BuildSignatureRowAsync(HtmlTemplatePdfSignature sig, CancellationToken ct)
+    {
+        string imgTag;
+        try
+        {
+            var imgStream = await storage.DownloadAsync(sig.ImageStoragePath, ct);
+            using var ms = new MemoryStream();
+            await imgStream.CopyToAsync(ms, ct);
+            var b64 = Convert.ToBase64String(ms.ToArray());
+            imgTag = $"""<img class="sig-img" src="data:image/png;base64,{b64}" alt="Signature"/>""";
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not load signature image from {Path}", sig.ImageStoragePath);
+            imgTag = """<div style="width:220px;height:60px;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;color:#9aa0a6;font-size:11px;">[signature]</div>""";
+        }
+
+        return $"""
+            <div class="sig-row">
+              {imgTag}
+              <div class="sig-meta">
+                <strong>{System.Net.WebUtility.HtmlEncode(sig.SignerName)}</strong>
+                Signed: {sig.SignedAt:yyyy-MM-dd HH:mm} UTC
+              </div>
+            </div>
+            """;
     }
 
     private static readonly string[] ChromeArgs =

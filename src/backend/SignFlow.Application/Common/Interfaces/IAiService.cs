@@ -24,9 +24,18 @@ public interface IAiService
     /// satisfies each published regulatory text rather than whether its keywords appear, and proposes
     /// the wording that closes each gap. Slow (tens of seconds), so this is invoked on demand.
     /// </summary>
+    /// <param name="legalArticles">Verified articles from the legal corpus. When supplied, the model may only cite
+    /// these, and each citation is checked against the corpus afterwards.</param>
     Task<ComplianceAnalysis> ReviewComplianceAsync(
-        string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default);
+        string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations,
+        IReadOnlyList<LegalArticleContext>? legalArticles = null, CancellationToken ct = default);
 }
+
+/// <summary>One verified article handed to the model as the law it may rely on.</summary>
+public record LegalArticleContext(string ArticleId, string Citation, string Text, double Score = 0);
+
+/// <summary>One clause of the contract and the verified articles of law found for it — by search, with no model.</summary>
+public record ClauseLawMatch(string Clause, List<LegalArticleContext> Articles);
 
 /// <summary>Minimal regulatory-text data the compliance scan needs — not the full registry entity.</summary>
 public record RegulatoryTextSummary(Guid Id, string Title, string Keywords, string? Reference);
@@ -45,7 +54,11 @@ public record ComplianceFinding(
     string? WhyItMatters = null,
     string? RecommendedAction = null,
     string? ProposedLanguage = null,
-    string? ContractReference = null);
+    string? ContractReference = null,
+    string? LegalArticleId = null,
+    string? LegalCitation = null,
+    string? LegalQuote = null,
+    string? CitationStatus = null);
 
 /// <summary>
 /// Result of a compliance scan against the published regulatory watch registry. ComplianceScore is
@@ -56,7 +69,8 @@ public record ComplianceAnalysis(
     int ComplianceScore,
     List<ComplianceFinding> Findings,
     DateTime AnalyzedAt,
-    List<string>? Limitations = null);
+    List<string>? Limitations = null,
+    List<ClauseLawMatch>? RelevantLaw = null);
 
 /// <summary>
 /// One finding in a <see cref="ContractRiskAnalysis"/>. Severity is "Critical", "High", "Medium" or "Low";
@@ -72,7 +86,8 @@ public record RiskFinding(
     string? WhyItMatters = null,
     string? RecommendedAction = null,
     string? ProposedLanguage = null,
-    string? ContractReference = null);
+    string? ContractReference = null,
+    string? RuleKey = null);
 
 /// <summary>What the analyser could determine about the contract itself. Null where the text does not say.</summary>
 public record ContractProfile(

@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using SignFlow.Application.Common.Interfaces;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
+using SignFlow.Infrastructure.Persistence.Demo;
 
 namespace SignFlow.Infrastructure.Persistence;
 
@@ -10,7 +14,9 @@ public static class DatabaseSeeder
     public static async Task SeedAsync(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole<Guid>> roleManager)
+        RoleManager<IdentityRole<Guid>> roleManager,
+        DemoContractSeedContext? demoContracts = null,
+        ILogger? logger = null)
     {
         // Roles
         string[] roles = ["Administrator", "Manager", "Employee", "ExternalSigner"];
@@ -29,6 +35,7 @@ public static class DatabaseSeeder
                 Email = "admin@legaldesk.tn",
                 FirstName = "System",
                 LastName = "Administrator",
+                Company = "DCWI",
                 Department = "Legal",
                 EmailConfirmed = true,
                 IsActive = true
@@ -79,13 +86,42 @@ public static class DatabaseSeeder
                 await userManager.AddToRoleAsync(employee, "Employee");
         }
 
+        // Existing databases: the admin was created without a company, which left company auto-fill blank.
+        var existingAdmin = await userManager.FindByEmailAsync("admin@legaldesk.tn");
+        if (existingAdmin is not null && string.IsNullOrEmpty(existingAdmin.Company))
+        {
+            existingAdmin.Company = "DCWI";
+            await userManager.UpdateAsync(existingAdmin);
+        }
+
         await context.SaveChangesAsync();
 
         await BackfillDepartmentsAsync(context);
         await SeedRequestTypesAsync(context);
         await SeedClausesAsync(context, userManager);
         await SeedRegulatoryTextsAsync(context, userManager);
+
+        // Opt-in, and last: the demo portfolio depends on the contract families and the regulatory
+        // registry seeded above, and it is the only part of seeding that invents business data.
+        if (demoContracts is not null)
+        {
+            await DemoContractSeeder.SeedAsync(
+                context, userManager, demoContracts.Storage, demoContracts.PdfService,
+                logger ?? NullLogger.Instance);
+
+            await VacationRequestTemplateSeeder.SeedAsync(
+                context, userManager, demoContracts.Storage, demoContracts.PdfService,
+                logger ?? NullLogger.Instance);
+
+            await B2BContractTemplateSeeder.SeedAsync(context, userManager, logger ?? NullLogger.Instance);
+        }
     }
+
+    /// <summary>
+    /// The extra services the demo-contract portfolio needs, supplied only when demo seeding is
+    /// switched on so the default path takes no dependency on storage or PDF rendering.
+    /// </summary>
+    public record DemoContractSeedContext(IStorageService Storage, IPdfService PdfService);
 
     private static async Task BackfillDepartmentsAsync(ApplicationDbContext context)
     {

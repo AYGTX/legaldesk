@@ -1047,6 +1047,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<long>("FileSizeBytes")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("FilledValuesJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -1152,6 +1155,10 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("DefaultValue")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("FieldKey")
                         .IsRequired()
@@ -1514,6 +1521,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("ReminderSent")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("ReviewAcknowledgedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("RoleLabel")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -1567,6 +1577,53 @@ namespace SignFlow.Infrastructure.Migrations
                     b.ToTable("Recipients");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.RegulatoryArticle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RegulatoryTextId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegulatoryTextId", "Number");
+
+                    b.HasIndex("RegulatoryTextId", "Order");
+
+                    b.ToTable("RegulatoryArticles");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.RegulatoryText", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1612,6 +1669,10 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid?>("RequestTypeId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -1630,6 +1691,12 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("VerifiedById")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -1872,6 +1939,9 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<string>("SignedValue")
                         .HasMaxLength(5000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TemplateKey")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Tooltip")
@@ -2482,6 +2552,17 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.RegulatoryArticle", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.RegulatoryText", "RegulatoryText")
+                        .WithMany("Articles")
+                        .HasForeignKey("RegulatoryTextId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RegulatoryText");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.RegulatoryText", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "CreatedByUser")
@@ -2637,6 +2718,11 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("ChecklistItems");
 
                     b.Navigation("Signatures");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.RegulatoryText", b =>
+                {
+                    b.Navigation("Articles");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.SignatureField", b =>

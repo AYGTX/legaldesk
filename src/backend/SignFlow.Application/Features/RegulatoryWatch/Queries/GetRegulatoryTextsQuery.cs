@@ -28,7 +28,11 @@ public record RegulatoryTextDto(
     string? RequestTypeName,
     string? CreatedByName,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    string? SourceUrl = null,
+    int ArticleCount = 0,
+    DateTime? VerifiedAt = null,
+    string? VerifiedByName = null);
 
 public class GetRegulatoryTextsQueryHandler(
     IApplicationDbContext db,
@@ -69,7 +73,11 @@ public class GetRegulatoryTextsQueryHandler(
                 r.Status, r.EffectiveDate, r.RequestTypeId,
                 r.RequestType != null ? r.RequestType.Name : null,
                 r.CreatedByUser != null ? r.CreatedByUser.FullName : null,
-                r.CreatedAt, r.UpdatedAt))
+                r.CreatedAt, r.UpdatedAt,
+                r.SourceUrl,
+                r.Articles.Count(),
+                r.VerifiedAt,
+                db.Users.Where(u => u.Id == r.VerifiedById).Select(u => u.FirstName + " " + u.LastName).FirstOrDefault()))
             .ToListAsync(cancellationToken);
     }
 }

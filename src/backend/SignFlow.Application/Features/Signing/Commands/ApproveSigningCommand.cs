@@ -43,6 +43,8 @@ public class ApproveSigningCommandHandler(
         if (recipient.ApprovalType == ApprovalType.ViewOnly)
             throw new ConflictException("View-only participants don't approve documents.");
 
+        ReviewGateRules.Require(recipient);
+
         if (recipient.ApprovalType is ApprovalType.Review or ApprovalType.Approval)
         {
             var uncheckedCount = await db.ChecklistItems
@@ -113,7 +115,8 @@ public class ApproveSigningCommandHandler(
                     .Select(x => new HtmlTemplatePdfSignature(
                         x.Sig.ImageUrl!,
                         x.Field.RecipientId.HasValue && recipientNames.TryGetValue(x.Field.RecipientId.Value, out var n) ? n : recipient.Name,
-                        x.Sig.SignedAt))
+                        x.Sig.SignedAt,
+                        x.Field.TemplateKey))
                     .ToList();
 
                 // Render the HTML template from the snapshot taken at request-creation time —
@@ -124,8 +127,16 @@ public class ApproveSigningCommandHandler(
                     .Where(f => f.HtmlTemplateId == recipient.Document.HtmlTemplateId!.Value)
                     .ToDictionaryAsync(f => f.FieldKey, f => f.Type, cancellationToken);
 
+                // Each signature placeholder in the text leaves a marker; the PDF generator swaps it for that
+                // signer's signature, so a signature lands where the template put it and not only at the end.
+                var signatureSlots = allDocFields
+                    .Where(f => !string.IsNullOrEmpty(f.TemplateKey))
+                    .Select(f => f.TemplateKey!)
+                    .Distinct()
+                    .ToDictionary(key => key, HtmlSignatureSlots.Marker);
+
                 var renderedHtml = HtmlContractRenderer.Render(
-                    recipient.Document.HtmlContentSnapshot, filledValues, fieldTypes);
+                    recipient.Document.HtmlContentSnapshot, filledValues, fieldTypes, signatureSlots);
 
                 var pdfStream = await htmlPdfGenerator.GenerateAsync(
                     renderedHtml, recipient.Document.Title, sigSummaries, cancellationToken);

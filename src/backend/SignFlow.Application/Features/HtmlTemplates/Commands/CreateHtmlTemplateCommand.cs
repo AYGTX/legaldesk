@@ -17,7 +17,8 @@ public record HtmlTemplateFieldInput(
     string? AutoFillFrom = null,
     string? OptionsJson = null,
     Guid? PreAssignedApproverId = null,
-    int WorkflowStage = 1);
+    int WorkflowStage = 1,
+    string? DefaultValue = null);
 
 public record CreateHtmlTemplateCommand(
     string Name,
@@ -105,7 +106,8 @@ public class CreateHtmlTemplateCommandHandler(
                     f.AutoFillFrom,
                     f.OptionsJson,
                     f.PreAssignedApproverId,
-                    f.WorkflowStage);
+                    f.WorkflowStage,
+                    f.DefaultValue);
                 db.HtmlTemplateFields.Add(field);
             }
             await db.SaveChangesAsync(cancellationToken);

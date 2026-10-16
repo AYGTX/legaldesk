@@ -11,7 +11,7 @@ public record LoginCommand(string Email, string Password, bool RememberMe = fals
 
 public record LoginResult(string AccessToken, string RefreshToken, DateTime ExpiresAt, UserInfo User);
 
-public record UserInfo(Guid Id, string Email, string FirstName, string LastName, string FullName, IList<string> Roles, string? AvatarUrl, bool MfaEnabled, string? Department);
+public record UserInfo(Guid Id, string Email, string FirstName, string LastName, string FullName, IList<string> Roles, string? AvatarUrl, bool MfaEnabled, string? Department, string? Company = null);
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>
 {
@@ -62,6 +62,6 @@ public class LoginCommandHandler(
             accessToken,
             refreshToken,
             DateTime.UtcNow.AddMinutes(60),
-            new UserInfo(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, roles, user.AvatarUrl, user.MfaEnabled, user.Department));
+            new UserInfo(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, roles, user.AvatarUrl, user.MfaEnabled, user.Department, user.Company));
     }
 }
