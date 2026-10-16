@@ -1,0 +1,44 @@
+<div class="grid">
+  <div class="full">
+    <label for="title">{{ t('title') }} *</label>
+    <input id="title" name="title" required maxlength="300" value="{{ text.title if text else '' }}">
+  </div>
+  <div>
+    <label for="reference">{{ t('reference') }}</label>
+    <input id="reference" name="reference" maxlength="300" placeholder="{{ t('reference_hint') }}" value="{{ text.reference or '' if text else '' }}">
+  </div>
+  <div>
+    <label for="source_url">{{ t('source_url') }}</label>
+    <input id="source_url" name="source_url" type="url" maxlength="1000" value="{{ text.source_url or '' if text else '' }}">
+  </div>
+  <div>
+    <label for="jurisdiction">{{ t('jurisdiction') }} *</label>
+    <select id="jurisdiction" name="jurisdiction" required>
+      {% for j in jurisdictions %}<option value="{{ j.value }}" {{ 'selected' if text and text.jurisdiction == j }}>{{ t(j.value) }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="category">{{ t('category') }} *</label>
+    <select id="category" name="category" required>
+      {% for c in categories %}<option value="{{ c.value }}" {{ 'selected' if text and text.category == c }}>{{ t(c.value) }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="language">{{ t('language') }}</label>
+    <select id="language" name="language">
+      {% for l in ['fr', 'en', 'ar'] %}<option value="{{ l }}" {{ 'selected' if (text and text.language == l) or (not text and l == 'fr') }}>{{ t('lang_' ~ l) }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="effective_date">{{ t('effective_date') }}</label>
+    <input id="effective_date" name="effective_date" type="date" value="{{ text.effective_date or '' if text else '' }}">
+  </div>
+  <div class="full">
+    <label for="keywords">{{ t('keywords') }}</label>
+    <input id="keywords" name="keywords" value="{{ text.keywords if text else '' }}">
+  </div>
+  <div class="full">
+    <label for="summary">{{ t('summary') }}</label>
+    <textarea id="summary" name="summary">{{ text.summary if text else '' }}</textarea>
+  </div>
+</div>

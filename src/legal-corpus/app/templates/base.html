@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ t('app_name') }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="/">{{ t('app_name') }}</a>
+    <nav>
+      <a href="/">{{ t('nav_texts') }}</a>
+      <a href="/search">{{ t('nav_search') }}</a>
+      <a href="/docs">{{ t('nav_api') }}</a>
+    </nav>
+    <span class="langs">
+      <a href="/lang/en" class="{{ 'active' if lang == 'en' }}">EN</a>
+      <a href="/lang/fr" class="{{ 'active' if lang == 'fr' }}">FR</a>
+    </span>
+  </div>
+</header>
+<main>
+  {% if flash %}<div class="flash {{ flash_kind }}">{{ t(flash, **flash_args) }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ text.title }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+{% set rtl = 'rtl' if text.language == 'ar' else '' %}
+<div class="page-head">
+  <div>
+    <h1>{{ text.title }}</h1>
+    <div style="margin-bottom:4px">
+      {% if text.is_verified %}<span class="badge ok">{{ t('verified') }}</span>{% else %}<span class="badge warn">{{ t('not_verified') }}</span>{% endif %}
+      <span class="badge neutral">{{ t(text.status.value) }}</span>
+      <span class="badge neutral">{{ t(text.jurisdiction.value) }} · {{ t(text.category.value) }}</span>
+    </div>
+    <div class="muted">{{ text.reference or '' }}{% if text.source_url %} · <a href="{{ text.source_url }}" target="_blank" rel="noopener noreferrer">{{ t('source_url') }}</a>{% endif %}</div>
+  </div>
+  <a href="/">{{ t('back') }}</a>
+</div>
+
+<section class="card">
+  <h2>{{ t('verification') }}</h2>
+  {% if text.is_verified %}
+    <p><span class="badge ok">{{ t('verified') }}</span>
+      {{ t('verified_by_on', who=text.verified_by, when=text.verified_at.strftime('%Y-%m-%d %H:%M')) }}</p>
+    <p class="muted">{{ t('verify_explain') }}</p>
+    <form method="post" action="/texts/{{ text.id }}/unverify"><button class="secondary" type="submit">{{ t('unverify') }}</button></form>
+  {% else %}
+    <div class="notice">{{ t('unverified_explain') }}</div>
+    <p class="muted">{{ t('verify_explain') }}</p>
+    <form class="row" method="post" action="/texts/{{ text.id }}/verify">
+      <div><label for="verified_by">{{ t('your_name') }}</label><input id="verified_by" name="verified_by" required maxlength="200"></div>
+      <button type="submit">{{ t('verify') }}</button>
+    </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ t('articles') }} ({{ text.articles|length }})</h2>
+  {% for a in text.articles %}
+    <div class="article">
+      <div class="num">{{ t('article') }} {{ a.number }}</div>
+      <p class="body {{ rtl }}">{{ a.text }}</p>
+      <details>
+        <summary>{{ t('edit') }}</summary>
+        <form method="post" action="/articles/{{ a.id }}">
+          <div class="grid">
+            <div><label>{{ t('number') }}</label><input name="number" required maxlength="50" value="{{ a.number }}"></div>
+            <div><label>{{ t('order') }}</label><input name="order" type="number" value="{{ a.order }}"></div>
+            <div class="full"><label>{{ t('text') }}</label><textarea class="tall {{ rtl }}" name="text" required>{{ a.text }}</textarea></div>
+          </div>
+          <div class="actions"><button type="submit">{{ t('save') }}</button></div>
+        </form>
+        <form method="post" action="/articles/{{ a.id }}/delete" onsubmit='return confirm({{ t("confirm_delete")|tojson }})'>
+          <div class="actions"><button class="danger" type="submit">{{ t('delete') }}</button></div>
+        </form>
+      </details>
+    </div>
+  {% else %}
+    <p class="muted">{{ t('no_articles') }}</p>
+  {% endfor %}
+</section>
+
+<section class="card">
+  <h2>{{ t('import_articles') }}</h2>
+  <p class="muted">{{ t('import_hint') }}</p>
+  <form method="post" action="/texts/{{ text.id }}/import">
+    <textarea class="tall {{ rtl }}" name="raw_text" required></textarea>
+    <div class="actions">
+      <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="replace" style="width:auto"> {{ t('replace_existing') }}</label>
+      <button type="submit">{{ t('import') }}</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>{{ t('add_article') }}</h2>
+  <form method="post" action="/texts/{{ text.id }}/articles">
+    <div class="grid">
+      <div><label for="new_number">{{ t('number') }}</label><input id="new_number" name="number" required maxlength="50"></div>
+      <div class="full"><label for="new_text">{{ t('text') }}</label><textarea id="new_text" class="tall {{ rtl }}" name="text" required></textarea></div>
+    </div>
+    <div class="actions"><button type="submit">{{ t('add_article') }}</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>{{ t('edit') }}</h2>
+  <form method="post" action="/texts/{{ text.id }}/status" class="row">
+    <div><label for="status">{{ t('status') }}</label>
+      <select id="status" name="status">{% for s in statuses %}<option value="{{ s.value }}" {{ 'selected' if text.status == s }}>{{ t(s.value) }}</option>{% endfor %}</select>
+    </div>
+    <button class="secondary" type="submit">{{ t('set_status') }}</button>
+  </form>
+  <hr style="border:0;border-top:1px solid var(--border);margin:18px 0">
+  <form method="post" action="/texts/{{ text.id }}">
+    {% include "_text_fields.html" %}
+    <div class="actions"><button type="submit">{{ t('save') }}</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>{{ t('danger_zone') }}</h2>
+  <form method="post" action="/texts/{{ text.id }}/delete" onsubmit='return confirm({{ t("confirm_delete")|tojson }})'>
+    <button class="danger" type="submit">{{ t('delete') }}</button>
+  </form>
+</section>
+{% endblock %}

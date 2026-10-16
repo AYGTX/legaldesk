@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_search') }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('search_title') }}</h1>
+  <form method="post" action="/index/rebuild" class="row" style="align-items:center">
+    <span class="muted">{{ t('index_status', indexed=status.indexed_articles, total=status.total_articles, embedder=status.embedder) }}</span>
+    <button class="secondary" type="submit">{{ t('rebuild_index') }}</button>
+  </form>
+</div>
+
+<form class="card" method="get" action="/search">
+  <div class="row">
+    <div style="flex:3 1 300px"><label for="q">{{ t('search_query') }}</label><input id="q" name="q" value="{{ form.q }}"></div>
+    <div><label for="sj">{{ t('jurisdiction') }}</label>
+      <select id="sj" name="jurisdiction"><option value="">{{ t('all') }}</option>
+        {% for j in jurisdictions %}<option value="{{ j.value }}" {{ 'selected' if form.jurisdiction == j.value }}>{{ t(j.value) }}</option>{% endfor %}
+      </select></div>
+    <div><label for="sc">{{ t('category') }}</label>
+      <select id="sc" name="category"><option value="">{{ t('all') }}</option>
+        {% for c in categories %}<option value="{{ c.value }}" {{ 'selected' if form.category == c.value }}>{{ t(c.value) }}</option>{% endfor %}
+      </select></div>
+    <button type="submit">{{ t('search') }}</button>
+  </div>
+  <label style="display:flex;gap:6px;align-items:center;margin-top:10px"><input type="checkbox" name="unverified" style="width:auto" {{ 'checked' if form.unverified == 'on' }}> {{ t('include_unverified') }}</label>
+</form>
+
+{% if hits is not none %}
+<section class="card">
+  {% for h in hits %}
+    <div class="hit">
+      <div><a href="/texts/{{ h.legal_text_id }}"><strong>{{ h.citation }}</strong></a>
+        {% if h.is_verified %}<span class="badge ok">{{ t('verified') }}</span>{% else %}<span class="badge warn">{{ t('not_verified') }}</span>{% endif %}
+      </div>
+      <div class="meta">{{ h.legal_text_title }} · {{ t(h.jurisdiction.value) }} · {{ t(h.category.value) }} · {{ t('score') }} {{ '%.2f'|format(h.score) }}</div>
+      <p class="body {{ 'rtl' if h.language == 'ar' }}">{{ h.excerpt }}</p>
+    </div>
+  {% else %}
+    <p class="muted">{{ t('no_results') }}</p>
+  {% endfor %}
+</section>
+{% endif %}
+
+<form class="card" method="get" action="/search">
+  <h2>{{ t('check_citation') }}</h2>
+  <p class="muted">{{ t('check_explain') }}</p>
+  <div class="grid">
+    <div><label for="text_id">{{ t('legal_text') }}</label>
+      <select id="text_id" name="text_id" required><option value=""></option>
+        {% for tx in all_texts %}<option value="{{ tx.id }}" {{ 'selected' if form.text_id == tx.id }}>{{ tx.reference or tx.title }}</option>{% endfor %}
+      </select></div>
+    <div><label for="article_number">{{ t('article_number_optional') }}</label><input id="article_number" name="article_number" value="{{ form.article_number }}"></div>
+    <div class="full"><label for="quote">{{ t('quote') }}</label><textarea id="quote" name="quote" required>{{ form.quote }}</textarea></div>
+  </div>
+  <div class="actions"><button type="submit">{{ t('check') }}</button></div>
+  {% if citation %}
+    {% if citation.found and citation.is_verified %}
+      <div class="flash ok" style="margin:14px 0 0">{{ t('citation_found', where=citation.citation) }}</div>
+    {% elif citation.found %}
+      <div class="notice" style="margin:14px 0 0">{{ t('citation_found_unverified', where=citation.citation) }}</div>
+    {% else %}
+      <div class="flash error" style="margin:14px 0 0">{{ t('err_' ~ citation.reason) }}</div>
+    {% endif %}
+  {% endif %}
+</form>
+{% endblock %}

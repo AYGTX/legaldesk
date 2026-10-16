@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('nav_texts') }}</h1>
+  <a class="button" href="/texts/new">{{ t('new_text') }}</a>
+</div>
+
+<form class="card row" method="get" action="/">
+  <div><label for="q">{{ t('search') }}</label><input id="q" name="q" value="{{ filters.q }}" placeholder="{{ t('search_placeholder') }}"></div>
+  <div><label for="fj">{{ t('jurisdiction') }}</label>
+    <select id="fj" name="jurisdiction"><option value="">{{ t('all') }}</option>
+      {% for j in jurisdictions %}<option value="{{ j.value }}" {{ 'selected' if filters.jurisdiction == j.value }}>{{ t(j.value) }}</option>{% endfor %}
+    </select></div>
+  <div><label for="fc">{{ t('category') }}</label>
+    <select id="fc" name="category"><option value="">{{ t('all') }}</option>
+      {% for c in categories %}<option value="{{ c.value }}" {{ 'selected' if filters.category == c.value }}>{{ t(c.value) }}</option>{% endfor %}
+    </select></div>
+  <div><label for="fs">{{ t('status') }}</label>
+    <select id="fs" name="status"><option value="">{{ t('all') }}</option>
+      {% for s in statuses %}<option value="{{ s.value }}" {{ 'selected' if filters.status == s.value }}>{{ t(s.value) }}</option>{% endfor %}
+    </select></div>
+  <div><label for="fv">{{ t('verification') }}</label>
+    <select id="fv" name="verified"><option value="">{{ t('all') }}</option>
+      <option value="yes" {{ 'selected' if filters.verified == 'yes' }}>{{ t('verified') }}</option>
+      <option value="no" {{ 'selected' if filters.verified == 'no' }}>{{ t('not_verified') }}</option>
+    </select></div>
+  <button type="submit">{{ t('filter') }}</button>
+</form>
+
+<div class="card table-wrap">
+  {% if texts %}
+  <table>
+    <thead><tr><th>{{ t('title') }}</th><th>{{ t('jurisdiction') }}</th><th>{{ t('category') }}</th><th>{{ t('articles') }}</th><th>{{ t('status') }}</th><th>{{ t('verification') }}</th></tr></thead>
+    <tbody>
+    {% for text in texts %}
+      <tr>
+        <td><a href="/texts/{{ text.id }}">{{ text.title }}</a>{% if text.reference %}<div class="muted">{{ text.reference }}</div>{% endif %}</td>
+        <td>{{ t(text.jurisdiction.value) }}</td>
+        <td>{{ t(text.category.value) }}</td>
+        <td>{{ counts.get(text.id, 0) }}</td>
+        <td><span class="badge neutral">{{ t(text.status.value) }}</span></td>
+        <td>{% if text.is_verified %}<span class="badge ok">{{ t('verified') }}</span>{% else %}<span class="badge warn">{{ t('not_verified') }}</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">{{ t('no_texts') }}</p>
+  {% endif %}
+</div>
+{% endblock %}
