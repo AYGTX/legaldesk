@@ -12,6 +12,7 @@ class Settings:
     embedder: str
     embedding_model: str
     api_key: str | None
+    playbook_path: Path = BASE_DIR / "playbook.json"
 
 
 def load_settings() -> Settings:
@@ -22,4 +23,5 @@ def load_settings() -> Settings:
             "CORPUS_EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
         ),
         api_key=os.getenv("CORPUS_API_KEY") or None,
+        playbook_path=Path(os.getenv("CORPUS_PLAYBOOK", str(BASE_DIR / "playbook.json"))),
     )

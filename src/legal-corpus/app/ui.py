@@ -1,5 +1,5 @@
 from datetime import date
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import quote, urlencode, urlsplit
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -12,7 +12,7 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, Jurisdiction, TextStatus
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import corpus
+from app.services import corpus, playbook
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
 from app.services.search import index_status, rebuild_index, search
@@ -263,3 +263,104 @@ def search_page(
 def rebuild(db: Session = Depends(get_db), embedder: Embedder = Depends(get_embedder)):
     rebuild_index(db, embedder, force=True)
     return _redirect("/search", "index_rebuilt")
+
+
+# ------------------------------------------------------------------ playbook editor
+
+def _playbook_path(request: Request):
+    return request.app.state.settings.playbook_path
+
+
+def _rule_url(key: str) -> str:
+    return f"/playbook/rules/{quote(key, safe='')}"
+
+
+@router.get("/playbook", response_class=HTMLResponse)
+def playbook_page(request: Request, db: Session = Depends(get_db)):
+    described = playbook.describe(db, _playbook_path(request))
+    used = {r["key"] for r in described["rules"]}
+    return _render(request, "playbook.html", pb=described, detected=playbook.DETECTED_KEYS,
+                   free_keys=[k for k in playbook.DETECTED_KEYS if k not in used])
+
+
+@router.post("/playbook/rules")
+def create_rule(request: Request, key: str = Form(""), label: str = Form("")):
+    playbook.add_rule(key, label, _playbook_path(request))
+    return _redirect(_rule_url(key.strip().lower().replace(" ", "_")), "saved")
+
+
+@router.get("/playbook/rules/{key}", response_class=HTMLResponse)
+def rule_page(key: str, request: Request, db: Session = Depends(get_db)):
+    described = playbook.describe(db, _playbook_path(request))
+    rule = next((r for r in described["rules"] if r["key"] == key), None)
+    if rule is None:
+        return _redirect("/playbook")
+    texts = [t for t in corpus.list_texts(db) if t.reference and t.is_verified]
+    mappings = [f for f, k in described["regulations"].items() if k == key]
+    return _render(request, "playbook_rule.html", rule=rule, texts=texts, mappings=mappings,
+                   detected=playbook.DETECTED_KEYS)
+
+
+@router.post("/playbook/rules/{key}/label")
+def rule_label(key: str, request: Request, label: str = Form("")):
+    playbook.update_label(key, label, _playbook_path(request))
+    return _redirect(_rule_url(key), "saved")
+
+
+@router.post("/playbook/rules/{key}/delete")
+def rule_delete(key: str, request: Request):
+    playbook.delete_rule(key, _playbook_path(request))
+    return _redirect("/playbook", "deleted")
+
+
+@router.post("/playbook/rules/{key}/articles")
+def rule_add_article(key: str, request: Request, text_id: str = Form(""), number: str = Form(""),
+                     why: str = Form(""), db: Session = Depends(get_db)):
+    if not text_id or not number.strip():
+        return _redirect(_rule_url(key), "err_invalid", "error")
+    playbook.add_article(db, key, text_id, number, why, _playbook_path(request))
+    return _redirect(_rule_url(key), "saved")
+
+
+@router.post("/playbook/rules/{key}/articles/{index}")
+def rule_update_article(key: str, index: int, request: Request, why: str = Form("")):
+    playbook.update_article(key, index, why, _playbook_path(request))
+    return _redirect(_rule_url(key), "saved")
+
+
+@router.post("/playbook/rules/{key}/articles/{index}/delete")
+def rule_remove_article(key: str, index: int, request: Request):
+    playbook.remove_article(key, index, _playbook_path(request))
+    return _redirect(_rule_url(key), "deleted")
+
+
+@router.post("/playbook/rules/{key}/articles/{index}/move")
+def rule_move_article(key: str, index: int, request: Request, offset: int = Form(0)):
+    playbook.move_article(key, index, offset, _playbook_path(request))
+    return _redirect(_rule_url(key), "saved")
+
+
+@router.post("/playbook/rules/{key}/confirm")
+def rule_confirm(key: str, request: Request, confirmed_by: str = Form(""), db: Session = Depends(get_db)):
+    if not confirmed_by.strip():
+        return _redirect(_rule_url(key), "err_invalid", "error")
+    playbook.confirm(db, key, confirmed_by, _playbook_path(request))
+    return _redirect(_rule_url(key), "rule_confirmed")
+
+
+@router.post("/playbook/rules/{key}/unconfirm")
+def rule_unconfirm(key: str, request: Request):
+    playbook.unconfirm(key, _playbook_path(request))
+    return _redirect(_rule_url(key), "unverified_ok")
+
+
+@router.post("/playbook/mappings")
+def mapping_add(request: Request, fragment: str = Form(""), key: str = Form(""), back: str = Form("/playbook")):
+    playbook.set_mapping(fragment, key, _playbook_path(request))
+    return _redirect(back if back.startswith("/playbook") else "/playbook", "saved")
+
+
+@router.post("/playbook/mappings/delete")
+def mapping_delete(request: Request, fragment: str = Form(""), back: str = Form("/playbook")):
+    playbook.delete_mapping(fragment, _playbook_path(request))
+    return _redirect(back if back.startswith("/playbook") else "/playbook", "deleted")

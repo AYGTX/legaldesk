@@ -1,0 +1,403 @@
+{
+  "_comment": "Which verified articles back each risk the rules scan detects. A rule is used only once confirmed_by is set: the articles are verified law, but linking them to a risk is a legal judgement a person signs off.",
+  "rules": [
+    {
+      "key": "liability",
+      "label": "Responsabilité illimitée / pouvoir discrétionnaire",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "244",
+          "why": "Limite légale des clauses sur la responsabilité : faute lourde et dol ne peuvent être exclus."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "278",
+          "why": "Étendue des dommages-intérêts : perte effective et gain manqué, conséquence directe de l'inexécution."
+        }
+      ],
+      "confirmed_by": "H. Aymen"
+    },
+    {
+      "key": "indemnification",
+      "label": "Indemnisation",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "278",
+          "why": "Ce que couvrent les dommages-intérêts en droit commun, à comparer avec une garantie sans limite."
+        }
+      ],
+      "confirmed_by": "H. Aymen"
+    },
+    {
+      "key": "penalty",
+      "label": "Clause pénale",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "277",
+          "why": "Les dommages-intérêts sont dus pour inexécution ou retard."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "278",
+          "why": "Le tribunal apprécie le montant selon les circonstances : base pour contester une pénalité sans plafond."
+        }
+      ],
+      "confirmed_by": "H. Aymen"
+    },
+    {
+      "key": "termination",
+      "label": "Droit de résiliation",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "273",
+          "why": "Résolution du contrat en cas de demeure du débiteur ; elle doit être prononcée en justice."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "247",
+          "why": "Exception d'inexécution dans les contrats bilatéraux."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "242",
+          "why": "Le contrat ne peut être révoqué que du consentement mutuel ou dans les cas prévus par la loi."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "243",
+          "why": "Exécution de bonne foi."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "auto_renewal",
+      "label": "Reconduction tacite",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "860",
+          "why": "Fin et reconduction tacite du louage de services."
+        }
+      ],
+      "confirmed_by": "H. Aymen"
+    },
+    {
+      "key": "exclusivity",
+      "label": "Exclusivité / non-concurrence",
+      "articles": [
+        {
+          "reference": "Loi n° 2015-36 du 15 septembre 2015",
+          "number": "5",
+          "why": "Ententes anticoncurrentielles prohibées ; clause contraire nulle de plein droit."
+        },
+        {
+          "reference": "Loi n° 2015-36 du 15 septembre 2015",
+          "number": "6",
+          "why": "Seule voie d'exemption, sur arrêté du ministre du commerce."
+        }
+      ],
+      "confirmed_by": "H. Aymen"
+    },
+    {
+      "key": "personal_data",
+      "label": "Données personnelles",
+      "articles": [
+        {
+          "reference": "Loi organique n° 2004-63 du 27 juillet 2004",
+          "number": "27",
+          "why": "Consentement exprès et écrit de la personne concernée."
+        },
+        {
+          "reference": "Loi organique n° 2004-63 du 27 juillet 2004",
+          "number": "18",
+          "why": "Obligation de sécurité des données."
+        },
+        {
+          "reference": "Loi organique n° 2004-63 du 27 juillet 2004",
+          "number": "20",
+          "why": "Encadrement de la sous-traitance du traitement."
+        },
+        {
+          "reference": "Loi organique n° 2004-63 du 27 juillet 2004",
+          "number": "52",
+          "why": "Autorisation obligatoire de l'Instance pour tout transfert vers l'étranger."
+        },
+        {
+          "reference": "Loi organique n° 2004-63 du 27 juillet 2004",
+          "number": "51",
+          "why": "Le pays de destination doit assurer un niveau de protection adéquat."
+        },
+        {
+          "reference": "Loi organique n° 2004-63 du 27 juillet 2004",
+          "number": "22",
+          "why": "Le responsable, le sous-traitant et leurs agents doivent être de nationalité tunisienne et résider en Tunisie."
+        },
+        {
+          "reference": "Loi organique n° 2004-63 du 27 juillet 2004",
+          "number": "23",
+          "why": "Confidentialité des données, même après la fin du traitement."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "payment",
+      "label": "Prix et paiement",
+      "articles": [
+        {
+          "reference": "Loi n° 2015-36 du 15 septembre 2015",
+          "number": "33",
+          "why": "La facture doit mentionner les moyens et délais de paiement."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "278",
+          "why": "Pour une somme d'argent, les dommages-intérêts consistent dans les intérêts légaux."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "contradiction",
+      "label": "Clauses contradictoires ou renvois erronés",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "517",
+          "why": "Clauses inconciliables : on s'en tient à la dernière dans l'ordre de l'écriture."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "514",
+          "why": "Il y a lieu à interprétation lorsque les clauses rapprochées font naître des doutes."
+        }
+      ],
+      "confirmed_by": "H. Aymen"
+    },
+    {
+      "key": "unilateral_change",
+      "label": "Modification unilatérale",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "242",
+          "why": "Le contrat tient lieu de loi : il ne peut être révoqué que du consentement mutuel des parties."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "23",
+          "why": "Les modifications sont apportées d'un commun accord."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "force_majeure",
+      "label": "Force majeure",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "283",
+          "why": "Définition légale de la force majeure et ses limites."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "282",
+          "why": "Pas de dommages-intérêts lorsque l'inexécution provient d'une force majeure."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "electronic_signature",
+      "label": "Signature électronique",
+      "articles": [
+        {
+          "reference": "Loi n° 2000-83 du 9 août 2000",
+          "number": "4",
+          "why": "Valeur probante et conservation du document électronique."
+        },
+        {
+          "reference": "Loi n° 2000-83 du 9 août 2000",
+          "number": "5",
+          "why": "Création de la signature par un dispositif fiable."
+        },
+        {
+          "reference": "Loi n° 2000-83 du 9 août 2000",
+          "number": "6",
+          "why": "Obligations du titulaire de la signature."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "commercial_agency",
+      "label": "Agence commerciale",
+      "articles": [
+        {
+          "reference": "Code de commerce (Imprimerie Officielle, version 2014)",
+          "number": "625",
+          "why": "Définition de l'agent commercial."
+        },
+        {
+          "reference": "Code de commerce (Imprimerie Officielle, version 2014)",
+          "number": "626",
+          "why": "Préavis obligatoire pour rompre une agence à durée indéterminée."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "consumer_online",
+      "label": "Vente en ligne au consommateur",
+      "articles": [
+        {
+          "reference": "Loi n° 2000-83 du 9 août 2000",
+          "number": "25",
+          "why": "Information précontractuelle obligatoire."
+        },
+        {
+          "reference": "Loi n° 2000-83 du 9 août 2000",
+          "number": "30",
+          "why": "Droit de rétractation de 10 jours ouvrables."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "deposit",
+      "label": "Arrhes / acompte",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "303",
+          "why": "Définition des arrhes."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "304",
+          "why": "Imputation ou restitution des arrhes selon l'exécution du contrat."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "305",
+          "why": "Les arrhes ne sont retenues qu'en cas de faute de celui qui les a données."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "breach_notice",
+      "label": "Résiliation pour manquement sans mise en demeure",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "268",
+          "why": "Quand le débiteur est en demeure."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "269",
+          "why": "Mise en demeure par l'échéance ou par interpellation formelle."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "273",
+          "why": "La résolution suppose la demeure et doit être prononcée en justice."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "suspension",
+      "label": "Suspension de l'exécution",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "247",
+          "why": "Exception d'inexécution : on ne suspend qu'en réponse à l'inexécution de l'autre partie."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "works_guarantee",
+      "label": "Garantie de l'ouvrage",
+      "articles": [
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "874",
+          "why": "Le locateur d'ouvrage garantit les vices et défauts de son ouvrage."
+        },
+        {
+          "reference": "Code des obligations et des contrats (Décret du 15 décembre 1906)",
+          "number": "876",
+          "why": "Responsabilité de cinq ans de l'entrepreneur et de l'architecte."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "transport",
+      "label": "Contrat de transport",
+      "articles": [
+        {
+          "reference": "Code de commerce (Imprimerie Officielle, version 2014)",
+          "number": "640",
+          "why": "Le transporteur est responsable dès la remise de la chose."
+        },
+        {
+          "reference": "Code de commerce (Imprimerie Officielle, version 2014)",
+          "number": "667",
+          "why": "Ce qui constitue une clause d'exonération du transporteur."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "electronic_payment",
+      "label": "Paiement électronique",
+      "articles": [
+        {
+          "reference": "Loi n° 2005-51 du 27 juin 2005",
+          "number": "2",
+          "why": "Information préalable obligatoire du bénéficiaire."
+        },
+        {
+          "reference": "Loi n° 2005-51 du 27 juin 2005",
+          "number": "5",
+          "why": "Secret des codes, contrôle et conservation des opérations pendant dix ans."
+        },
+        {
+          "reference": "Loi n° 2005-51 du 27 juin 2005",
+          "number": "7",
+          "why": "Responsabilité de l'émetteur."
+        }
+      ],
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-16T22:17:22+00:00"
+    }
+  ],
+  "regulations": {
+    "2004-63": "personal_data",
+    "Code de commerce": "payment"
+  }
+}

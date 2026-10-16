@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, get_embedder, require_api_key
@@ -19,7 +19,7 @@ from app.schemas import (
     StatusIn,
     VerifyIn,
 )
-from app.services import corpus
+from app.services import corpus, playbook
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
 from app.services.search import index_status, rebuild_index, search
@@ -120,6 +120,11 @@ def check_one(body: CitationIn, db: Session = Depends(get_db)):
 @router.post("/citations/check-batch", response_model=list[CitationOut], tags=["retrieval"])
 def check_batch(body: CitationBatchIn, db: Session = Depends(get_db)):
     return [check_citation(db, c) for c in body.citations]
+
+
+@router.get("/playbook", tags=["retrieval"])
+def get_playbook(request: Request, include_unconfirmed: bool = False, db: Session = Depends(get_db)):
+    return playbook.resolve(db, request.app.state.settings.playbook_path, include_unconfirmed)
 
 
 @router.get("/index/status", response_model=IndexStatus, tags=["index"])

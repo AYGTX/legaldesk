@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import Article, LegalText, TextStatus
 from app.schemas import IndexStatus, SearchHit, SearchIn
 from app.services.citations import citation_label
-from app.services.embeddings import Embedder, chunk_text
+from app.services.embeddings import Embedder, HashingEmbedder, chunk_text
+from app.services.lexical import index_for, tokenize
 
 
 def _needs_index(article: Article, embedder: Embedder) -> bool:
@@ -66,16 +67,26 @@ def search(db: Session, embedder: Embedder, request: SearchIn) -> list[SearchHit
     articles = list(db.scalars(query).all())
     if not articles:
         return []
-    index_articles(db, embedder, articles)
 
-    query_vector = embedder.embed([request.query])[0]
     scored: list[tuple[float, str, Article]] = []
-    for article in articles:
-        vectors = np.asarray(json.loads(article.embedding), dtype=np.float32)
-        similarities = vectors @ query_vector
-        best = int(np.argmax(similarities))
-        chunk = (chunk_text(article.text) or [article.text])[best]
-        scored.append((float(similarities[best]), chunk, article))
+    if isinstance(embedder, HashingEmbedder):
+        # Without a semantic model, keyword ranking beats hashed vectors by a wide margin.
+        by_id = {a.id: a for a in articles}
+        query_terms = set(tokenize(request.query))
+        for article_id, score in index_for(articles).rank(request.query)[: request.top_k]:
+            article = by_id[article_id]
+            chunks = chunk_text(article.text) or [article.text]
+            excerpt = max(chunks, key=lambda c: len(query_terms.intersection(tokenize(c))))
+            scored.append((score, excerpt, article))
+    else:
+        index_articles(db, embedder, articles)
+        query_vector = embedder.embed([request.query])[0]
+        for article in articles:
+            vectors = np.asarray(json.loads(article.embedding), dtype=np.float32)
+            similarities = vectors @ query_vector
+            best = int(np.argmax(similarities))
+            chunk = (chunk_text(article.text) or [article.text])[best]
+            scored.append((float(similarities[best]), chunk, article))
 
     scored.sort(key=lambda item: item[0], reverse=True)
     hits = []

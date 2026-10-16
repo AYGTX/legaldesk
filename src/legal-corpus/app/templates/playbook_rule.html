@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ rule.label }} · {{ t('nav_playbook') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ rule.label }}</h1>
+    <div style="margin-top:4px">
+      <code>{{ rule.key }}</code>
+      {% if rule.detected %}<span class="badge neutral">{{ t('pb_detects') }} : {{ detected[rule.key][1] if lang == 'fr' else detected[rule.key][0] }}</span>
+      {% else %}<span class="badge warn">{{ t('pb_not_detected') }}</span>{% endif %}
+    </div>
+  </div>
+  <a href="/playbook">{{ t('pb_back') }}</a>
+</div>
+
+<section class="card">
+  <h2>{{ t('verification') }}</h2>
+  {% if rule.confirmed_by %}
+    <p><span class="badge ok">{{ t('pb_confirmed_by', who=rule.confirmed_by) }}</span>
+      {% if rule.confirmed_at %}<span class="muted">· {{ rule.confirmed_at[:16].replace('T', ' ') }}</span>{% endif %}</p>
+    <p class="muted">{{ t('pb_confirm_explain') }}</p>
+    <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/unconfirm"><button class="secondary" type="submit">{{ t('unverify') }}</button></form>
+  {% else %}
+    <div class="notice">{{ t('pb_unconfirmed_explain') }}</div>
+    <p class="muted">{{ t('pb_confirm_explain') }}</p>
+    <form class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/confirm">
+      <div><label for="confirmed_by">{{ t('your_name') }}</label><input id="confirmed_by" name="confirmed_by" required maxlength="200"></div>
+      <button type="submit" {{ 'disabled' if not rule.ready }}>{{ t('pb_confirm') }}</button>
+    </form>
+    {% if not rule.ready %}<p class="muted" style="margin:8px 0 0">{{ t('pb_not_ready') }}</p>{% endif %}
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ t('articles') }} ({{ rule.articles|length }})</h2>
+  {% for a in rule.articles %}
+    {% set i = loop.index0 %}
+    <div class="article">
+      <div class="row" style="align-items:center">
+        <div style="flex:1 1 auto">
+          <span class="num">{{ a.citation }}</span>
+          {% if a.verified %}<span class="badge ok">{{ t('verified') }}</span>
+          {% elif a.found %}<span class="badge warn">{{ t('not_verified') }}</span>
+          {% else %}<span class="badge warn">{{ t('pb_article_missing') }}</span>{% endif %}
+          {% if a.legal_text_id %}<a href="/texts/{{ a.legal_text_id }}" style="font-size:13px;margin-left:6px">{{ t('pb_open_text') }}</a>{% endif %}
+        </div>
+        <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/move" style="flex:0 0 auto">
+          <input type="hidden" name="offset" value="-1"><button class="secondary" type="submit" {{ 'disabled' if loop.first }} title="{{ t('pb_up') }}">↑</button>
+        </form>
+        <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/move" style="flex:0 0 auto">
+          <input type="hidden" name="offset" value="1"><button class="secondary" type="submit" {{ 'disabled' if loop.last }} title="{{ t('pb_down') }}">↓</button>
+        </form>
+        <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/delete" style="flex:0 0 auto"
+              onsubmit='return confirm({{ t("confirm_delete")|tojson }})'>
+          <button class="danger" type="submit">{{ t('pb_remove') }}</button>
+        </form>
+      </div>
+      {% if a.text %}<p class="body" style="margin:6px 0 8px">{{ a.text }}</p>{% endif %}
+      <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}" class="row">
+        <div style="flex:4 1 300px"><label>{{ t('pb_why') }}</label><input name="why" value="{{ a.why or '' }}" maxlength="400"></div>
+        <button class="secondary" type="submit">{{ t('save') }}</button>
+      </form>
+    </div>
+  {% else %}
+    <p class="muted">{{ t('no_articles') }}</p>
+  {% endfor %}
+</section>
+
+<form class="card" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles">
+  <h2>{{ t('pb_add_article') }}</h2>
+  <p class="muted">{{ t('pb_add_article_hint') }}</p>
+  <div class="grid">
+    <div class="full">
+      <label for="text_id">{{ t('legal_text') }}</label>
+      <select id="text_id" name="text_id" required>
+        <option value=""></option>
+        {% for tx in texts %}<option value="{{ tx.id }}">{{ tx.title }} — {{ tx.reference }}</option>{% endfor %}
+      </select>
+    </div>
+    <div><label for="number">{{ t('number') }}</label><input id="number" name="number" required maxlength="50" placeholder="244"></div>
+    <div class="full"><label for="why">{{ t('pb_why') }}</label><input id="why" name="why" maxlength="400"></div>
+  </div>
+  <div class="actions"><button type="submit">{{ t('pb_add_article') }}</button></div>
+</form>
+
+<section class="card">
+  <h2>{{ t('pb_mappings') }}</h2>
+  <p class="muted">{{ t('pb_mappings_intro') }}</p>
+  {% for fragment in mappings %}
+    <form method="post" action="/playbook/mappings/delete" class="row" style="align-items:center;margin-bottom:6px">
+      <input type="hidden" name="fragment" value="{{ fragment }}"><input type="hidden" name="back" value="/playbook/rules/{{ rule.key|urlencode }}">
+      <code style="flex:1 1 auto">{{ fragment }}</code><button class="danger" type="submit">{{ t('delete') }}</button>
+    </form>
+  {% endfor %}
+  <form class="row" method="post" action="/playbook/mappings" style="margin-top:8px">
+    <input type="hidden" name="key" value="{{ rule.key }}"><input type="hidden" name="back" value="/playbook/rules/{{ rule.key|urlencode }}">
+    <div><label for="fragment">{{ t('pb_fragment') }}</label><input id="fragment" name="fragment" required placeholder="2004-63"></div>
+    <button type="submit" class="secondary">{{ t('pb_add_mapping') }}</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>{{ t('edit') }}</h2>
+  <form class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/label">
+    <div><label for="label">{{ t('pb_label') }}</label><input id="label" name="label" value="{{ rule.label }}" maxlength="200"></div>
+    <button type="submit">{{ t('save') }}</button>
+  </form>
+  <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/delete" style="margin-top:14px" onsubmit='return confirm({{ t("confirm_delete")|tojson }})'>
+    <button class="danger" type="submit">{{ t('pb_delete_rule') }}</button>
+  </form>
+</section>
+{% endblock %}

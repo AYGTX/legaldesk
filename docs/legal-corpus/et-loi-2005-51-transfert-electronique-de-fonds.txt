@@ -1,0 +1,128 @@
+Article 1 – Pour l’application de la présente loi, on entend par :
+Instrument de transfert électronique  : tout moyen permettant d’effectuer par voie entièrement ou
+partiellement électronique une des opérations suivantes :
+- transfert de fonds,
+- retrait et dépôt de fonds,
+- l’accès  à un compte,
+- le chargement et le déchargement d’un instrument rechargeable.
+Instrument rechargeable : tout instrument de transfert électronique de fonds sur lequel des unités de valeur
+sont stockées électroniquement.
+Emetteur : toute personne morale que la loi autorise dans  le cadre de son activité commerciale à mettre un
+instrument de transfert électronique de fonds à la disposition d’une autre personne  en vertu d’un contrat
+conclu avec celle-ci,
+Bénéficiaire : toute personne qui détient un instrument de transfert électronique de fonds en vertu d’un
+contrat qu’elle a conclu avec un émetteur.
+Carte : tout instrument de transfert électronique de f onds dont les fonctions sont supportées par une carte
+magnétique ou intelligente,
+Fonds : l’argent en dinar tunisien ou en devise conformément aux réglements en vigueur relatifs aux changes.
+Obligations de l’émetteur
+Article 2 – Avant la conclusion du contrat écrit ou électronique relatif à la mise à la disposition et l’utilisation de
+l’instrument de transfert électronique de fonds, l’éme tteur doit communiquer au bénénficiaire de façon claire
+et écrite ou par l’intermédiaire d’un support électronique fiable ce qui suit :
+- les conditions juridiques et contractuelles régissant l’émission et l’utilisation de l’instrument de
+transfert électronique de fonds,
+- une description exhaustive de l’instrument de transfert électronique de fonds ainsi que de ses
+caractéristiques techniques,
+- une description exhaustive des utilisations possibles de l’instrument de transfert électronique de
+fonds à l’intérieur du pays et, le cas échéant, à l’étranger,
+- le plafonds appliqué aux opérati ons qu’il est permis d’effectuer par l’instrument de transfert
+électronique de fonds,
+- une description exhaustive des obligations et responsabilités resp ectives du bénéficiaire et de
+l’émetteur ainsi que des risques et des mesures de prudence inhérentes à l’utilisation de l’instrument
+de transfert électronique de fonds,
+- le droit de choisir le plafond correspondant ainsi que le droit de le modifier à tout moment,
+- les modalités, les procédures et le délai d’oppos ition en cas de vol, pert e, falsification ou de
+renonciation à l’utilisation de l’instrument de transfert électronique de fonds,
+- les frais relatifs à l’instrument de transfert élect ronique de fonds à charge du bénéficiaire, notamment
+le taux d’intérêt appliqué, ainsi que la manière de le calculer,
+- les conditions et les modalités relatives à la contestation des opérations effectuées, et l’adresse à
+laquelle les notifications et oppositions sont envoyées.
+Article 3 – L’émetteur doit mettre gratuitement à la disposition du public un document reprenant les conditions
+contractuelles régissant l’utilisation de l’instrument de transfert électronique de fonds.
+Article 4 – L’émetteur qui tient un compte au profit du bénénficiaire doit lui fournir gratuitement et mensuellement un
+relevé clair reprenant toutes les opérations réalisées  par l’intermédiaire de l’instrument de transfert
+électronique de fonds.
+Le relevé doit contenir ce qui suit :
+- l’identification de l’opération,
+- la date et la valeur de l’opération,
+- le montant débité du compte du bénéficiaire, exprim é dans la monnaie tunisienne, et, le cas échéant,
+en devises ainsi que le cours de change à la date du débit.
+- Le montant des frais et commissions à charge  du bénéficiaire appliqués à toute opération.
+Article 5 – L’émetteur doit :
+- garantir le secret du ou des codes donnés au bénéficiaire,
+- utiliser un système spécial lui permettant de vérifier la régularité des opérations réalisées,
+- conserver un relevé des oéprations effectuées à l’ aide d’un instrument de transfert électronique de
+fonds, pendant une période d’au moins dix ans à compter de l’exécution de l’opération,
+- mettre à la disposition du bénéficiaire les moyens appropriés lui permettant d’effectuer les
+notifications et les oppositions prévues à l’article 10 de cette loi, et lui fournir les moyens lui
+permettant de les prouver,
+- mettre à la disposition du bénéficiaire les moyens a ppropriés lui permettant de vérifier les opérations
+réalisées ainsi que le solde suite à toute opération de transfert électronique de fonds,
+- prendre les mesures nécessaires pour empêcher toute utilisation de l’instrument de transfert
+électronique de fonds dès l’opposition.
+Article 6 – L’émetteur doit s’abstenir, hormis les cas de reconducti on ou de remplacement, de f ournir au bénéficiaire ou
+à un tiers une carte qu’il n’a pas demandée.
+Article 7 – Avant la réalisation de l’opération de transfert électroni que de fonds, l’émetteur doit s’assurer de l’identité du
+bénéficiaire et vérifier l’instrument de transfert électronique de fonds.
+Il sera tenu responsable dans les cas suivants :
+- l’exécution d’une opération sans autorisation du bénéficiaire,
+- l’exéctuion d’une opération en connaissance de la  falsification de l’instrument de transfert
+électronique de fonds,
+- l’exécution d’une opération après opposition du bénéficiaire, telle que prévue à l’article 10 de la
+présente loi,
+- l’énixécution ou l’exécution incorrecte d’une opération effectuée à l’aide d’un instrument de
+transfert électronique de fonds,
+- la défaillance des équipements techniques, d’erreur dans leur utilisation ou de vice de l’instrument de
+transfert électronique de fonds.
+L’émetteur n’est exempt de responsabilité que s’il prouve  la force majeure, le cas fortuit ou la faute du
+bénéficiaire.
+Article 8 – Au cas où l’émetteur est tenu  responsable, il doit paye r au bénéficiaire dans un délai ne dépassant pas un
+mois à compter de la date de l’avis  visé à l’article 10 de la présente loi la valeur de l’opération litigieuse, les
+frais et intérêts de retard qui en découlent, et  ce, nonobstant l’indemnisation des autres dommages qui
+pourraient en résulter au bénéficiaire.
+Obligations du bénéficiaire
+Article 9 – Le bénéficiaire doit veiller au respect des règles suivantes :
+- utiliser l’instrument de transf ert électronique des fonds selon le  but qui lui a été assigné et
+conformément aux conditions légales  et conve ntionnelles qui en régissent la délivrance et
+l’utilisation.
+- Prendre les précautions nécessaires pour garantir la préservation de l’instrument de transfert
+électronique des fonds et des moyens garantissant son utilisation,
+- S’abstenir d’inscrire l’identifiant personnel ou tout  autre symbole de nature à faciliter sa découverte,
+notamment sur l’instrument de transfert électronique des fonds lui-même, ou sur les objets et
+documents qu’il garde ou transporte avec l’instrument.
+Article 10 – Le bénéficiaire doit tenir l’émetteur informé des opérati ons inscrites en compte sans son consentement ainsi
+que des erreurs et défaillances dans la tenue des comptes.
+Il doit aussi faire opposition auprès de l’organisme émette ur désigné par ce dernier à cet effet en cas de perte
+ou de vol de l’instrument de transfert des fonds ou des moyens ou données qui en permettent l’utilisation.
+L’avis ou l’opposition doivent interv enir immédiatement par le biai s d’un document écrit ou électronique
+fiable.
+Article 11 – Le bénéficiaire supporte, jusqu’à l’ accomplissement de l’opposition, les cons équences découlant de la perte
+ou du vol à concurrence d’un montant de deux cents dina rs. Il supporte toutes les conséquences qui en
+décolent s’il omet de procéder à l’opposition dans les plus brefs délais.
+Article 12 – Le bénéficiaire ne peut révoquer l’ordre de transfert donné  au moyen de l’instrument de transfert électronique
+des fonds.
+Dispositions communes
+Article 13 – L’émeteur ou le bénéficiaire qui a l’intention de romp re le contrat à durée déterm inée doit en av iser l’autre
+partie un mois avant la date de son expiration par le biais d’un document écrit ou électronique fiable.
+Le contrat à durée indéterminée ne prend fin qu’à l’expiration d’un délai de deux mois à compter de la date de
+la notification de la rupture.
+Article 14 – En cas de litige entre le bénéficiaire et l’émetteur sur une ou plusieurs opérations de transfert électronique de
+fonds, la preuve de la validité et de la légitimité de l’opération incombe à l’émetteur.
+L’émetteur est exonéré de la charge de la preuve si le bénéficiaire ne lui notifie pas sa contestation de
+l’opération dans un délai de trois mois à compter de la date de l’envoi du relevé du compte.
+Article 15 – Est nulle et de nul effet, toute clause ayant pour but  d’exonérer l’émetteur totalement ou partiellement des
+obligations et responsabilités qui lui incombent en vertu de la présente loi.
+Article 16 – Est nulle et de nul effet, toute clause contenant une renonciation préalable du bénéficiaire, qu’elle soit totale
+ou partielle, au bénéfice des droits qui lui sont reconnus par la présente loi.
+Dispositions pénales
+Article 17 – Est puni d’un emprisonnement de dix ans et d’une amende de dix mille dinars quiconque :
+- fasifie un instrument de transfert électronique de fonds,
+- utilise en connaissance de cause un instrument de transfert électronique de fonds falsifié,
+- accepte en connaissance de cause un transfert par l’utilisation d’un instrument de transfert
+électronique de fonds falsifié.
+Article 18 – Est puni d’un emprisonnement de trois ans et d’une amende de trois mille dinars, quiconque utilise un
+instrument de transfert électronique de fonds sans l’accord de son tiutlaire.
+Article 19 – Les infractions aux dispositions de la présente loi sont constatées par les agents de la police judiciaire, les
+agents assermentés relevant du ministère des finances, les agents asserménetés relevant du ministère chargé
+des technologies de communication et ceux de l’agence nationale de certification électronique.
+La constatation se fait par procès dressé conformément aux dispositions du code de procédure pénale.
