@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from urllib.parse import quote, urlencode, urlsplit
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -15,7 +15,7 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import amendments, assist, corpus, pdf, playbook
+from app.services import amendments, assist, corpus, explanations, pdf, playbook
 from app.services.llm import LlmUnavailable
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
@@ -285,7 +285,15 @@ def text_page(text_id: str, request: Request, as_of: str = "", db: Session = Dep
         day = date.fromisoformat(as_of) if as_of else None
     except ValueError:
         day = None
-    return _render(request, "text_detail.html", text=corpus.get_text(db, text_id), as_of=day, wording_on=wording_on)
+    text = corpus.get_text(db, text_id)
+    lang = pick_language(request.cookies.get("lang"), request.headers.get("accept-language"))
+    shown = {}
+    for article in text.articles:
+        explanation = next((e for e in article.explanations if e.language == lang), None)
+        if explanation is not None:
+            shown[article.id] = (explanation, explanations.status(explanation, article))
+    return _render(request, "text_detail.html", text=text, as_of=day, wording_on=wording_on,
+                   ai=request.app.state.llm.name, explained=shown)
 
 
 @router.post("/texts/{text_id}")
@@ -399,6 +407,42 @@ def amendment_apply(text_id: str, request: Request, changes_json: str = Form("[]
         return _redirect(f"/texts/{text_id}", "err_invalid", "error")
     count = corpus.apply_amendment(db, text_id, chosen, day, note or None, getattr(request.state, "user", None))
     return _redirect(f"/texts/{text_id}", "amendments_applied", count=count)
+
+
+def _back_to_article(article) -> str:
+    return f"/texts/{article.legal_text_id}"
+
+
+@router.post("/articles/{article_id}/explanation/generate")
+def explanation_generate(article_id: str, request: Request, lang: str = Form("fr"), db: Session = Depends(get_db)):
+    article = corpus.get_article(db, article_id)
+    try:
+        explanations.generate(db, request.app.state.llm, article, lang, getattr(request.state, "user", None))
+    except LlmUnavailable:
+        return _redirect(_back_to_article(article), "explain_error", "error")
+    return _redirect(_back_to_article(article), "explanation_drafted")
+
+
+@router.post("/articles/{article_id}/explanation")
+def explanation_save(article_id: str, request: Request, lang: str = Form("fr"), summary: str = Form(""),
+                     in_practice: str = Form(""), approve_as: str = Form(""), db: Session = Depends(get_db)):
+    article = corpus.get_article(db, article_id)
+    saved = explanations.save(db, article, lang, summary, in_practice, getattr(request.state, "user", None), approve_as)
+    return _redirect(_back_to_article(article), "explanation_approved" if saved.approved_by else "saved")
+
+
+@router.post("/articles/{article_id}/explanation/approve")
+def explanation_approve(article_id: str, lang: str = Form("fr"), approved_by: str = Form(""), db: Session = Depends(get_db)):
+    article = corpus.get_article(db, article_id)
+    explanations.approve(db, article, lang, approved_by)
+    return _redirect(_back_to_article(article), "explanation_approved")
+
+
+@router.post("/articles/{article_id}/explanation/withdraw")
+def explanation_withdraw(article_id: str, lang: str = Form("fr"), db: Session = Depends(get_db)):
+    article = corpus.get_article(db, article_id)
+    explanations.withdraw(db, article, lang)
+    return _redirect(_back_to_article(article), "unverified_ok")
 
 
 @router.post("/articles/{article_id}/search")

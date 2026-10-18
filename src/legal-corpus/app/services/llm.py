@@ -30,7 +30,9 @@ class NoLlm:
 
 def _post_json(url: str, body: dict, headers: dict[str, str], timeout: float) -> dict:
     request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), method="POST",
-                                     headers={"Content-Type": "application/json", **headers})
+                                     # Groq's firewall rejects Python's default User-Agent (Cloudflare error 1010).
+                                     headers={"Content-Type": "application/json", "User-Agent": "Harvey-legal-corpus/1.0",
+                                              **headers})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.loads(response.read().decode("utf-8"))

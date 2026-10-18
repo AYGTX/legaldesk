@@ -335,11 +335,16 @@ def resolve(db: Session, path: Path = PLAYBOOK_PATH, include_unconfirmed: bool =
             if article is None or not article.legal_text.is_verified:
                 unresolved.append(f"{rule['key']}: {ref['reference']}, art. {ref['number']}")
                 continue
+            from app.services import explanations
+
+            approved = {lang: explanations.approved(db, article, lang) for lang in explanations.LANGUAGES}
             articles.append({
                 "article_id": article.id,
                 "citation": citation_label(article.legal_text, article.number),
                 "text": article.text,
                 "why": ref.get("why"),
+                # Lawyer-approved plain-language explanations for this wording, by language.
+                "explanations": {lang: e.summary for lang, e in approved.items() if e is not None},
             })
         rules[rule["key"]] = {"label": rule.get("label"), "confirmed_by": rule.get("confirmed_by"), "articles": articles,
                               "phrases": rule.get("phrases", []),

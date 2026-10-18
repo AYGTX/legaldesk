@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -93,6 +93,7 @@ class Article(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
 
     legal_text: Mapped[LegalText] = relationship(back_populates="articles")
+    explanations: Mapped[list["ArticleExplanation"]] = relationship(cascade="all, delete-orphan")
     versions: Mapped[list["ArticleVersion"]] = relationship(
         back_populates="article", cascade="all, delete-orphan", order_by="ArticleVersion.replaced_at.desc()"
     )
@@ -116,6 +117,26 @@ class ArticleVersion(Base):
     applies_from: Mapped[date | None] = mapped_column(Date)
 
     article: Mapped[Article] = relationship(back_populates="versions")
+
+
+class ArticleExplanation(Base):
+    """A plain-language explanation of one article in one language: drafted by the model or written by a person, and
+    shown to everyone only once a lawyer approves it for the article's current wording (text_hash)."""
+
+    __tablename__ = "article_explanations"
+    __table_args__ = (UniqueConstraint("article_id", "language"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_id)
+    article_id: Mapped[str] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"), index=True)
+    language: Mapped[str] = mapped_column(String(5))
+    summary: Mapped[str] = mapped_column(Text)
+    in_practice: Mapped[str | None] = mapped_column(Text)
+    text_hash: Mapped[str] = mapped_column(String(64))
+    model: Mapped[str | None] = mapped_column(String(100))
+    written_by: Mapped[str | None] = mapped_column(String(200))
+    approved_by: Mapped[str | None] = mapped_column(String(200))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
 
 
 def wording_on(article: Article, day: date) -> tuple[str, str] | None:

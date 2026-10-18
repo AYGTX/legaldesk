@@ -5,7 +5,7 @@ it is shown and nothing is saved until a person accepts it: the existing forms d
 from dataclasses import dataclass
 
 from app.models import Category, LegalText
-from app.services.llm import LlmProvider
+from app.services.llm import LlmProvider, LlmUnavailable
 from app.services.splitter import normalize_number
 from app.services.textnorm import normalize_for_match
 
@@ -147,3 +147,31 @@ def draft_examples(llm: LlmProvider, risk: str, phrases: list[str], known: list[
         return kept[:limit]
 
     return ExampleDrafts(keep(answer.get("examples"), 8), keep(answer.get("counter_examples"), 4))
+
+
+# ------------------------------------------------------------------ 5. an article in plain words
+
+EXPLAIN_SYSTEM = """You explain one article of Tunisian law to a non-lawyer (a manager or a bank employee).
+Answer with JSON only: {"summary": "<2 to 4 short sentences in plain {language}: who it applies to, what it requires
+or allows, and the consequence if stated>", "in_practice": "<one sentence starting with what it means in practice
+for a company signing contracts>"}.
+Rules: explain only what this article says. Do not add obligations, exceptions, deadlines, amounts or other articles
+that are not in the text. Do not give legal advice. If the article only refers to other provisions, say so plainly."""
+
+LANGUAGES = {"fr": "French", "en": "English"}
+
+
+@dataclass
+class Explanation:
+    summary: str
+    in_practice: str
+
+
+def explain_article(llm: LlmProvider, reference: str, number: str, text: str, language: str = "fr") -> Explanation:
+    system = EXPLAIN_SYSTEM.replace("{language}", LANGUAGES.get(language, "French"))
+    answer = llm.complete_json(system, f"{reference}, article {number}:\n{text[:MAX_LAW_CHARS]}")
+    summary = " ".join(str(answer.get("summary") or "").split())[:1200]
+    in_practice = " ".join(str(answer.get("in_practice") or "").split())[:400]
+    if len(summary) < 20:
+        raise LlmUnavailable("The language model returned no usable explanation.")
+    return Explanation(summary, in_practice)

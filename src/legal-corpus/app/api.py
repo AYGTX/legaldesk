@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, get_embedder, get_matcher, require_api_key
@@ -132,6 +132,20 @@ def classify(body: ClassifyIn, request: Request, db: Session = Depends(get_db), 
              for k, r in served.items()]
     matches = matcher.classify([(c.reference, c.text) for c in body.clauses], rules, body.threshold)
     return ClassifyOut(enabled=True, model=matcher.embedder.name, matches=[ClauseMatchOut(**m.__dict__) for m in matches])
+
+
+@router.get("/articles/{article_id}/explanation", tags=["articles"])
+def article_explanation(article_id: str, lang: str = "fr", db: Session = Depends(get_db)):
+    """The lawyer-approved plain-language explanation for the article's current wording; 404 when there is none
+    (drafts and explanations of an older wording are never served). A reading aid, never a quote."""
+    from app.services import explanations
+
+    article = corpus.get_article(db, article_id)
+    explanation = explanations.approved(db, article, lang)
+    if explanation is None:
+        raise HTTPException(status_code=404, detail="No approved explanation for this article.")
+    return {"summary": explanation.summary, "in_practice": explanation.in_practice,
+            "approved_by": explanation.approved_by, "approved_at": explanation.approved_at, "model": explanation.model}
 
 
 @router.get("/articles/{article_id}/versions", response_model=list[ArticleVersionOut], tags=["articles"])

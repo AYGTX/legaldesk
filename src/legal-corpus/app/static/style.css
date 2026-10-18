@@ -223,3 +223,16 @@ th { text-transform: uppercase; letter-spacing: .4px; font-size: 11.5px; }
 .ex-title { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 4px; }
 .example-text { font-size: 13.5px; }
 .ex-source { margin-left: 6px; font-weight: 500; }
+
+.explain-btn { font-size: 12px; padding: 3px 9px; }
+.explain-panel { border: 1px dashed var(--highlight); border-radius: 10px; padding: 10px 14px; margin: 8px 0; background: rgba(239, 128, 36, .04); }
+.explain-panel p { margin: 6px 0; }
+.explain-note { font-size: 12px; color: var(--muted); font-style: italic; }
+.explain-error { color: var(--err); }
+
+.explain-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.explain-panel.status-approved { border-style: solid; border-color: var(--ok); background: var(--ok-bg); }
+.explain-panel.status-approved .ai-panel-head { color: var(--ok); }
+.explain-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin: 6px 0; }
+.explain-actions form { margin: 0; }
+.explain-generate { margin: 4px 0 6px; }

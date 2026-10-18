@@ -67,6 +67,54 @@
         </form>
       </div>
       <p class="body {{ rtl }}">{{ a.text }}</p>
+      {% set ex = explained.get(a.id) %}
+      {% if ex %}
+        {% set e, st = ex %}
+        <div class="explain-panel status-{{ st }}">
+          <div class="explain-head">
+            <span class="ai-panel-head">{{ t('explain_title') }}</span>
+            {% if st == 'approved' %}<span class="badge ok">{{ t('explain_approved_by', who=e.approved_by, day=e.approved_at.strftime('%d/%m/%Y')) }}</span>
+            {% elif st == 'draft' %}<span class="badge warn">{{ t('explain_draft') }}</span>
+            {% else %}<span class="badge warn">{{ t('explain_out_of_date') }}</span>{% endif %}
+          </div>
+          <p>{{ e.summary }}</p>
+          {% if e.in_practice %}<p><strong>{{ t('explain_practice') }}</strong> {{ e.in_practice }}</p>{% endif %}
+          <p class="explain-note">{{ t('explain_note_model', model=e.model) if e.model else t('explain_note_person') }}</p>
+          <div class="explain-actions">
+            {% if st == 'draft' %}
+            <form class="row" method="post" action="/articles/{{ a.id }}/explanation/approve">
+              <input type="hidden" name="lang" value="{{ lang }}">
+              <div><input name="approved_by" required maxlength="200" placeholder="{{ t('your_name') }}"></div>
+              <button type="submit">{{ t('explain_approve') }}</button>
+            </form>
+            {% elif st == 'approved' %}
+            <form method="post" action="/articles/{{ a.id }}/explanation/withdraw"><input type="hidden" name="lang" value="{{ lang }}">
+              <button class="secondary" type="submit">{{ t('unverify') }}</button></form>
+            {% endif %}
+            {% if ai != 'none' %}
+            <form method="post" action="/articles/{{ a.id }}/explanation/generate"><input type="hidden" name="lang" value="{{ lang }}">
+              <button class="ghost" type="submit">✦ {{ t('explain_regenerate') }}</button></form>
+            {% endif %}
+          </div>
+          <details>
+            <summary>{{ t('explain_edit') }}</summary>
+            <form method="post" action="/articles/{{ a.id }}/explanation">
+              <input type="hidden" name="lang" value="{{ lang }}">
+              <label>{{ t('explain_title') }}</label><textarea name="summary" required minlength="20" rows="4">{{ e.summary }}</textarea>
+              <label>{{ t('explain_practice') }}</label><input name="in_practice" maxlength="400" value="{{ e.in_practice or '' }}">
+              <div class="row" style="margin-top:8px">
+                <div><input name="approve_as" maxlength="200" placeholder="{{ t('explain_approve_as') }}"></div>
+                <button type="submit">{{ t('save') }}</button>
+              </div>
+            </form>
+          </details>
+        </div>
+      {% elif ai != 'none' %}
+        <form method="post" action="/articles/{{ a.id }}/explanation/generate" class="explain-generate">
+          <input type="hidden" name="lang" value="{{ lang }}">
+          <button class="ghost" type="submit">✦ {{ t('explain_action') }}</button>
+        </form>
+      {% endif %}
       {% if a.versions %}
       <details class="history">
         <summary>{{ t('history') }} ({{ a.versions|length }})</summary>
