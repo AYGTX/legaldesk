@@ -1,0 +1,6 @@
+bin/
+obj/
+*.jsonl
+cuad/
+data.zip
+report.md
