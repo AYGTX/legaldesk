@@ -48,6 +48,31 @@ class ArticleVersionOut(BaseModel):
     applies_from: date | None = None
 
 
+class ClauseIn(BaseModel):
+    reference: str = Field(max_length=300)
+    text: str = Field(min_length=1, max_length=20_000)
+
+
+class ClassifyIn(BaseModel):
+    clauses: list[ClauseIn] = Field(max_length=500)
+    threshold: float | None = Field(default=None, ge=0, le=1)
+
+
+class ClauseMatchOut(BaseModel):
+    reference: str
+    rule_key: str
+    label: str
+    score: float
+    sentence: str
+    example: str
+
+
+class ClassifyOut(BaseModel):
+    enabled: bool
+    model: str | None
+    matches: list[ClauseMatchOut]
+
+
 class ArticleSearchIn(BaseModel):
     excluded: bool
 

@@ -190,6 +190,42 @@ def remove_phrase(key: str, index: int, path: Path = PLAYBOOK_PATH) -> None:
     _edit(path, change)
 
 
+EXAMPLE_KINDS = ("examples", "counter_examples")
+MIN_EXAMPLE_CHARS, MAX_EXAMPLE_CHARS = 30, 600
+
+
+def add_example(key: str, kind: str, text: str, source: str = "lawyer", path: Path = PLAYBOOK_PATH) -> None:
+    """A clause that sounds like the risk (example) or that is close but safe (counter-example). Used by meaning-based
+    matching; like any edit it withdraws the rule's confirmation."""
+    if kind not in EXAMPLE_KINDS:
+        raise RuleError("invalid", "Unknown example kind.")
+    text = " ".join(text.split())
+    if not MIN_EXAMPLE_CHARS <= len(text) <= MAX_EXAMPLE_CHARS:
+        raise RuleError("example_length", "An example clause needs 30 to 600 characters.")
+
+    def change(data):
+        rule = _rule(data, key)
+        items = rule.setdefault(kind, [])
+        if any(e["text"].casefold() == text.casefold() for e in rule.get("examples", []) + rule.get("counter_examples", [])):
+            raise RuleError("duplicate_example", "This clause is already in the rule.")
+        items.append({"text": text, "source": source})
+        _unconfirm(rule)
+
+    _edit(path, change)
+
+
+def remove_example(key: str, kind: str, index: int, path: Path = PLAYBOOK_PATH) -> None:
+    if kind not in EXAMPLE_KINDS:
+        raise RuleError("invalid", "Unknown example kind.")
+
+    def change(data):
+        rule = _rule(data, key)
+        del rule.setdefault(kind, [])[index]
+        _unconfirm(rule)
+
+    _edit(path, change)
+
+
 def move_article(key: str, index: int, offset: int, path: Path = PLAYBOOK_PATH) -> None:
     def change(data):
         articles = _rule(data, key)["articles"]
@@ -277,7 +313,9 @@ def describe(db: Session, path: Path = PLAYBOOK_PATH) -> dict:
                 "text": article.text if article else None,
                 "legal_text_id": article.legal_text_id if article else None,
             })
-        rules.append({**rule, "articles": articles, "phrases": rule.get("phrases", []), "detected": rule["key"] in DETECTED_KEYS,
+        rules.append({**rule, "articles": articles, "phrases": rule.get("phrases", []),
+                      "examples": rule.get("examples", []), "counter_examples": rule.get("counter_examples", []),
+                      "detected": rule["key"] in DETECTED_KEYS,
                       "ready": bool(articles) and all(a["verified"] for a in articles)})
     return {"rules": rules, "regulations": data["regulations"]}
 
@@ -304,7 +342,9 @@ def resolve(db: Session, path: Path = PLAYBOOK_PATH, include_unconfirmed: bool =
                 "why": ref.get("why"),
             })
         rules[rule["key"]] = {"label": rule.get("label"), "confirmed_by": rule.get("confirmed_by"), "articles": articles,
-                              "phrases": rule.get("phrases", [])}
+                              "phrases": rule.get("phrases", []),
+                              "examples": [e["text"] for e in rule.get("examples", [])],
+                              "counter_examples": [e["text"] for e in rule.get("counter_examples", [])]}
 
     return {"rules": rules, "regulations": playbook.get("regulations", {}), "unresolved": unresolved}
 

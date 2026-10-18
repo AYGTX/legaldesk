@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ t('amend_review_title') }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+{% set rtl = 'rtl' if text.language == 'ar' else '' %}
+<div class="page-head">
+  <div><h1>{{ t('amend_review_title') }}</h1><p class="muted">{{ text.title }}{% if text.reference %} · {{ text.reference }}{% endif %}</p></div>
+  <a href="/texts/{{ text.id }}">{{ t('back') }}</a>
+</div>
+
+{% if error %}
+  <div class="flash error">{{ t('amend_unavailable') }}</div>
+  <p class="muted">{{ error }}</p>
+{% else %}
+  <div class="notice">{{ t('amend_review_intro', ai=ai) }}</div>
+  {% if result.rejected %}
+  <details class="card"><summary>{{ t('amend_rejected', count=result.rejected|length) }}</summary>
+    <ul>{% for r in result.rejected %}<li>{{ r }}</li>{% endfor %}</ul></details>
+  {% endif %}
+  <form method="post" action="/texts/{{ text.id }}/amendments/apply">
+    <input type="hidden" name="changes_json" value="{{ changes_json }}">
+    <section class="card">
+      <div class="grid">
+        <div><label for="applies_from">{{ t('applies_from_label') }}</label><input id="applies_from" name="applies_from" type="date" value="{{ applies_from }}"></div>
+        <div class="full"><label for="note">{{ t('change_note') }}</label><input id="note" name="note" maxlength="300" value="{{ note }}" placeholder="{{ t('change_note_hint') }}"></div>
+      </div>
+    </section>
+    {% for p in result.proposals %}
+    <section class="card amend-change">
+      <label class="amend-accept"><input type="checkbox" name="accept" value="{{ loop.index0 }}" checked style="width:auto">
+        <strong>{{ t('article') }} {{ p.number }}</strong>
+        <span class="badge {{ 'warn' if p.action == 'repeal' else ('ok' if p.action == 'add' else 'version') }}">{{ t('amend_action_' ~ p.action) }}</span></label>
+      <div class="amend-diff">
+        <div><span class="finding-label">{{ t('amend_current') }}</span><p class="body {{ rtl }}">{{ p.current_text or '—' }}</p></div>
+        <div><span class="finding-label">{{ t('amend_new') }}</span><p class="body {{ rtl }}">{{ p.new_text if p.action != 'repeal' else t('amend_repealed') }}</p></div>
+      </div>
+    </section>
+    {% else %}
+    <div class="card"><p class="muted">{{ t('amend_none') }}</p></div>
+    {% endfor %}
+    <div class="actions"><button type="submit" {{ 'disabled' if not result.proposals }}>{{ t('amend_apply') }}</button>
+      <a class="button secondary" href="/texts/{{ text.id }}">{{ t('cancel') }}</a></div>
+    <p class="muted">{{ t('amend_apply_note') }}</p>
+  </form>
+{% endif %}
+{% endblock %}

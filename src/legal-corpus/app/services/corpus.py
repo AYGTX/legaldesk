@@ -179,6 +179,40 @@ def restore_version(db: Session, article_id: str, version_id: str, changed_by: s
     return article
 
 
+REPEALED_TEXT = "(Abrogé)"
+
+
+def apply_amendment(db: Session, text_id: str, changes: list[dict], applies_from: date | None, note: str | None,
+                    changed_by: str | None) -> int:
+    """Applies reviewed changes from an amending law as new wordings: replaced and repealed articles keep their
+    previous wording in their history, added articles start at applies_from. Returns how many were applied."""
+    text = get_text(db, text_id)
+    by_number = {a.number: a for a in text.articles}
+    applied = 0
+    for change in changes:
+        number = normalize_number(change["number"])
+        article = by_number.get(number)
+        if change["action"] == "add":
+            if article is not None:
+                raise RuleError("duplicate_number", f"Article {number} already exists in this text.")
+            order = max((a.order for a in text.articles), default=0) + 1
+            article = Article(legal_text_id=text.id, number=number, text=change["new_text"], order=order,
+                              applies_from=applies_from)
+            text.articles.append(article)
+            by_number[number] = article
+            applied += 1
+            continue
+        if article is None:
+            raise RuleError("article_not_found", f"{text.reference or text.title} has no article {number}.")
+        new_text = REPEALED_TEXT if change["action"] == "repeal" else change["new_text"]
+        if _rewrite(article, number, new_text, changed_by, note, applies_from):
+            applied += 1
+    if applied:
+        text.clear_verification()
+    db.commit()
+    return applied
+
+
 def set_excluded(db: Session, article_id: str, excluded: bool) -> Article:
     """Not a change to the law's text, so the verification stands."""
     article = get_article(db, article_id)

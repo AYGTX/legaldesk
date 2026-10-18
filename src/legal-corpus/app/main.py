@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import api, ui
 from app.auth import LoginRequired
+from app.services.llm import make_provider
 from app.config import BASE_DIR, Settings, load_settings
 from app.db import make_session_factory
 from app.services.corpus import NotFoundError, RuleError
@@ -39,6 +40,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.session_factory = make_session_factory(settings.database_url)
     app.state.embedder = None
     app.state.session_secret = settings.session_secret or _stored_secret(settings.session_secret_file)
+    app.state.llm = make_provider(settings)
 
     app.include_router(api.router)
     app.include_router(ui.router)

@@ -4,11 +4,15 @@
 {% block content %}
 <div class="page-head"><h1>{{ t('pdf_review_title') }}</h1><a href="/import-pdf">{{ t('back') }}</a></div>
 {% if error %}<div class="flash error">{{ t(error) }}</div>{% endif %}
+{% if notice %}<div class="flash ok">{{ t(notice, ai=ai) }}</div>{% endif %}
 <form method="post" action="/import-pdf/create">
   <input type="hidden" name="filename" value="{{ filename or '' }}">
   <section class="card">
     <p class="muted">{{ t('pdf_review_intro') }}{% if filename %} {{ t('pdf_source_file', name=filename) }}{% endif %}</p>
     {% include "_text_fields.html" %}
+    {% if ai != 'none' %}
+    <div class="actions"><button class="ghost" type="submit" formaction="/import-pdf/suggest" formnovalidate>✦ {{ t('ai_suggest_fields') }}</button></div>
+    {% endif %}
   </section>
 
   <section class="card">

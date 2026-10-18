@@ -66,6 +66,8 @@
   {% endfor %}
 </section>
 
+{% if ai_error %}<div class="flash error">{{ t('amend_unavailable') }}</div>{% endif %}
+
 <section class="card">
   <h2>{{ t('pb_phrases') }} ({{ rule.phrases|length }})</h2>
   <p class="muted">{{ t('pb_phrases_hint') }}</p>
@@ -84,11 +86,73 @@
       <input id="phrase" name="phrase" required minlength="4" maxlength="200" placeholder="{{ t('pb_phrase_placeholder') }}"></div>
     <button type="submit">{{ t('pb_add_phrase_button') }}</button>
   </form>
+  {% if ai != 'none' %}
+  <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/suggest-phrases" style="margin-top:10px">
+    <button class="ghost" type="submit">✦ {{ t('ai_suggest_phrases') }}</button>
+  </form>
+  {% endif %}
+  {% if suggested_phrases is defined %}
+  <div class="ai-panel">
+    <div class="ai-panel-head">✦ {{ t('ai_suggestions', ai=ai) }}</div>
+    {% for p in suggested_phrases %}
+    <form class="row phrase-row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases">
+      <div style="flex:1 1 auto"><span class="phrase">« {{ p }} »</span></div>
+      <input type="hidden" name="phrase" value="{{ p }}">
+      <button class="secondary" type="submit" style="flex:0 0 auto">{{ t('ai_accept') }}</button>
+    </form>
+    {% else %}<p class="muted">{{ t('ai_nothing') }}</p>{% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="card" id="examples">
+  <h2>{{ t('pb_examples') }} ({{ rule.examples|length }})</h2>
+  <p class="muted">{{ t('pb_examples_hint') }}</p>
+  {% for kind, items, title in [('examples', rule.examples, 'pb_examples_list'), ('counter_examples', rule.counter_examples, 'pb_counter_list')] %}
+  <h3 class="ex-title">{{ t(title) }} ({{ items|length }})</h3>
+  {% for e in items %}
+    <div class="row phrase-row">
+      <div style="flex:1 1 auto"><span class="example-text">{{ e.text }}</span>
+        <span class="badge neutral ex-source">{{ t('src_' ~ e.source) }}</span></div>
+      <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}/{{ loop.index0 }}/delete" style="flex:0 0 auto">
+        <button class="danger" type="submit">{{ t('pb_remove') }}</button>
+      </form>
+    </div>
+  {% else %}<p class="muted">{{ t('pb_no_examples') }}</p>{% endfor %}
+  <form class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}" style="margin:8px 0 14px">
+    <div style="flex:4 1 300px"><textarea name="text" required minlength="30" maxlength="600" rows="2" placeholder="{{ t('pb_example_placeholder') }}"></textarea></div>
+    <button class="secondary" type="submit">{{ t('pb_add_example') }}</button>
+  </form>
+  {% endfor %}
+  {% if ai != 'none' %}
+  <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/draft-examples">
+    <button class="ghost" type="submit">✦ {{ t('ai_draft_examples') }}</button>
+  </form>
+  {% endif %}
+  {% if drafted is defined %}
+  <div class="ai-panel">
+    <div class="ai-panel-head">✦ {{ t('ai_suggestions', ai=ai) }}</div>
+    {% for kind, items, title in [('examples', drafted.examples, 'pb_examples_list'), ('counter_examples', drafted.counter_examples, 'pb_counter_list')] %}
+    <h3 class="ex-title">{{ t(title) }}</h3>
+    {% for d in items %}
+    <form class="row phrase-row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}">
+      <div style="flex:1 1 auto"><span class="example-text">{{ d }}</span></div>
+      <input type="hidden" name="text" value="{{ d }}"><input type="hidden" name="source" value="model">
+      <button class="secondary" type="submit" style="flex:0 0 auto">{{ t('ai_accept') }}</button>
+    </form>
+    {% else %}<p class="muted">{{ t('ai_nothing') }}</p>{% endfor %}
+    {% endfor %}
+  </div>
+  {% endif %}
 </section>
 
 <form class="card" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles">
   <h2>{{ t('pb_add_article') }}</h2>
   <p class="muted">{{ t('pb_add_article_hint') }}</p>
+  {% if ai != 'none' %}
+  <p style="margin:0 0 12px"><button class="ghost" type="submit" formaction="/playbook/rules/{{ rule.key|urlencode }}/suggest-articles" formnovalidate>✦ {{ t('ai_suggest_articles') }}</button>
+    <span class="muted" style="font-size:12px">{{ t('ai_suggest_articles_hint') }}</span></p>
+  {% endif %}
   <div class="grid">
     <div class="full">
       <label for="text_id">{{ t('legal_text') }}</label>
@@ -102,6 +166,23 @@
   </div>
   <div class="actions"><button type="submit">{{ t('pb_add_article') }}</button></div>
 </form>
+{% if suggested_articles is defined %}
+<section class="card ai-panel">
+  <div class="ai-panel-head">✦ {{ t('ai_suggestions', ai=ai) }} — {{ suggested_text.reference }}</div>
+  {% for s in suggested_articles %}
+  <form class="article" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles">
+    <div class="article-head"><span class="num">{{ t('article') }} {{ s.number }}</span></div>
+    <p class="body" style="margin:6px 0">{{ s.text|truncate(600) }}</p>
+    <input type="hidden" name="text_id" value="{{ suggested_text.id }}">
+    <input type="hidden" name="number" value="{{ s.number }}">
+    <div class="row">
+      <div style="flex:4 1 300px"><label>{{ t('pb_why') }}</label><input name="why" value="{{ s.why }}" maxlength="400"></div>
+      <button class="secondary" type="submit">{{ t('ai_accept') }}</button>
+    </div>
+  </form>
+  {% else %}<p class="muted">{{ t('ai_nothing') }}</p>{% endfor %}
+</section>
+{% endif %}
 
 <section class="card">
   <h2>{{ t('pb_mappings') }}</h2>
@@ -130,3 +211,4 @@
   </form>
 </section>
 {% endblock %}
+

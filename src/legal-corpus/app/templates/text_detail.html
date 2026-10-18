@@ -125,6 +125,20 @@
 </section>
 
 <section class="card">
+  <h2>{{ t('amend_title') }}</h2>
+  <p class="muted">{{ t('amend_intro') }}</p>
+  <form method="post" action="/texts/{{ text.id }}/amendments" enctype="multipart/form-data">
+    <div class="grid">
+      <div class="full"><label for="amending_text">{{ t('amend_text') }}</label><textarea id="amending_text" class="tall" name="amending_text"></textarea></div>
+      <div><label for="amend_file">{{ t('amend_file') }}</label><input id="amend_file" name="file" type="file" accept="application/pdf,.pdf"></div>
+      <div><label for="amend_from">{{ t('applies_from_label') }}</label><input id="amend_from" name="applies_from" type="date"></div>
+      <div class="full"><label for="amend_note">{{ t('change_note') }}</label><input id="amend_note" name="note" maxlength="300" placeholder="{{ t('change_note_hint') }}"></div>
+    </div>
+    <div class="actions"><button type="submit">{{ t('amend_read') }}</button></div>
+  </form>
+</section>
+
+<section class="card">
   <h2>{{ t('add_article') }}</h2>
   <form method="post" action="/texts/{{ text.id }}/articles">
     <div class="grid">

@@ -1,3 +1,4 @@
+import json
 from datetime import date
 from types import SimpleNamespace
 from urllib.parse import quote, urlencode, urlsplit
@@ -14,7 +15,8 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import corpus, pdf, playbook
+from app.services import amendments, assist, corpus, pdf, playbook
+from app.services.llm import LlmUnavailable
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
 from app.services.search import index_status, rebuild_index, search
@@ -205,7 +207,7 @@ def pdf_upload(request: Request, file: UploadFile = File(...)):
 
 
 def _pdf_review(request: Request, raw_text: str, title: str, reference: str, filename: str | None,
-                error: str | None = None, fields: LegalTextIn | None = None) -> HTMLResponse:
+                error: str | None = None, fields=None, notice: str | None = None) -> HTMLResponse:
     split = split_articles(raw_text)
     draft = fields or SimpleNamespace(
         title=title or (filename or "").rsplit(".", 1)[0], reference=reference, source_url=None,
@@ -215,7 +217,34 @@ def _pdf_review(request: Request, raw_text: str, title: str, reference: str, fil
     numbers = [a.number for a in split.articles]
     duplicates = sorted({n for n in numbers if numbers.count(n) > 1})
     return _render(request, "pdf_review.html", text=draft, raw_text=raw_text, split=split, filename=filename,
-                   error=error, duplicates=duplicates)
+                   error=error, duplicates=duplicates, notice=notice, ai=request.app.state.llm.name)
+
+
+@router.post("/import-pdf/suggest", response_class=HTMLResponse)
+def pdf_suggest(
+    request: Request, raw_text: str = Form(""), filename: str = Form(""),
+    title: str = _TEXT_FIELDS["title"], reference: str = _TEXT_FIELDS["reference"],
+    summary: str = _TEXT_FIELDS["summary"], keywords: str = _TEXT_FIELDS["keywords"],
+    language: str = _TEXT_FIELDS["language"], jurisdiction: str = _TEXT_FIELDS["jurisdiction"],
+    category: str = _TEXT_FIELDS["category"], effective_date: str = _TEXT_FIELDS["effective_date"],
+    source_url: str = _TEXT_FIELDS["source_url"],
+):
+    """Fills the empty fields with the model's suggestions; what the person already typed is kept."""
+    try:
+        meta = assist.suggest_metadata(request.app.state.llm, raw_text)
+    except LlmUnavailable:
+        return _pdf_review(request, raw_text, title, reference, filename, "amend_unavailable")
+    draft = SimpleNamespace(
+        title=title.strip() or meta.title, reference=reference.strip() or meta.reference,
+        source_url=source_url.strip() or None,
+        jurisdiction=Jurisdiction(jurisdiction) if jurisdiction in Jurisdiction.__members__ else Jurisdiction.Tunisia,
+        category=meta.category if (category in ("", "Other") and meta.category) else
+        (Category(category) if category in Category.__members__ else Category.Other),
+        language=language or pdf.guess_language(raw_text),
+        effective_date=effective_date or None, keywords=keywords.strip() or meta.keywords,
+        summary=summary.strip() or meta.summary,
+    )
+    return _pdf_review(request, raw_text, draft.title, draft.reference, filename, fields=draft, notice="ai_suggested")
 
 
 @router.post("/import-pdf/review", response_class=HTMLResponse)
@@ -341,6 +370,37 @@ def update_article(
     return _redirect(f"/texts/{article.legal_text_id}", "saved")
 
 
+@router.post("/texts/{text_id}/amendments", response_class=HTMLResponse)
+def amendment_review(text_id: str, request: Request, amending_text: str = Form(""), applies_from: str = Form(""),
+                     note: str = Form(""), file: UploadFile | None = File(None), db: Session = Depends(get_db)):
+    text = corpus.get_text(db, text_id)
+    if file is not None and file.filename:
+        law = pdf.read_pdf(file.file.read(pdf.MAX_BYTES + 1))
+        amending_text = "\n\n".join(c.raw_text for c in law.candidates)
+    try:
+        result = amendments.propose(request.app.state.llm, text, amending_text)
+    except LlmUnavailable as error:
+        return _render(request, "amendment_review.html", text=text, result=None, error=str(error),
+                       ai=request.app.state.llm.name, applies_from=applies_from, note=note, changes_json="[]")
+    changes = [{"number": p.number, "action": p.action, "new_text": p.new_text} for p in result.proposals]
+    return _render(request, "amendment_review.html", text=text, result=result, error=None,
+                   ai=request.app.state.llm.name, applies_from=applies_from, note=note,
+                   changes_json=json.dumps(changes, ensure_ascii=False))
+
+
+@router.post("/texts/{text_id}/amendments/apply")
+def amendment_apply(text_id: str, request: Request, changes_json: str = Form("[]"), accept: list[str] = Form([]),
+                    applies_from: str = Form(""), note: str = Form(""), db: Session = Depends(get_db)):
+    try:
+        changes = json.loads(changes_json)
+        day = date.fromisoformat(applies_from) if applies_from else None
+        chosen = [changes[int(i)] for i in accept]
+    except (ValueError, IndexError, TypeError):
+        return _redirect(f"/texts/{text_id}", "err_invalid", "error")
+    count = corpus.apply_amendment(db, text_id, chosen, day, note or None, getattr(request.state, "user", None))
+    return _redirect(f"/texts/{text_id}", "amendments_applied", count=count)
+
+
 @router.post("/articles/{article_id}/search")
 def article_search(article_id: str, excluded: str = Form(""), db: Session = Depends(get_db)):
     article = corpus.set_excluded(db, article_id, excluded == "1")
@@ -436,6 +496,10 @@ def create_rule(request: Request, key: str = Form(""), label: str = Form("")):
 
 @router.get("/playbook/rules/{key}", response_class=HTMLResponse)
 def rule_page(key: str, request: Request, db: Session = Depends(get_db)):
+    return _rule_page(key, request, db)
+
+
+def _rule_page(key: str, request: Request, db: Session, **extra):
     described = playbook.describe(db, _playbook_path(request))
     rule = next((r for r in described["rules"] if r["key"] == key), None)
     if rule is None:
@@ -443,7 +507,64 @@ def rule_page(key: str, request: Request, db: Session = Depends(get_db)):
     texts = [t for t in corpus.list_texts(db) if t.reference and t.is_verified]
     mappings = [f for f, k in described["regulations"].items() if k == key]
     return _render(request, "playbook_rule.html", rule=rule, texts=texts, mappings=mappings,
-                   detected=playbook.DETECTED_KEYS)
+                   detected=playbook.DETECTED_KEYS, ai=request.app.state.llm.name, **extra)
+
+
+def _risk_description(rule: dict) -> str:
+    detected = playbook.DETECTED_KEYS.get(rule["key"])
+    return f"{rule['label']} ({detected[1]})" if detected else rule["label"]
+
+
+@router.post("/playbook/rules/{key}/suggest-articles", response_class=HTMLResponse)
+def rule_suggest_articles(key: str, request: Request, text_id: str = Form(""), db: Session = Depends(get_db)):
+    rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)
+    if rule is None:
+        return _redirect("/playbook")
+    text = corpus.get_text(db, text_id)
+    already = {a["number"] for a in rule["articles"] if a["reference"] == text.reference}
+    try:
+        suggestions = assist.suggest_articles(request.app.state.llm, _risk_description(rule), text, already)
+    except LlmUnavailable:
+        return _rule_page(key, request, db, ai_error=True)
+    return _rule_page(key, request, db, suggested_articles=suggestions, suggested_text=text)
+
+
+@router.post("/playbook/rules/{key}/examples/{kind}")
+def rule_add_example(key: str, kind: str, request: Request, text: str = Form(""), source: str = Form("lawyer")):
+    playbook.add_example(key, kind, text, source if source in ("lawyer", "model", "missed") else "lawyer",
+                         _playbook_path(request))
+    return _redirect(_rule_url(key), "saved")
+
+
+@router.post("/playbook/rules/{key}/examples/{kind}/{index}/delete")
+def rule_remove_example(key: str, kind: str, index: int, request: Request):
+    playbook.remove_example(key, kind, index, _playbook_path(request))
+    return _redirect(_rule_url(key), "deleted")
+
+
+@router.post("/playbook/rules/{key}/draft-examples", response_class=HTMLResponse)
+def rule_draft_examples(key: str, request: Request, db: Session = Depends(get_db)):
+    rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)
+    if rule is None:
+        return _redirect("/playbook")
+    known = [e["text"] for e in rule["examples"] + rule["counter_examples"]]
+    try:
+        drafts = assist.draft_examples(request.app.state.llm, _risk_description(rule), rule["phrases"], known)
+    except LlmUnavailable:
+        return _rule_page(key, request, db, ai_error=True)
+    return _rule_page(key, request, db, drafted=drafts)
+
+
+@router.post("/playbook/rules/{key}/suggest-phrases", response_class=HTMLResponse)
+def rule_suggest_phrases(key: str, request: Request, db: Session = Depends(get_db)):
+    rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)
+    if rule is None:
+        return _redirect("/playbook")
+    try:
+        phrases = assist.suggest_phrases(request.app.state.llm, _risk_description(rule), rule["phrases"])
+    except LlmUnavailable:
+        return _rule_page(key, request, db, ai_error=True)
+    return _rule_page(key, request, db, suggested_phrases=phrases)
 
 
 @router.post("/playbook/rules/{key}/label")

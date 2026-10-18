@@ -1,2 +1,6 @@
 -r requirements.txt
+# Meaning-based clause matching (POST /api/v1/classify). CPU-only PyTorch keeps the install small:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# The model (paraphrase-multilingual-MiniLM-L12-v2, ~470 MB) downloads on first use; copy the Hugging Face cache
+# to an air-gapped server to run fully offline.
 sentence-transformers>=3.0

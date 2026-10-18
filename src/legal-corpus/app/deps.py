@@ -24,6 +24,20 @@ def get_embedder(request: Request) -> Embedder:
     return state.embedder
 
 
+def get_matcher(request: Request):
+    """The clause matcher, built on first use; None when no semantic model is installed."""
+    from app.services.matching import ExampleMatcher, load_semantic
+
+    state = request.app.state
+    if not hasattr(state, "matcher"):
+        with _embedder_lock:
+            if not hasattr(state, "matcher"):
+                embedder = getattr(state, "matcher_embedder", None) or load_semantic(state.settings.embedding_model)
+                state.matcher = (ExampleMatcher(embedder, state.settings.match_threshold, state.settings.match_margin)
+                                 if embedder else None)
+    return state.matcher
+
+
 def require_api_key(request: Request, x_api_key: str | None = Header(default=None)) -> None:
     expected = request.app.state.settings.api_key
     if expected and not (x_api_key and hmac.compare_digest(x_api_key, expected)):

@@ -1,0 +1,51 @@
+{
+  "examples": {
+    "indemnification": {
+      "examples": [
+        "Le Client supportera seul l'ensemble des conséquences financières de tout sinistre, quelle qu'en soit la cause.",
+        "Les sommes dues par le Prestataire au titre de la présente garantie ne seront soumises à aucun plafond.",
+        "La Banque garantit le Prestataire contre toute réclamation de tiers, sans limitation de montant ni de durée."
+      ],
+      "counter_examples": [
+        "La garantie de chaque partie est limitée au montant des sommes perçues au cours des douze derniers mois."
+      ]
+    },
+    "personal_data": {
+      "examples": [
+        "Le Prestataire peut héberger les données des clients sur des serveurs situés hors de Tunisie.",
+        "Les fichiers contenant des informations nominatives pourront être communiqués à des sous-traitants étrangers."
+      ],
+      "counter_examples": [
+        "Les données à caractère personnel sont hébergées exclusivement en Tunisie et ne sont communiquées à aucun tiers."
+      ]
+    },
+    "auto_renewal": {
+      "examples": [
+        "À défaut de dénonciation, le contrat se poursuivra de plein droit pour une nouvelle période d'un an.",
+        "Le présent accord est prorogé automatiquement d'année en année sauf préavis contraire."
+      ],
+      "counter_examples": [
+        "Le contrat prend fin à son terme sans possibilité de prolongation, sauf avenant signé par les deux parties."
+      ]
+    }
+  },
+  "positives": [
+    {"rule": "indemnification", "text": "Le Client prendra en charge l'intégralité des conséquences de tout incident survenu dans ses locaux."},
+    {"rule": "indemnification", "text": "La Banque assumera la totalité des pertes subies par le Prestataire, sans aucune restriction."},
+    {"rule": "indemnification", "text": "Toute réclamation formée par un tiers sera intégralement supportée par le Client."},
+    {"rule": "personal_data", "text": "Les informations relatives à la clientèle pourront être stockées dans un centre de données situé en Europe."},
+    {"rule": "personal_data", "text": "Le Prestataire est autorisé à transmettre les fichiers clients à sa maison mère à l'étranger."},
+    {"rule": "auto_renewal", "text": "Faute pour l'une des parties de l'avoir dénoncé trois mois avant son terme, le contrat sera renouvelé pour la même durée."},
+    {"rule": "auto_renewal", "text": "Le contrat se prolongera ensuite par périodes successives de douze mois."}
+  ],
+  "negatives": [
+    "Le Prestataire livre le matériel au siège du Client dans un délai de trente jours.",
+    "Les factures sont payables à quarante-cinq jours fin de mois.",
+    "Le présent contrat est régi par le droit tunisien et relève des tribunaux de Tunis.",
+    "Chaque partie conserve la propriété de ses outils et de son savoir-faire préexistants.",
+    "La garantie de chaque partie est plafonnée au prix annuel du contrat.",
+    "Les données personnelles sont traitées en Tunisie conformément à la loi organique n° 2004-63.",
+    "Le contrat prend fin le 31 décembre 2027 sans reconduction.",
+    "La recette est prononcée dans les quinze jours suivant la livraison de chaque lot."
+  ]
+}

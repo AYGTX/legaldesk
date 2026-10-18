@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 
-from app.deps import get_db, get_embedder, require_api_key
+from app.deps import get_db, get_embedder, get_matcher, require_api_key
 from datetime import date
 
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import (
+    ClassifyIn,
+    ClassifyOut,
+    ClauseMatchOut,
     ArticleSearchIn,
     ArticleVersionOut,
     ArticleIn,
@@ -114,6 +117,21 @@ def get_article(article_id: str, db: Session = Depends(get_db)):
 @router.put("/articles/{article_id}", response_model=ArticleOut, tags=["articles"])
 def update_article(article_id: str, body: ArticleIn, db: Session = Depends(get_db)):
     return corpus.update_article(db, article_id, body, changed_by="API")
+
+
+@router.post("/classify", response_model=ClassifyOut, tags=["retrieval"])
+def classify(body: ClassifyIn, request: Request, db: Session = Depends(get_db), matcher=Depends(get_matcher)):
+    """Matches contract clauses to confirmed playbook rules by meaning, against each rule's example clauses. Runs on
+    this server; nothing is sent anywhere. Returns enabled=false when no semantic model is installed."""
+    from app.services.matching import RuleExamples
+
+    if matcher is None:
+        return ClassifyOut(enabled=False, model=None, matches=[])
+    served = playbook.resolve(db, request.app.state.settings.playbook_path)["rules"]
+    rules = [RuleExamples(k, r.get("label") or k, r.get("examples", []), r.get("counter_examples", []))
+             for k, r in served.items()]
+    matches = matcher.classify([(c.reference, c.text) for c in body.clauses], rules, body.threshold)
+    return ClassifyOut(enabled=True, model=matcher.embedder.name, matches=[ClauseMatchOut(**m.__dict__) for m in matches])
 
 
 @router.get("/articles/{article_id}/versions", response_model=list[ArticleVersionOut], tags=["articles"])
