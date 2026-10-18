@@ -240,3 +240,6 @@ th { text-transform: uppercase; letter-spacing: .4px; font-size: 11.5px; }
 /* While htmx waits for the server (Groq can take a few seconds), the clicked form shows it is working. */
 form.htmx-request button, form.htmx-request input[type="submit"] { opacity: .6; cursor: progress; pointer-events: none; }
 form.htmx-request button[type="submit"]::after { content: " …"; }
+
+/* The confirmation stays in view after an in-page update, however far down the page the reader is. */
+main > .flash { position: sticky; top: 76px; z-index: 5; box-shadow: 0 4px 14px rgba(45, 52, 112, .12); }

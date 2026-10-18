@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ t('app_name') }}{% endblock %}</title>
   <link rel="icon" href="/static/logo-consultim-it.svg">
-  <link rel="stylesheet" href="/static/style.css?v=16">
+  <link rel="stylesheet" href="/static/style.css?v=17">
   <script src="/static/htmx.min.js" defer></script>
 </head>
 {% from "_icons.html" import icon %}
@@ -48,10 +48,25 @@
   </aside>
   {% endif %}
   <!-- In-page forms (hx-boost) swap only this element from the response and keep the scroll position. -->
-  <main hx-target="this" hx-select="main" hx-swap="outerHTML show:none" hx-push-url="false">
+  <main hx-target="this" hx-select="main" hx-swap="outerHTML show:none focus-scroll:false" hx-push-url="false">
     {% if flash %}<div class="flash {{ flash_kind }}">{{ t(flash, **flash_args) }}</div>{% endif %}
     {% block content %}{% endblock %}
   </main>
 </div>
+<script>
+  // After an in-page update, put the page back exactly where it was: restoring focus to a field or the browser's
+  // scroll anchoring must never move the reader.
+  (function () {
+    var y = null;
+    document.addEventListener('htmx:beforeRequest', function () { y = window.scrollY; });
+    document.addEventListener('htmx:afterSettle', function () {
+      if (y === null) return;
+      var target = y; y = null;
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+      window.scrollTo(0, target);
+      requestAnimationFrame(function () { window.scrollTo(0, target); });
+    });
+  })();
+</script>
 </body>
 </html>
