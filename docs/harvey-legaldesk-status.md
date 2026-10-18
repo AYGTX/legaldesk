@@ -52,6 +52,11 @@
 1. **Send the contract signing date from LegalDesk to Harvey,** so contracts are checked against the law as it stood when they were signed.
 2. **Rehearse the demo:** the script, the seeded contracts and the MCP demo in Claude Desktop.
 
+3a. **Import: keep « bis / ter / quater » articles.** Import currently stops with « Numéros d'articles répétés :
+    42, 50, 54, 9. Corrigez le texte avant l'import. » These articles aren't duplicates: « Article 42 bis » is a separate
+    article inserted after article 42. The splitter should read the suffix as part of the number (42, 42 bis,
+    42 ter…), order and cite them correctly, and flag only true duplicates. Existing laws and LegalDesk must not change.
+
 ### Accuracy (benchmark follow-ups)
 3. A **non-compete** rule of its own, separate from exclusivity.
 4. **Penalty:** tell contractual penalties apart from tax or regulatory penalties.
