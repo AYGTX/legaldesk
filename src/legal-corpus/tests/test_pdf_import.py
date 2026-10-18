@@ -93,3 +93,21 @@ def test_create_with_repeated_numbers_keeps_the_review(client):
     page = client.post("/import-pdf/create", data={"raw_text": raw, "title": "Loi test", "jurisdiction": "Tunisia",
                                                    "category": "Other", "language": "fr"}).text
     assert "Some article numbers repeat" in page and "Le même numéro répété ici." in page
+
+
+def test_scraps_are_dropped_and_split_numbers_mended():
+    pages = [[HEADER.format(n=1), "lois de finances et autres textes.",
+              "Loi organique n° 2015 -26 du 7 août 2015, relative à la lutte contre", "le blanchiment d'argent (1).",
+              "Article premier - La présente loi vise à prévenir le blanchiment d'argent.",
+              "Art. 2 - Les dispositions de la présente loi s'appliquent à toute personne."]]
+    [law] = read_pdf(make_pdf(pages)).candidates
+    assert law.reference == "Loi organique n° 2015-26 du 7 août 2015" and law.article_count == 2
+
+
+def test_a_single_real_text_goes_straight_to_review(client):
+    pages = [[HEADER.format(n=1), "lois de finances et autres textes.",
+              "Loi n° 2099-5 du 1er mars 2099, relative aux essais.",
+              "Article premier - La présente loi vise à tester l'import direct des textes.",
+              "Art. 2 - Les dispositions de la présente loi s'appliquent à tous."]]
+    page = client.post("/import-pdf", files={"file": ("x.pdf", make_pdf(pages), "application/pdf")}).text
+    assert "2 article(s) found" in page

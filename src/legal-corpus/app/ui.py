@@ -200,8 +200,10 @@ def pdf_upload_page(request: Request):
 @router.post("/import-pdf", response_class=HTMLResponse)
 def pdf_upload(request: Request, file: UploadFile = File(...)):
     law = pdf.read_pdf(file.file.read(pdf.MAX_BYTES + 1))
-    if len(law.candidates) == 1:
-        c = law.candidates[0]
+    with_articles = [c for c in law.candidates if c.article_count]
+    if len(with_articles) == 1:
+        # Only one real text: go straight to its review.
+        c = with_articles[0]
         return _pdf_review(request, c.raw_text, c.title, c.reference, file.filename)
     return _render(request, "pdf_choose.html", law=law, filename=file.filename)
 

@@ -77,6 +77,8 @@ def _title(lines: list[str]) -> str:
         if line.rstrip().endswith("."):
             break
     title = re.sub(r"\s+", " ", " ".join(taken))
+    # Gazette prints sometimes split a number around its hyphen: "n° 2015 -26" must read "n° 2015-26".
+    title = re.sub(r"(\d{2,4})\s*-\s*(\d+)", r"\1-\2", title)
     return re.sub(r"\s*\(\d+\)\s*\.?$", "", title).rstrip(" .")
 
 
@@ -97,11 +99,15 @@ def _candidates(text: str) -> list[Candidate]:
             continue
         title = _title(lines[start:end]) if _TEXT_START.match(lines[start].strip()) else ""
         reference = _REFERENCE.match(title)
+        count = len(split_articles(raw).articles)
+        # A scrap with no article and no title (the end of the previous text on the first page) is not a text.
+        if count == 0 and not title:
+            continue
         candidates.append(Candidate(
             title=title[:300],
             reference=reference.group(1) if reference else "",
             raw_text=raw,
-            article_count=len(split_articles(raw).articles),
+            article_count=count,
         ))
     return candidates
 
