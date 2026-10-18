@@ -36,6 +36,21 @@
   {% endif %}
 </section>
 
+{% if defined %}
+<section class="card">
+  <details>
+    <summary><strong>{{ t('defs_title') }} ({{ defined|length }})</strong></summary>
+    <p class="muted">{{ t('defs_intro') }}</p>
+    <dl class="defs">
+    {% for d in defined %}
+      <dt><a href="#art-{{ d.article_id }}">{{ d.term }}</a> <span class="muted">· {{ t('article') }} {{ d.article_number }}</span></dt>
+      <dd>{{ d.definition }}</dd>
+    {% endfor %}
+    </dl>
+  </details>
+</section>
+{% endif %}
+
 <section class="card">
   <div class="articles-head">
     <h2>{{ t('articles') }} ({{ text.articles|length }})</h2>

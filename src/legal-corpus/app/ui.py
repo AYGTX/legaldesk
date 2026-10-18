@@ -15,7 +15,7 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import amendments, assist, corpus, coverage, explanations, pdf, playbook, references
+from app.services import amendments, assist, corpus, coverage, definitions, explanations, pdf, playbook, references
 from app.services.llm import LlmUnavailable
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
@@ -297,7 +297,8 @@ def text_page(text_id: str, request: Request, as_of: str = "", db: Session = Dep
         if explanation is not None:
             shown[article.id] = (explanation, explanations.status(explanation, article))
     return _render(request, "text_detail.html", text=text, as_of=day, wording_on=wording_on,
-                   ai=request.app.state.llm.name, explained=shown, linkify=references.linkify, ref_index=ref_index)
+                   ai=request.app.state.llm.name, explained=shown, linkify=references.linkify, ref_index=ref_index,
+                   defined=definitions.of_text(list(text.articles)))
 
 
 @router.post("/texts/{text_id}")

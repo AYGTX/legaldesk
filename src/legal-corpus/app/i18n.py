@@ -47,6 +47,11 @@ _T: dict[str, tuple[str, str]] = {
     "err_phrase_too_short": ("A phrase needs at least four characters.", "Une formulation doit compter au moins quatre caractères."),
     "err_duplicate_phrase": ('This phrase is already in the risk.', 'Cette formulation figure déjà dans ce risque.'),
     "pb_confirmed_short": ('Approved', 'Validé'),
+    "defs_title": ("Definitions", "Définitions"),
+    "defs_intro": (
+        "Terms this text defines (“au sens de la présente loi”, “on entend par”), found automatically. Click a term to open the article that defines it.",
+        "Termes définis par ce texte (« au sens de la présente loi », « on entend par »), repérés automatiquement. Cliquez sur un terme pour ouvrir l'article qui le définit.",
+    ),
     "cov_title": ("Coverage of standard clause types", "Couverture des types de clauses"),
     "cov_intro": (
         "The 41 clause categories of CUAD, the reference set used to evaluate contract review tools, against your risk grid.",

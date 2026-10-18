@@ -255,3 +255,8 @@ a.ref:hover { text-decoration-style: solid; }
 .badge.cov-pending { background: var(--warn-bg); color: var(--warn); }
 .badge.cov-extracted { background: rgba(45, 52, 112, .1); color: var(--accent); }
 .badge.cov-missing { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+.defs { display: grid; grid-template-columns: minmax(180px, 280px) 1fr; gap: 6px 18px; margin: 10px 0 0; }
+.defs dt { font-weight: 600; }
+.defs dd { margin: 0; color: var(--muted); font-size: 13.5px; }
+@media (max-width: 760px) { .defs { grid-template-columns: 1fr; } .defs dd { margin-bottom: 8px; } }

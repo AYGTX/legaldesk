@@ -54,4 +54,14 @@ def test_the_server_exposes_the_tools():
     import asyncio
 
     names = {tool.name for tool in asyncio.run(mcp_server.mcp.list_tools())}
-    assert names == {"list_laws", "search_law", "get_article", "check_quote", "explain_article"}
+    assert names == {"list_laws", "search_law", "get_article", "find_definition", "check_quote", "explain_article"}
+
+
+def test_find_definition_reads_verified_law_only(db_factory):
+    with db_factory() as db:
+        text = next(t for t in db.query(mcp_server.LegalText).all() if t.reference == "Loi test n° 1")
+        corpus.add_article(db, text.id, ArticleIn(number="9", text="Au sens de la présente loi, on entend par responsable "
+                                                  "du traitement toute personne qui détermine les finalités du traitement."))
+        corpus.verify(db, text.id, "Me")
+    [found] = mcp_server.find_definition("responsable du traitement")
+    assert found["citation"] == "Loi test n° 1, art. 9" and found["definition"].startswith("toute personne")

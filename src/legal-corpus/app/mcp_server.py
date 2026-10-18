@@ -106,6 +106,24 @@ def get_article(law: str, number: str, as_of: str | None = None) -> dict:
 
 
 @mcp.tool()
+def find_definition(term: str) -> list[dict]:
+    """What verified Tunisian law means by a term ("dépôts", "données à caractère personnel", "banque"): the
+    definitions found in verified texts ("au sens de la présente loi", "on entend par"), with the defining article."""
+    from app.services import definitions
+
+    wanted = term.strip().casefold()
+    with _db() as db:
+        texts = db.scalars(_verified().options(selectinload(LegalText.articles))).all()
+        results = []
+        for text in texts:
+            for d in definitions.of_text(list(text.articles)):
+                if wanted in d.term.casefold():
+                    results.append({"term": d.term, "definition": d.definition, "law": text.reference or text.title,
+                                    "citation": citation_label(text, d.article_number), "article_id": d.article_id})
+        return results[:20]
+
+
+@mcp.tool()
 def check_quote(quote: str, article_id: str) -> dict:
     """Checks that a quote appears word for word (typography and "[…]" elisions tolerated) in the given article of
     verified law. Call it before presenting any quote as law; a quote that fails must not be cited."""
