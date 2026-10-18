@@ -4,12 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ t('app_name') }}{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="/static/logo-consultim-it.svg">
+  <link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body>
 <header>
   <div class="bar">
-    <a class="brand" href="/">{{ t('app_name') }}</a>
+    <a class="brand" href="/">
+      <img src="/static/logo-consultim-it.svg" alt="Consultim IT">
+      <span class="name"><strong>{{ t('app_name') }}</strong><small>{{ t('app_tagline') }}</small></span>
+    </a>
     <nav>
       <a href="/">{{ t('nav_texts') }}</a>
       <a href="/import-pdf">{{ t('nav_import_pdf') }}</a>

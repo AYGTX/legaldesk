@@ -1,26 +1,33 @@
+/* Consultim IT palette: navy #2d3470, orange #ef8024, lavender #c2c5dd. */
 :root {
-  --bg: #f7f6f3; --surface: #fff; --text: #1d1d1f; --muted: #6b6b70; --border: #e2e0db;
-  --accent: #1f4e79; --accent-text: #fff; --ok: #1e7a46; --ok-bg: #e6f4ec; --warn: #8a5a00; --warn-bg: #fdf3dc;
+  --navy: #2d3470; --orange: #ef8024; --lavender: #c2c5dd;
+  --bg: #f4f5fa; --surface: #fff; --text: #1c1f3a; --muted: #5f6382; --border: #dfe1ee;
+  --accent: #2d3470; --accent-text: #fff; --highlight: #ef8024; --ok: #1e7a46; --ok-bg: #e6f4ec; --warn: #9a5408; --warn-bg: #fdefe2;
   --err: #a12c2c; --err-bg: #fbe9e9;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #161618; --surface: #1f1f22; --text: #ececee; --muted: #9a9aa2; --border: #34343a;
-    --accent: #7fb0e0; --accent-text: #0d1b28; --ok: #6fd39b; --ok-bg: #173024; --warn: #f0c46a; --warn-bg: #352a12;
+    --bg: #12142a; --surface: #1b1e3a; --text: #eceef8; --muted: #a3a7c6; --border: #2f3358;
+    --accent: #c2c5dd; --accent-text: #1b1e3a; --ok: #6fd39b; --ok-bg: #173024; --warn: #f5a861; --warn-bg: #3a2614;
     --err: #f08f8f; --err-bg: #3a1c1c;
   }
 }
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
 a { color: var(--accent); }
-header { background: var(--surface); border-bottom: 1px solid var(--border); }
+/* The header stays white in dark mode too: the logo's navy lettering needs a light background. */
+header { background: #fff; border-bottom: 3px solid var(--orange); }
 header .bar { max-width: 1100px; margin: 0 auto; padding: 12px 16px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-header .brand { font-weight: 700; text-decoration: none; color: var(--text); margin-right: auto; }
-header nav a { text-decoration: none; margin-right: 14px; }
+header .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; margin-right: auto; }
+header .brand img { height: 26px; width: auto; display: block; }
+header .brand .name { border-left: 1px solid var(--lavender); padding-left: 12px; line-height: 1.15; }
+header .brand .name strong { display: block; color: var(--navy); font-size: 17px; letter-spacing: .2px; }
+header .brand .name small { color: #5f6382; font-size: 12px; }
+header nav a { text-decoration: none; margin-right: 14px; color: var(--navy); font-weight: 500; }
 header .langs a { font-size: 13px; margin-left: 6px; }
-header .langs a.active { font-weight: 700; text-decoration: none; color: var(--text); }
+header .langs a.active { font-weight: 700; text-decoration: none; color: var(--orange); }
 main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
-h1 { font-size: 24px; margin: 0 0 4px; }
+h1 { font-size: 24px; margin: 0 0 4px; color: var(--accent); }
 h2 { font-size: 18px; margin: 0 0 12px; }
 .muted { color: var(--muted); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 18px; }

@@ -1,7 +1,8 @@
 LANGUAGES = ("en", "fr")
 
 _T: dict[str, tuple[str, str]] = {
-    "app_name": ("Legal corpus", "Corpus juridique"),
+    "app_name": ("Harvey", "Harvey"),
+    "app_tagline": ("Verified legal reference", "Référentiel juridique vérifié"),
     "nav_texts": ("Texts", "Textes"),
     "nav_search": ("Search & citations", "Recherche et citations"),
     "nav_api": ("API docs", "Documentation API"),

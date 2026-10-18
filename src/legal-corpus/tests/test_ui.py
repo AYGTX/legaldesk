@@ -36,9 +36,9 @@ def test_rule_error_redirects_with_message(client):
 
 def test_language_switch(client):
     client.get("/lang/fr")
-    assert "Corpus juridique" in client.get("/").text
+    assert "Référentiel juridique vérifié" in client.get("/").text
     client.get("/lang/en")
-    assert "Legal corpus" in client.get("/").text
+    assert "Verified legal reference" in client.get("/").text
 
 
 def test_cross_origin_post_refused(client):

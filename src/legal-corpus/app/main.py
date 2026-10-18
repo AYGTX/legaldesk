@@ -13,7 +13,7 @@ from app.services.corpus import NotFoundError, RuleError
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
     app = FastAPI(
-        title="Legal Corpus Service",
+        title="Harvey — verified legal reference",
         version="0.1.0",
         description="Verified, article-level law for LegalDesk: manage texts, search articles, check citations.",
     )
