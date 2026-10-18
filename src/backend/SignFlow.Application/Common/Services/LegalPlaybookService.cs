@@ -6,7 +6,8 @@ namespace SignFlow.Application.Common.Services;
 
 public interface ILegalPlaybookService
 {
-    Task<ContractRiskAnalysis> AttachToRiskAsync(ContractRiskAnalysis risk, CancellationToken ct = default);
+    /// <summary>Adds findings for lawyer-added wording found in <paramref name="contractText"/>, then attaches the law.</summary>
+    Task<ContractRiskAnalysis> AttachToRiskAsync(ContractRiskAnalysis risk, string? contractText, CancellationToken ct = default);
 
     Task<ComplianceAnalysis> AttachToComplianceAsync(
         ComplianceAnalysis compliance, IReadOnlyList<RegulatoryTextSummary> regulations, CancellationToken ct = default);
@@ -38,10 +39,13 @@ public class LegalPlaybookService(ILegalCorpusClient corpus, ILogger<LegalPlaybo
         }
     }
 
-    public async Task<ContractRiskAnalysis> AttachToRiskAsync(ContractRiskAnalysis risk, CancellationToken ct = default)
+    public async Task<ContractRiskAnalysis> AttachToRiskAsync(ContractRiskAnalysis risk, string? contractText, CancellationToken ct = default)
     {
         var playbook = await LoadAsync(ct);
-        return playbook is null ? risk : AttachToRisk(risk, playbook);
+        if (playbook is null) return risk;
+        if (playbook.Wording is { Count: > 0 })
+            risk = ContractRuleEngine.ApplyPlaybookWording(risk, contractText, playbook.Wording);
+        return AttachToRisk(risk, playbook);
     }
 
     public async Task<ComplianceAnalysis> AttachToComplianceAsync(

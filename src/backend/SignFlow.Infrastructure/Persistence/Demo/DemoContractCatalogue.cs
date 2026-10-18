@@ -89,7 +89,8 @@ internal static class DemoContractCatalogue
         DatacenterMaintenance(),
         SystemsIntegration(),
         DcwiColocation(),
-        B2CRemoteSupport()
+        B2CRemoteSupport(),
+        BankOutsourcingAtlas()
     ];
 
     // ── 1. Auto-renewing framework agreement whose notice window has already closed ──────────────
@@ -648,4 +649,42 @@ internal static class DemoContractCatalogue
     /// </summary>
     public static string NormaliseReference(string reference) =>
         reference == RefGdprFr ? RefGdpr : reference;
+
+    // ── 10. A bank outsourcing its core system — the bank client's demo, reviewed live ──────────
+    // No stored analysis on purpose: the presenter runs Harvey's review in the room. Each article holds
+    // one defect, and the review must find each on its clause (BankDemoContractTests, same wording):
+    // outsourcing without audit or central-bank access, client data abroad without banking secrecy, an
+    // uncapped indemnity, one-sided termination, a price change at will, and a reference to an article 12
+    // that does not exist. Uppercase headings, as the reader needs them to name each clause.
+    private static DemoContract BankOutsourcingAtlas() => new(
+        Title: "Contrat d'exploitation — Banque de l'Atlas / Nuage Numérique SARL",
+        Description: "Infogérance et hébergement du système bancaire central. En cours de revue juridique avant signature.",
+        RequestTypeName: "Contrat B2B",
+        OwnerEmail: ManagerEmail,
+        Status: DocumentStatus.InProgress,
+        CreatedDaysAgo: 3,
+        Reference: "Réf. LD-2026-BQ-003",
+        Body:
+        [
+            ("ARTICLE 1 - OBJET",
+             "La Banque confie au Prestataire l'infogérance et l'hébergement de son système bancaire central, y compris la plateforme de banque en ligne et les applications de gestion des comptes de la clientèle. Le Prestataire assure l'exploitation, la maintenance et la sauvegarde de ces systèmes."),
+            ("ARTICLE 2 - DURÉE ET RECONDUCTION",
+             "Le présent Contrat est conclu pour une durée initiale de trois (3) ans. Il se renouvelle ensuite par reconduction tacite pour des périodes successives de trois (3) ans, sauf dénonciation notifiée au moins six (6) mois avant l'échéance."),
+            ("ARTICLE 3 - PRIX",
+             "Les prestations sont rémunérées selon le barème annexé. Le Prestataire peut modifier ses tarifs et le périmètre des prestations à sa seule discrétion et sans préavis."),
+            ("ARTICLE 4 - DONNÉES DES CLIENTS",
+             "Le Prestataire héberge les fichiers et les données personnelles des clients de la Banque sur ses serveurs situés en France et peut les communiquer à ses propres sous-traitants établis à l'étranger. Le Prestataire traite ces informations avec un soin raisonnable."),
+            ("ARTICLE 5 - RESPONSABILITÉ",
+             "La Banque indemnisera et garantira le Prestataire contre toutes réclamations, pertes et dépenses de toute nature liées aux prestations, sans limite de montant ou de durée."),
+            ("ARTICLE 6 - RÉSILIATION",
+             "Le Prestataire peut résilier le présent Contrat à tout moment, sans préavis ni indemnité. La Banque n'a aucun droit de résiliation."),
+            ("ARTICLE 7 - LITIGES",
+             "Les litiges seront résolus tel qu'indiqué à l'Article 12 du présent Contrat. Fait à Tunis, en deux (2) exemplaires originaux.")
+        ],
+        Participants:
+        [
+            new("Sonia Ben Amor", ManagerEmail, 1, ApprovalType.Review, "Revue juridique", WorkflowStepStatus.InProgress),
+            new("Mohamed Gharbi", "m.gharbi@legaldesk.tn", 2, ApprovalType.Approval, "Conformité bancaire", WorkflowStepStatus.Pending),
+            new("Rania Khelifi", "r.khelifi@nuage-numerique.example", 3, ApprovalType.Signature, "Signataire — Nuage Numérique SARL", WorkflowStepStatus.Pending)
+        ]);
 }

@@ -47,7 +47,7 @@ public class AnalyzeContractCommandHandler(
         var text = await textProvider.GetTextAsync(document, cancellationToken);
 
         var result = await aiService.AnalyzeContractAsync(text, document.Title, DateTime.UtcNow, cancellationToken);
-        result = result with { Risk = await playbook.AttachToRiskAsync(result.Risk, cancellationToken) };
+        result = result with { Risk = await playbook.AttachToRiskAsync(result.Risk, text, cancellationToken) };
 
         document.SetAiRiskAnalysis(JsonSerializer.Serialize(result.Risk, ContractJson.Options));
 

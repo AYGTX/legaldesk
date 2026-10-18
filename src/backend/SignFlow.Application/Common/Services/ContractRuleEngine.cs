@@ -66,6 +66,55 @@ public static class ContractRuleEngine
         return new ContractRiskAnalysis(score, ordered, DateTime.UtcNow);
     }
 
+    /// <summary>
+    /// Flags each clause that contains wording a lawyer attached to a confirmed playbook rule, unless a built-in rule
+    /// already raised that risk on the same clause. Matching ignores case, accents and spacing; the finding names the
+    /// phrase it found, so the reviewer sees exactly why it was raised.
+    /// </summary>
+    public static ContractRiskAnalysis ApplyPlaybookWording(
+        ContractRiskAnalysis risk, string? text, IReadOnlyDictionary<string, PlaybookWording> wording)
+    {
+        if (string.IsNullOrWhiteSpace(text) || wording.Count == 0) return risk;
+        var l = new Lang(ContractLanguage.Detect(text) == "fr");
+        var clauses = SplitClauses(text).Select(ToClause).ToList();
+        var findings = risk.Findings.ToList();
+        var added = 0;
+
+        foreach (var (key, rule) in wording)
+        foreach (var c in clauses)
+        {
+            if (findings.Any(f => f.RuleKey == key && f.ContractReference == c.Heading)) continue;
+            var body = Fold(c.Text);
+            var phrase = rule.Phrases.FirstOrDefault(p => Fold(p).Length >= 4 && body.Contains(Fold(p), StringComparison.Ordinal));
+            if (phrase is null) continue;
+
+            findings.Add(Finding(c, key, rule.Label, Medium,
+                l.T($"The playbook flags the wording “{phrase.Trim()}” for this risk.",
+                    $"Le playbook signale la formulation « {phrase.Trim()} » pour ce risque."),
+                l.T($"Check this clause against the “{rule.Label}” risk.",
+                    $"Vérifier cette clause au regard du risque « {rule.Label} ».")));
+            added++;
+        }
+        if (added == 0) return risk;
+
+        // The "nothing detected" placeholder no longer holds once a playbook phrase has matched.
+        findings.RemoveAll(f => f.RuleKey is null && f.Severity == Low && f.ContractReference is null
+                                && (f.ClauseType == "General" || f.ClauseType == "Général"));
+        var ordered = findings.OrderBy(f => f.Severity switch { High => 0, Medium => 1, _ => 2 }).ToList();
+        var score = Math.Min(100, ordered.Sum(f => f.Severity switch { High => 20, Medium => 10, _ => 2 }));
+        return risk with { Findings = ordered, RiskScore = score };
+    }
+
+    /// <summary>Lower case, no accents, one space between words, straight apostrophes: "Prendra  en CHARGE l’intégralité" → "prendra en charge l'integralite".</summary>
+    private static string Fold(string s)
+    {
+        var decomposed = s.Replace('’', '\'').Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder(decomposed.Length);
+        foreach (var ch in decomposed)
+            if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark) sb.Append(char.ToLowerInvariant(ch));
+        return Regex.Replace(sb.ToString(), @"\s+", " ").Trim();
+    }
+
     // ------------------------------------------------------------------ clause rules
 
     private static void Liability(List<Clause> clauses, Lang l, List<RiskFinding> findings)
@@ -81,18 +130,42 @@ public static class ContractRuleEngine
         }
     }
 
+    // "La Banque indemnisera et garantira le Prestataire", "The Supplier shall indemnify and hold harmless the Customer".
+    // Party names must be capitalised, so "la garantie" or "le présent contrat" is never read as a party.
+    private static readonly Regex IndemnityFr = new(
+        @"\b(?<g>(?i:le|la|l['’])\s*[A-ZÉ][\p{L}-]+)\s+(?:s['’]engage\s+à\s+)?(?:indemnisera|indemnise|indemniser|garantira|garantit|garantir|tiendra\s+indemne|dégagera)\b"
+        + @"(?:\s+et\s+(?:garantira|garantir|indemnisera|indemniser|tiendra\s+indemne|dégagera(?:\s+de\s+toute\s+responsabilité)?))?\s+(?<b>(?i:le|la|l['’])\s*[A-ZÉ][\p{L}-]+)",
+        RegexOptions.Compiled);
+    private static readonly Regex IndemnityEn = new(
+        @"\b(?<g>[Tt]he\s+[A-Z][\w-]+)\s+(?i:shall|will|agrees\s+to)\s+(?i:indemnify|hold\s+harmless)(?:\s+(?i:and|,)\s+(?i:defend|hold\s+harmless|indemnify))*\s+(?<b>the\s+[A-Z][\w-]+)",
+        RegexOptions.Compiled);
+
+    /// <summary>Who gives the indemnity and who benefits, as written ("la Banque", "le Prestataire"); null when unclear.</summary>
+    private static (string Giver, string Beneficiary)? IndemnityParties(string text)
+    {
+        var m = IndemnityFr.Match(text);
+        if (!m.Success) m = IndemnityEn.Match(text);
+        if (!m.Success) return null;
+        static string Party(string s) => char.ToLowerInvariant(s[0]) + System.Text.RegularExpressions.Regex.Replace(s[1..], @"\s+", " ");
+        return (Party(m.Groups["g"].Value), Party(m.Groups["b"].Value));
+    }
+
     private static void Indemnification(List<Clause> clauses, Lang l, List<RiskFinding> findings)
     {
         foreach (var c in clauses.Where(c => Has(c, "indemnis", "indemnify", "tenir indemne", "dégagera de toute responsabilité", "hold harmless")))
         {
             var uncapped = Has(c, "sans limite", "toute nature", "without limit", "of any kind", "sans plafond");
+            var explanation = uncapped
+                ? l.T("The indemnity covers claims of any kind, with no limit of amount or duration.",
+                      "La garantie couvre toutes réclamations de toute nature, sans limite de montant ni de durée.")
+                : l.T("An indemnification clause was detected.", "Une clause d'indemnisation a été détectée.");
+            if (IndemnityParties(c.Heading + " " + c.Text) is var (giver, beneficiary))
+                explanation += " " + l.T($"Here {giver} indemnifies {beneficiary}: the risk lies with {giver}.",
+                                         $"Ici, {giver} garantit {beneficiary} : le risque pèse sur {giver}.");
             findings.Add(Finding(c, "indemnification",
                 l.T(uncapped ? "Uncapped indemnity" : "Indemnity", uncapped ? "Garantie sans limite" : "Indemnisation"),
                 uncapped ? High : Medium,
-                uncapped
-                    ? l.T("The indemnity covers claims of any kind, with no limit of amount or duration.",
-                          "La garantie couvre toutes réclamations de toute nature, sans limite de montant ni de durée.")
-                    : l.T("An indemnification clause was detected.", "Une clause d'indemnisation a été détectée."),
+                explanation,
                 l.T("Limit the indemnity to claims caused by the party's own breach, with a cap and a time limit.",
                     "Limiter la garantie aux réclamations causées par un manquement de la partie, avec un plafond et une durée.")));
         }

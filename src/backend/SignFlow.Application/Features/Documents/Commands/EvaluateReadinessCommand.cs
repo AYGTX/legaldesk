@@ -66,7 +66,7 @@ public class EvaluateReadinessCommandHandler(
         await Task.WhenAll(reviewTask, complianceTask);
 
         var review = await reviewTask;
-        review = review with { Risk = await playbook.AttachToRiskAsync(review.Risk, cancellationToken) };
+        review = review with { Risk = await playbook.AttachToRiskAsync(review.Risk, text, cancellationToken) };
         var compliance = await complianceTask;
 
         document.SetAiRiskAnalysis(JsonSerializer.Serialize(review.Risk, ContractJson.Options));
