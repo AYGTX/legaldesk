@@ -250,3 +250,8 @@ a.ref:hover { text-decoration-style: solid; }
 .ref-missing { border-bottom: 1px dashed var(--highlight); cursor: help; }
 :target { scroll-margin-top: 90px; }
 .article:target { background: rgba(239, 128, 36, .07); border-radius: 8px; }
+
+.badge.cov-covered { background: var(--ok-bg); color: var(--ok); }
+.badge.cov-pending { background: var(--warn-bg); color: var(--warn); }
+.badge.cov-extracted { background: rgba(45, 52, 112, .1); color: var(--accent); }
+.badge.cov-missing { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }

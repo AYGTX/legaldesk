@@ -15,7 +15,7 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import amendments, assist, corpus, explanations, pdf, playbook, references
+from app.services import amendments, assist, corpus, coverage, explanations, pdf, playbook, references
 from app.services.llm import LlmUnavailable
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
@@ -534,6 +534,11 @@ def playbook_page(request: Request, db: Session = Depends(get_db)):
     return _render(request, "playbook.html", pb=described, detected=playbook.DETECTED_KEYS,
                    free_keys=[k for k in playbook.DETECTED_KEYS if k not in used],
                    graph=playbook.link_map(rules), stats=stats)
+
+
+@router.get("/coverage", response_class=HTMLResponse)
+def coverage_page(request: Request, db: Session = Depends(get_db)):
+    return _render(request, "coverage.html", cov=coverage.report(playbook.describe(db, _playbook_path(request))["rules"]))
 
 
 @router.post("/playbook/rules")
