@@ -32,7 +32,24 @@ class Settings:
     match_margin: float = 0.05
 
 
+ENV_FILE = BASE_DIR / "data" / ".env"
+
+
+def _load_env_file(path: Path = ENV_FILE) -> None:
+    """KEY=value lines from the git-ignored data/.env, for secrets such as CORPUS_GROQ_API_KEY. A variable already set
+    in the environment wins, so a shell can still override the file."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 def load_settings() -> Settings:
+    _load_env_file()
     return Settings(
         database_url=os.getenv("CORPUS_DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'corpus.db'}"),
         # Search ranks by keywords (BM25) unless asked otherwise: on this corpus it beat hashed vectors, and switching
