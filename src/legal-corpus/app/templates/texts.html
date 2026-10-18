@@ -5,7 +5,7 @@
   <a class="button" href="/texts/new">{{ t('new_text') }}</a>
 </div>
 
-<form class="card row" method="get" action="/">
+<form class="card row" method="get" action="/texts">
   <div><label for="q">{{ t('search') }}</label><input id="q" name="q" value="{{ filters.q }}" placeholder="{{ t('search_placeholder') }}"></div>
   <div><label for="fj">{{ t('jurisdiction') }}</label>
     <select id="fj" name="jurisdiction"><option value="">{{ t('all') }}</option>
@@ -34,11 +34,11 @@
     <tbody>
     {% for text in texts %}
       <tr>
-        <td><a href="/texts/{{ text.id }}">{{ text.title }}</a>{% if text.reference %}<div class="muted">{{ text.reference }}</div>{% endif %}</td>
+        <td><a class="title-link" href="/texts/{{ text.id }}">{{ text.title }}</a>{% if text.reference %}<div class="muted">{{ text.reference }}</div>{% endif %}</td>
         <td>{{ t(text.jurisdiction.value) }}</td>
         <td>{{ t(text.category.value) }}</td>
         <td>{{ counts.get(text.id, 0) }}</td>
-        <td><span class="badge neutral">{{ t(text.status.value) }}</span></td>
+        <td><span class="badge status-{{ text.status.value|lower }}">{{ t(text.status.value) }}</span></td>
         <td>{% if text.is_verified %}<span class="badge ok">{{ t('verified') }}</span>{% else %}<span class="badge warn">{{ t('not_verified') }}</span>{% endif %}</td>
       </tr>
     {% endfor %}

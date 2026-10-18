@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app import auth
 from app.config import BASE_DIR
 from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
@@ -31,7 +32,7 @@ def same_origin(request: Request) -> None:
         raise HTTPException(status_code=403, detail="Cross-origin form post refused.")
 
 
-router = APIRouter(include_in_schema=False, dependencies=[Depends(same_origin)])
+router = APIRouter(include_in_schema=False, dependencies=[Depends(same_origin), Depends(auth.require_login)])
 
 
 def _render(request: Request, template: str, **context) -> HTMLResponse:
@@ -51,6 +52,7 @@ def _render(request: Request, template: str, **context) -> HTMLResponse:
             "jurisdictions": list(Jurisdiction),
             "categories": list(Category),
             "statuses": list(TextStatus),
+            "user": getattr(request.state, "user", None),
             **context,
         },
     )
@@ -94,7 +96,56 @@ def set_language(lang: str, request: Request):
     return response
 
 
+def _safe_next(path: str) -> str:
+    """Only local paths, so the sign-in page cannot be used to bounce someone to another site."""
+    return path if path.startswith("/") and not path.startswith("//") and not path.startswith("/\\") else "/"
+
+
+@router.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, next: str = "/"):
+    if auth.current_user(request):
+        return RedirectResponse(_safe_next(next), status_code=303)
+    return _render(request, "login.html", next=_safe_next(next), error=False)
+
+
+@router.post("/login", response_class=HTMLResponse)
+def login(request: Request, login: str = Form(""), password: str = Form(""), next: str = Form("/")):
+    if not auth.check_credentials(request.app.state.settings, login, password):
+        return _render(request, "login.html", next=_safe_next(next), error=True, login=login)
+    response = RedirectResponse(_safe_next(next), status_code=303)
+    response.set_cookie(auth.COOKIE, auth.make_session(request.app.state.session_secret, request.app.state.settings.admin_user),
+                        max_age=auth.LIFETIME_SECONDS, httponly=True, samesite="lax")
+    return response
+
+
+@router.post("/logout")
+def logout():
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(auth.COOKIE)
+    return response
+
+
 @router.get("/", response_class=HTMLResponse)
+def dashboard(request: Request, db: Session = Depends(get_db)):
+    texts = corpus.list_texts(db, None, None, None, None, None)
+    counts = corpus.article_counts(db)
+    book = playbook.describe(db, _playbook_path(request))
+    rules = book["rules"]
+    stats = {
+        "texts": len(texts),
+        "verified": sum(1 for t in texts if t.verified_by),
+        "articles": sum(counts.values()),
+        "rules": len(rules),
+        "confirmed": sum(1 for r in rules if r.get("confirmed_by")),
+    }
+    to_verify = [t for t in texts if not t.verified_by and t.status != TextStatus.Archived]
+    to_publish = [t for t in texts if t.verified_by and t.status == TextStatus.Draft]
+    to_confirm = [r for r in rules if not r.get("confirmed_by")]
+    return _render(request, "dashboard.html", stats=stats, to_verify=to_verify, to_publish=to_publish,
+                   to_confirm=to_confirm, counts=counts)
+
+
+@router.get("/texts", response_class=HTMLResponse)
 def texts_page(
     request: Request,
     q: str = "",
@@ -246,7 +297,7 @@ def unverify(text_id: str, db: Session = Depends(get_db)):
 @router.post("/texts/{text_id}/delete")
 def delete_text(text_id: str, db: Session = Depends(get_db)):
     corpus.delete_text(db, text_id)
-    return _redirect("/", "deleted")
+    return _redirect("/texts", "deleted")
 
 
 @router.post("/texts/{text_id}/articles")

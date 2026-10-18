@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_dashboard') }} · {{ t('app_name') }}{% endblock %}
+{% from "_icons.html" import icon %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t('dash_title') }}</h1><p class="muted">{{ t('dash_intro') }}</p></div></div>
+
+<div class="stats">
+  <a class="stat" href="/texts"><strong>{{ stats.texts }}</strong><span>{{ t('dash_texts') }}</span></a>
+  <a class="stat" href="/texts?verified=yes"><strong>{{ stats.verified }}</strong><span>{{ t('dash_verified') }}</span></a>
+  <a class="stat" href="/search"><strong>{{ stats.articles }}</strong><span>{{ t('dash_articles') }}</span></a>
+  <a class="stat" href="/playbook"><strong>{{ stats.confirmed }}/{{ stats.rules }}</strong><span>{{ t('dash_rules') }}</span></a>
+</div>
+
+<h2>{{ t('dash_quick') }}</h2>
+<div class="tiles">
+  {% for href, name, label, hint in [
+      ('/import-pdf', 'pdf', 'nav_import_pdf', 'dash_pdf_hint'),
+      ('/texts', 'texts', 'nav_texts', 'dash_texts_hint'),
+      ('/texts/new', 'new', 'new_text', 'dash_new_hint'),
+      ('/search', 'search', 'nav_search', 'dash_search_hint'),
+      ('/playbook', 'playbook', 'nav_playbook', 'dash_playbook_hint'),
+      ('/docs', 'api', 'nav_api', 'dash_api_hint')] %}
+  <a class="tile" href="{{ href }}">
+    <span class="tile-icon">{{ icon(name, 26) }}</span>
+    <span><strong>{{ t(label) }}</strong><small>{{ t(hint) }}</small></span>
+  </a>
+  {% endfor %}
+</div>
+
+<h2>{{ t('dash_attention') }}</h2>
+<section class="card">
+  {% if not to_verify and not to_publish and not to_confirm %}
+    <p class="muted">{{ t('dash_all_clear') }}</p>
+  {% endif %}
+  {% for text in to_verify %}
+    <div class="hit"><span class="badge warn">{{ t('dash_to_verify') }}</span>
+      <a href="/texts/{{ text.id }}">{{ text.title }}</a> <span class="meta">{{ text.reference or '' }} · {{ t('pdf_articles', count=counts.get(text.id, 0)) }}</span></div>
+  {% endfor %}
+  {% for text in to_publish %}
+    <div class="hit"><span class="badge neutral">{{ t('dash_to_publish') }}</span>
+      <a href="/texts/{{ text.id }}">{{ text.title }}</a> <span class="meta">{{ text.reference or '' }}</span></div>
+  {% endfor %}
+  {% for rule in to_confirm %}
+    <div class="hit"><span class="badge warn">{{ t('dash_to_confirm') }}</span>
+      <a href="/playbook/rules/{{ rule.key }}">{{ rule.label }}</a></div>
+  {% endfor %}
+</section>
+{% endblock %}

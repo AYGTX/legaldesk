@@ -14,6 +14,7 @@ def setup(tmp_path):
     path.write_text(json.dumps({"rules": [], "regulations": {}}), encoding="utf-8")
     app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None, playbook_path=path))
     with TestClient(app) as c:
+        c.post("/login", data={"login": "admin", "password": "admin"})
         text = c.post("/api/v1/texts", json={
             "title": "Données", "reference": "Loi test n° 1", "jurisdiction": "Tunisia",
             "category": "DataProtection", "source_url": "https://example.org/1"}).json()

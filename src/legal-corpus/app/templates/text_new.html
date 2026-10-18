@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ t('new_text') }} · {{ t('app_name') }}{% endblock %}
 {% block content %}
-<div class="page-head"><h1>{{ t('new_text') }}</h1><a href="/">{{ t('back') }}</a></div>
+<div class="page-head"><h1>{{ t('new_text') }}</h1><a href="/texts">{{ t('back') }}</a></div>
 <form class="card" method="post" action="/texts/new">
   {% include "_text_fields.html" %}
-  <div class="actions"><button type="submit">{{ t('create') }}</button><a class="button secondary" href="/">{{ t('cancel') }}</a></div>
+  <div class="actions"><button type="submit">{{ t('create') }}</button><a class="button secondary" href="/texts">{{ t('cancel') }}</a></div>
 </form>
 {% endblock %}

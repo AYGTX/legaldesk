@@ -13,6 +13,12 @@ class Settings:
     embedding_model: str
     api_key: str | None
     playbook_path: Path = BASE_DIR / "playbook.json"
+    # The UI's administrator account. Change the defaults with CORPUS_ADMIN_* before any shared deployment.
+    admin_user: str = "admin"
+    admin_email: str = "aymen.hamadi.tn@gmail.com"
+    admin_password: str = "admin"
+    # Signs the session cookie. Without one, a random key is drawn at start-up and restarts sign everyone out.
+    session_secret: str | None = None
 
 
 def load_settings() -> Settings:
@@ -24,4 +30,8 @@ def load_settings() -> Settings:
         ),
         api_key=os.getenv("CORPUS_API_KEY") or None,
         playbook_path=Path(os.getenv("CORPUS_PLAYBOOK", str(BASE_DIR / "playbook.json"))),
+        admin_user=os.getenv("CORPUS_ADMIN_USER", "admin"),
+        admin_email=os.getenv("CORPUS_ADMIN_EMAIL", "aymen.hamadi.tn@gmail.com"),
+        admin_password=os.getenv("CORPUS_ADMIN_PASSWORD", "admin"),
+        session_secret=os.getenv("CORPUS_SESSION_SECRET") or None,
     )

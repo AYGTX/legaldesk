@@ -5,31 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ t('app_name') }}{% endblock %}</title>
   <link rel="icon" href="/static/logo-consultim-it.svg">
-  <link rel="stylesheet" href="/static/style.css?v=2">
+  <link rel="stylesheet" href="/static/style.css?v=5">
 </head>
+{% from "_icons.html" import icon %}
 <body>
-<header>
-  <div class="bar">
-    <a class="brand" href="/">
-      <img src="/static/logo-consultim-it.svg" alt="Consultim IT">
-      <span class="name"><strong>{{ t('app_name') }}</strong><small>{{ t('app_tagline') }}</small></span>
-    </a>
-    <nav>
-      <a href="/">{{ t('nav_texts') }}</a>
-      <a href="/import-pdf">{{ t('nav_import_pdf') }}</a>
-      <a href="/search">{{ t('nav_search') }}</a>
-      <a href="/playbook">{{ t('nav_playbook') }}</a>
-      <a href="/docs">{{ t('nav_api') }}</a>
-    </nav>
+<header class="topbar">
+  <a class="brand" href="/">
+    <img src="/static/logo-consultim-it.svg" alt="Consultim IT">
+    <span class="name"><strong>{{ t('app_name') }}</strong><small>{{ t('app_tagline') }}</small></span>
+  </a>
+  <div class="top-actions">
     <span class="langs">
       <a href="/lang/en" class="{{ 'active' if lang == 'en' }}">EN</a>
       <a href="/lang/fr" class="{{ 'active' if lang == 'fr' }}">FR</a>
     </span>
+    {% if user %}
+    <form class="logout" method="post" action="/logout">
+      <span class="who" title="{{ user }}">{{ icon('user', 16) }} {{ user }}</span>
+      <button class="ghost" type="submit" title="{{ t('logout') }}">{{ icon('logout', 16) }}<span>{{ t('logout') }}</span></button>
+    </form>
+    {% endif %}
   </div>
 </header>
-<main>
-  {% if flash %}<div class="flash {{ flash_kind }}">{{ t(flash, **flash_args) }}</div>{% endif %}
-  {% block content %}{% endblock %}
-</main>
+<div class="shell {{ 'with-nav' if user }}">
+  {% if user %}
+  {% set path = request.url.path %}
+  <aside class="sidebar">
+    <nav>
+      {% for href, name, label, active in [
+          ('/', 'dashboard', 'nav_dashboard', path == '/'),
+          ('/texts', 'texts', 'nav_texts', path.startswith('/texts') and path != '/texts/new'),
+          ('/import-pdf', 'pdf', 'nav_import_pdf', path.startswith('/import-pdf')),
+          ('/texts/new', 'new', 'new_text', path == '/texts/new'),
+          ('/search', 'search', 'nav_search', path.startswith('/search')),
+          ('/playbook', 'playbook', 'nav_playbook', path.startswith('/playbook'))] %}
+      <a href="{{ href }}" class="{{ 'active' if active }}">{{ icon(name) }}<span>{{ t(label) }}</span></a>
+      {% endfor %}
+      <hr>
+      <a href="/docs">{{ icon('api') }}<span>{{ t('nav_api') }}</span></a>
+    </nav>
+  </aside>
+  {% endif %}
+  <main>
+    {% if flash %}<div class="flash {{ flash_kind }}">{{ t(flash, **flash_args) }}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
 </body>
 </html>

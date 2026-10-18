@@ -1,10 +1,12 @@
-from urllib.parse import urlencode, urlsplit
+import secrets
+from urllib.parse import quote, urlencode, urlsplit
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import api, ui
+from app.auth import LoginRequired
 from app.config import BASE_DIR, Settings, load_settings
 from app.db import make_session_factory
 from app.services.corpus import NotFoundError, RuleError
@@ -20,6 +22,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.session_factory = make_session_factory(settings.database_url)
     app.state.embedder = None
+    app.state.session_secret = settings.session_secret or secrets.token_hex(32)
 
     app.include_router(api.router)
     app.include_router(ui.router)
@@ -32,6 +35,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         referer = request.headers.get("referer")
         path = urlsplit(referer).path if referer else "/"
         return RedirectResponse(f"{path or '/'}?{urlencode({'flash': code, 'kind': 'error'})}", status_code=303)
+
+    @app.exception_handler(LoginRequired)
+    async def login_required(request: Request, exc: LoginRequired):
+        return RedirectResponse(f"/login?next={quote(exc.next_path)}", status_code=303)
 
     @app.exception_handler(NotFoundError)
     async def not_found(request: Request, exc: NotFoundError):
