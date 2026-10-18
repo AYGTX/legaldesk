@@ -160,4 +160,48 @@ public class ContractRuleEngineTests
         Assert.DoesNotContain(ContractRuleEngine.Analyze("ARTICLE 1 - SÉCURITÉ Le transport de données est chiffré.").Findings,
             f => f.RuleKey == "transport");
     }
+
+    private const string BankHosting =
+        "ARTICLE 1 - OBJET Le Prestataire assure pour la Banque l'hébergement et la maintenance des applications de la Banque, " +
+        "dans les conditions et selon les niveaux de service définis par les parties dans le présent contrat. " +
+        "ARTICLE 2 - DONNÉES Le Prestataire traite les données des clients de la Banque pour les besoins des services et sur les instructions de la Banque.";
+
+    [Fact]
+    public void A_bank_outsourcing_contract_without_supervision_or_audit_is_flagged()
+    {
+        var findings = ContractRuleEngine.Analyze(BankHosting).Findings;
+
+        var outsourcing = Assert.Single(findings, f => f.RuleKey == "bank_outsourcing");
+        Assert.Equal("High", outsourcing.Severity);
+        Assert.Contains("Banque centrale", outsourcing.Explanation);
+        Assert.Contains("droit d'audit", outsourcing.Explanation);
+        Assert.Equal("High", Assert.Single(findings, f => f.RuleKey == "bank_secrecy").Severity);
+    }
+
+    [Fact]
+    public void A_bank_outsourcing_contract_with_audit_supervision_and_secrecy_is_clean()
+    {
+        var findings = ContractRuleEngine.Analyze(BankHosting +
+            " ARTICLE 3 - AUDIT La Banque et la Banque centrale de Tunisie disposent d'un droit d'audit sur place. " +
+            "ARTICLE 4 - SECRET Le Prestataire est tenu au secret professionnel.").Findings;
+
+        Assert.DoesNotContain(findings, f => f.RuleKey is "bank_outsourcing" or "bank_secrecy");
+    }
+
+    [Fact]
+    public void A_non_bank_contract_gets_no_bank_findings()
+    {
+        Assert.DoesNotContain(Findings, f => f.RuleKey is "bank_outsourcing" or "bank_secrecy" or "bank_account");
+    }
+
+    [Fact]
+    public void An_account_agreement_without_fees_or_mediator_is_flagged()
+    {
+        var finding = Assert.Single(ContractRuleEngine.Analyze(
+            "ARTICLE 1 - OUVERTURE DE COMPTE La présente convention de compte régit le compte de dépôt ouvert par la Banque au nom du Client, " +
+            "ainsi que les conditions de son fonctionnement et de sa clôture par le Client ou par la Banque dans les cas prévus par la loi.").Findings,
+            f => f.RuleKey == "bank_account");
+        Assert.Contains("commissions", finding.Explanation);
+        Assert.Contains("médiateur", finding.Explanation);
+    }
 }

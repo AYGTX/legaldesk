@@ -43,6 +43,9 @@ DETECTED_KEYS = {
     "works_guarantee": ("Works guarantee", "Garantie de l'ouvrage"),
     "transport": ("Transport contract", "Contrat de transport"),
     "electronic_payment": ("Electronic payment", "Paiement électronique"),
+    "bank_outsourcing": ("Bank outsourcing (audit and central-bank supervision)", "Externalisation bancaire (audit et supervision BCT)"),
+    "bank_secrecy": ("Banking secrecy", "Secret bancaire"),
+    "bank_account": ("Account agreement (fees, mediator)", "Convention de compte (commissions, médiateur)"),
 }
 
 _lock = threading.Lock()

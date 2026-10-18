@@ -394,6 +394,65 @@
       ],
       "confirmed_by": "H. Aymen",
       "confirmed_at": "2026-10-16T22:17:22+00:00"
+    },
+    {
+      "key": "bank_outsourcing",
+      "label": "Externalisation bancaire",
+      "articles": [
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "81",
+          "why": "Externalisation par convention écrite, sans entraver la supervision de la BCT, information préalable de la BCT."
+        },
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "169",
+          "why": "Sanctions du gouverneur de la BCT en cas de manquement à l'obligation d'information sur l'externalisation."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "key": "bank_secrecy",
+      "label": "Secret bancaire",
+      "articles": [
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "61",
+          "why": "Secret professionnel des dirigeants, mandataires et salariés de la banque, sous peine de l'article 254 du code pénal."
+        },
+        {
+          "reference": "Loi organique n° 2004-63 du 27 juillet 2004",
+          "number": "23",
+          "why": "Confidentialité des données personnelles, même après la fin du traitement."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "key": "bank_account",
+      "label": "Convention de compte",
+      "articles": [
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "83",
+          "why": "Convention écrite avec conditions générales et liste des commissions."
+        },
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "84",
+          "why": "Interdiction d'intérêts ou de commissions non déclarés."
+        },
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "187",
+          "why": "Information du client sur le médiateur bancaire dans la convention de compte."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
     }
   ],
   "regulations": {

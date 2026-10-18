@@ -53,6 +53,9 @@ public static class ContractRuleEngine
         WorksGuarantee(clauses, l, findings);
         Transport(clauses, l, findings);
         ElectronicPayment(clauses, l, findings);
+        BankOutsourcing(text, clauses, l, findings);
+        BankSecrecy(text, clauses, l, findings);
+        BankAccountAgreement(text, clauses, l, findings);
 
         if (findings.Count == 0)
             findings.Add(new RiskFinding(l.T("General", "Général"), Low,
@@ -376,6 +379,69 @@ public static class ContractRuleEngine
                     "Paiement par transfert électronique : l'émetteur a des obligations d'information, de sécurité et de conservation."),
                 null));
         }
+    }
+
+    private static readonly Regex BankParty = new(
+        @"\b(?:la|une|cette|de\s+la)\s+banque\b|établissement\s+financier|\bthe\s+bank\b|financial\s+institution",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static bool IsBankContract(string text) => BankParty.IsMatch(text);
+
+    private static bool TextHas(string text, params string[] terms) =>
+        terms.Any(t => text.Contains(t, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>A bank outsourcing activities to a provider: the contract must keep the central bank able to supervise.</summary>
+    private static void BankOutsourcing(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        if (!IsBankContract(text)) return;
+        var c = clauses.FirstOrDefault(c => Has(c, "externalis", "sous-trait", "hébergement", "infogérance", "prestation de services",
+            "services informatiques", "outsourc", "hosting", "managed services"));
+        if (c is null) return;
+
+        var supervision = TextHas(text, "banque centrale", "BCT", "central bank");
+        var audit = TextHas(text, "audit", "contrôle sur place", "droit d'accès", "inspection");
+        if (supervision && audit) return;
+
+        var missing = new List<string>();
+        if (!supervision) missing.Add(l.T("access for the central bank's supervision", "l'accès de la Banque centrale pour sa supervision"));
+        if (!audit) missing.Add(l.T("the bank's audit rights", "le droit d'audit de la banque"));
+
+        findings.Add(Finding(c, "bank_outsourcing", l.T("Bank outsourcing", "Externalisation bancaire"), High,
+            l.T($"The bank outsources part of its activity, but the contract does not provide {string.Join(" or ", missing)}. The central bank must also be informed before signing.",
+                $"La banque externalise une partie de son activité, mais le contrat ne prévoit pas {string.Join(" ni ", missing)}. La Banque centrale doit aussi être informée avant la signature."),
+            l.T("Add a clause guaranteeing the bank's audit rights and the central bank's supervision of the outsourced operations, and notify the central bank before signing.",
+                "Ajouter une clause garantissant le droit d'audit de la banque et la supervision par la Banque centrale des opérations externalisées, et informer la Banque centrale avant la signature.")));
+    }
+
+    /// <summary>A provider handling a bank's client information must be bound to the bank's professional secrecy.</summary>
+    private static void BankSecrecy(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        if (!IsBankContract(text)) return;
+        var c = clauses.FirstOrDefault(c => Has(c, "données", "informations", "fichiers", "data", "information"));
+        if (c is null || TextHas(text, "secret professionnel", "secret bancaire", "banking secrecy", "professional secrecy")) return;
+
+        findings.Add(Finding(c, "bank_secrecy", l.T("Banking secrecy", "Secret bancaire"), High,
+            l.T("The provider will handle the bank's information, but the contract does not bind it to professional secrecy.",
+                "Le prestataire aura accès aux informations de la banque, mais le contrat ne le soumet pas au secret professionnel."),
+            l.T("Bind the provider and its staff to professional secrecy, including after the contract ends.",
+                "Soumettre le prestataire et son personnel au secret professionnel, y compris après la fin du contrat.")));
+    }
+
+    /// <summary>An account agreement must list the commissions and tell the client about the banking mediator.</summary>
+    private static void BankAccountAgreement(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        if (!TextHas(text, "convention de compte", "ouverture de compte", "compte de dépôt", "account agreement", "deposit account")) return;
+        var c = clauses.FirstOrDefault(c => Has(c, "compte", "account")) ?? clauses.FirstOrDefault();
+        if (c is null) return;
+
+        var missing = new List<string>();
+        if (!TextHas(text, "commission", "tarif", "frais", "fees")) missing.Add(l.T("the list and amount of commissions", "la liste et le montant des commissions"));
+        if (!TextHas(text, "médiat", "mediat")) missing.Add(l.T("the banking mediator and how to refer to it", "le médiateur bancaire et ses modalités de saisine"));
+        if (missing.Count == 0) return;
+
+        findings.Add(Finding(c, "bank_account", l.T("Account agreement", "Convention de compte"), High,
+            l.T($"The account agreement does not state {string.Join(" or ", missing)}.", $"La convention de compte ne mentionne pas {string.Join(" ni ", missing)}."),
+            l.T("Add the commission schedule and a mediation clause.", "Ajouter le barème des commissions et une clause de médiation bancaire.")));
     }
 
     // ------------------------------------------------------------------ structural checks
