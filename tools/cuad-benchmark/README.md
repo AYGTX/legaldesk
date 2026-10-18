@@ -59,9 +59,39 @@ python tools/cuad-benchmark/score.py contracts.jsonl predictions.jsonl report.md
 - **Resale price and customer non-solicitation** are measured on few contracts and the rules target the French
   wording of Tunisian law; the scores say little about French contracts.
 
-## Next steps the results point to
+## Results — after refining three rules (18 October 2026)
 
-1. Exclude "non-exclusive" and "exclusive jurisdiction/venue" from the exclusivity rule.
-2. Detect uncapped liability through carve-outs from a cap ("shall not apply to", "excluding").
-3. Add English renewal wording ("automatically renew", "successive periods", "unless either party gives notice").
-4. Re-run the benchmark after each change, and track the scores over time.
+Changes, each with its own unit tests (`tests/SignFlow.UnitTests/Application/RuleRefinementTests.cs`):
+
+- **Exclusivity** ignores uses of "exclusive" that are not a commitment: exclusive property, ownership, remedy,
+  warranty or liability, exclusive jurisdiction or venue, "non-exclusive" grants, "exclusive of", "exclusively related
+  to" — and their French equivalents (« propriété exclusive », « compétence exclusive », « à titre non exclusif »).
+- **Uncapped liability** is also found as a **cap with broad exceptions**: a liability cap that leaves indemnities,
+  confidentiality, intellectual property or data outside it. Exceptions for fraud or gross negligence alone are
+  standard (and required in Tunisian law) and are deliberately not flagged — a legal choice that costs recall against
+  CUAD, whose label counts every exception.
+- **Automatic renewal** knows English wording: "shall renew automatically", "automatically extended", "successive
+  periods of", "unless either party gives notice of its intention not to renew".
+
+| CUAD category | LegalDesk rule | Contracts labelled | Raised | Correct | Precision | Recall | F1 | F1 before |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| Uncapped Liability | liability | 111 | 102 | 40 | 39% | 36% | **0.38** | 0.00 |
+| Renewal Term | auto_renewal | 176 | 134 | 119 | 89% | 68% | **0.77** | 0.58 |
+| Exclusivity | exclusivity | 180 | 298 | 169 | 57% | 94% | **0.71** | 0.61 |
+| Non-Compete | exclusivity | 119 | 298 | 101 | 34% | 85% | **0.48** | 0.43 |
+| Liquidated Damages | penalty | 61 | 93 | 39 | 42% | 64% | 0.51 | 0.51 |
+| Price Restrictions | resale_price | 15 | 30 | 1 | 3% | 7% | 0.04 | 0.04 |
+| No-Solicit of Customers | market_sharing | 34 | 27 | 2 | 7% | 6% | 0.07 | 0.07 |
+
+All 262 LegalDesk unit tests still pass: French contracts behave as before.
+
+The remaining exclusivity "false alarms" are a long tail of one-off phrases, some of them genuine exclusivity that
+CUAD did not label (an "exclusive supplier operating agreement", a clause titled "Exclusivity"). Tuning further
+would start fitting this dataset rather than improving the rule.
+
+## Next steps
+
+1. Penalty: separate liquidated damages from other uses of "penalty" (tax or regulatory penalties).
+2. Non-compete: a rule of its own, apart from exclusivity, for "shall not compete" restrictions.
+3. Feed CUAD-style English examples into meaning-based matching once their license is confirmed.
+4. Re-run the benchmark after each rule change and keep this table up to date.

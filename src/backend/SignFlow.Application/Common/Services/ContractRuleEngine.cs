@@ -179,7 +179,30 @@ public static class ContractRuleEngine
                 l.T("Cap liability (e.g. at the contract price) and exclude indirect losses, except for gross negligence or fraud.",
                     "Plafonner la responsabilité (par exemple au prix du contrat) et exclure les pertes indirectes, sauf faute lourde ou dol.")));
         }
+
+        // A cap that leaves whole categories of claims outside it: "The Liability Cap will not apply to indemnification
+        // obligations or breach of confidentiality". Exceptions for fraud or gross negligence alone are standard (and
+        // required in Tunisian law), so they are not flagged.
+        foreach (var c in clauses.Where(c => findings.All(f => f.ContractReference != c.Heading || f.RuleKey != "liability")
+                                             && Has(c, "shall not exceed", "will not exceed", "not to exceed", "limited to", "aggregate liability",
+                                                 "total liability", "liability cap", "ne saurait excéder", "ne pourra excéder", "ne pourra dépasser",
+                                                 "plafonnée", "limitée au montant", "limitée à")
+                                             && CapCarveOut.IsMatch(c.Text)
+                                             && Has(c, "indemnif", "confidential", "intellectual property", "infringement", "data protection",
+                                                 "indemnisation", "garantie", "confidentialité", "propriété intellectuelle", "contrefaçon", "données")))
+        {
+            findings.Add(Finding(c, "liability", l.T("Liability cap with broad exceptions", "Plafond de responsabilité assorti d'exceptions larges"), Medium,
+                l.T("Liability is capped, but whole categories of claims (indemnities, confidentiality, intellectual property or data) are left outside the cap, uncapped.",
+                    "La responsabilité est plafonnée, mais des catégories entières de réclamations (garanties, confidentialité, propriété intellectuelle ou données) échappent au plafond et restent illimitées."),
+                l.T("Give the excluded claims their own cap (e.g. a multiple of the contract price), keeping only fraud and gross negligence uncapped.",
+                    "Prévoir un plafond propre pour les réclamations exclues (par exemple un multiple du prix du contrat), en ne laissant sans plafond que le dol et la faute lourde.")));
+        }
     }
+
+    private static readonly Regex CapCarveOut = new(
+        @"(?:shall|will|does)\s+not\s+apply\s+to|except\s+(?:for|with\s+regard\s+to|in\s+connection\s+with|in\s+the\s+event\s+of|as\s+to)|excluding|other\s+than"
+        + @"|ne\s+s['’]applique\s+pas|sauf\s+(?:en\s+cas\s+d['’e]|pour|s['’]agissant)|à\s+l['’]exception\s+d",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     // "La Banque indemnisera et garantira le Prestataire", "The Supplier shall indemnify and hold harmless the Customer".
     // Party names must be capitalised, so "la garantie" or "le présent contrat" is never read as a party.
@@ -279,10 +302,18 @@ public static class ContractRuleEngine
         }
     }
 
+    // "shall renew automatically", "shall be automatically renewed/extended", "will automatically extend", "for successive
+    // renewal terms", "unless either party gives notice of its intention not to renew".
+    private static readonly Regex EnglishRenewal = new(
+        @"\b(?:renew|extend)\w*\s+automatically\b|\bautomatically\s+(?:be\s+)?(?:renew|extend)\w*|\b(?:successive|additional)\s+(?:renewal\s+)?(?:terms?|periods?)\s+of\b"
+        + @"|\bunless\s+(?:either|one|a)\s+party\b[^.]{0,160}\b(?:not\s+to\s+renew|non-?renewal|terminat\w*)\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     private static void Renewal(List<Clause> clauses, Lang l, List<RiskFinding> findings)
     {
         foreach (var c in clauses.Where(c => Has(c, "tacite reconduction", "reconduit tacitement", "renouvellement automatique", "renouvelé automatiquement",
-                     "renouvellera automatiquement", "renouvellement tacite", "se renouvelle", "automatic renewal", "automatically renew", "tacit renewal")))
+                     "renouvellera automatiquement", "renouvellement tacite", "se renouvelle", "automatic renewal", "automatically renew", "tacit renewal")
+                     || EnglishRenewal.IsMatch(c.Text)))
         {
             var notice = Has(c, "préavis", "notice", "dénonc");
             findings.Add(Finding(c, "auto_renewal", l.T("Automatic renewal", "Reconduction tacite"), Medium,
@@ -294,9 +325,24 @@ public static class ContractRuleEngine
         }
     }
 
+    // Uses of "exclusive" that are not an exclusivity commitment: ownership, remedies, courts, the whole agreement,
+    // "non-exclusive" grants, "exclusive of" (meaning "excluding"), "used exclusively for".
+    private static readonly Regex BenignExclusive = new(
+        @"non[\s-]*exclusi\w*|(?:sole\s+and\s+)?exclusive\s+(?:property|owner\w*|remed\w*|jurisdiction|venue|forum|courts?|benefit|agreement|statement|use\s+of\s+the\s+courts"
+        + @"|liability|obligation|warrant\w*|personal\s+jurisdiction|purpose|legal\s+and\s+beneficial|economic\s+zone)"
+        + @"|(?:is|be|are)\s+not\s+exclusive|exclusively\s+relat\w*|exclusive\s+and\s+convenient\s+forum"
+        + @"|exclusive\s+of\b|exclusively\s+(?:for|in|to|by|on)\b|(?:complete|entire)\s+and\s+exclusive"
+        + @"|compétence\s+exclusive|juridiction\s+exclusive|propriété\s+exclusive|seul\s+et\s+exclusif\s+propriétaire|à\s+titre\s+non\s+exclusif|non\s+exclusi\w*",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex ExclusivityWords = new(
+        @"exclusivit|exclusi(?:f|ve|vely)\b|non[\s-]*concurrence|non[\s-]*compet|not\s+(?:to\s+)?compete|ne\s+pas\s+concurrencer",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static bool IsExclusivityCommitment(Clause c) => ExclusivityWords.IsMatch(BenignExclusive.Replace(c.Text, " "));
+
     private static void Exclusivity(List<Clause> clauses, Lang l, List<RiskFinding> findings)
     {
-        foreach (var c in clauses.Where(c => Has(c, "exclusivit", "exclusive", "non-concurrence", "non concurrence", "non-compete")))
+        foreach (var c in clauses.Where(IsExclusivityCommitment))
         {
             var broad = Has(c, "marché tunisien", "tout le marché", "sur ce marché", "tous ses autres clients", "entire market", "all its other customers", "territoire");
             findings.Add(Finding(c, "exclusivity",
