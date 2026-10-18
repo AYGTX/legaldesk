@@ -56,3 +56,37 @@ The UI has no login: bind to `127.0.0.1` only.
 .venv/Scripts/python -m pip install -r requirements-dev.txt
 .venv/Scripts/python -m pytest
 ```
+
+## Harvey for AI agents (MCP)
+
+Harvey can be plugged into any assistant or agent that speaks the Model Context Protocol (Claude Desktop, IDE agents,
+a firm's own agents). The agent then looks law up in Harvey instead of reciting it from memory, and checks its quotes.
+
+Tools (read-only, verified and published law only):
+
+| Tool | What it returns |
+|---|---|
+| `list_laws` | The verified texts, with reference, number of articles and official source |
+| `search_law(query, top_k, as_of)` | The most relevant articles; `as_of` (YYYY-MM-DD) searches the wording in force that day |
+| `get_article(law, number, as_of)` | One article word for word, with its citation, source and approved plain explanation |
+| `check_quote(quote, article_id)` | Whether a quote appears word for word in that article of verified law |
+| `explain_article(article_id, language)` | The lawyer-approved plain-language explanation, if any |
+
+Install and run (stdio):
+
+    pip install -r requirements-mcp.txt
+    python -m app.mcp_server
+
+Claude Desktop (`claude_desktop_config.json`), adjusting the paths:
+
+```json
+{
+  "mcpServers": {
+    "harvey": {
+      "command": "C:\path\to\formbuilder\src\legal-corpus\.venv\Scripts\python.exe",
+      "args": ["-m", "app.mcp_server"],
+      "cwd": "C:\path\to\formbuilder\src\legal-corpus"
+    }
+  }
+}
+```
