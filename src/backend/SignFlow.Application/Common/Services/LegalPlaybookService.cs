@@ -46,7 +46,7 @@ public class LegalPlaybookService(ILegalCorpusClient corpus, ILogger<LegalPlaybo
         if (playbook.Wording is { Count: > 0 })
             risk = ContractRuleEngine.ApplyPlaybookWording(risk, contractText, playbook.Wording);
         risk = await AddPossibleRisksAsync(risk, contractText, ct);
-        return AttachToRisk(risk, playbook);
+        return AttachToRisk(risk, playbook, ContractLanguage.Detect(contractText));
     }
 
     /// <summary>Meaning-based leads from the corpus service; a failure there costs the leads, never the review.</summary>
@@ -74,13 +74,13 @@ public class LegalPlaybookService(ILegalCorpusClient corpus, ILogger<LegalPlaybo
         return playbook is null ? compliance : AttachToCompliance(compliance, regulations, playbook);
     }
 
-    public static ContractRiskAnalysis AttachToRisk(ContractRiskAnalysis risk, LegalPlaybook playbook) =>
+    public static ContractRiskAnalysis AttachToRisk(ContractRiskAnalysis risk, LegalPlaybook playbook, string? language = null) =>
         risk with
         {
             Findings = risk.Findings
                 .Select(f => f.RuleKey is not null && f.WhyItMatters is null
                              && playbook.Rules.TryGetValue(f.RuleKey, out var articles) && articles.Count > 0
-                    ? f with { WhyItMatters = Format(articles) }
+                    ? f with { WhyItMatters = Format(articles, language) }
                     : f)
                 .ToList()
         };
@@ -117,14 +117,19 @@ public class LegalPlaybookService(ILegalCorpusClient corpus, ILogger<LegalPlaybo
     }
 
     /// <summary>One block per article: short citation, then the quote, then why it applies — separated by blank lines.</summary>
-    public static string Format(IReadOnlyList<PlaybookArticle> articles)
+    public static string Format(IReadOnlyList<PlaybookArticle> articles, string? language = null)
     {
+        var fr = language != "en";
         var sb = new StringBuilder();
         foreach (var article in articles)
         {
             if (sb.Length > 0) sb.Append("\n\n");
             sb.Append(ShortCitation(article.Citation)).Append(" : « ").Append(Quote(article.Text, ShortQuoteChars)).Append(" »");
             if (!string.IsNullOrWhiteSpace(article.Why)) sb.Append("\n→ ").Append(article.Why);
+            // A lawyer-approved reading aid, shown after the quote and never instead of it.
+            if (article.Explanations is not null
+                && article.Explanations.TryGetValue(fr ? "fr" : "en", out var plain) && !string.IsNullOrWhiteSpace(plain))
+                sb.Append(fr ? "\nEn termes simples : " : "\nIn plain words: ").Append(plain);
         }
         return sb.ToString();
     }

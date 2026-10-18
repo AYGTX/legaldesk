@@ -45,3 +45,23 @@ public class PossibleRiskTests
         Assert.DoesNotContain(after.Findings, f => f.FindingType == ContractRuleEngine.Possible);
     }
 }
+
+public class PlaybookExplanationTests
+{
+    private static readonly PlaybookArticle Article = new("a1", "Code des obligations et des contrats (Décret du 15 décembre 1906), art. 278",
+        "Les dommages sont la perte effective que le créancier a éprouvée.", "Ce que couvrent les dommages-intérêts.",
+        new Dictionary<string, string> { ["fr"] = "Les dommages couvrent la perte réelle.", ["en"] = "Damages cover the actual loss." });
+
+    [Fact]
+    public void Approved_explanation_follows_the_quote_in_the_contract_language()
+    {
+        var fr = LegalPlaybookService.Format([Article], "fr");
+        Assert.EndsWith("En termes simples : Les dommages couvrent la perte réelle.", fr);
+        Assert.True(fr.IndexOf("« Les dommages sont", StringComparison.Ordinal) < fr.IndexOf("En termes simples", StringComparison.Ordinal));
+        Assert.EndsWith("In plain words: Damages cover the actual loss.", LegalPlaybookService.Format([Article], "en"));
+    }
+
+    [Fact]
+    public void Without_an_approved_explanation_nothing_is_added() =>
+        Assert.DoesNotContain("En termes simples", LegalPlaybookService.Format([Article with { Explanations = null }], "fr"));
+}

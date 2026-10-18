@@ -39,7 +39,10 @@ public record LegalPlaybook(
 /// </summary>
 public record PlaybookWording(string Label, IReadOnlyList<string> Phrases);
 
-public record PlaybookArticle(string ArticleId, string Citation, string Text, string? Why);
+/// <summary>An article a playbook rule quotes; <paramref name="Explanations"/> holds lawyer-approved plain-language
+/// explanations of its current wording, by language ("fr", "en").</summary>
+public record PlaybookArticle(string ArticleId, string Citation, string Text, string? Why,
+    IReadOnlyDictionary<string, string>? Explanations = null);
 
 public record CitationCheckRequest(string ArticleId, string Quote);
 

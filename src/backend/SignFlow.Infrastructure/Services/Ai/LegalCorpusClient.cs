@@ -43,7 +43,7 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
             body.Rules.ToDictionary(
                 r => r.Key,
                 r => (IReadOnlyList<PlaybookArticle>)r.Value.Articles
-                    .Select(a => new PlaybookArticle(a.ArticleId, a.Citation, a.Text, a.Why)).ToList()),
+                    .Select(a => new PlaybookArticle(a.ArticleId, a.Citation, a.Text, a.Why, a.Explanations)).ToList()),
             body.Regulations,
             body.Rules
                 .Where(r => r.Value.Phrases is { Count: > 0 })
@@ -89,7 +89,8 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
 
     private sealed record PlaybookRuleOut(List<PlaybookArticleOut> Articles, string? Label = null, List<string>? Phrases = null);
 
-    private sealed record PlaybookArticleOut(string ArticleId, string Citation, string Text, string? Why);
+    private sealed record PlaybookArticleOut(string ArticleId, string Citation, string Text, string? Why,
+        Dictionary<string, string>? Explanations = null);
 
     private sealed record CitationOut(bool Found, bool IsVerified, string? Citation, string? Reason);
 
