@@ -85,7 +85,7 @@
           <button class="ghost" type="submit" title="{{ t('excluded_explain') }}">{{ t('include_action') if a.excluded_from_search else t('exclude_action') }}</button>
         </form>
       </div>
-      <p class="body {{ rtl }}">{{ linkify(a, text, ref_index, t('ref_missing')) }}</p>
+      <p class="body {{ rtl }}">{{ linkify(a, text, ref_index, t('ref_missing'), defined) }}</p>
       {% set ex = explained.get(a.id) %}
       {% if ex %}
         {% set e, st = ex %}

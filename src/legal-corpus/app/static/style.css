@@ -248,6 +248,8 @@ main > .flash { position: sticky; top: 76px; z-index: 5; box-shadow: 0 4px 14px 
 a.ref { text-decoration: underline dotted; text-underline-offset: 3px; }
 a.ref:hover { text-decoration-style: solid; }
 .ref-missing { border-bottom: 1px dashed var(--highlight); cursor: help; }
+a.term { color: inherit; text-decoration: underline dotted var(--accent, currentColor); text-underline-offset: 3px; cursor: help; }
+a.term:hover { background: color-mix(in srgb, var(--accent, #36c) 12%, transparent); }
 :target { scroll-margin-top: 90px; }
 .article:target { background: rgba(239, 128, 36, .07); border-radius: 8px; }
 

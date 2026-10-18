@@ -73,3 +73,18 @@ def of_text(articles: list[Article]) -> list[Definition]:
         for d in find(article):
             seen.setdefault(d.term.casefold(), d)
     return sorted(seen.values(), key=lambda d: d.term.casefold())
+
+
+def matcher(defined: list[Definition]) -> re.Pattern | None:
+    """One pattern for every defined term (longest first, singular or plural, any case), or None."""
+    terms = sorted({d.term for d in defined}, key=len, reverse=True)
+    if not terms:
+        return None
+    alternatives = "|".join(r"\s+".join(map(re.escape, t.split())) + r"(?:s|x)?" for t in terms)
+    return re.compile(rf"(?<![\w-])(?:{alternatives})(?![\w-])", re.IGNORECASE)
+
+
+def lookup(defined: list[Definition], found: str) -> Definition | None:
+    key = re.sub(r"\s+", " ", found).casefold()
+    by_term = {d.term.casefold(): d for d in defined}
+    return by_term.get(key) or by_term.get(key[:-1])

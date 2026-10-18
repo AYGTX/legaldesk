@@ -28,3 +28,17 @@ def test_list_single_and_deemed_definitions():
 def test_definitions_panel_and_mcp_tool(client, verified_text, monkeypatch):
     page = client.get(f"/texts/{verified_text['id']}", headers={"accept-language": "fr"}).text
     assert "Définitions" not in page  # the sample law defines nothing
+
+
+def test_defined_terms_are_underlined_with_their_definition():
+    from app.services import references
+    defining = _a("2", "Est considérée banque, toute personne morale qui exerce à titre habituel les opérations bancaires.")
+    using = _a("5", "Les banques doivent tenir une comptabilité. Une banquette n'est pas visée & reste <libre>.")
+    own = SimpleNamespace(reference="", title="Loi test", articles=[defining, using])
+    defined = definitions.of_text([defining, using])
+    index = references.Index.build([])
+    html = str(references.linkify(using, own, index, "", defined))
+    assert html.count('class="term"') == 1
+    assert 'href="#art-a2"' in html and ">banques</a>" in html and "toute personne morale" in html
+    assert "banquette" in html and "&lt;libre&gt;" in html and "&amp;" in html
+    assert 'class="term"' not in str(references.linkify(defining, own, index, "", defined))

@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from markupsafe import Markup, escape
 
 from app.models import Article, LegalText
+from app.services import definitions
 from app.services.splitter import normalize_number
 
 _NUMBER = r"(?:premier|\d+(?:\s+(?:bis|ter|quater|quinquies|sexies))?)"
@@ -119,12 +120,32 @@ def find(text: str) -> list[Reference]:
     return sorted(found, key=lambda r: r.start)
 
 
-def linkify(article: Article, own: LegalText, index: Index, missing_title: str = "") -> Markup:
-    """The article's text as HTML, with each reference linked to its target; a law the corpus lacks is marked."""
+def _terms(segment: str, article: Article, defined: list, pattern) -> Markup:
+    """Plain text with each term the law defines underlined; the definition shows on hover. Not in the defining article."""
+    if pattern is None:
+        return escape(segment)
+    out, last = [], 0
+    for m in pattern.finditer(segment):
+        d = definitions.lookup(defined, m.group(0))
+        if d is None or d.article_id == article.id:
+            continue
+        out.append(escape(segment[last:m.start()]))
+        out.append(Markup('<a class="term" href="#art-{}" title="{} — art. {} : {}">{}</a>').format(
+            d.article_id, d.term, d.article_number, d.definition, m.group(0)))
+        last = m.end()
+    out.append(escape(segment[last:]))
+    return Markup("").join(out)
+
+
+def linkify(article: Article, own: LegalText, index: Index, missing_title: str = "", defined: list | None = None) -> Markup:
+    """The article's text as HTML, with each reference linked to its target; a law the corpus lacks is marked.
+    With the law's definitions, the terms it defines are underlined too."""
     text, out, last = article.text, [], 0
+    defined = defined or []
+    pattern = definitions.matcher(defined)
     own_keys = law_keys(own.reference or own.title)
     for ref in find(text):
-        out.append(escape(text[last:ref.start]))
+        out.append(_terms(text[last:ref.start], article, defined, pattern))
         label = escape(text[ref.start:ref.end])
         if ref.law is None or ref.law in own_keys:
             targets = [a for n in ref.numbers if (a := next((x for x in own.articles if x.number == n), None))]
@@ -141,7 +162,7 @@ def linkify(article: Article, own: LegalText, index: Index, missing_title: str =
         else:
             out.append(label)
         last = ref.end
-    out.append(escape(text[last:]))
+    out.append(_terms(text[last:], article, defined, pattern))
     return Markup("").join(out)
 
 
