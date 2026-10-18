@@ -39,6 +39,6 @@ def test_defined_terms_are_underlined_with_their_definition():
     index = references.Index.build([])
     html = str(references.linkify(using, own, index, "", defined))
     assert html.count('class="term"') == 1
-    assert 'href="#art-a2"' in html and ">banques</a>" in html and "toute personne morale" in html
+    assert "(art. 2)" in html and ">banques</span>" in html and "toute personne morale" in html
     assert "banquette" in html and "&lt;libre&gt;" in html and "&amp;" in html
     assert 'class="term"' not in str(references.linkify(defining, own, index, "", defined))

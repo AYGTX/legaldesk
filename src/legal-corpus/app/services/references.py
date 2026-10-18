@@ -130,8 +130,8 @@ def _terms(segment: str, article: Article, defined: list, pattern) -> Markup:
         if d is None or d.article_id == article.id:
             continue
         out.append(escape(segment[last:m.start()]))
-        out.append(Markup('<a class="term" href="#art-{}" title="{} — art. {} : {}">{}</a>').format(
-            d.article_id, d.term, d.article_number, d.definition, m.group(0)))
+        out.append(Markup('<span class="term" tabindex="0" data-def="{} (art. {}) : {}">{}</span>').format(
+            d.term, d.article_number, d.definition, m.group(0)))
         last = m.end()
     out.append(escape(segment[last:]))
     return Markup("").join(out)

@@ -248,8 +248,13 @@ main > .flash { position: sticky; top: 76px; z-index: 5; box-shadow: 0 4px 14px 
 a.ref { text-decoration: underline dotted; text-underline-offset: 3px; }
 a.ref:hover { text-decoration-style: solid; }
 .ref-missing { border-bottom: 1px dashed var(--highlight); cursor: help; }
-a.term { color: inherit; text-decoration: underline dotted var(--accent, currentColor); text-underline-offset: 3px; cursor: help; }
-a.term:hover { background: color-mix(in srgb, var(--accent, #36c) 12%, transparent); }
+.term { position: relative; text-decoration: underline dotted var(--accent, currentColor); text-underline-offset: 3px; cursor: help; }
+.term:hover, .term:focus { background: rgba(45, 52, 112, .08); outline: none; border-radius: 3px; }
+.term:hover::after, .term:focus::after {
+  content: attr(data-def); position: absolute; left: 0; top: 100%; margin-top: 6px; z-index: 20;
+  width: max-content; max-width: min(420px, 80vw); white-space: normal; padding: 8px 12px; border-radius: 8px;
+  background: var(--surface, #fff); color: var(--text, inherit); border: 1px solid var(--border);
+  box-shadow: 0 6px 18px rgba(45, 52, 112, .15); font-size: .9em; line-height: 1.4; }
 :target { scroll-margin-top: 90px; }
 .article:target { background: rgba(239, 128, 36, .07); border-radius: 8px; }
 
