@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000" font-family="Segoe UI, system-ui, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2d3470"/>
+    </marker>
+    <marker id="arrowO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ef8024"/>
+    </marker>
+    <style>
+      .title { font-size: 26px; font-weight: 700; fill: #2d3470; }
+      .sub { font-size: 14px; fill: #5f6382; }
+      .zone { fill: #f4f5fa; stroke: #2d3470; stroke-width: 2; stroke-dasharray: 8 6; }
+      .zone-label { font-size: 13px; font-weight: 700; fill: #2d3470; letter-spacing: .5px; }
+      .box { fill: #fff; stroke: #c2c5dd; stroke-width: 1.5; }
+      .net { fill: #fff; stroke: #2d3470; stroke-width: 2; }
+      .py { fill: #fff; stroke: #ef8024; stroke-width: 2; }
+      .head { font-size: 16px; font-weight: 700; fill: #2d3470; }
+      .headO { font-size: 16px; font-weight: 700; fill: #b85d12; }
+      .meta { font-size: 12px; fill: #5f6382; }
+      .item { font-size: 12.5px; fill: #1c1f3a; }
+      .chip { fill: #eef0f8; stroke: none; }
+      .chipO { fill: #fdefe2; stroke: none; }
+      .db { fill: #fff; stroke: #2d3470; stroke-width: 1.5; }
+      .flow { fill: none; stroke: #2d3470; stroke-width: 1.8; marker-end: url(#arrow); }
+      .flowO { fill: none; stroke: #ef8024; stroke-width: 2; stroke-dasharray: 7 5; marker-end: url(#arrowO); }
+      .flowD { fill: none; stroke: #8a8fb5; stroke-width: 1.5; stroke-dasharray: 4 4; marker-end: url(#arrow); }
+      .lbl { font-size: 11.5px; fill: #2d3470; font-weight: 600; }
+      .lblO { font-size: 11.5px; fill: #b85d12; font-weight: 600; }
+      .new { fill: #ef8024; font-size: 11px; font-weight: 700; }
+    </style>
+  </defs>
+
+  <rect width="1500" height="1000" fill="#ffffff"/>
+  <text x="40" y="48" class="title">LegalDesk — technical architecture</text>
+  <text x="40" y="72" class="sub">Contracts are reviewed on the client's servers against law verified by its lawyers. Only public law text may reach Groq.</text>
+
+  <!-- On-premise boundary -->
+  <rect x="30" y="100" width="1180" height="870" rx="18" class="zone"/>
+  <text x="50" y="124" class="zone-label">CLIENT INFRASTRUCTURE (ON-PREMISE) — CONTRACTS NEVER LEAVE THIS BOUNDARY</text>
+
+  <!-- ================= Browsers / front ends ================= -->
+  <rect x="60" y="150" width="300" height="200" rx="12" class="net"/>
+  <text x="80" y="178" class="head">LegalDesk web app</text>
+  <text x="80" y="196" class="meta">Angular 22 · ngx-translate EN/FR · :4200</text>
+  <text x="80" y="222" class="item">• Contracts, signing workflows, review gate</text>
+  <text x="80" y="242" class="item">• Contract intelligence &amp; risk map</text>
+  <text x="80" y="262" class="item">• Compliance panel: findings, legal basis,</text>
+  <text x="92" y="280" class="item">"Analysed by Harvey", verified badges</text>
+  <text x="80" y="300" class="item">• Regulatory watch, lifecycle, reports</text>
+  <text x="80" y="320" class="item">• "À valider" group (possible risks)</text>
+  <text x="300" y="320" class="new">NEW</text>
+
+  <rect x="60" y="380" width="300" height="190" rx="12" class="py"/>
+  <text x="80" y="408" class="headO">Harvey web app</text>
+  <text x="80" y="426" class="meta">Jinja templates · Consultim IT theme · EN/FR</text>
+  <text x="80" y="452" class="item">• Sign-in (admin), dashboard, quick access</text>
+  <text x="80" y="472" class="item">• Texts: PDF import, verify, publish, versions,</text>
+  <text x="92" y="490" class="item">"in force from", read as of a date</text>
+  <text x="80" y="510" class="item">• Playbook: cards, link map, phrases, examples</text>
+  <text x="80" y="530" class="item">• Search &amp; citation check, amending laws</text>
+  <text x="80" y="550" class="item">• ✦ model suggestions (when enabled)</text>
+
+  <!-- ================= LegalDesk API (.NET) ================= -->
+  <rect x="420" y="150" width="380" height="420" rx="12" class="net"/>
+  <text x="440" y="178" class="head">LegalDesk API</text>
+  <text x="440" y="196" class="meta">.NET 10 · ASP.NET Core · Clean Architecture (CQRS) · :5005</text>
+
+  <rect x="440" y="210" width="340" height="62" rx="8" class="chip"/>
+  <text x="452" y="230" class="item" font-weight="600">Api / Application</text>
+  <text x="452" y="248" class="item">Commands &amp; queries, validation decorators,</text>
+  <text x="452" y="264" class="item">JWT auth, roles, audit, SignalR presence</text>
+
+  <rect x="440" y="282" width="340" height="140" rx="8" class="chip"/>
+  <text x="452" y="302" class="item" font-weight="600">Contract review (deterministic, no AI)</text>
+  <text x="452" y="320" class="item">• PdfPig text extraction, clause splitter</text>
+  <text x="452" y="338" class="item">• ContractRuleEngine: 25 rules + structural checks</text>
+  <text x="452" y="356" class="item">• Playbook wording (lawyer phrases)</text>
+  <text x="452" y="374" class="item">• LegalPlaybookService: attaches verified law</text>
+  <text x="452" y="392" class="item">• GroundedComplianceReview, LegalCitationGuard</text>
+  <text x="452" y="410" class="item">• ContractLanguage (FR/EN), ReadinessEvaluator</text>
+
+  <rect x="440" y="432" width="340" height="62" rx="8" class="chip"/>
+  <text x="452" y="452" class="item" font-weight="600">Ai:Provider strategy — set to None</text>
+  <text x="452" y="470" class="item">NoLlmProvider (active) · LocalLlmProvider (Ollama)</text>
+  <text x="452" y="486" class="item">GroqLlmProvider (disabled: contracts may not leave)</text>
+
+  <rect x="440" y="504" width="340" height="50" rx="8" class="chip"/>
+  <text x="452" y="524" class="item" font-weight="600">Infrastructure</text>
+  <text x="452" y="542" class="item">EF Core, file storage, PDFsharp, e-mail, demo seeder</text>
+
+  <!-- ================= Harvey (Python) ================= -->
+  <rect x="860" y="150" width="330" height="560" rx="12" class="py"/>
+  <text x="880" y="178" class="headO">Harvey — legal reference service</text>
+  <text x="880" y="196" class="meta">Python · FastAPI · SQLAlchemy · :8100</text>
+
+  <rect x="880" y="210" width="290" height="98" rx="8" class="chipO"/>
+  <text x="892" y="230" class="item" font-weight="600">REST API /api/v1 (API key)</text>
+  <text x="892" y="248" class="item">texts · articles · versions · as_of</text>
+  <text x="892" y="266" class="item">search · citations/check-batch · playbook</text>
+  <text x="892" y="284" class="item">classify (meaning-based matching)</text>
+  <text x="1110" y="284" class="new">NEW</text>
+  <text x="892" y="300" class="item">OpenAPI docs at /docs</text>
+
+  <rect x="880" y="318" width="290" height="116" rx="8" class="chipO"/>
+  <text x="892" y="338" class="item" font-weight="600">Law ingestion</text>
+  <text x="892" y="356" class="item">• pypdf reader, gazette header removal</text>
+  <text x="892" y="374" class="item">• Article splitter (bis/ter/quinter, Arabic)</text>
+  <text x="892" y="392" class="item">• Verification sign-off, versions, dates</text>
+  <text x="892" y="410" class="item">• Amending-law parser (proposals checked</text>
+  <text x="904" y="426" class="item">word for word)</text>
+
+  <rect x="880" y="444" width="290" height="98" rx="8" class="chipO"/>
+  <text x="892" y="464" class="item" font-weight="600">Retrieval &amp; matching</text>
+  <text x="892" y="482" class="item">• BM25 keyword ranking (FR stopwords)</text>
+  <text x="892" y="500" class="item">• Citation guard (exact quote, elisions)</text>
+  <text x="892" y="518" class="item">• MiniLM embeddings + example clauses</text>
+  <text x="1136" y="518" class="new">NEW</text>
+  <text x="892" y="534" class="item">• Playbook resolve (confirmed rules only)</text>
+
+  <rect x="880" y="552" width="290" height="80" rx="8" class="chipO"/>
+  <text x="892" y="572" class="item" font-weight="600">Model switch — CORPUS_AI_PROVIDER</text>
+  <text x="892" y="590" class="item">none (default) · groq · local</text>
+  <text x="892" y="608" class="item">Import metadata · playbook articles ·</text>
+  <text x="892" y="624" class="item">phrases · example clauses · amendments</text>
+
+  <rect x="880" y="642" width="290" height="52" rx="8" class="chipO"/>
+  <text x="892" y="662" class="item" font-weight="600">Auth</text>
+  <text x="892" y="680" class="item">Signed HTTP-only cookie, key in data/</text>
+
+  <!-- ================= Data stores ================= -->
+  <text x="60" y="636" class="zone-label">DATA</text>
+
+  <!-- SQL Server -->
+  <g transform="translate(420,650)">
+    <path d="M0,14 a90,14 0 0,0 180,0 v80 a90,14 0 0,1 -180,0 z" class="db"/>
+    <ellipse cx="90" cy="14" rx="90" ry="14" class="db"/>
+    <text x="90" y="52" text-anchor="middle" class="item" font-weight="600">SQL Server</text>
+    <text x="90" y="70" text-anchor="middle" class="meta">SignFlowDb: documents,</text>
+    <text x="90" y="86" text-anchor="middle" class="meta">workflows, analyses, audit</text>
+  </g>
+  <!-- Redis -->
+  <g transform="translate(620,650)">
+    <path d="M0,14 a80,14 0 0,0 160,0 v80 a80,14 0 0,1 -160,0 z" class="db"/>
+    <ellipse cx="80" cy="14" rx="80" ry="14" class="db"/>
+    <text x="80" y="52" text-anchor="middle" class="item" font-weight="600">Redis</text>
+    <text x="80" y="70" text-anchor="middle" class="meta">cache · SignalR</text>
+    <text x="80" y="86" text-anchor="middle" class="meta">backplane</text>
+  </g>
+  <!-- Files -->
+  <rect x="420" y="780" width="360" height="62" rx="8" class="box"/>
+  <text x="436" y="802" class="item" font-weight="600">File storage — uploads/</text>
+  <text x="436" y="820" class="meta">contract PDFs (incl. seeded demo portfolio),</text>
+  <text x="436" y="836" class="meta">signed copies, signatures, templates</text>
+
+  <!-- Harvey data -->
+  <g transform="translate(860,735)">
+    <path d="M0,14 a75,14 0 0,0 150,0 v80 a75,14 0 0,1 -150,0 z" class="db"/>
+    <ellipse cx="75" cy="14" rx="75" ry="14" class="db"/>
+    <text x="75" y="52" text-anchor="middle" class="item" font-weight="600">SQLite corpus.db</text>
+    <text x="75" y="70" text-anchor="middle" class="meta">texts, articles,</text>
+    <text x="75" y="86" text-anchor="middle" class="meta">versions, vectors</text>
+  </g>
+  <rect x="1025" y="735" width="165" height="50" rx="8" class="box"/>
+  <text x="1037" y="756" class="item" font-weight="600">playbook.json</text>
+  <text x="1037" y="773" class="meta">rules, laws, phrases</text>
+  <rect x="1025" y="795" width="165" height="50" rx="8" class="box"/>
+  <text x="1037" y="816" class="item" font-weight="600">data/ (git-ignored)</text>
+  <text x="1037" y="833" class="meta">session key, model cache</text>
+  <rect x="1025" y="855" width="165" height="50" rx="8" class="box"/>
+  <text x="1037" y="876" class="item" font-weight="600">MiniLM model files</text>
+  <text x="1037" y="893" class="meta">~470 MB, CPU, offline</text>
+
+  <!-- Ollama -->
+  <rect x="60" y="780" width="300" height="80" rx="10" class="box" stroke-dasharray="6 4"/>
+  <text x="80" y="806" class="item" font-weight="600">Ollama (optional, local)</text>
+  <text x="80" y="824" class="meta">qwen2.5:7b on the client's own hardware —</text>
+  <text x="80" y="840" class="meta">the only model allowed to read contracts</text>
+
+  <!-- Lawyer -->
+  <rect x="60" y="885" width="720" height="60" rx="10" class="box"/>
+  <text x="80" y="910" class="item" font-weight="600">People in the loop</text>
+  <text x="80" y="928" class="meta">Lawyers verify every law, confirm every playbook rule and approve every model suggestion · reviewers act on findings in LegalDesk</text>
+
+  <!-- ================= External ================= -->
+  <text x="1240" y="124" class="zone-label">INTERNET</text>
+  <rect x="1240" y="150" width="230" height="150" rx="12" fill="#fff" stroke="#ef8024" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="1260" y="178" class="headO">Groq API</text>
+  <text x="1260" y="196" class="meta">openai/gpt-oss-120b</text>
+  <text x="1260" y="222" class="item">Receives public law text only:</text>
+  <text x="1260" y="240" class="item">amending laws, law PDFs,</text>
+  <text x="1260" y="258" class="item">risk descriptions. Never a</text>
+  <text x="1260" y="276" class="item">contract. Off by default.</text>
+
+  <rect x="1240" y="330" width="230" height="110" rx="12" class="box"/>
+  <text x="1260" y="358" class="head">Official sources</text>
+  <text x="1260" y="380" class="item">JORT, CMF, legislation sites:</text>
+  <text x="1260" y="398" class="item">PDFs downloaded by a lawyer,</text>
+  <text x="1260" y="416" class="item">URL kept as the source of</text>
+  <text x="1260" y="434" class="item">each verified text</text>
+
+  <!-- ================= Flows ================= -->
+  <path d="M360,250 L420,250" class="flow"/>
+  <text x="364" y="242" class="lbl">REST/JSON</text>
+  <path d="M360,545 C560,612 760,612 860,672" class="flow"/>
+  <text x="790" y="630" class="lblO">HTML</text>
+
+  <path d="M800,250 L880,250" class="flow"/>
+  <text x="808" y="242" class="lbl">REST</text>
+
+  <path d="M560,570 L520,650" class="flow"/>
+  <text x="470" y="618" class="lbl">EF Core</text>
+  <path d="M700,570 L700,650" class="flow"/>
+  <path d="M600,570 L600,780" class="flow"/>
+  <text x="606" y="770" class="lbl">PDFs</text>
+
+  <path d="M935,710 L935,735" class="flow"/>
+  <path d="M1170,700 L1105,735" class="flow"/>
+
+  <path d="M1170,592 C1210,592 1220,240 1240,240" class="flowO"/>
+  <text x="1182" y="430" class="lblO" transform="rotate(-90 1196 430)">law text only</text>
+
+  <path d="M1240,385 C1200,385 1200,360 1170,360" class="flowD"/>
+  <text x="1190" y="378" class="lbl" font-size="10">PDF</text>
+
+  <path d="M560,494 C520,600 380,700 300,780" class="flowD"/>
+  <text x="380" y="700" class="lbl">optional</text>
+
+  <!-- Legend -->
+  <rect x="1240" y="470" width="230" height="200" rx="12" class="box"/>
+  <text x="1260" y="496" class="head">Legend</text>
+  <rect x="1260" y="510" width="26" height="14" rx="3" fill="#fff" stroke="#2d3470" stroke-width="2"/>
+  <text x="1296" y="522" class="item">.NET / Angular (LegalDesk)</text>
+  <rect x="1260" y="534" width="26" height="14" rx="3" fill="#fff" stroke="#ef8024" stroke-width="2"/>
+  <text x="1296" y="546" class="item">Python (Harvey)</text>
+  <path d="M1260,570 L1286,570" class="flow"/>
+  <text x="1296" y="574" class="item">Data flow</text>
+  <path d="M1260,594 L1286,594" class="flowD"/>
+  <text x="1296" y="598" class="item">Optional / manual</text>
+  <path d="M1260,618 L1286,618" class="flowO"/>
+  <text x="1296" y="622" class="item">To Groq: law text only</text>
+  <text x="1260" y="648" class="new">NEW</text>
+  <text x="1296" y="648" class="item">Being built now</text>
+</svg>
