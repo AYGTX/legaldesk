@@ -575,7 +575,7 @@
         "legalBasis": "Legal basis",
         "relevantLaw": {
           "title": "Relevant law ({{count}} clauses matched)",
-          "intro": "Each clause of the contract matched to verified articles of law in your legal corpus. Found by search on this server, without sending the contract anywhere."
+          "intro": "Harvey matched each clause of the contract to verified articles of law in your legal corpus. The search runs on this server; the contract is never sent anywhere."
         },
         "citation": {
           "Verified": "Verified law",
@@ -587,18 +587,20 @@
           "RejectedHint": "This quote does not appear in the cited article. The finding has no confirmed legal basis.",
           "PendingHint": "This citation has not been checked against the legal corpus."
         },
-        "run": "Check compliance",
-        "rerun": "Re-check compliance",
+        "run": "Ask Harvey to review",
+        "rerun": "Ask Harvey again",
         "failed": "Compliance check failed",
         "score": "Compliance score: {{score}}/100",
-        "noRun": "No compliance check run yet",
+        "noRun": "Harvey has not reviewed this contract yet.",
         "noneTracked": "No published regulatory texts apply to this contract",
         "status": {
           "Addressed": "Addressed",
           "Gap": "Gap",
           "Unclear": "Unclear"
         },
-        "running": "Reviewing — this can take tens of seconds"
+        "running": "Harvey is reviewing the contract — this can take a few seconds",
+        "byHarvey": "Analysed by Harvey · every citation checked word for word against verified law",
+        "signedHarvey": "Harvey · verified law"
       },
       "obligation": {
         "title": "Obligation Tracking",

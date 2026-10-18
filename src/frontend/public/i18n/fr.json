@@ -575,7 +575,7 @@
         "legalBasis": "Fondement juridique",
         "relevantLaw": {
           "title": "Droit applicable ({{count}} clauses rapprochées)",
-          "intro": "Chaque clause du contrat rapprochée des articles de loi vérifiés de votre corpus juridique. Recherche effectuée sur ce serveur, sans envoyer le contrat à l'extérieur."
+          "intro": "Harvey a rapproché chaque clause du contrat des articles de loi vérifiés de votre corpus juridique. La recherche s'effectue sur ce serveur ; le contrat n'est jamais envoyé à l'extérieur."
         },
         "citation": {
           "Verified": "Loi vérifiée",
@@ -587,18 +587,20 @@
           "RejectedHint": "Cette citation ne figure pas dans l'article cité. La constatation n'a aucun fondement juridique confirmé.",
           "PendingHint": "Cette citation n'a pas été vérifiée dans le corpus juridique."
         },
-        "run": "Vérifier la conformité",
-        "rerun": "Revérifier la conformité",
+        "run": "Demander à Harvey",
+        "rerun": "Relancer Harvey",
         "failed": "Échec de la vérification de conformité",
         "score": "Score de conformité : {{score}}/100",
-        "noRun": "Aucune vérification de conformité effectuée",
+        "noRun": "Harvey n'a pas encore analysé ce contrat.",
         "noneTracked": "Aucun texte réglementaire publié ne s'applique à ce contrat",
         "status": {
           "Addressed": "Couvert",
           "Gap": "Écart",
           "Unclear": "Incertain"
         },
-        "running": "Revue en cours — cela peut prendre plusieurs dizaines de secondes"
+        "running": "Harvey analyse le contrat — cela peut prendre quelques secondes",
+        "byHarvey": "Analysé par Harvey · chaque citation contrôlée mot à mot par rapport à la loi vérifiée",
+        "signedHarvey": "Harvey · loi vérifiée"
       },
       "obligation": {
         "title": "Suivi des obligations",

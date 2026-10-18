@@ -43,6 +43,9 @@ const COMPLIANCE_STATUS_ORDER: ComplianceStatus[] = ['Gap', 'Unclear', 'Addresse
             <span class="compliance-meta">{{ 'documents.detail.generated' | translate: { date: (generatedAt() | date:'MMM d, y') } }}</span>
           }
         </div>
+        @if (complianceAnalysis() && !analyzing()) {
+          <p class="harvey-byline"><mat-icon>verified</mat-icon>{{ 'documents.detail.compliance.byHarvey' | translate }}</p>
+        }
 
         @if (analysisError()) {
           <div class="compliance-error"><mat-icon>error_outline</mat-icon><span>{{ analysisError() }}</span></div>
@@ -147,6 +150,9 @@ const COMPLIANCE_STATUS_ORDER: ComplianceStatus[] = ['Gap', 'Unclear', 'Addresse
                             <blockquote class="legal-quote" [class.rejected]="finding.citationStatus === 'Rejected'">{{ finding.legalQuote }}</blockquote>
                           }
                           <p class="citation-hint">{{ ('documents.detail.compliance.citation.' + finding.citationStatus + 'Hint') | translate }}</p>
+                          @if (finding.citationStatus === 'Verified') {
+                            <p class="harvey-signature">— {{ 'documents.detail.compliance.signedHarvey' | translate }}</p>
+                          }
                         </div>
                       }
 
@@ -257,6 +263,9 @@ const COMPLIANCE_STATUS_ORDER: ComplianceStatus[] = ['Gap', 'Unclear', 'Addresse
     .legal-quote { margin: 0 0 6px; padding: 6px 10px; font-size: 12.5px; font-style: italic; color: #374151; background: #f9fafb; border-radius: 4px; line-height: 1.5; }
     .legal-quote.rejected { text-decoration: line-through; color: #9ca3af; }
     .citation-hint { margin: 0; font-size: 11.5px; color: #6b7280; }
+    .harvey-signature { margin: 4px 0 0; font-size: 11.5px; font-style: italic; color: #2d3470; text-align: right; }
+    .harvey-byline { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 12.5px; color: #2d3470; }
+    .harvey-byline mat-icon { font-size: 16px; width: 16px; height: 16px; color: #ef8024; }
     .citation-verified.legal-basis { border-left-color: #1e6b2e; }
     .citation-verified .citation-chip, mat-icon.citation-verified { color: #1e6b2e; }
     .citation-verified .citation-chip { background: #e6f4ea; }

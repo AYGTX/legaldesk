@@ -36,9 +36,9 @@ def test_rule_error_redirects_with_message(client):
 
 def test_language_switch(client):
     client.get("/lang/fr")
-    assert "Référentiel juridique vérifié" in client.get("/").text
+    assert "Le référentiel juridique vérifié de Harvey" in client.get("/").text
     client.get("/lang/en")
-    assert "Verified legal reference" in client.get("/").text
+    assert "Harvey&#39;s verified legal reference" in client.get("/").text
 
 
 def test_cross_origin_post_refused(client):
