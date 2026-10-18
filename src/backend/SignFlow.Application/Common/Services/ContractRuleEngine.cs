@@ -56,6 +56,10 @@ public static class ContractRuleEngine
         BankOutsourcing(text, clauses, l, findings);
         BankSecrecy(text, clauses, l, findings);
         BankAccountAgreement(text, clauses, l, findings);
+        BankRelatedParty(text, clauses, l, findings);
+        BankSupervisorAccess(text, clauses, l, findings);
+        BankCustomerComplaints(text, clauses, l, findings);
+        BankAntiMoneyLaundering(text, clauses, l, findings);
 
         if (findings.Count == 0)
             findings.Add(new RiskFinding(l.T("General", "Général"), Low,
@@ -546,6 +550,87 @@ public static class ContractRuleEngine
     }
 
     /// <summary>An account agreement must list the commissions and tell the client about the banking mediator.</summary>
+    /// <summary>A bank contracting with a shareholder, director or group company: the board must authorise it beforehand,
+    /// the shareholders approve it and the central bank is told.</summary>
+    private static void BankRelatedParty(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        if (!IsBankContract(text)) return;
+        var c = clauses.FirstOrDefault(c => Has(c, "actionnaire de la banque", "administrateur de la banque", "dirigeant de la banque",
+            "filiale de la banque", "société du groupe", "société mère", "société apparentée", "partie liée", "parties liées",
+            "shareholder of the bank", "director of the bank", "group company", "related party"));
+        if (c is null || TextHas(text, "conseil d'administration", "conseil de surveillance", "assemblée générale",
+                "board of directors", "general meeting")) return;
+
+        findings.Add(Finding(c, "bank_related_party", l.T("Related-party agreement", "Convention réglementée"), High,
+            l.T("The bank contracts with a person linked to it (shareholder, director or group company), but the contract does not mention the board's prior authorisation or the shareholders' approval.",
+                "La banque contracte avec une personne qui lui est liée (actionnaire, dirigeant ou société du groupe), mais le contrat ne mentionne ni l'autorisation préalable du conseil ni l'approbation de l'assemblée générale."),
+            l.T("Have the agreement authorised by the board before signing (the interested person not voting), approved by the general meeting, and notified to the central bank.",
+                "Faire autoriser la convention par le conseil avant la signature (sans vote de la personne intéressée), la soumettre à l'approbation de l'assemblée générale et en informer la Banque centrale.")));
+    }
+
+    /// <summary>Professional secrecy cannot be used against the central bank's supervisors: a bank's confidentiality clause
+    /// must leave them out of "any third party".</summary>
+    private static void BankSupervisorAccess(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        if (!IsBankContract(text)) return;
+        var c = clauses.FirstOrDefault(c => Has(c, "confidentiel", "ne pas divulguer", "ne divulguer", "à aucun tiers", "aucun tiers",
+            "confidential", "not disclose", "no third party"));
+        if (c is null || Has(c, "banque centrale", "BCT", "autorités de contrôle", "autorité de contrôle", "autorités de supervision",
+                "autorités compétentes", "autorité compétente", "central bank", "supervisory authorit", "competent authorit")) return;
+
+        findings.Add(Finding(c, "bank_supervisor_access", l.T("Confidentiality without a supervisor exception", "Confidentialité sans exception pour la BCT"), Medium,
+            l.T("The confidentiality clause forbids disclosure to third parties without excepting the central bank and the supervisory authorities, to whom professional secrecy cannot be opposed.",
+                "La clause de confidentialité interdit toute communication aux tiers sans excepter la Banque centrale et les autorités de contrôle, auxquelles le secret professionnel n'est pas opposable."),
+            l.T("Add an exception for disclosures to the central bank, the supervisory authorities and any authority entitled by law.",
+                "Ajouter une exception pour les communications à la Banque centrale, aux autorités de contrôle et à toute autorité habilitée par la loi.")));
+    }
+
+    /// <summary>A customer agreement must tell the client how to complain, as part of the bank's transparency duties.</summary>
+    private static void BankCustomerComplaints(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        if (!TextHas(text, "convention de compte", "ouverture de compte", "compte de dépôt", "conditions générales de banque",
+                "account agreement", "deposit account")) return;
+        if (TextHas(text, "réclamation", "complaint")) return;
+        var c = clauses.FirstOrDefault(c => Has(c, "client", "customer")) ?? clauses.FirstOrDefault();
+        if (c is null) return;
+
+        findings.Add(Finding(c, "bank_customer_complaints", l.T("No complaint procedure", "Pas de procédure de réclamation"), Medium,
+            l.T("The customer agreement does not say how the client can complain or within what time the bank answers.",
+                "La convention ne précise pas comment le client peut adresser une réclamation ni dans quel délai la banque y répond."),
+            l.T("Describe the complaint channel, the response time and, after it, the referral to the banking mediator.",
+                "Décrire le canal de réclamation, le délai de réponse et, à défaut de solution, la saisine du médiateur bancaire.")));
+    }
+
+    // "pendant 5 ans", "pendant cinq (5) ans", "for 5 years": the figure in digits, possibly in brackets after the word.
+    private static readonly Regex RetentionYears = new(@"(\d{1,2})\)?\s*(?:ans|années|years)\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>A provider identifying the bank's customers must itself be bound by anti-money-laundering rules, and customer
+    /// records must be kept for at least ten years.</summary>
+    private static void BankAntiMoneyLaundering(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        if (!IsBankContract(text)) return;
+
+        var onboarding = clauses.FirstOrDefault(c => Has(c, "identification des clients", "identifier les clients", "entrée en relation",
+            "connaissance du client", "KYC", "pièces d'identité", "apporteur d'affaires", "customer identification", "onboarding", "know your customer"));
+        if (onboarding is not null && !TextHas(text, "blanchiment", "financement du terrorisme", "money laundering", "terrorist financing"))
+            findings.Add(Finding(onboarding, "bank_aml", l.T("Customer identification by a third party", "Identification des clients confiée à un tiers"), High,
+                l.T("A third party identifies the bank's customers, but the contract does not bind it to anti-money-laundering rules or give the bank the identification data.",
+                    "Un tiers identifie les clients de la banque, mais le contrat ne le soumet pas aux règles de lutte contre le blanchiment et ne garantit pas à la banque l'accès aux données d'identification."),
+                l.T("Require the third party to be subject to anti-money-laundering rules and supervision, to apply the required due diligence, and to hand the bank the identification data without delay.",
+                    "Exiger que le tiers soit soumis à une réglementation et à une surveillance en matière de lutte contre le blanchiment, qu'il applique les mesures de diligence requises et qu'il remette sans délai à la banque les données d'identification.")));
+
+        var retention = clauses.FirstOrDefault(c =>
+            (Has(c, "conserv", "archiv", "retain", "retention") && RetentionYears.Matches(c.Text).Any(m => int.Parse(m.Groups[1].Value) < 10))
+            || (Has(c, "détrui", "destruction", "supprim", "destroy", "delete") && Has(c, "fin du contrat", "expiration", "terme du contrat", "end of the contract", "termination")));
+        if (retention is not null && Has(retention, "client", "données", "documents", "dossiers", "records", "data", "customer"))
+            findings.Add(Finding(retention, "bank_aml", l.T("Records not kept ten years", "Conservation des documents inférieure à dix ans"), High,
+                l.T("The clause has customer records destroyed at the end of the contract or kept for less than ten years, while the bank must keep them for at least ten years.",
+                    "La clause prévoit la destruction des documents clients à la fin du contrat ou leur conservation pendant moins de dix ans, alors que la banque doit les conserver au moins dix ans."),
+                l.T("Keep (or return to the bank) all records needed to trace operations and identify customers for at least ten years after the operation or the account's closure.",
+                    "Conserver (ou restituer à la banque) tous les documents permettant de retracer les opérations et d'identifier les clients pendant au moins dix ans après l'opération ou la clôture du compte.")));
+    }
+
     private static void BankAccountAgreement(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)
     {
         if (!TextHas(text, "convention de compte", "ouverture de compte", "compte de dépôt", "account agreement", "deposit account")) return;

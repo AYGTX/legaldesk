@@ -46,6 +46,10 @@ DETECTED_KEYS = {
     "bank_outsourcing": ("Bank outsourcing (audit and central-bank supervision)", "Externalisation bancaire (audit et supervision BCT)"),
     "bank_secrecy": ("Banking secrecy", "Secret bancaire"),
     "bank_account": ("Account agreement (fees, mediator)", "Convention de compte (commissions, médiateur)"),
+    "bank_related_party": ("Bank related-party agreement", "Convention réglementée (banque)"),
+    "bank_supervisor_access": ("Confidentiality without a central-bank exception", "Confidentialité sans exception pour la BCT"),
+    "bank_customer_complaints": ("Customer complaint procedure", "Procédure de réclamation client"),
+    "bank_aml": ("Anti-money laundering (third-party identification, record keeping)", "Lutte contre le blanchiment (identification par un tiers, conservation)"),
 }
 
 _lock = threading.Lock()

@@ -453,6 +453,68 @@
       ],
       "confirmed_by": "H. Aymen",
       "confirmed_at": "2026-10-18T13:14:25+00:00"
+    },
+    {
+      "key": "bank_related_party",
+      "label": "Convention réglementée (banque)",
+      "articles": [
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "62",
+          "why": "Autorisation préalable du conseil, approbation de l'assemblée générale et information de la BCT pour toute convention avec une personne liée."
+        },
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "43",
+          "why": "Définit les personnes ayant des liens avec la banque."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "key": "bank_supervisor_access",
+      "label": "Confidentialité sans exception pour la BCT",
+      "articles": [
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "65",
+          "why": "Le secret professionnel n'est pas opposable à la Banque centrale ni à ses agents chargés de la supervision."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "key": "bank_customer_complaints",
+      "label": "Procédure de réclamation client",
+      "articles": [
+        {
+          "reference": "Loi n° 2016-48 du 11 juillet 2016",
+          "number": "82",
+          "why": "La banque doit mettre en place des mesures de transparence, dont la notification des tarifs et le traitement des requêtes de la clientèle."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "key": "bank_aml",
+      "label": "Lutte contre le blanchiment (identification par un tiers, conservation)",
+      "articles": [
+        {
+          "reference": "Loi organique n° 2015-26 du 7 août 2015",
+          "number": "108",
+          "why": "Diligence requise, y compris en cas de recours à un tiers pour identifier les clients."
+        },
+        {
+          "reference": "Loi organique n° 2015-26 du 7 août 2015",
+          "number": "113",
+          "why": "Conservation des documents pendant au moins dix ans."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
     }
   ],
   "regulations": {
