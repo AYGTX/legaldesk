@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ t('pdf_title') }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ t('pdf_title') }}</h1><a href="/">{{ t('back') }}</a></div>
+<form class="card" method="post" action="/import-pdf" enctype="multipart/form-data">
+  <p class="muted">{{ t('pdf_intro') }}</p>
+  <label for="file">{{ t('pdf_file') }}</label>
+  <input id="file" name="file" type="file" accept="application/pdf,.pdf" required>
+  <div class="actions"><button type="submit">{{ t('pdf_read') }}</button></div>
+</form>
+{% endblock %}

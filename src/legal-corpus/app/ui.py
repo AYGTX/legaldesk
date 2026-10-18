@@ -1,7 +1,8 @@
 from datetime import date
+from types import SimpleNamespace
 from urllib.parse import quote, urlencode, urlsplit
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
@@ -12,10 +13,11 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, Jurisdiction, TextStatus
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import corpus, playbook
+from app.services import corpus, pdf, playbook
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
 from app.services.search import index_status, rebuild_index, search
+from app.services.splitter import split_articles
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
@@ -135,6 +137,66 @@ def create_text(
         return _redirect("/texts/new", "err_invalid", "error")
     text = corpus.create_text(db, data)
     return _redirect(f"/texts/{text.id}", "saved")
+
+
+@router.get("/import-pdf", response_class=HTMLResponse)
+def pdf_upload_page(request: Request):
+    return _render(request, "pdf_upload.html")
+
+
+@router.post("/import-pdf", response_class=HTMLResponse)
+def pdf_upload(request: Request, file: UploadFile = File(...)):
+    law = pdf.read_pdf(file.file.read(pdf.MAX_BYTES + 1))
+    if len(law.candidates) == 1:
+        c = law.candidates[0]
+        return _pdf_review(request, c.raw_text, c.title, c.reference, file.filename)
+    return _render(request, "pdf_choose.html", law=law, filename=file.filename)
+
+
+def _pdf_review(request: Request, raw_text: str, title: str, reference: str, filename: str | None,
+                error: str | None = None, fields: LegalTextIn | None = None) -> HTMLResponse:
+    split = split_articles(raw_text)
+    draft = fields or SimpleNamespace(
+        title=title or (filename or "").rsplit(".", 1)[0], reference=reference, source_url=None,
+        jurisdiction=Jurisdiction.Tunisia, category=Category.Other, language=pdf.guess_language(raw_text),
+        effective_date=None, keywords="", summary="",
+    )
+    numbers = [a.number for a in split.articles]
+    duplicates = sorted({n for n in numbers if numbers.count(n) > 1})
+    return _render(request, "pdf_review.html", text=draft, raw_text=raw_text, split=split, filename=filename,
+                   error=error, duplicates=duplicates)
+
+
+@router.post("/import-pdf/review", response_class=HTMLResponse)
+def pdf_review(request: Request, raw_text: str = Form(""), title: str = Form(""), reference: str = Form(""),
+               filename: str = Form("")):
+    return _pdf_review(request, raw_text, title, reference, filename)
+
+
+@router.post("/import-pdf/create", response_class=HTMLResponse)
+def pdf_create(
+    request: Request, raw_text: str = Form(""), filename: str = Form(""),
+    title: str = _TEXT_FIELDS["title"], reference: str = _TEXT_FIELDS["reference"],
+    summary: str = _TEXT_FIELDS["summary"], keywords: str = _TEXT_FIELDS["keywords"],
+    language: str = _TEXT_FIELDS["language"], jurisdiction: str = _TEXT_FIELDS["jurisdiction"],
+    category: str = _TEXT_FIELDS["category"], effective_date: str = _TEXT_FIELDS["effective_date"],
+    source_url: str = _TEXT_FIELDS["source_url"], db: Session = Depends(get_db),
+):
+    # Errors re-show the review with everything typed so far, instead of losing the extracted text.
+    try:
+        data = _text_form(title, reference, summary, keywords, language, jurisdiction, category, effective_date, source_url)
+    except (ValidationError, ValueError):
+        return _pdf_review(request, raw_text, title, reference, filename, "err_invalid")
+    split = split_articles(raw_text)
+    numbers = [a.number for a in split.articles]
+    if not numbers:
+        return _pdf_review(request, raw_text, title, reference, filename, "err_no_articles_found", data)
+    if len(set(numbers)) != len(numbers):
+        return _pdf_review(request, raw_text, title, reference, filename, "err_pdf_duplicate", data)
+
+    text = corpus.create_text(db, data)
+    created, _, _ = corpus.import_articles(db, text.id, raw_text, replace=False)
+    return _redirect(f"/texts/{text.id}", "pdf_imported", count=len(created))
 
 
 @router.get("/texts/{text_id}", response_class=HTMLResponse)

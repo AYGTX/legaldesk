@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% set rtl = 'rtl' if text.language == 'ar' else '' %}
+{% block title %}{{ t('pdf_review_title') }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ t('pdf_review_title') }}</h1><a href="/import-pdf">{{ t('back') }}</a></div>
+{% if error %}<div class="flash error">{{ t(error) }}</div>{% endif %}
+<form method="post" action="/import-pdf/create">
+  <input type="hidden" name="filename" value="{{ filename or '' }}">
+  <section class="card">
+    <p class="muted">{{ t('pdf_review_intro') }}{% if filename %} {{ t('pdf_source_file', name=filename) }}{% endif %}</p>
+    {% include "_text_fields.html" %}
+  </section>
+
+  <section class="card">
+    <h2>{{ t('pdf_found', count=split.articles|length) }}</h2>
+    {% if duplicates %}<div class="flash error">{{ t('pdf_duplicates', numbers=duplicates|join(', ')) }}</div>{% endif %}
+    {% if split.preamble %}
+      <details><summary>{{ t('pdf_preamble') }}</summary><p class="body {{ rtl }}" style="white-space:pre-wrap">{{ split.preamble }}</p></details>
+    {% endif %}
+    {% if split.removed_headings %}
+      <details><summary>{{ t('pdf_removed') }} ({{ split.removed_headings|length }})</summary>
+        <ul>{% for h in split.removed_headings %}<li>{{ h }}</li>{% endfor %}</ul></details>
+    {% endif %}
+    {% for a in split.articles %}
+      <div class="article">
+        <div class="num">{{ t('article') }} {{ a.number }}</div>
+        <p class="body {{ rtl }}">{{ a.text }}</p>
+      </div>
+    {% else %}
+      <p class="muted">{{ t('err_no_articles_found') }}</p>
+    {% endfor %}
+  </section>
+
+  <section class="card">
+    <h2>{{ t('pdf_extracted') }}</h2>
+    <textarea class="tall {{ rtl }}" name="raw_text" required>{{ raw_text }}</textarea>
+    <div class="actions">
+      <button class="secondary" type="submit" formaction="/import-pdf/review" formnovalidate>{{ t('pdf_recheck') }}</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <p class="muted">{{ t('pdf_draft_note') }}</p>
+    <div class="actions"><button type="submit" {{ 'disabled' if not split.articles or duplicates }}>{{ t('pdf_create') }}</button></div>
+  </section>
+</form>
+{% endblock %}

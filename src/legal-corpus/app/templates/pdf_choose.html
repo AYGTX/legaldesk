@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ t('pdf_choose_title') }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ t('pdf_choose_title') }}</h1><a href="/import-pdf">{{ t('back') }}</a></div>
+<p class="muted">{{ t('pdf_choose_intro') }} {{ t('pdf_source_file', name=filename) }}</p>
+{% for c in law.candidates %}
+<form class="card" method="post" action="/import-pdf/review">
+  <h2>{{ c.title or t('pdf_untitled') }}</h2>
+  <p><span class="badge {{ 'ok' if c.article_count else 'neutral' }}">{{ t('pdf_articles', count=c.article_count) }}</span></p>
+  <p class="muted">{{ c.raw_text[:300] }}…</p>
+  <input type="hidden" name="raw_text" value="{{ c.raw_text }}">
+  <input type="hidden" name="title" value="{{ c.title }}">
+  <input type="hidden" name="reference" value="{{ c.reference }}">
+  <input type="hidden" name="filename" value="{{ filename }}">
+  <div class="actions"><button type="submit" {{ 'disabled' if not c.article_count }}>{{ t('pdf_choose') }}</button></div>
+</form>
+{% endfor %}
+{% endblock %}
