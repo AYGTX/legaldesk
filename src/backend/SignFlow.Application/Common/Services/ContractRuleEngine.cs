@@ -89,8 +89,8 @@ public static class ContractRuleEngine
             if (phrase is null) continue;
 
             findings.Add(Finding(c, key, rule.Label, Medium,
-                l.T($"The playbook flags the wording “{phrase.Trim()}” for this risk.",
-                    $"Le playbook signale la formulation « {phrase.Trim()} » pour ce risque."),
+                l.T($"The risk grid flags the wording “{phrase.Trim()}” for this risk.",
+                    $"La grille des risques signale la formulation « {phrase.Trim()} » pour ce risque."),
                 l.T($"Check this clause against the “{rule.Label}” risk.",
                     $"Vérifier cette clause au regard du risque « {rule.Label} ».")));
             added++;
@@ -129,8 +129,8 @@ public static class ContractRuleEngine
             var score = m.Score.ToString("0.00", fr ? CultureInfo.GetCultureInfo("fr-FR") : CultureInfo.InvariantCulture);
             findings.Add(new RiskFinding(
                 l.T($"Possible risk: {m.Label}", $"Risque possible : {m.Label}"), Low,
-                l.T($"This sentence reads like an approved playbook example for this risk (similarity {score}): “{m.Sentence}”",
-                    $"Cette phrase ressemble à un exemple validé du playbook pour ce risque (similarité {score}) : « {m.Sentence} »"),
+                l.T($"This sentence reads like an approved example of this risk in the risk grid (similarity {score}): “{m.Sentence}”",
+                    $"Cette phrase ressemble à un exemple validé de ce risque dans la grille des risques (similarité {score}) : « {m.Sentence} »"),
                 FindingType: Possible,
                 RecommendedAction: l.T($"Check whether the clause carries the “{m.Label}” risk. Closest example: “{m.Example}”",
                                        $"Vérifier si la clause porte le risque « {m.Label} ». Exemple le plus proche : « {m.Example} »"),

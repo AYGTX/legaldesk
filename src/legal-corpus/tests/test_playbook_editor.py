@@ -50,7 +50,7 @@ def test_build_and_confirm_a_rule(setup):
     assert [a["citation"] for a in served] == ["Loi test n° 1, art. 1", "Loi test n° 1, art. 2 bis"]
 
     page = c.get("/playbook/rules/personal_data", headers={"accept-language": "fr"}).text
-    assert "Confirmée par H. Aymen" in page and "Loi test n° 1, art. 2 bis" in page
+    assert "Validé par H. Aymen" in page and "Loi test n° 1, art. 2 bis" in page
 
 
 def test_any_edit_withdraws_the_confirmation(setup):

@@ -28,7 +28,7 @@ public class PlaybookWordingTests
         Assert.Equal("Article 2 — Conséquences", finding.ContractReference);
         Assert.Equal("Indemnisation", finding.ClauseType);
         Assert.Equal(ContractRuleEngine.Medium, finding.Severity);
-        Assert.Contains("Le playbook signale la formulation", finding.Explanation);
+        Assert.Contains("La grille des risques signale la formulation", finding.Explanation);
         Assert.DoesNotContain(risk.Findings, f => f.ClauseType == "Général");
     }
 
