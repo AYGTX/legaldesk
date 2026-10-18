@@ -19,11 +19,11 @@
     <p><span class="badge ok">{{ t('pb_confirmed_by', who=rule.confirmed_by) }}</span>
       {% if rule.confirmed_at %}<span class="muted">· {{ rule.confirmed_at[:16].replace('T', ' ') }}</span>{% endif %}</p>
     <p class="muted">{{ t('pb_confirm_explain') }}</p>
-    <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/unconfirm"><button class="secondary" type="submit">{{ t('unverify') }}</button></form>
+    <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/unconfirm"><button class="secondary" type="submit">{{ t('unverify') }}</button></form>
   {% else %}
     <div class="notice">{{ t('pb_unconfirmed_explain') }}</div>
     <p class="muted">{{ t('pb_confirm_explain') }}</p>
-    <form class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/confirm">
+    <form hx-boost="true" class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/confirm">
       <div><label for="confirmed_by">{{ t('your_name') }}</label><input id="confirmed_by" name="confirmed_by" required maxlength="200"></div>
       <button type="submit" {{ 'disabled' if not rule.ready }}>{{ t('pb_confirm') }}</button>
     </form>
@@ -44,19 +44,19 @@
           {% else %}<span class="badge warn">{{ t('pb_article_missing') }}</span>{% endif %}
           {% if a.legal_text_id %}<a href="/texts/{{ a.legal_text_id }}" style="font-size:13px;margin-left:6px">{{ t('pb_open_text') }}</a>{% endif %}
         </div>
-        <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/move" style="flex:0 0 auto">
+        <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/move" style="flex:0 0 auto">
           <input type="hidden" name="offset" value="-1"><button class="secondary" type="submit" {{ 'disabled' if loop.first }} title="{{ t('pb_up') }}">↑</button>
         </form>
-        <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/move" style="flex:0 0 auto">
+        <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/move" style="flex:0 0 auto">
           <input type="hidden" name="offset" value="1"><button class="secondary" type="submit" {{ 'disabled' if loop.last }} title="{{ t('pb_down') }}">↓</button>
         </form>
-        <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/delete" style="flex:0 0 auto"
-              onsubmit='return confirm({{ t("confirm_delete")|tojson }})'>
+        <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}/delete" style="flex:0 0 auto"
+              hx-confirm="{{ t('confirm_delete') }}">
           <button class="danger" type="submit">{{ t('pb_remove') }}</button>
         </form>
       </div>
       {% if a.text %}<p class="body" style="margin:6px 0 8px">{{ a.text }}</p>{% endif %}
-      <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}" class="row">
+      <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles/{{ i }}" class="row">
         <div style="flex:4 1 300px"><label>{{ t('pb_why') }}</label><input name="why" value="{{ a.why or '' }}" maxlength="400"></div>
         <button class="secondary" type="submit">{{ t('save') }}</button>
       </form>
@@ -74,20 +74,20 @@
   {% for p in rule.phrases %}
     <div class="row phrase-row">
       <div style="flex:1 1 auto"><span class="phrase">« {{ p }} »</span></div>
-      <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases/{{ loop.index0 }}/delete" style="flex:0 0 auto">
+      <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases/{{ loop.index0 }}/delete" style="flex:0 0 auto">
         <button class="danger" type="submit">{{ t('pb_remove') }}</button>
       </form>
     </div>
   {% else %}
     <p class="muted">{{ t('pb_no_phrases') }}</p>
   {% endfor %}
-  <form class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases" style="margin-top:12px">
+  <form hx-boost="true" class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases" style="margin-top:12px">
     <div style="flex:4 1 300px"><label for="phrase">{{ t('pb_add_phrase') }}</label>
       <input id="phrase" name="phrase" required minlength="4" maxlength="200" placeholder="{{ t('pb_phrase_placeholder') }}"></div>
     <button type="submit">{{ t('pb_add_phrase_button') }}</button>
   </form>
   {% if ai != 'none' %}
-  <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/suggest-phrases" style="margin-top:10px">
+  <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/suggest-phrases" style="margin-top:10px">
     <button class="ghost" type="submit">✦ {{ t('ai_suggest_phrases') }}</button>
   </form>
   {% endif %}
@@ -95,7 +95,7 @@
   <div class="ai-panel">
     <div class="ai-panel-head">✦ {{ t('ai_suggestions', ai=ai) }}</div>
     {% for p in suggested_phrases %}
-    <form class="row phrase-row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases">
+    <form hx-boost="true" class="row phrase-row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases">
       <div style="flex:1 1 auto"><span class="phrase">« {{ p }} »</span></div>
       <input type="hidden" name="phrase" value="{{ p }}">
       <button class="secondary" type="submit" style="flex:0 0 auto">{{ t('ai_accept') }}</button>
@@ -114,18 +114,18 @@
     <div class="row phrase-row">
       <div style="flex:1 1 auto"><span class="example-text">{{ e.text }}</span>
         <span class="badge neutral ex-source">{{ t('src_' ~ e.source) }}</span></div>
-      <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}/{{ loop.index0 }}/delete" style="flex:0 0 auto">
+      <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}/{{ loop.index0 }}/delete" style="flex:0 0 auto">
         <button class="danger" type="submit">{{ t('pb_remove') }}</button>
       </form>
     </div>
   {% else %}<p class="muted">{{ t('pb_no_examples') }}</p>{% endfor %}
-  <form class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}" style="margin:8px 0 14px">
+  <form hx-boost="true" class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}" style="margin:8px 0 14px">
     <div style="flex:4 1 300px"><textarea name="text" required minlength="30" maxlength="600" rows="2" placeholder="{{ t('pb_example_placeholder') }}"></textarea></div>
     <button class="secondary" type="submit">{{ t('pb_add_example') }}</button>
   </form>
   {% endfor %}
   {% if ai != 'none' %}
-  <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/draft-examples">
+  <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/draft-examples">
     <button class="ghost" type="submit">✦ {{ t('ai_draft_examples') }}</button>
   </form>
   {% endif %}
@@ -135,7 +135,7 @@
     {% for kind, items, title in [('examples', drafted.examples, 'pb_examples_list'), ('counter_examples', drafted.counter_examples, 'pb_counter_list')] %}
     <h3 class="ex-title">{{ t(title) }}</h3>
     {% for d in items %}
-    <form class="row phrase-row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}">
+    <form hx-boost="true" class="row phrase-row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/{{ kind }}">
       <div style="flex:1 1 auto"><span class="example-text">{{ d }}</span></div>
       <input type="hidden" name="text" value="{{ d }}"><input type="hidden" name="source" value="model">
       <button class="secondary" type="submit" style="flex:0 0 auto">{{ t('ai_accept') }}</button>
@@ -146,7 +146,7 @@
   {% endif %}
 </section>
 
-<form class="card" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles">
+<form hx-boost="true" class="card" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles">
   <h2>{{ t('pb_add_article') }}</h2>
   <p class="muted">{{ t('pb_add_article_hint') }}</p>
   {% if ai != 'none' %}
@@ -170,7 +170,7 @@
 <section class="card ai-panel">
   <div class="ai-panel-head">✦ {{ t('ai_suggestions', ai=ai) }} — {{ suggested_text.reference }}</div>
   {% for s in suggested_articles %}
-  <form class="article" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles">
+  <form hx-boost="true" class="article" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles">
     <div class="article-head"><span class="num">{{ t('article') }} {{ s.number }}</span></div>
     <p class="body" style="margin:6px 0">{{ s.text|truncate(600) }}</p>
     <input type="hidden" name="text_id" value="{{ suggested_text.id }}">
@@ -188,12 +188,12 @@
   <h2>{{ t('pb_mappings') }}</h2>
   <p class="muted">{{ t('pb_mappings_intro') }}</p>
   {% for fragment in mappings %}
-    <form method="post" action="/playbook/mappings/delete" class="row" style="align-items:center;margin-bottom:6px">
+    <form hx-boost="true" method="post" action="/playbook/mappings/delete" class="row" style="align-items:center;margin-bottom:6px">
       <input type="hidden" name="fragment" value="{{ fragment }}"><input type="hidden" name="back" value="/playbook/rules/{{ rule.key|urlencode }}">
       <code style="flex:1 1 auto">{{ fragment }}</code><button class="danger" type="submit">{{ t('delete') }}</button>
     </form>
   {% endfor %}
-  <form class="row" method="post" action="/playbook/mappings" style="margin-top:8px">
+  <form hx-boost="true" class="row" method="post" action="/playbook/mappings" style="margin-top:8px">
     <input type="hidden" name="key" value="{{ rule.key }}"><input type="hidden" name="back" value="/playbook/rules/{{ rule.key|urlencode }}">
     <div><label for="fragment">{{ t('pb_fragment') }}</label><input id="fragment" name="fragment" required placeholder="2004-63"></div>
     <button type="submit" class="secondary">{{ t('pb_add_mapping') }}</button>
@@ -202,7 +202,7 @@
 
 <section class="card">
   <h2>{{ t('edit') }}</h2>
-  <form class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/label">
+  <form hx-boost="true" class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/label">
     <div><label for="label">{{ t('pb_label') }}</label><input id="label" name="label" value="{{ rule.label }}" maxlength="200"></div>
     <button type="submit">{{ t('save') }}</button>
   </form>

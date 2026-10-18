@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ t('app_name') }}{% endblock %}</title>
   <link rel="icon" href="/static/logo-consultim-it.svg">
-  <link rel="stylesheet" href="/static/style.css?v=15">
+  <link rel="stylesheet" href="/static/style.css?v=16">
+  <script src="/static/htmx.min.js" defer></script>
 </head>
 {% from "_icons.html" import icon %}
 <body>
@@ -46,7 +47,8 @@
     </nav>
   </aside>
   {% endif %}
-  <main>
+  <!-- In-page forms (hx-boost) swap only this element from the response and keep the scroll position. -->
+  <main hx-target="this" hx-select="main" hx-swap="outerHTML show:none" hx-push-url="false">
     {% if flash %}<div class="flash {{ flash_kind }}">{{ t(flash, **flash_args) }}</div>{% endif %}
     {% block content %}{% endblock %}
   </main>

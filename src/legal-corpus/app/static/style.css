@@ -236,3 +236,7 @@ th { text-transform: uppercase; letter-spacing: .4px; font-size: 11.5px; }
 .explain-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin: 6px 0; }
 .explain-actions form { margin: 0; }
 .explain-generate { margin: 4px 0 6px; }
+
+/* While htmx waits for the server (Groq can take a few seconds), the clicked form shows it is working. */
+form.htmx-request button, form.htmx-request input[type="submit"] { opacity: .6; cursor: progress; pointer-events: none; }
+form.htmx-request button[type="submit"]::after { content: " …"; }

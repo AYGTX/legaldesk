@@ -21,11 +21,11 @@
     <p><span class="badge ok">{{ t('verified') }}</span>
       {{ t('verified_by_on', who=text.verified_by, when=text.verified_at.strftime('%Y-%m-%d %H:%M')) }}</p>
     <p class="muted">{{ t('verify_explain') }}</p>
-    <form method="post" action="/texts/{{ text.id }}/unverify"><button class="secondary" type="submit">{{ t('unverify') }}</button></form>
+    <form hx-boost="true" method="post" action="/texts/{{ text.id }}/unverify"><button class="secondary" type="submit">{{ t('unverify') }}</button></form>
   {% else %}
     <div class="notice">{{ t('unverified_explain') }}</div>
     <p class="muted">{{ t('verify_explain') }}</p>
-    <form class="row" method="post" action="/texts/{{ text.id }}/verify">
+    <form hx-boost="true" class="row" method="post" action="/texts/{{ text.id }}/verify">
       <div><label for="verified_by">{{ t('your_name') }}</label><input id="verified_by" name="verified_by" required maxlength="200"></div>
       <button type="submit">{{ t('verify') }}</button>
     </form>
@@ -61,7 +61,7 @@
         {% if a.applies_from %}<span class="badge neutral">{{ t('in_force_since', day=a.applies_from.strftime('%d/%m/%Y')) }}</span>{% endif %}
         {% if a.excluded_from_search %}<span class="badge neutral" title="{{ t('excluded_explain') }}">{{ t('excluded_badge') }}</span>{% endif %}
         {% if a.versions %}<span class="badge version">{{ t('versions_badge', count=a.versions|length) }}</span>{% endif %}
-        <form method="post" action="/articles/{{ a.id }}/search" class="article-toggle">
+        <form hx-boost="true" method="post" action="/articles/{{ a.id }}/search" class="article-toggle">
           <input type="hidden" name="excluded" value="{{ '0' if a.excluded_from_search else '1' }}">
           <button class="ghost" type="submit" title="{{ t('excluded_explain') }}">{{ t('include_action') if a.excluded_from_search else t('exclude_action') }}</button>
         </form>
@@ -82,23 +82,23 @@
           <p class="explain-note">{{ t('explain_note_model', model=e.model) if e.model else t('explain_note_person') }}</p>
           <div class="explain-actions">
             {% if st == 'draft' %}
-            <form class="row" method="post" action="/articles/{{ a.id }}/explanation/approve">
+            <form hx-boost="true" class="row" method="post" action="/articles/{{ a.id }}/explanation/approve">
               <input type="hidden" name="lang" value="{{ lang }}">
               <div><input name="approved_by" required maxlength="200" placeholder="{{ t('your_name') }}"></div>
               <button type="submit">{{ t('explain_approve') }}</button>
             </form>
             {% elif st == 'approved' %}
-            <form method="post" action="/articles/{{ a.id }}/explanation/withdraw"><input type="hidden" name="lang" value="{{ lang }}">
+            <form hx-boost="true" method="post" action="/articles/{{ a.id }}/explanation/withdraw"><input type="hidden" name="lang" value="{{ lang }}">
               <button class="secondary" type="submit">{{ t('unverify') }}</button></form>
             {% endif %}
             {% if ai != 'none' %}
-            <form method="post" action="/articles/{{ a.id }}/explanation/generate"><input type="hidden" name="lang" value="{{ lang }}">
+            <form hx-boost="true" method="post" action="/articles/{{ a.id }}/explanation/generate"><input type="hidden" name="lang" value="{{ lang }}">
               <button class="ghost" type="submit">✦ {{ t('explain_regenerate') }}</button></form>
             {% endif %}
           </div>
           <details>
             <summary>{{ t('explain_edit') }}</summary>
-            <form method="post" action="/articles/{{ a.id }}/explanation">
+            <form hx-boost="true" method="post" action="/articles/{{ a.id }}/explanation">
               <input type="hidden" name="lang" value="{{ lang }}">
               <label>{{ t('explain_title') }}</label><textarea name="summary" required minlength="20" rows="4">{{ e.summary }}</textarea>
               <label>{{ t('explain_practice') }}</label><input name="in_practice" maxlength="400" value="{{ e.in_practice or '' }}">
@@ -110,7 +110,7 @@
           </details>
         </div>
       {% elif ai != 'none' %}
-        <form method="post" action="/articles/{{ a.id }}/explanation/generate" class="explain-generate">
+        <form hx-boost="true" method="post" action="/articles/{{ a.id }}/explanation/generate" class="explain-generate">
           <input type="hidden" name="lang" value="{{ lang }}">
           <button class="ghost" type="submit">✦ {{ t('explain_action') }}</button>
         </form>
@@ -128,7 +128,7 @@
           </div>
           {% if v.note %}<div class="version-note">{{ v.note }}</div>{% endif %}
           <p class="body {{ rtl }}">{{ v.text }}</p>
-          <form method="post" action="/articles/{{ a.id }}/versions/{{ v.id }}/restore" onsubmit='return confirm({{ t("restore_confirm")|tojson }})'>
+          <form hx-boost="true" method="post" action="/articles/{{ a.id }}/versions/{{ v.id }}/restore" hx-confirm="{{ t('restore_confirm') }}">
             <button class="secondary" type="submit">{{ t('restore') }}</button>
           </form>
         </div>
@@ -137,7 +137,7 @@
       {% endif %}
       <details>
         <summary>{{ t('edit') }}</summary>
-        <form method="post" action="/articles/{{ a.id }}">
+        <form hx-boost="true" method="post" action="/articles/{{ a.id }}">
           <div class="grid">
             <div><label>{{ t('number') }}</label><input name="number" required maxlength="50" value="{{ a.number }}"></div>
             <div><label>{{ t('order') }}</label><input name="order" type="number" value="{{ a.order }}"></div>
@@ -147,7 +147,7 @@
           </div>
           <div class="actions"><button type="submit">{{ t('save') }}</button></div>
         </form>
-        <form method="post" action="/articles/{{ a.id }}/delete" onsubmit='return confirm({{ t("confirm_delete")|tojson }})'>
+        <form hx-boost="true" method="post" action="/articles/{{ a.id }}/delete" hx-confirm="{{ t('confirm_delete') }}">
           <div class="actions"><button class="danger" type="submit">{{ t('delete') }}</button></div>
         </form>
       </details>
@@ -161,7 +161,7 @@
 <section class="card">
   <h2>{{ t('import_articles') }}</h2>
   <p class="muted">{{ t('import_hint') }}</p>
-  <form method="post" action="/texts/{{ text.id }}/import">
+  <form hx-boost="true" method="post" action="/texts/{{ text.id }}/import">
     <textarea class="tall {{ rtl }}" name="raw_text" required></textarea>
     <div class="actions">
       <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="replace" style="width:auto"> {{ t('replace_existing') }}</label>
@@ -188,7 +188,7 @@
 
 <section class="card">
   <h2>{{ t('add_article') }}</h2>
-  <form method="post" action="/texts/{{ text.id }}/articles">
+  <form hx-boost="true" method="post" action="/texts/{{ text.id }}/articles">
     <div class="grid">
       <div><label for="new_number">{{ t('number') }}</label><input id="new_number" name="number" required maxlength="50"></div>
       <div class="full"><label for="new_text">{{ t('text') }}</label><textarea id="new_text" class="tall {{ rtl }}" name="text" required></textarea></div>
@@ -199,14 +199,14 @@
 
 <section class="card">
   <h2>{{ t('edit') }}</h2>
-  <form method="post" action="/texts/{{ text.id }}/status" class="row">
+  <form hx-boost="true" method="post" action="/texts/{{ text.id }}/status" class="row">
     <div><label for="status">{{ t('status') }}</label>
       <select id="status" name="status">{% for s in statuses %}<option value="{{ s.value }}" {{ 'selected' if text.status == s }}>{{ t(s.value) }}</option>{% endfor %}</select>
     </div>
     <button class="secondary" type="submit">{{ t('set_status') }}</button>
   </form>
   <hr style="border:0;border-top:1px solid var(--border);margin:18px 0">
-  <form method="post" action="/texts/{{ text.id }}">
+  <form hx-boost="true" method="post" action="/texts/{{ text.id }}">
     {% include "_text_fields.html" %}
     <div class="actions"><button type="submit">{{ t('save') }}</button></div>
   </form>

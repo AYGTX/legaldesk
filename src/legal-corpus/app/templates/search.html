@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-head">
   <h1>{{ t('search_title') }}</h1>
-  <form method="post" action="/index/rebuild" class="row" style="align-items:center">
+  <form hx-boost="true" method="post" action="/index/rebuild" class="row" style="align-items:center">
     <span class="muted">{{ t('index_status', indexed=status.indexed_articles, total=status.total_articles, embedder=status.embedder) }}</span>
     <button class="secondary" type="submit">{{ t('rebuild_index') }}</button>
   </form>

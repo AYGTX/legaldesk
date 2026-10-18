@@ -138,7 +138,7 @@
         <td><code>{{ fragment }}</code></td>
         <td><a href="/playbook/rules/{{ key|urlencode }}">{{ (pb.rules | selectattr('key', 'equalto', key) | map(attribute='label') | first) or key }}</a></td>
         <td style="text-align:right">
-          <form method="post" action="/playbook/mappings/delete" onsubmit='return confirm({{ t("confirm_delete")|tojson }})'>
+          <form hx-boost="true" method="post" action="/playbook/mappings/delete" hx-confirm="{{ t('confirm_delete') }}">
             <input type="hidden" name="fragment" value="{{ fragment }}"><button class="danger" type="submit">{{ t('delete') }}</button>
           </form>
         </td>
@@ -147,7 +147,7 @@
     </tbody>
   </table></div>
   {% endif %}
-  <form class="row" method="post" action="/playbook/mappings" style="margin-top:12px">
+  <form hx-boost="true" class="row" method="post" action="/playbook/mappings" style="margin-top:12px">
     <div><label for="fragment">{{ t('pb_fragment') }}</label><input id="fragment" name="fragment" required placeholder="2004-63"></div>
     <div>
       <label for="map_key">{{ t('pb_rule') }}</label>
