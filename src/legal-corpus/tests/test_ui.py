@@ -48,3 +48,20 @@ def test_cross_origin_post_refused(client):
 
 def test_unknown_flash_key_not_rendered(client):
     assert "pwned" not in client.get("/?flash=pwned").text
+
+
+def test_source_can_be_given_when_verifying(client):
+    response = client.post("/texts/new", data={"title": "Loi sans source", "jurisdiction": "Tunisia", "category": "Other",
+                                               "language": "fr"}, follow_redirects=False)
+    path = response.headers["location"].split("?")[0]
+    client.post(f"{path}/import", data={"raw_text": LAW})
+    page = client.get(path, headers={"accept-language": "fr"}).text
+    assert 'id="verify_source"' in page
+
+    bad = client.post(f"{path}/verify", data={"verified_by": "Me", "source_url": "jort.tn"},
+                      headers={"referer": f"http://testserver{path}"}, follow_redirects=False)
+    assert "flash=err_invalid_source" in bad.headers["location"]
+
+    client.post(f"{path}/verify", data={"verified_by": "Me", "source_url": "https://www.jort.gov.tn/loi"})
+    text = client.get(f"/api/v1/texts/{path.split('/')[-1]}").json()
+    assert text["source_url"] == "https://www.jort.gov.tn/loi" and text["verified_by"] == "Me"

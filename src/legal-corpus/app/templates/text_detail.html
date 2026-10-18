@@ -26,6 +26,10 @@
     <div class="notice">{{ t('unverified_explain') }}</div>
     <p class="muted">{{ t('verify_explain') }}</p>
     <form hx-boost="true" class="row" method="post" action="/texts/{{ text.id }}/verify">
+      {% if not text.source_url %}
+      <div style="flex:2 1 320px"><label for="verify_source">{{ t('source_url') }} *</label>
+        <input id="verify_source" name="source_url" type="url" required maxlength="1000" placeholder="https://"></div>
+      {% endif %}
       <div><label for="verified_by">{{ t('your_name') }}</label><input id="verified_by" name="verified_by" required maxlength="200"></div>
       <button type="submit">{{ t('verify') }}</button>
     </form>

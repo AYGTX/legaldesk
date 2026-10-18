@@ -324,10 +324,10 @@ def set_status(text_id: str, status: str = Form(...), db: Session = Depends(get_
 
 
 @router.post("/texts/{text_id}/verify")
-def verify(text_id: str, verified_by: str = Form(""), db: Session = Depends(get_db)):
+def verify(text_id: str, verified_by: str = Form(""), source_url: str = Form(""), db: Session = Depends(get_db)):
     if not verified_by.strip():
         return _redirect(f"/texts/{text_id}", "err_invalid", "error")
-    corpus.verify(db, text_id, verified_by)
+    corpus.verify(db, text_id, verified_by, source_url)
     return _redirect(f"/texts/{text_id}", "verified_ok")
 
 

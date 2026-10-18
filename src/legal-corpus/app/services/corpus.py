@@ -94,8 +94,14 @@ def set_status(db: Session, text_id: str, status: TextStatus) -> LegalText:
     return text
 
 
-def verify(db: Session, text_id: str, verified_by: str) -> LegalText:
+def verify(db: Session, text_id: str, verified_by: str, source_url: str | None = None) -> LegalText:
+    """Signs the text off. A source given here (when the text has none yet) is saved in the same step."""
     text = get_text(db, text_id)
+    source_url = (source_url or "").strip()
+    if source_url and not text.source_url:
+        if not source_url.startswith(("http://", "https://")):
+            raise RuleError("invalid_source", "The official source must be a web address (http or https).")
+        text.source_url = source_url
     if not text.articles:
         raise RuleError("no_articles", "A text without articles has nothing to verify.")
     if not text.source_url:

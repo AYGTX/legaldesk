@@ -243,6 +243,7 @@ _T: dict[str, tuple[str, str]] = {
         "Tant qu'il n'est pas vérifié, ce texte est une note : il n'est pas transmis comme loi à LegalDesk.",
     ),
     "your_name": ("Your name", "Votre nom"),
+    "err_invalid_source": ("The official source must be a web address (http or https).", "La source officielle doit être une adresse web (http ou https)."),
     "verify": ("Mark as verified", "Marquer comme vérifié"),
     "unverify": ("Withdraw sign-off", "Retirer la validation"),
     "set_status": ("Change status", "Changer le statut"),
