@@ -68,6 +68,42 @@
 
 {% if ai_error %}<div class="flash error">{{ t('amend_unavailable') }}</div>{% endif %}
 
+{% set mc = rule.model_clause or {} %}
+{% set shown = drafted_clause if drafted_clause is defined else mc %}
+<section class="card" id="model-clause">
+  <h2>{{ t('mc_title') }}
+    {% if mc.approved_by %}<span class="badge ok">{{ t('mc_approved_by', who=mc.approved_by) }}</span>
+    {% elif mc.fr %}<span class="badge warn">{{ t('mc_draft') }}</span>{% endif %}</h2>
+  <p class="muted">{{ t('mc_intro') }}</p>
+  {% if drafted_clause is defined %}<div class="ai-panel-head">✦ {{ t('mc_drafted', ai=ai) }}</div>{% endif %}
+  <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/model-clause">
+    <input type="hidden" name="source" value="{{ 'model' if drafted_clause is defined else (mc.source or 'lawyer') }}">
+    <label for="mc_fr">{{ t('mc_fr') }}</label>
+    <textarea id="mc_fr" name="fr" rows="4" required minlength="30">{{ shown.fr or '' }}</textarea>
+    <label for="mc_en">{{ t('mc_en') }}</label>
+    <textarea id="mc_en" name="en" rows="3">{{ shown.en or '' }}</textarea>
+    <div class="row" style="margin-top:8px">
+      <div><input name="approve_as" maxlength="200" placeholder="{{ t('mc_approve_as') }}"></div>
+      <button type="submit">{{ t('save') }}</button>
+    </div>
+  </form>
+  <div class="actions">
+    {% if mc.fr and not mc.approved_by and drafted_clause is not defined %}
+    <form hx-boost="true" class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/model-clause/approve">
+      <div><input name="approved_by" required maxlength="200" placeholder="{{ t('your_name') }}"></div>
+      <button type="submit">{{ t('mc_approve') }}</button>
+    </form>
+    {% elif mc.approved_by %}
+    <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/model-clause/withdraw">
+      <button class="secondary" type="submit">{{ t('unverify') }}</button></form>
+    {% endif %}
+    {% if ai != 'none' %}
+    <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/model-clause/draft">
+      <button class="ghost" type="submit">✦ {{ t('mc_draft_action') }}</button></form>
+    {% endif %}
+  </div>
+</section>
+
 <section class="card">
   <h2>{{ t('pb_phrases') }} ({{ rule.phrases|length }})</h2>
   <p class="muted">{{ t('pb_phrases_hint') }}</p>

@@ -65,3 +65,35 @@ public class PlaybookExplanationTests
     public void Without_an_approved_explanation_nothing_is_added() =>
         Assert.DoesNotContain("En termes simples", LegalPlaybookService.Format([Article with { Explanations = null }], "fr"));
 }
+
+public class ModelClauseTests
+{
+    private static readonly LegalPlaybook Playbook = new(
+        new Dictionary<string, IReadOnlyList<PlaybookArticle>>(), new Dictionary<string, string>(),
+        ModelClauses: new Dictionary<string, ModelClause>
+        {
+            ["liability"] = new("La responsabilité de chaque partie est limitée au prix annuel.", "Each party's liability is capped at the annual price."),
+            ["penalty"] = new("Les pénalités sont plafonnées à dix pour cent du prix.", null)
+        });
+
+    private static RiskFinding Finding(string key) => new("Titre", "High", "Explication", RuleKey: key);
+
+    [Fact]
+    public void Approved_clause_becomes_the_proposed_wording_in_the_contract_language()
+    {
+        Assert.Equal("La responsabilité de chaque partie est limitée au prix annuel.",
+            LegalPlaybookService.WithModelClause(Finding("liability"), Playbook, "fr").ProposedLanguage);
+        Assert.Equal("Each party's liability is capped at the annual price.",
+            LegalPlaybookService.WithModelClause(Finding("liability"), Playbook, "en").ProposedLanguage);
+        Assert.Equal("Les pénalités sont plafonnées à dix pour cent du prix.",
+            LegalPlaybookService.WithModelClause(Finding("penalty"), Playbook, "en").ProposedLanguage);
+    }
+
+    [Fact]
+    public void Existing_proposals_and_risks_without_a_clause_are_left_alone()
+    {
+        var withOwn = Finding("liability") with { ProposedLanguage = "Proposition du modèle." };
+        Assert.Equal("Proposition du modèle.", LegalPlaybookService.WithModelClause(withOwn, Playbook, "fr").ProposedLanguage);
+        Assert.Null(LegalPlaybookService.WithModelClause(Finding("exclusivity"), Playbook, "fr").ProposedLanguage);
+    }
+}

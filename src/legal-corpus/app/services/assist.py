@@ -175,3 +175,22 @@ def explain_article(llm: LlmProvider, reference: str, number: str, text: str, la
     if len(summary) < 20:
         raise LlmUnavailable("The language model returned no usable explanation.")
     return Explanation(summary, in_practice)
+
+
+# ------------------------------------------------------------------ 6. a model clause that removes the risk
+
+MODEL_CLAUSE_SYSTEM = """You draft a model contract clause for a Tunisian commercial contract that avoids one contract
+risk while complying with the articles of law given. Answer with JSON only: {"fr": "<the clause in French, ready to
+paste into a contract, 1 to 4 sentences, neutral: 'le Client', 'le Prestataire', 'la Banque'>", "en": "<the same
+clause in English>"}. Write contract wording only: no title, no article number, no explanation, no legal advice.
+Do not cite article numbers inside the clause."""
+
+
+def draft_model_clause(llm: LlmProvider, risk: str, articles: list[dict]) -> dict:
+    law = "\n".join(f"- {a['citation']}: {' '.join((a.get('text') or '').split())[:1500]}" for a in articles) or "- (none)"
+    answer = llm.complete_json(MODEL_CLAUSE_SYSTEM, f"Risk to avoid: {risk}\nArticles of law:\n{law}")
+    fr = " ".join(str(answer.get("fr") or "").split())[:1500]
+    en = " ".join(str(answer.get("en") or "").split())[:1500]
+    if len(fr) < 30:
+        raise LlmUnavailable("The language model returned no usable clause.")
+    return {"fr": fr, "en": en}

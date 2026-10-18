@@ -261,6 +261,53 @@ def confirm(db: Session, key: str, confirmed_by: str, path: Path = PLAYBOOK_PATH
     _edit(path, change)
 
 
+def set_model_clause(key: str, fr: str, en: str, source: str = "lawyer", approve_as: str = "",
+                     path: Path = PLAYBOOK_PATH) -> None:
+    """The corrected wording LegalDesk proposes when this risk is found. Approved on its own: changing it withdraws
+    its approval, never the risk's."""
+    fr, en = " ".join(fr.split()), " ".join(en.split())
+    if len(fr) < 30:
+        raise RuleError("model_clause_too_short", "A model clause needs at least 30 characters.")
+
+    def change(data):
+        rule = _rule(data, key)
+        current = rule.get("model_clause") or {}
+        changed = current.get("fr") != fr or (current.get("en") or "") != en
+        clause = {"fr": fr, "en": en or None, "source": source if changed else current.get("source", source),
+                  "approved_by": None if changed else current.get("approved_by"),
+                  "approved_at": None if changed else current.get("approved_at")}
+        if approve_as.strip():
+            clause["approved_by"] = approve_as.strip()
+            clause["approved_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        rule["model_clause"] = clause
+
+    _edit(path, change)
+
+
+def approve_model_clause(key: str, approved_by: str, path: Path = PLAYBOOK_PATH) -> None:
+    if not approved_by.strip():
+        raise RuleError("invalid", "Name the person approving.")
+
+    def change(data):
+        clause = _rule(data, key).get("model_clause")
+        if not clause:
+            raise RuleError("no_model_clause", "There is no model clause to approve.")
+        clause["approved_by"] = approved_by.strip()
+        clause["approved_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    _edit(path, change)
+
+
+def withdraw_model_clause(key: str, path: Path = PLAYBOOK_PATH) -> None:
+    def change(data):
+        clause = _rule(data, key).get("model_clause")
+        if clause:
+            clause["approved_by"] = None
+            clause["approved_at"] = None
+
+    _edit(path, change)
+
+
 def unconfirm(key: str, path: Path = PLAYBOOK_PATH) -> None:
     _edit(path, lambda data: _unconfirm(_rule(data, key)))
 
@@ -320,6 +367,7 @@ def describe(db: Session, path: Path = PLAYBOOK_PATH) -> dict:
                 "legal_text_id": article.legal_text_id if article else None,
             })
         rules.append({**rule, "articles": articles, "phrases": rule.get("phrases", []),
+                      "model_clause": rule.get("model_clause"),
                       "examples": rule.get("examples", []), "counter_examples": rule.get("counter_examples", []),
                       "detected": rule["key"] in DETECTED_KEYS,
                       "ready": bool(articles) and all(a["verified"] for a in articles)})
@@ -354,6 +402,9 @@ def resolve(db: Session, path: Path = PLAYBOOK_PATH, include_unconfirmed: bool =
             })
         rules[rule["key"]] = {"label": rule.get("label"), "confirmed_by": rule.get("confirmed_by"), "articles": articles,
                               "phrases": rule.get("phrases", []),
+                              # Served only once a lawyer approved it.
+                              "model_clause": ({"fr": rule["model_clause"]["fr"], "en": rule["model_clause"].get("en")}
+                                               if (rule.get("model_clause") or {}).get("approved_by") else None),
                               "examples": [e["text"] for e in rule.get("examples", [])],
                               "counter_examples": [e["text"] for e in rule.get("counter_examples", [])]}
 

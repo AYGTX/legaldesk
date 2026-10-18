@@ -609,6 +609,39 @@ def rule_draft_examples(key: str, request: Request, db: Session = Depends(get_db
     return _rule_page(key, request, db, drafted=drafts)
 
 
+@router.post("/playbook/rules/{key}/model-clause")
+def rule_model_clause(key: str, request: Request, fr: str = Form(""), en: str = Form(""), source: str = Form("lawyer"),
+                      approve_as: str = Form("")):
+    playbook.set_model_clause(key, fr, en, source if source in ("lawyer", "model") else "lawyer", approve_as,
+                              _playbook_path(request))
+    return _redirect(_rule_url(key), "model_clause_approved" if approve_as.strip() else "saved")
+
+
+@router.post("/playbook/rules/{key}/model-clause/approve")
+def rule_model_clause_approve(key: str, request: Request, approved_by: str = Form("")):
+    playbook.approve_model_clause(key, approved_by, _playbook_path(request))
+    return _redirect(_rule_url(key), "model_clause_approved")
+
+
+@router.post("/playbook/rules/{key}/model-clause/withdraw")
+def rule_model_clause_withdraw(key: str, request: Request):
+    playbook.withdraw_model_clause(key, _playbook_path(request))
+    return _redirect(_rule_url(key), "unverified_ok")
+
+
+@router.post("/playbook/rules/{key}/model-clause/draft", response_class=HTMLResponse)
+def rule_model_clause_draft(key: str, request: Request, db: Session = Depends(get_db)):
+    rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)
+    if rule is None:
+        return _redirect("/playbook")
+    try:
+        draft = assist.draft_model_clause(request.app.state.llm, _risk_description(rule),
+                                          [a for a in rule["articles"] if a.get("text")])
+    except LlmUnavailable:
+        return _rule_page(key, request, db, ai_error=True)
+    return _rule_page(key, request, db, drafted_clause=draft)
+
+
 @router.post("/playbook/rules/{key}/suggest-phrases", response_class=HTMLResponse)
 def rule_suggest_phrases(key: str, request: Request, db: Session = Depends(get_db)):
     rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)

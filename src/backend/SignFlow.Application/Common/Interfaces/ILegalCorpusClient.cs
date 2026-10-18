@@ -31,7 +31,11 @@ public record ClauseClassification(bool Enabled, IReadOnlyList<ClauseMatch> Matc
 public record LegalPlaybook(
     IReadOnlyDictionary<string, IReadOnlyList<PlaybookArticle>> Rules,
     IReadOnlyDictionary<string, string> Regulations,
-    IReadOnlyDictionary<string, PlaybookWording>? Wording = null);
+    IReadOnlyDictionary<string, PlaybookWording>? Wording = null,
+    IReadOnlyDictionary<string, ModelClause>? ModelClauses = null);
+
+/// <summary>The corrected wording a lawyer approved for a risk, proposed in findings of that risk.</summary>
+public record ModelClause(string Fr, string? En);
 
 /// <summary>
 /// Extra wording a lawyer attached to a confirmed rule: a clause containing any of these phrases is flagged for that

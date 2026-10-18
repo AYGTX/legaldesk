@@ -133,3 +133,42 @@ def test_rejects_short_and_duplicate_phrases(setup):
     c.post("/playbook/rules/penalty/phrases", data={"phrase": "Astreinte journalière"})
     r = c.post("/playbook/rules/penalty/phrases", data={"phrase": "astreinte  journalière"}, headers=referer, follow_redirects=False)
     assert "flash=err_duplicate_phrase" in r.headers["location"]
+
+
+def test_model_clause_is_approved_on_its_own_and_served_once_approved(setup):
+    c, path, text_id = setup
+    _verify(c, text_id)
+    c.post("/playbook/rules", data={"key": "liability", "label": "Responsabilité"})
+    c.post("/playbook/rules/liability/articles", data={"text_id": text_id, "number": "1", "why": "x"})
+    c.post("/playbook/rules/liability/confirm", data={"confirmed_by": "H. Aymen"})
+    clause = "La responsabilité de chaque partie est limitée au montant des sommes versées au cours des douze derniers mois."
+
+    c.post("/playbook/rules/liability/model-clause", data={"fr": clause, "en": ""})
+    assert c.get("/api/v1/playbook").json()["rules"]["liability"]["model_clause"] is None
+    assert _pb(path)["rules"][0]["confirmed_by"] == "H. Aymen"  # the risk keeps its approval
+
+    c.post("/playbook/rules/liability/model-clause/approve", data={"approved_by": "Me Trabelsi"})
+    assert c.get("/api/v1/playbook").json()["rules"]["liability"]["model_clause"] == {"fr": clause, "en": None}
+
+    c.post("/playbook/rules/liability/model-clause", data={"fr": clause + " Sauf faute lourde ou dol.", "en": ""})
+    assert c.get("/api/v1/playbook").json()["rules"]["liability"]["model_clause"] is None
+    assert _pb(path)["rules"][0]["confirmed_by"] == "H. Aymen"
+
+
+def test_model_clause_drafted_by_the_model_is_only_a_proposal(setup):
+    c, path, text_id = setup
+    _verify(c, text_id)
+    c.post("/playbook/rules", data={"key": "liability", "label": "Responsabilité"})
+    c.post("/playbook/rules/liability/articles", data={"text_id": text_id, "number": "1", "why": "x"})
+
+    class Fake:
+        name = "fake"
+        def complete_json(self, system, user):
+            assert "Loi test n° 1" in user and "Responsabilité" in user
+            return {"fr": "Chaque partie ne répond que des dommages directs, dans la limite du prix annuel du contrat.",
+                    "en": "Each party is liable only for direct damage, up to the annual contract price."}
+
+    c.app.state.llm = Fake()
+    page = c.post("/playbook/rules/liability/model-clause/draft").text
+    assert "dans la limite du prix annuel" in page
+    assert "model_clause" not in _pb(path)["rules"][0]

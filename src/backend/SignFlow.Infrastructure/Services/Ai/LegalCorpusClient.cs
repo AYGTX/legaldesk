@@ -47,7 +47,10 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
             body.Regulations,
             body.Rules
                 .Where(r => r.Value.Phrases is { Count: > 0 })
-                .ToDictionary(r => r.Key, r => new PlaybookWording(r.Value.Label ?? r.Key, r.Value.Phrases!)));
+                .ToDictionary(r => r.Key, r => new PlaybookWording(r.Value.Label ?? r.Key, r.Value.Phrases!)),
+            body.Rules
+                .Where(r => r.Value.ModelClause is { Fr.Length: > 0 })
+                .ToDictionary(r => r.Key, r => new ModelClause(r.Value.ModelClause!.Fr, r.Value.ModelClause.En)));
     }
 
     public async Task<IReadOnlyList<CitationCheckResult>> CheckCitationsAsync(
@@ -87,7 +90,10 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
 
     private sealed record PlaybookOut(Dictionary<string, PlaybookRuleOut> Rules, Dictionary<string, string> Regulations);
 
-    private sealed record PlaybookRuleOut(List<PlaybookArticleOut> Articles, string? Label = null, List<string>? Phrases = null);
+    private sealed record PlaybookRuleOut(List<PlaybookArticleOut> Articles, string? Label = null, List<string>? Phrases = null,
+        ModelClauseOut? ModelClause = null);
+
+    private sealed record ModelClauseOut(string Fr, string? En);
 
     private sealed record PlaybookArticleOut(string ArticleId, string Citation, string Text, string? Why,
         Dictionary<string, string>? Explanations = null);

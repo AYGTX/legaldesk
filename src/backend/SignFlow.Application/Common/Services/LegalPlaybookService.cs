@@ -82,8 +82,20 @@ public class LegalPlaybookService(ILegalCorpusClient corpus, ILogger<LegalPlaybo
                              && playbook.Rules.TryGetValue(f.RuleKey, out var articles) && articles.Count > 0
                     ? f with { WhyItMatters = Format(articles, language) }
                     : f)
+                .Select(f => WithModelClause(f, playbook, language))
                 .ToList()
         };
+
+    /// <summary>The lawyer-approved corrected wording for the finding's risk, in the contract's language (French when
+    /// no English version exists). A wording already proposed by a model review is kept.</summary>
+    public static RiskFinding WithModelClause(RiskFinding finding, LegalPlaybook playbook, string? language)
+    {
+        if (finding.ProposedLanguage is not null || finding.RuleKey is null
+            || playbook.ModelClauses is null || !playbook.ModelClauses.TryGetValue(finding.RuleKey, out var clause))
+            return finding;
+        var wording = language == "en" && !string.IsNullOrWhiteSpace(clause.En) ? clause.En : clause.Fr;
+        return finding with { ProposedLanguage = wording };
+    }
 
     public static ComplianceAnalysis AttachToCompliance(
         ComplianceAnalysis compliance, IReadOnlyList<RegulatoryTextSummary> regulations, LegalPlaybook playbook)
