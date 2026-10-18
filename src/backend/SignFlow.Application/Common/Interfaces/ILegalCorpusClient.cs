@@ -13,7 +13,19 @@ public interface ILegalCorpusClient
     /// <summary>One result per request, in order.</summary>
     Task<IReadOnlyList<CitationCheckResult>> CheckCitationsAsync(
         IReadOnlyList<CitationCheckRequest> citations, CancellationToken ct = default);
+
+    /// <summary>
+    /// Matches clauses to confirmed playbook rules by meaning, against the rules' example clauses. Runs inside the
+    /// corpus service on the client's servers; returns Enabled = false when no semantic model is installed there.
+    /// </summary>
+    Task<ClauseClassification> ClassifyAsync(IReadOnlyList<ClauseText> clauses, CancellationToken ct = default);
 }
+
+public record ClauseText(string Reference, string Text);
+
+public record ClauseMatch(string Reference, string RuleKey, string Label, double Score, string Sentence, string Example);
+
+public record ClauseClassification(bool Enabled, IReadOnlyList<ClauseMatch> Matches);
 
 /// <summary>Confirmed clause playbook: rule key → verified articles; regulation reference fragment → rule key.</summary>
 public record LegalPlaybook(

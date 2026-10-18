@@ -106,6 +106,9 @@ public class GroundedComplianceReviewTests
         public Task<LegalPlaybook> GetPlaybookAsync(CancellationToken ct = default) =>
             Task.FromResult(new LegalPlaybook(new Dictionary<string, IReadOnlyList<PlaybookArticle>>(), new Dictionary<string, string>()));
 
+        public Task<ClauseClassification> ClassifyAsync(IReadOnlyList<ClauseText> clauses, CancellationToken ct = default) =>
+            Task.FromResult(new ClauseClassification(false, []));
+
         public Task<IReadOnlyList<CitationCheckResult>> CheckCitationsAsync(IReadOnlyList<CitationCheckRequest> citations, CancellationToken ct = default)
         {
             if (checkFails) throw new HttpRequestException("down");

@@ -105,6 +105,51 @@ public static class ContractRuleEngine
         return risk with { Findings = ordered, RiskScore = score };
     }
 
+    /// <summary>Finding type of a meaning-based lead: shown apart from certain findings, and not counted in the score.</summary>
+    public const string Possible = "Possible";
+
+    /// <summary>The clauses as the review names them ("Article 5 — Responsabilité"), for services that work clause by clause.</summary>
+    public static IReadOnlyList<ClauseText> ClauseTexts(string? text) =>
+        SplitClauses(text).Select(ToClause).Select(c => new ClauseText(c.Heading, c.Text)).ToList();
+
+    /// <summary>
+    /// Adds a "possible risk" finding for each meaning-based match on a clause where no finding already raised that
+    /// rule. Possible findings are leads for a reviewer: grouped apart in the UI and left out of the risk score.
+    /// </summary>
+    public static ContractRiskAnalysis ApplyPossibleMatches(ContractRiskAnalysis risk, string? text, IReadOnlyList<ClauseMatch> matches)
+    {
+        if (matches.Count == 0) return risk;
+        var fr = ContractLanguage.Detect(text) == "fr";
+        var l = new Lang(fr);
+        var findings = risk.Findings.ToList();
+        var added = 0;
+        foreach (var m in matches)
+        {
+            if (findings.Any(f => f.RuleKey == m.RuleKey && f.ContractReference == m.Reference)) continue;
+            var score = m.Score.ToString("0.00", fr ? CultureInfo.GetCultureInfo("fr-FR") : CultureInfo.InvariantCulture);
+            findings.Add(new RiskFinding(
+                l.T($"Possible risk: {m.Label}", $"Risque possible : {m.Label}"), Low,
+                l.T($"This sentence reads like an approved playbook example for this risk (similarity {score}): “{m.Sentence}”",
+                    $"Cette phrase ressemble à un exemple validé du playbook pour ce risque (similarité {score}) : « {m.Sentence} »"),
+                FindingType: Possible,
+                RecommendedAction: l.T($"Check whether the clause carries the “{m.Label}” risk. Closest example: “{m.Example}”",
+                                       $"Vérifier si la clause porte le risque « {m.Label} ». Exemple le plus proche : « {m.Example} »"),
+                ContractReference: m.Reference,
+                RuleKey: m.RuleKey));
+            added++;
+        }
+        if (added == 0) return risk;
+        findings.RemoveAll(f => f.RuleKey is null && f.Severity == Low && f.ContractReference is null
+                                && (f.ClauseType == "General" || f.ClauseType == "Général"));
+        return risk with { Findings = Order(findings), RiskScore = Score(findings) };
+    }
+
+    private static List<RiskFinding> Order(List<RiskFinding> findings) =>
+        findings.OrderBy(f => f.Severity switch { High => 0, Medium => 1, _ => 2 }).ToList();
+
+    private static int Score(IEnumerable<RiskFinding> findings) =>
+        Math.Min(100, findings.Where(f => f.FindingType != Possible).Sum(f => f.Severity switch { High => 20, Medium => 10, _ => 2 }));
+
     /// <summary>Lower case, no accents, one space between words, straight apostrophes: "Prendra  en CHARGE l’intégralité" → "prendra en charge l'integralite".</summary>
     private static string Fold(string s)
     {

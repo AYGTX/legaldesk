@@ -58,6 +58,14 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
         return results.Select(r => new CitationCheckResult(r.Found, r.IsVerified, r.Citation, r.Reason)).ToList();
     }
 
+    public async Task<ClauseClassification> ClassifyAsync(IReadOnlyList<ClauseText> clauses, CancellationToken ct = default)
+    {
+        var body = new { clauses = clauses.Select(c => new { reference = c.Reference, text = c.Text }) };
+        var result = await PostAsync<ClassifyOut>("api/v1/classify", body, ct);
+        return new ClauseClassification(result.Enabled, result.Matches
+            .Select(m => new ClauseMatch(m.Reference, m.RuleKey, m.Label, m.Score, m.Sentence, m.Example)).ToList());
+    }
+
     private async Task<T> PostAsync<T>(string path, object body, CancellationToken ct)
     {
         var settings = opts.Value;
@@ -84,4 +92,8 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
     private sealed record PlaybookArticleOut(string ArticleId, string Citation, string Text, string? Why);
 
     private sealed record CitationOut(bool Found, bool IsVerified, string? Citation, string? Reason);
+
+    private sealed record ClassifyOut(bool Enabled, string? Model, List<ClauseMatchOut> Matches);
+
+    private sealed record ClauseMatchOut(string Reference, string RuleKey, string Label, double Score, string Sentence, string Example);
 }

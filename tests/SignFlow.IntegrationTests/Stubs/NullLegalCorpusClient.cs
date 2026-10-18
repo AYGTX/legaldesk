@@ -15,4 +15,7 @@ internal sealed class NullLegalCorpusClient : ILegalCorpusClient
     public Task<IReadOnlyList<CitationCheckResult>> CheckCitationsAsync(
         IReadOnlyList<CitationCheckRequest> citations, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<CitationCheckResult>>([]);
+
+    public Task<ClauseClassification> ClassifyAsync(IReadOnlyList<ClauseText> clauses, CancellationToken ct = default) =>
+        Task.FromResult(new ClauseClassification(false, []));
 }

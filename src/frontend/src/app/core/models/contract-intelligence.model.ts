@@ -5,7 +5,9 @@ export type RiskFindingType =
   | 'WeakClause'
   | 'Ambiguity'
   | 'Contradiction'
-  | 'Imbalance';
+  | 'Imbalance'
+  // A meaning-based lead from the playbook's example clauses: to be checked by a reviewer, not a certain finding.
+  | 'Possible';
 
 export interface RiskFinding {
   clauseType: string;

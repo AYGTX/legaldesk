@@ -206,6 +206,7 @@ function guessClauseCategory(clauseType: string): ClauseCategory {
     .severity-group-title.severity-high { color: #991b1b; }
     .severity-group-title.severity-medium { color: #92400e; }
     .severity-group-title.severity-low { color: #1e6b2e; }
+    .severity-group-title.severity-possible { color: #b85d12; border-top: 1px dashed #ef8024; padding-top: 10px; }
 
     .finding-title { display: flex; align-items: center; gap: 8px; }
     .finding-clause { font-size: 13px; font-weight: 600; color: #374151; }
@@ -249,11 +250,16 @@ export class ContractAnalysisPanelComponent {
     try { return JSON.parse(json) as ContractRiskAnalysis; } catch { return null; }
   });
 
+  // Certain findings by severity, then the meaning-based leads ("Possible") in a group of their own.
   readonly groupedFindings = computed(() => {
     const findings = this.riskAnalysis()?.findings ?? [];
-    return RISK_SEVERITY_ORDER
-      .map(severity => ({ severity, findings: findings.filter(f => f.severity === severity) }))
+    const certain = findings.filter(f => f.findingType !== 'Possible');
+    const groups: { severity: RiskSeverity | 'Possible'; findings: RiskFinding[] }[] = RISK_SEVERITY_ORDER
+      .map(severity => ({ severity, findings: certain.filter(f => f.severity === severity) }))
       .filter(group => group.findings.length > 0);
+    const possible = findings.filter(f => f.findingType === 'Possible');
+    if (possible.length) groups.push({ severity: 'Possible', findings: possible });
+    return groups;
   });
 
   notStated(): string {
@@ -279,11 +285,11 @@ export class ContractAnalysisPanelComponent {
     return 'risk-low';
   }
 
-  isSevere(severity: RiskSeverity): boolean {
+  isSevere(severity: RiskSeverity | 'Possible'): boolean {
     return severity === 'Critical' || severity === 'High';
   }
 
-  severityClass(severity: RiskSeverity): string {
+  severityClass(severity: RiskSeverity | 'Possible'): string {
     return `severity-${severity.toLowerCase()}`;
   }
 

@@ -567,7 +567,8 @@
           "WeakClause": "Weak clause",
           "Ambiguity": "Ambiguity",
           "Contradiction": "Contradiction",
-          "Imbalance": "Imbalance"
+          "Imbalance": "Imbalance",
+          "Possible": "Possible risk"
         }
       },
       "compliance": {
@@ -738,7 +739,8 @@
         "failed": "The comparison could not be produced.",
         "downloadVersion": "Download v{{version}}",
         "downloadFailed": "That version could not be downloaded."
-      }
+      },
+      "severityPossible": "To review — possible risks"
     },
     "upload": {
       "title": "Upload Contract",

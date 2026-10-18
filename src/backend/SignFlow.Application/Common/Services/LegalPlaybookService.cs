@@ -45,7 +45,26 @@ public class LegalPlaybookService(ILegalCorpusClient corpus, ILogger<LegalPlaybo
         if (playbook is null) return risk;
         if (playbook.Wording is { Count: > 0 })
             risk = ContractRuleEngine.ApplyPlaybookWording(risk, contractText, playbook.Wording);
+        risk = await AddPossibleRisksAsync(risk, contractText, ct);
         return AttachToRisk(risk, playbook);
+    }
+
+    /// <summary>Meaning-based leads from the corpus service; a failure there costs the leads, never the review.</summary>
+    private async Task<ContractRiskAnalysis> AddPossibleRisksAsync(ContractRiskAnalysis risk, string? contractText, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(contractText)) return risk;
+        try
+        {
+            var clauses = ContractRuleEngine.ClauseTexts(contractText);
+            if (clauses.Count == 0) return risk;
+            var result = await corpus.ClassifyAsync(clauses, ct);
+            return result.Enabled ? ContractRuleEngine.ApplyPossibleMatches(risk, contractText, result.Matches) : risk;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Meaning-based clause matching unavailable — review continues without possible risks");
+            return risk;
+        }
     }
 
     public async Task<ComplianceAnalysis> AttachToComplianceAsync(

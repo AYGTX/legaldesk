@@ -567,7 +567,8 @@
           "WeakClause": "Clause faible",
           "Ambiguity": "Ambiguïté",
           "Contradiction": "Contradiction",
-          "Imbalance": "Déséquilibre"
+          "Imbalance": "Déséquilibre",
+          "Possible": "Risque possible"
         }
       },
       "compliance": {
@@ -738,7 +739,8 @@
         "failed": "La comparaison n’a pas pu être produite.",
         "downloadVersion": "Télécharger la v{{version}}",
         "downloadFailed": "Cette version n’a pas pu être téléchargée."
-      }
+      },
+      "severityPossible": "À valider — risques possibles"
     },
     "upload": {
       "title": "Importer un contrat",
