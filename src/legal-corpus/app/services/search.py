@@ -4,11 +4,11 @@ import numpy as np
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Article, LegalText, TextStatus
+from app.models import Article, LegalText, TextStatus, wording_on
 from app.schemas import IndexStatus, SearchHit, SearchIn
 from app.services.citations import citation_label
 from app.services.embeddings import Embedder, HashingEmbedder, chunk_text
-from app.services.lexical import index_for, tokenize
+from app.services.lexical import Bm25Index, index_for, tokenize
 
 
 def _needs_index(article: Article, embedder: Embedder) -> bool:
@@ -53,7 +53,7 @@ def search(db: Session, embedder: Embedder, request: SearchIn) -> list[SearchHit
         select(Article)
         .join(LegalText)
         .options(selectinload(Article.legal_text))
-        .where(LegalText.status != TextStatus.Archived)
+        .where(LegalText.status != TextStatus.Archived, Article.excluded_from_search.is_(False))
     )
     if not request.include_unverified:
         query = query.where(LegalText.verified_at.is_not(None), LegalText.status == TextStatus.Published)
@@ -67,6 +67,8 @@ def search(db: Session, embedder: Embedder, request: SearchIn) -> list[SearchHit
     articles = list(db.scalars(query).all())
     if not articles:
         return []
+    if request.as_of is not None:
+        return _search_as_of(articles, request)
 
     scored: list[tuple[float, str, Article]] = []
     if isinstance(embedder, HashingEmbedder):
@@ -112,4 +114,30 @@ def search(db: Session, embedder: Embedder, request: SearchIn) -> list[SearchHit
                 citation=citation_label(text, article.number),
             )
         )
+    return hits
+
+
+def _search_as_of(articles: list[Article], request: SearchIn) -> list[SearchHit]:
+    """Keyword search over the wordings that applied on request.as_of; articles that did not exist yet are left out.
+    Vectors describe the current wording only, so dated searches always rank by keywords."""
+    wordings = {a.id: wording_on(a, request.as_of) for a in articles}
+    wordings = {k: v for k, v in wordings.items() if v is not None}
+    if not wordings:
+        return []
+    by_id = {a.id: a for a in articles}
+    query_terms = set(tokenize(request.query))
+    hits = []
+    for article_id, score in Bm25Index({k: text for k, (_, text) in wordings.items()}).rank(request.query)[: request.top_k]:
+        if score <= 0:
+            break
+        article, (number, body) = by_id[article_id], wordings[article_id]
+        chunks = chunk_text(body) or [body]
+        excerpt = max(chunks, key=lambda c: len(query_terms.intersection(tokenize(c))))
+        text = article.legal_text
+        hits.append(SearchHit(
+            article_id=article.id, article_number=number, article_text=body, excerpt=excerpt, score=round(score, 4),
+            legal_text_id=text.id, legal_text_title=text.title, reference=text.reference, source_url=text.source_url,
+            jurisdiction=text.jurisdiction, category=text.category, language=text.language,
+            is_verified=text.is_verified, citation=citation_label(text, number),
+        ))
     return hits

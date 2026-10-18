@@ -1,12 +1,12 @@
 """Corpus rules. The invariant: a sign-off covers exactly the articles, reference and source that were checked, so
 changing any of them clears it."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Article, Category, Jurisdiction, LegalText, TextStatus
+from app.models import Article, ArticleVersion, Category, Jurisdiction, LegalText, TextStatus
 from app.schemas import ArticleIn, LegalTextIn
 from app.services.splitter import normalize_number, split_articles
 
@@ -130,21 +130,59 @@ def add_article(db: Session, text_id: str, data: ArticleIn) -> Article:
     return article
 
 
-def update_article(db: Session, article_id: str, data: ArticleIn) -> Article:
-    article = get_article(db, article_id)
-    text = get_text(db, article.legal_text_id)
-    number = normalize_number(data.number)
-    _ensure_unique_number(text, number, except_id=article.id)
-    new_text = data.text.strip()
-    if article.text != new_text or article.number != number:
-        text.clear_verification()
+def _rewrite(article: Article, number: str, new_text: str, by: str | None, note: str | None,
+             applies_from: date | None = None) -> bool:
+    """Keeps the current wording as a version, then applies the new one. False when nothing changed."""
+    if article.text == new_text and article.number == number:
+        if applies_from is not None:
+            article.applies_from = applies_from
+        return False
+    if applies_from is not None and article.applies_from is not None and applies_from < article.applies_from:
+        raise RuleError("applies_before_current",
+                        f"The new wording cannot take effect before the current one ({article.applies_from}).")
+    article.versions.append(ArticleVersion(number=article.number, text=article.text, replaced_by=by,
+                                           note=(note or "").strip() or None, applies_from=article.applies_from))
+    article.applies_from = applies_from
     if article.text != new_text:
         article.embedding = None
         article.embedding_model = None
     article.number = number
     article.text = new_text
+    return True
+
+
+def update_article(db: Session, article_id: str, data: ArticleIn, changed_by: str | None = None) -> Article:
+    article = get_article(db, article_id)
+    text = get_text(db, article.legal_text_id)
+    number = normalize_number(data.number)
+    _ensure_unique_number(text, number, except_id=article.id)
+    if _rewrite(article, number, data.text.strip(), changed_by, data.note, data.applies_from):
+        text.clear_verification()
     if data.order is not None:
         article.order = data.order
+    db.commit()
+    return article
+
+
+def restore_version(db: Session, article_id: str, version_id: str, changed_by: str | None = None) -> Article:
+    article = get_article(db, article_id)
+    version = next((v for v in article.versions if v.id == version_id), None)
+    if version is None:
+        raise NotFoundError(f"Version {version_id} not found.")
+    text = get_text(db, article.legal_text_id)
+    _ensure_unique_number(text, version.number, except_id=article.id)
+    when = version.replaced_at.strftime("%Y-%m-%d %H:%M")
+    if _rewrite(article, version.number, version.text, changed_by, f"Restored the wording replaced on {when}",
+                version.applies_from):
+        text.clear_verification()
+    db.commit()
+    return article
+
+
+def set_excluded(db: Session, article_id: str, excluded: bool) -> Article:
+    """Not a change to the law's text, so the verification stands."""
+    article = get_article(db, article_id)
+    article.excluded_from_search = excluded
     db.commit()
     return article
 
@@ -157,7 +195,8 @@ def delete_article(db: Session, article_id: str) -> None:
     db.commit()
 
 
-def import_articles(db: Session, text_id: str, raw_text: str, replace: bool) -> tuple[list[Article], str, list[str]]:
+def import_articles(db: Session, text_id: str, raw_text: str, replace: bool, changed_by: str | None = None,
+                    note: str | None = None, applies_from: date | None = None) -> tuple[list[Article], str, list[str]]:
     text = get_text(db, text_id)
     result = split_articles(raw_text)
     if not result.articles:
@@ -169,18 +208,33 @@ def import_articles(db: Session, text_id: str, raw_text: str, replace: bool) -> 
         raise RuleError("duplicate_number", f"The pasted text repeats article(s): {', '.join(duplicates)}.")
 
     if replace:
-        text.articles.clear()
-        db.flush()
-        start = 0
-    else:
-        existing = {a.number for a in text.articles}
-        clashes = sorted(existing.intersection(numbers))
-        if clashes:
-            raise RuleError("duplicate_number", f"Article(s) already exist: {', '.join(clashes)}. Use replace.")
-        start = max((a.order for a in text.articles), default=0)
+        # Re-importing an updated law: an article that keeps its number is rewritten in place, so its id, its
+        # exclusion flag and its history survive, and its previous wording becomes a version.
+        by_number = {a.number: a for a in text.articles}
+        imported = []
+        for i, a in enumerate(result.articles):
+            article = by_number.pop(a.number, None)
+            if article is None:
+                article = Article(legal_text_id=text.id, number=a.number, text=a.text, applies_from=applies_from)
+                db.add(article)
+            elif article.text != a.text:
+                _rewrite(article, a.number, a.text, changed_by, note or "Re-imported text", applies_from)
+            article.order = i + 1
+            imported.append(article)
+        for gone in by_number.values():
+            db.delete(gone)
+        text.clear_verification()
+        db.commit()
+        return imported, result.preamble, result.removed_headings
+
+    existing = {a.number for a in text.articles}
+    clashes = sorted(existing.intersection(numbers))
+    if clashes:
+        raise RuleError("duplicate_number", f"Article(s) already exist: {', '.join(clashes)}. Use replace.")
+    start = max((a.order for a in text.articles), default=0)
 
     created = [
-        Article(legal_text_id=text.id, number=a.number, text=a.text, order=start + i + 1)
+        Article(legal_text_id=text.id, number=a.number, text=a.text, order=start + i + 1, applies_from=applies_from)
         for i, a in enumerate(result.articles)
     ]
     db.add_all(created)

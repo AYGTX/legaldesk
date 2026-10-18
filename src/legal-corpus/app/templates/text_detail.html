@@ -33,11 +33,60 @@
 </section>
 
 <section class="card">
-  <h2>{{ t('articles') }} ({{ text.articles|length }})</h2>
+  <div class="articles-head">
+    <h2>{{ t('articles') }} ({{ text.articles|length }})</h2>
+    <form class="asof-form" method="get" action="/texts/{{ text.id }}">
+      <label for="as_of">{{ t('as_of_label') }}</label>
+      <input id="as_of" name="as_of" type="date" value="{{ as_of or '' }}">
+      <button class="secondary" type="submit">{{ t('as_of_show') }}</button>
+      {% if as_of %}<a href="/texts/{{ text.id }}">{{ t('as_of_current') }}</a>{% endif %}
+    </form>
+  </div>
+  {% if as_of %}<div class="notice asof-notice">{{ t('as_of_notice', day=as_of.strftime('%d/%m/%Y')) }}</div>{% endif %}
   {% for a in text.articles %}
+  {% set w = wording_on(a, as_of) if as_of else (a.number, a.text) %}
+  {% if as_of and w is none %}
+    <div class="article is-future"><span class="num">{{ t('article') }} {{ a.number }}</span>
+      <span class="muted">— {{ t('not_yet_in_force', day=a.applies_from.strftime('%d/%m/%Y') if a.applies_from else '') }}</span></div>
+  {% elif as_of %}
     <div class="article">
-      <div class="num">{{ t('article') }} {{ a.number }}</div>
+      <div class="article-head"><span class="num">{{ t('article') }} {{ w[0] }}</span>
+        {% if w[1] != a.text %}<span class="badge version">{{ t('older_wording') }}</span>{% endif %}</div>
+      <p class="body {{ rtl }}">{{ w[1] }}</p>
+    </div>
+  {% else %}
+    <div class="article {{ 'is-excluded' if a.excluded_from_search }}" id="art-{{ a.id }}">
+      <div class="article-head">
+        <span class="num">{{ t('article') }} {{ a.number }}</span>
+        {% if a.applies_from %}<span class="badge neutral">{{ t('in_force_since', day=a.applies_from.strftime('%d/%m/%Y')) }}</span>{% endif %}
+        {% if a.excluded_from_search %}<span class="badge neutral" title="{{ t('excluded_explain') }}">{{ t('excluded_badge') }}</span>{% endif %}
+        {% if a.versions %}<span class="badge version">{{ t('versions_badge', count=a.versions|length) }}</span>{% endif %}
+        <form method="post" action="/articles/{{ a.id }}/search" class="article-toggle">
+          <input type="hidden" name="excluded" value="{{ '0' if a.excluded_from_search else '1' }}">
+          <button class="ghost" type="submit" title="{{ t('excluded_explain') }}">{{ t('include_action') if a.excluded_from_search else t('exclude_action') }}</button>
+        </form>
+      </div>
       <p class="body {{ rtl }}">{{ a.text }}</p>
+      {% if a.versions %}
+      <details class="history">
+        <summary>{{ t('history') }} ({{ a.versions|length }})</summary>
+        {% for v in a.versions %}
+        <div class="version">
+          <div class="version-meta">
+            <strong>{{ t('replaced_on', when=v.replaced_at.strftime('%Y-%m-%d %H:%M')) }}</strong>
+            {% if v.applies_from %}<span>· {{ t('in_force_since', day=v.applies_from.strftime('%d/%m/%Y')) }}</span>{% endif %}
+            {% if v.replaced_by %}<span>· {{ v.replaced_by }}</span>{% endif %}
+            {% if v.number != a.number %}<span>· {{ t('was_article', number=v.number) }}</span>{% endif %}
+          </div>
+          {% if v.note %}<div class="version-note">{{ v.note }}</div>{% endif %}
+          <p class="body {{ rtl }}">{{ v.text }}</p>
+          <form method="post" action="/articles/{{ a.id }}/versions/{{ v.id }}/restore" onsubmit='return confirm({{ t("restore_confirm")|tojson }})'>
+            <button class="secondary" type="submit">{{ t('restore') }}</button>
+          </form>
+        </div>
+        {% endfor %}
+      </details>
+      {% endif %}
       <details>
         <summary>{{ t('edit') }}</summary>
         <form method="post" action="/articles/{{ a.id }}">
@@ -45,6 +94,8 @@
             <div><label>{{ t('number') }}</label><input name="number" required maxlength="50" value="{{ a.number }}"></div>
             <div><label>{{ t('order') }}</label><input name="order" type="number" value="{{ a.order }}"></div>
             <div class="full"><label>{{ t('text') }}</label><textarea class="tall {{ rtl }}" name="text" required>{{ a.text }}</textarea></div>
+            <div class="full"><label>{{ t('change_note') }}</label><input name="note" maxlength="300" placeholder="{{ t('change_note_hint') }}"></div>
+            <div><label>{{ t('applies_from_label') }}</label><input name="applies_from" type="date" value="{{ a.applies_from or '' }}"></div>
           </div>
           <div class="actions"><button type="submit">{{ t('save') }}</button></div>
         </form>
@@ -53,6 +104,7 @@
         </form>
       </details>
     </div>
+  {% endif %}
   {% else %}
     <p class="muted">{{ t('no_articles') }}</p>
   {% endfor %}
@@ -65,6 +117,8 @@
     <textarea class="tall {{ rtl }}" name="raw_text" required></textarea>
     <div class="actions">
       <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="replace" style="width:auto"> {{ t('replace_existing') }}</label>
+      <input name="note" maxlength="300" placeholder="{{ t('change_note_hint') }}" style="flex:1 1 260px" title="{{ t('change_note') }}">
+      <input name="applies_from" type="date" style="flex:0 0 170px" title="{{ t('applies_from_label') }}">
       <button type="submit">{{ t('import') }}</button>
     </div>
   </form>

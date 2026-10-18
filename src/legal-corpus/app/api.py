@@ -2,8 +2,12 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, get_embedder, require_api_key
-from app.models import Category, Jurisdiction, TextStatus
+from datetime import date
+
+from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import (
+    ArticleSearchIn,
+    ArticleVersionOut,
     ArticleIn,
     ArticleOut,
     BulkArticlesIn,
@@ -45,8 +49,19 @@ def create_text(body: LegalTextIn, db: Session = Depends(get_db)):
 
 
 @router.get("/texts/{text_id}", response_model=LegalTextDetail, tags=["texts"])
-def get_text(text_id: str, db: Session = Depends(get_db)):
-    return corpus.get_text(db, text_id)
+def get_text(text_id: str, as_of: date | None = None, db: Session = Depends(get_db)):
+    """With ?as_of=YYYY-MM-DD, each article carries the wording that applied on that day, and articles that did
+    not exist yet are left out."""
+    text = corpus.get_text(db, text_id)
+    if as_of is None:
+        return text
+    detail = LegalTextDetail.model_validate(text)
+    articles = []
+    for article, out in zip(text.articles, detail.articles):
+        wording = wording_on(article, as_of)
+        if wording is not None:
+            articles.append(out.model_copy(update={"number": wording[0], "text": wording[1]}))
+    return detail.model_copy(update={"articles": articles})
 
 
 @router.put("/texts/{text_id}", response_model=LegalTextDetail, tags=["texts"])
@@ -98,7 +113,19 @@ def get_article(article_id: str, db: Session = Depends(get_db)):
 
 @router.put("/articles/{article_id}", response_model=ArticleOut, tags=["articles"])
 def update_article(article_id: str, body: ArticleIn, db: Session = Depends(get_db)):
-    return corpus.update_article(db, article_id, body)
+    return corpus.update_article(db, article_id, body, changed_by="API")
+
+
+@router.get("/articles/{article_id}/versions", response_model=list[ArticleVersionOut], tags=["articles"])
+def article_versions(article_id: str, db: Session = Depends(get_db)):
+    """Previous wordings, newest first."""
+    return corpus.get_article(db, article_id).versions
+
+
+@router.put("/articles/{article_id}/search", response_model=ArticleOut, tags=["articles"])
+def article_search(article_id: str, body: ArticleSearchIn, db: Session = Depends(get_db)):
+    """Exclude an article from (or return it to) "applicable law" search; it stays in the text and stays quotable."""
+    return corpus.set_excluded(db, article_id, body.excluded)
 
 
 @router.delete("/articles/{article_id}", status_code=204, tags=["articles"])

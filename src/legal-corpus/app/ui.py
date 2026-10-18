@@ -12,7 +12,7 @@ from app import auth
 from app.config import BASE_DIR
 from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
-from app.models import Category, Jurisdiction, TextStatus
+from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
 from app.services import corpus, pdf, playbook
 from app.services.citations import check_citation
@@ -251,8 +251,12 @@ def pdf_create(
 
 
 @router.get("/texts/{text_id}", response_class=HTMLResponse)
-def text_page(text_id: str, request: Request, db: Session = Depends(get_db)):
-    return _render(request, "text_detail.html", text=corpus.get_text(db, text_id))
+def text_page(text_id: str, request: Request, as_of: str = "", db: Session = Depends(get_db)):
+    try:
+        day = date.fromisoformat(as_of) if as_of else None
+    except ValueError:
+        day = None
+    return _render(request, "text_detail.html", text=corpus.get_text(db, text_id), as_of=day, wording_on=wording_on)
 
 
 @router.post("/texts/{text_id}")
@@ -311,23 +315,42 @@ def add_article(text_id: str, number: str = Form(""), text: str = Form(""), db: 
 
 
 @router.post("/texts/{text_id}/import")
-def import_articles(text_id: str, raw_text: str = Form(""), replace: str = Form(""), db: Session = Depends(get_db)):
-    created, _, _ = corpus.import_articles(db, text_id, raw_text, replace == "on")
+def import_articles(text_id: str, request: Request, raw_text: str = Form(""), replace: str = Form(""),
+                    note: str = Form(""), applies_from: str = Form(""), db: Session = Depends(get_db)):
+    try:
+        day = date.fromisoformat(applies_from) if applies_from else None
+    except ValueError:
+        return _redirect(f"/texts/{text_id}", "err_invalid", "error")
+    created, _, _ = corpus.import_articles(db, text_id, raw_text, replace == "on",
+                                           changed_by=getattr(request.state, "user", None), note=note, applies_from=day)
     return _redirect(f"/texts/{text_id}", "imported", count=len(created))
 
 
 @router.post("/articles/{article_id}")
 def update_article(
-    article_id: str, number: str = Form(""), text: str = Form(""), order: str = Form(""),
-    db: Session = Depends(get_db),
+    article_id: str, request: Request, number: str = Form(""), text: str = Form(""), order: str = Form(""),
+    note: str = Form(""), applies_from: str = Form(""), db: Session = Depends(get_db),
 ):
     article = corpus.get_article(db, article_id)
     try:
-        data = ArticleIn(number=number, text=text, order=int(order) if order.strip() else None)
+        data = ArticleIn(number=number, text=text, order=int(order) if order.strip() else None, note=note or None,
+                         applies_from=date.fromisoformat(applies_from) if applies_from else None)
     except (ValidationError, ValueError):
         return _redirect(f"/texts/{article.legal_text_id}", "err_invalid", "error")
-    corpus.update_article(db, article_id, data)
+    corpus.update_article(db, article_id, data, changed_by=getattr(request.state, "user", None))
     return _redirect(f"/texts/{article.legal_text_id}", "saved")
+
+
+@router.post("/articles/{article_id}/search")
+def article_search(article_id: str, excluded: str = Form(""), db: Session = Depends(get_db)):
+    article = corpus.set_excluded(db, article_id, excluded == "1")
+    return _redirect(f"/texts/{article.legal_text_id}", "excluded_ok" if article.excluded_from_search else "included_ok")
+
+
+@router.post("/articles/{article_id}/versions/{version_id}/restore")
+def restore_version(article_id: str, version_id: str, request: Request, db: Session = Depends(get_db)):
+    article = corpus.restore_version(db, article_id, version_id, changed_by=getattr(request.state, "user", None))
+    return _redirect(f"/texts/{article.legal_text_id}", "restored_ok")
 
 
 @router.post("/articles/{article_id}/delete")
@@ -392,8 +415,17 @@ def _rule_url(key: str) -> str:
 def playbook_page(request: Request, db: Session = Depends(get_db)):
     described = playbook.describe(db, _playbook_path(request))
     used = {r["key"] for r in described["rules"]}
+    rules = described["rules"]
+    stats = {
+        "rules": len(rules),
+        "confirmed": sum(1 for r in rules if r.get("confirmed_by")),
+        "articles": len({(a["reference"], a["number"]) for r in rules for a in r["articles"]}),
+        "laws": len({playbook.law_name(a["short"]) for r in rules for a in r["articles"]}),
+        "phrases": sum(len(r["phrases"]) for r in rules),
+    }
     return _render(request, "playbook.html", pb=described, detected=playbook.DETECTED_KEYS,
-                   free_keys=[k for k in playbook.DETECTED_KEYS if k not in used])
+                   free_keys=[k for k in playbook.DETECTED_KEYS if k not in used],
+                   graph=playbook.link_map(rules), stats=stats)
 
 
 @router.post("/playbook/rules")
@@ -439,6 +471,18 @@ def rule_add_article(key: str, request: Request, text_id: str = Form(""), number
 def rule_update_article(key: str, index: int, request: Request, why: str = Form("")):
     playbook.update_article(key, index, why, _playbook_path(request))
     return _redirect(_rule_url(key), "saved")
+
+
+@router.post("/playbook/rules/{key}/phrases")
+def rule_add_phrase(key: str, request: Request, phrase: str = Form("")):
+    playbook.add_phrase(key, phrase, _playbook_path(request))
+    return _redirect(_rule_url(key), "saved")
+
+
+@router.post("/playbook/rules/{key}/phrases/{index}/delete")
+def rule_remove_phrase(key: str, index: int, request: Request):
+    playbook.remove_phrase(key, index, _playbook_path(request))
+    return _redirect(_rule_url(key), "deleted")
 
 
 @router.post("/playbook/rules/{key}/articles/{index}/delete")

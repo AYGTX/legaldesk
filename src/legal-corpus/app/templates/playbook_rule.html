@@ -66,6 +66,26 @@
   {% endfor %}
 </section>
 
+<section class="card">
+  <h2>{{ t('pb_phrases') }} ({{ rule.phrases|length }})</h2>
+  <p class="muted">{{ t('pb_phrases_hint') }}</p>
+  {% for p in rule.phrases %}
+    <div class="row phrase-row">
+      <div style="flex:1 1 auto"><span class="phrase">« {{ p }} »</span></div>
+      <form method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases/{{ loop.index0 }}/delete" style="flex:0 0 auto">
+        <button class="danger" type="submit">{{ t('pb_remove') }}</button>
+      </form>
+    </div>
+  {% else %}
+    <p class="muted">{{ t('pb_no_phrases') }}</p>
+  {% endfor %}
+  <form class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/phrases" style="margin-top:12px">
+    <div style="flex:4 1 300px"><label for="phrase">{{ t('pb_add_phrase') }}</label>
+      <input id="phrase" name="phrase" required minlength="4" maxlength="200" placeholder="{{ t('pb_phrase_placeholder') }}"></div>
+    <button type="submit">{{ t('pb_add_phrase_button') }}</button>
+  </form>
+</section>
+
 <form class="card" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/articles">
   <h2>{{ t('pb_add_article') }}</h2>
   <p class="muted">{{ t('pb_add_article_hint') }}</p>

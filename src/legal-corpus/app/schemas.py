@@ -31,6 +31,25 @@ class ArticleIn(BaseModel):
     number: str = Field(min_length=1, max_length=50)
     text: str = Field(min_length=1)
     order: int | None = None
+    # Why the wording changed; kept with the previous version.
+    note: str | None = Field(default=None, max_length=300)
+    # When this (new) wording takes effect. Left out on an edit, the article keeps its current date.
+    applies_from: date | None = None
+
+
+class ArticleVersionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    number: str
+    text: str
+    replaced_at: datetime
+    replaced_by: str | None
+    note: str | None
+    applies_from: date | None = None
+
+
+class ArticleSearchIn(BaseModel):
+    excluded: bool
 
 
 class ArticleOut(BaseModel):
@@ -41,6 +60,8 @@ class ArticleOut(BaseModel):
     number: str
     text: str
     order: int
+    excluded_from_search: bool = False
+    applies_from: date | None = None
 
 
 class LegalTextOut(BaseModel):
@@ -89,6 +110,8 @@ class SearchIn(BaseModel):
     language: Language | None = None
     # Unverified texts are notes someone typed, not law. They are only returned when asked for, and flagged.
     include_unverified: bool = False
+    # Search the law as it stood on this day (e.g. a contract's signing date) instead of the current wording.
+    as_of: date | None = None
 
 
 class SearchHit(BaseModel):

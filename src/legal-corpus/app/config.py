@@ -17,8 +17,10 @@ class Settings:
     admin_user: str = "admin"
     admin_email: str = "aymen.hamadi.tn@gmail.com"
     admin_password: str = "admin"
-    # Signs the session cookie. Without one, a random key is drawn at start-up and restarts sign everyone out.
+    # Signs the session cookie. Without one, a key is generated once and kept in session_secret_file, so restarts
+    # keep people signed in; with neither (tests), a random key is drawn at start-up.
     session_secret: str | None = None
+    session_secret_file: Path | None = None
 
 
 def load_settings() -> Settings:
@@ -34,4 +36,5 @@ def load_settings() -> Settings:
         admin_email=os.getenv("CORPUS_ADMIN_EMAIL", "aymen.hamadi.tn@gmail.com"),
         admin_password=os.getenv("CORPUS_ADMIN_PASSWORD", "admin"),
         session_secret=os.getenv("CORPUS_SESSION_SECRET") or None,
+        session_secret_file=BASE_DIR / "data" / ".session_secret",
     )

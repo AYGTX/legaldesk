@@ -102,3 +102,34 @@ def test_list_page_renders(setup):
     c.post("/playbook/rules", data={"key": "custom_thing", "label": "Custom"})
     page = c.get("/playbook").text
     assert "Custom" in page and "Not detected by LegalDesk" in page
+
+
+def test_phrases_are_served_only_once_the_rule_is_confirmed_again(setup):
+    c, path, text_id = setup
+    _verify(c, text_id)
+    c.post("/playbook/rules", data={"key": "indemnification", "label": "Indemnisation"})
+    c.post("/playbook/rules/indemnification/articles", data={"text_id": text_id, "number": "1", "why": "x"})
+    c.post("/playbook/rules/indemnification/confirm", data={"confirmed_by": "H. Aymen"})
+
+    c.post("/playbook/rules/indemnification/phrases", data={"phrase": "  prendra en charge   l'intégralité des conséquences "})
+    assert _pb(path)["rules"][0]["phrases"] == ["prendra en charge l'intégralité des conséquences"]
+    assert c.get("/api/v1/playbook").json()["rules"] == {}
+
+    c.post("/playbook/rules/indemnification/confirm", data={"confirmed_by": "H. Aymen"})
+    served = c.get("/api/v1/playbook").json()["rules"]["indemnification"]
+    assert served["phrases"] == ["prendra en charge l'intégralité des conséquences"] and served["label"] == "Indemnisation"
+    assert "Formulations à rechercher" in c.get("/playbook/rules/indemnification", headers={"accept-language": "fr"}).text
+
+    c.post("/playbook/rules/indemnification/phrases/0/delete")
+    assert _pb(path)["rules"][0]["phrases"] == [] and _pb(path)["rules"][0]["confirmed_by"] is None
+
+
+def test_rejects_short_and_duplicate_phrases(setup):
+    c, path, _ = setup
+    c.post("/playbook/rules", data={"key": "penalty", "label": "Pénalité"})
+    referer = {"referer": "http://testserver/playbook/rules/penalty"}
+    r = c.post("/playbook/rules/penalty/phrases", data={"phrase": "ab"}, headers=referer, follow_redirects=False)
+    assert "flash=err_phrase_too_short" in r.headers["location"]
+    c.post("/playbook/rules/penalty/phrases", data={"phrase": "Astreinte journalière"})
+    r = c.post("/playbook/rules/penalty/phrases", data={"phrase": "astreinte  journalière"}, headers=referer, follow_redirects=False)
+    assert "flash=err_duplicate_phrase" in r.headers["location"]

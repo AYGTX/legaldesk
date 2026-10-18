@@ -8,34 +8,108 @@
   </div>
 </div>
 
-<div class="card table-wrap">
-  {% if pb.rules %}
-  <table>
-    <thead><tr><th>{{ t('pb_rule') }}</th><th>{{ t('pb_detects') }}</th><th>{{ t('articles') }}</th><th>{{ t('status') }}</th></tr></thead>
-    <tbody>
-    {% for r in pb.rules %}
-      <tr>
-        <td><a href="/playbook/rules/{{ r.key|urlencode }}"><strong>{{ r.label }}</strong></a><div class="muted"><code>{{ r.key }}</code></div></td>
-        <td>
-          {% if r.detected %}{{ detected[r.key][1] if lang == 'fr' else detected[r.key][0] }}
-          {% else %}<span class="badge warn">{{ t('pb_not_detected') }}</span>{% endif %}
-        </td>
-        <td>
-          {% for a in r.articles %}<span class="badge {{ 'neutral' if a.verified else 'warn' }}" style="margin:0 4px 4px 0" title="{{ a.citation }}">{{ a.short }}</span>{% else %}<span class="muted">—</span>{% endfor %}
-        </td>
-        <td>
-          {% if r.confirmed_by %}<span class="badge ok">{{ t('pb_confirmed_by', who=r.confirmed_by) }}</span>
-          {% else %}<span class="badge warn">{{ t('pb_not_confirmed') }}</span>{% endif %}
-          {% if not r.ready %}<div class="muted" style="font-size:12px;margin-top:4px">{{ t('pb_not_ready') }}</div>{% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="muted">{{ t('pb_empty') }}</p>
-  {% endif %}
+<div class="pb-stats">
+  <div><strong>{{ stats.confirmed }}<small>/{{ stats.rules }}</small></strong><span>{{ t('pb_stat_confirmed') }}</span></div>
+  <div><strong>{{ stats.laws }}</strong><span>{{ t('pb_stat_laws') }}</span></div>
+  <div><strong>{{ stats.articles }}</strong><span>{{ t('pb_stat_articles') }}</span></div>
+  <div><strong>{{ stats.phrases }}</strong><span>{{ t('pb_stat_phrases') }}</span></div>
 </div>
+
+{% if pb.rules %}
+<div class="pb-views">
+  <input type="radio" name="pbview" id="view-cards" checked>
+  <input type="radio" name="pbview" id="view-map">
+  <div class="pb-tabs">
+    <label for="view-cards">{{ t('pb_view_cards') }}</label>
+    <label for="view-map">{{ t('pb_view_map') }}</label>
+  </div>
+
+  <div class="pb-cards">
+    {% for r in pb.rules %}
+    <a class="pb-card {{ 'is-confirmed' if r.confirmed_by else ('is-ready' if r.ready else 'is-blocked') }}" href="/playbook/rules/{{ r.key|urlencode }}">
+      <div class="pb-card-head">
+        <strong>{{ r.label }}</strong>
+        {% if r.confirmed_by %}<span class="badge ok" title="{{ t('pb_confirmed_by', who=r.confirmed_by) }}">✓ {{ t('pb_confirmed_short') }}</span>
+        {% else %}<span class="badge warn">{{ t('pb_not_confirmed') }}</span>{% endif %}
+      </div>
+      <div class="pb-card-risk">
+        {% if r.detected %}{{ detected[r.key][1] if lang == 'fr' else detected[r.key][0] }}
+        {% else %}<span class="badge warn">{{ t('pb_not_detected') }}</span>{% endif %}
+      </div>
+      <div class="pb-chips">
+        {% for a in r.articles %}<span class="chip {{ '' if a.verified else 'chip-warn' }}" title="{{ a.citation }}">{{ a.short }}</span>{% else %}<span class="muted">—</span>{% endfor %}
+      </div>
+      <div class="pb-card-foot">
+        <span>{{ t('pb_n_articles', count=r.articles|length) }}</span>
+        {% if r.phrases %}<span>· {{ t('pb_n_phrases', count=r.phrases|length) }}</span>{% endif %}
+        {% if not r.ready %}<span class="pb-blocked">· {{ t('pb_blocked') }}</span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="pb-map card">
+    <p class="muted" style="margin-top:0">{{ t('pb_map_intro') }}</p>
+    <div class="pb-map-scroll">
+    <svg id="pb-graph" viewBox="0 0 {{ graph.width }} {{ graph.height }}" role="img" aria-label="{{ t('pb_view_map') }}">
+      {% for l in graph.links %}
+      <path class="link {{ 'confirmed' if l.confirmed }}" data-rule="{{ l.rule }}" data-law="{{ l.law }}" d="{{ l.d }}" stroke-width="{{ l.weight }}"><title>{{ l.law }} — art. {{ l.articles }}</title></path>
+      {% endfor %}
+      {% for n in graph.rules %}
+      <a href="/playbook/rules/{{ n.key|urlencode }}" class="node rule-node {{ 'confirmed' if n.confirmed else ('ready' if n.ready else 'blocked') }}" data-rule="{{ n.key }}">
+        <rect x="0" y="{{ n.y }}" width="{{ graph.left_w }}" height="{{ graph.node_h }}" rx="8"/>
+        <circle cx="14" cy="{{ n.y + graph.node_h / 2 }}" r="4.5"/>
+        <text x="28" y="{{ n.y + graph.node_h / 2 + 4.5 }}">{{ n.label|truncate(32, True, '…') }}</text>
+        <title>{{ n.label }} — {{ t('pb_n_articles', count=n.articles) }}</title>
+      </a>
+      {% endfor %}
+      {% for n in graph.laws %}
+      <g class="node law-node" data-law="{{ n.name }}">
+        <rect x="{{ graph.right_x }}" y="{{ n.y }}" width="{{ graph.width - graph.right_x }}" height="{{ graph.node_h }}" rx="8"/>
+        <text x="{{ graph.right_x + 14 }}" y="{{ n.y + graph.node_h / 2 + 4.5 }}">{{ n.name }}</text>
+        <text class="count" x="{{ graph.width - 12 }}" y="{{ n.y + graph.node_h / 2 + 4.5 }}" text-anchor="end">{{ t('pb_n_articles', count=n.articles) }}</text>
+        <title>{{ n.name }} — {{ t('pb_law_used_by', count=n.rules) }}</title>
+      </g>
+      {% endfor %}
+    </svg>
+    </div>
+    <div class="pb-legend">
+      <span><i class="dot confirmed"></i>{{ t('pb_legend_confirmed') }}</span>
+      <span><i class="dot ready"></i>{{ t('pb_legend_ready') }}</span>
+      <span><i class="dot blocked"></i>{{ t('pb_legend_blocked') }}</span>
+    </div>
+  </div>
+</div>
+<script>
+  // Hovering a risk or a law highlights its links; everything else fades.
+  (function () {
+    var svg = document.getElementById('pb-graph');
+    if (!svg) return;
+    var links = Array.from(svg.querySelectorAll('.link'));
+    var nodes = Array.from(svg.querySelectorAll('.node'));
+    function focus(rule, law) {
+      svg.classList.add('focus');
+      var on = links.filter(function (l) { return (rule && l.dataset.rule === rule) || (law && l.dataset.law === law); });
+      links.forEach(function (l) { l.classList.toggle('on', on.indexOf(l) >= 0); });
+      var rules = new Set(on.map(function (l) { return l.dataset.rule; }));
+      var laws = new Set(on.map(function (l) { return l.dataset.law; }));
+      nodes.forEach(function (n) { n.classList.toggle('on', rules.has(n.dataset.rule) || laws.has(n.dataset.law)); });
+    }
+    function clear() {
+      svg.classList.remove('focus');
+      links.concat(nodes).forEach(function (e) { e.classList.remove('on'); });
+    }
+    nodes.forEach(function (n) {
+      n.addEventListener('mouseenter', function () { focus(n.dataset.rule, n.dataset.law); });
+      n.addEventListener('mouseleave', clear);
+      n.addEventListener('focus', function () { focus(n.dataset.rule, n.dataset.law); });
+      n.addEventListener('blur', clear);
+    });
+  })();
+</script>
+{% else %}
+<div class="card"><p class="muted">{{ t('pb_empty') }}</p></div>
+{% endif %}
 
 <form class="card" method="post" action="/playbook/rules">
   <h2>{{ t('pb_new_rule') }}</h2>

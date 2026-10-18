@@ -160,6 +160,36 @@ def remove_article(key: str, index: int, path: Path = PLAYBOOK_PATH) -> None:
     _edit(path, change)
 
 
+MIN_PHRASE_CHARS = 4
+
+
+def add_phrase(key: str, phrase: str, path: Path = PLAYBOOK_PATH) -> None:
+    """Wording that should raise this rule even where LegalDesk's built-in detection misses it. Like any edit to the
+    rule, it withdraws the confirmation: a phrase is only used once a person has confirmed the rule again."""
+    phrase = " ".join(phrase.split())
+    if len(phrase) < MIN_PHRASE_CHARS:
+        raise RuleError("phrase_too_short", "A phrase needs at least four characters.")
+
+    def change(data):
+        rule = _rule(data, key)
+        phrases = rule.setdefault("phrases", [])
+        if any(p.casefold() == phrase.casefold() for p in phrases):
+            raise RuleError("duplicate_phrase", "This phrase is already in the rule.")
+        phrases.append(phrase)
+        _unconfirm(rule)
+
+    _edit(path, change)
+
+
+def remove_phrase(key: str, index: int, path: Path = PLAYBOOK_PATH) -> None:
+    def change(data):
+        rule = _rule(data, key)
+        del rule.setdefault("phrases", [])[index]
+        _unconfirm(rule)
+
+    _edit(path, change)
+
+
 def move_article(key: str, index: int, offset: int, path: Path = PLAYBOOK_PATH) -> None:
     def change(data):
         articles = _rule(data, key)["articles"]
@@ -247,7 +277,7 @@ def describe(db: Session, path: Path = PLAYBOOK_PATH) -> dict:
                 "text": article.text if article else None,
                 "legal_text_id": article.legal_text_id if article else None,
             })
-        rules.append({**rule, "articles": articles, "detected": rule["key"] in DETECTED_KEYS,
+        rules.append({**rule, "articles": articles, "phrases": rule.get("phrases", []), "detected": rule["key"] in DETECTED_KEYS,
                       "ready": bool(articles) and all(a["verified"] for a in articles)})
     return {"rules": rules, "regulations": data["regulations"]}
 
@@ -273,6 +303,55 @@ def resolve(db: Session, path: Path = PLAYBOOK_PATH, include_unconfirmed: bool =
                 "text": article.text,
                 "why": ref.get("why"),
             })
-        rules[rule["key"]] = {"label": rule.get("label"), "confirmed_by": rule.get("confirmed_by"), "articles": articles}
+        rules[rule["key"]] = {"label": rule.get("label"), "confirmed_by": rule.get("confirmed_by"), "articles": articles,
+                              "phrases": rule.get("phrases", [])}
 
     return {"rules": rules, "regulations": playbook.get("regulations", {}), "unresolved": unresolved}
+
+
+def law_name(short: str) -> str:
+    """"COC, art. 278" → "COC"; "Loi 2016-48, art. 81" → "Loi 2016-48"."""
+    return short.rsplit(", art.", 1)[0]
+
+
+def link_map(rules: list[dict]) -> dict:
+    """Coordinates for the playbook's link map: risks on the left, laws on the right, one curve per risk-law pair.
+    Drawn as plain SVG by the template, so the page needs no script library and works offline."""
+    row, top, node_h = 40, 16, 30
+    left_w, right_x, width = 270, 650, 920
+
+    laws: dict[str, dict] = {}
+    for rule in rules:
+        for article in rule["articles"]:
+            law = laws.setdefault(law_name(article["short"]), {"name": law_name(article["short"]), "articles": set(), "rules": set()})
+            law["articles"].add(article["number"])
+            law["rules"].add(rule["key"])
+    ordered_laws = sorted(laws.values(), key=lambda l: (-len(l["rules"]), l["name"]))
+
+    height = top * 2 + max(len(rules), 1) * row
+    law_step = (height - 2 * top) / max(len(ordered_laws), 1)
+    law_nodes = []
+    for i, law in enumerate(ordered_laws):
+        y = top + law_step * i + (law_step - node_h) / 2
+        law_nodes.append({"name": law["name"], "y": round(y, 1), "articles": len(law["articles"]),
+                          "rules": len(law["rules"]), "keys": " ".join(sorted(law["rules"]))})
+    law_y = {n["name"]: n["y"] + node_h / 2 for n in law_nodes}
+
+    rule_nodes, links = [], []
+    for i, rule in enumerate(rules):
+        y = top + i * row
+        rule_nodes.append({"key": rule["key"], "label": rule["label"], "y": y, "confirmed": bool(rule.get("confirmed_by")),
+                           "ready": rule.get("ready", False), "articles": len(rule["articles"])})
+        by_law: dict[str, list[str]] = {}
+        for article in rule["articles"]:
+            by_law.setdefault(law_name(article["short"]), []).append(article["number"])
+        y1 = y + node_h / 2
+        for law, numbers in by_law.items():
+            y2 = law_y[law]
+            mid = (left_w + right_x) / 2
+            links.append({"rule": rule["key"], "law": law, "confirmed": bool(rule.get("confirmed_by")),
+                          "articles": ", ".join(numbers), "weight": min(1 + len(numbers), 4),
+                          "d": f"M{left_w},{y1:.1f} C{mid:.0f},{y1:.1f} {mid:.0f},{y2:.1f} {right_x},{y2:.1f}"})
+
+    return {"width": width, "height": height, "node_h": node_h, "left_w": left_w, "right_x": right_x,
+            "rules": rule_nodes, "laws": law_nodes, "links": links}

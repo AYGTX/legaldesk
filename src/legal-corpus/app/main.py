@@ -12,6 +12,22 @@ from app.db import make_session_factory
 from app.services.corpus import NotFoundError, RuleError
 
 
+def _stored_secret(path) -> str:
+    """Reads the session key kept next to the database, creating it on first start. The data folder is git-ignored."""
+    if path is None:
+        return secrets.token_hex(32)
+    try:
+        existing = path.read_text(encoding="utf-8").strip()
+        if len(existing) >= 32:
+            return existing
+    except FileNotFoundError:
+        pass
+    key = secrets.token_hex(32)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(key, encoding="utf-8")
+    return key
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
     app = FastAPI(
@@ -22,7 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.session_factory = make_session_factory(settings.database_url)
     app.state.embedder = None
-    app.state.session_secret = settings.session_secret or secrets.token_hex(32)
+    app.state.session_secret = settings.session_secret or _stored_secret(settings.session_secret_file)
 
     app.include_router(api.router)
     app.include_router(ui.router)
