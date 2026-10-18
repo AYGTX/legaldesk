@@ -243,3 +243,10 @@ form.htmx-request button[type="submit"]::after { content: " …"; }
 
 /* The confirmation stays in view after an in-page update, however far down the page the reader is. */
 main > .flash { position: sticky; top: 76px; z-index: 5; box-shadow: 0 4px 14px rgba(45, 52, 112, .12); }
+
+/* Cross-references inside an article */
+a.ref { text-decoration: underline dotted; text-underline-offset: 3px; }
+a.ref:hover { text-decoration-style: solid; }
+.ref-missing { border-bottom: 1px dashed var(--highlight); cursor: help; }
+:target { scroll-margin-top: 90px; }
+.article:target { background: rgba(239, 128, 36, .07); border-radius: 8px; }

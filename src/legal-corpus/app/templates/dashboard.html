@@ -27,6 +27,18 @@
   {% endfor %}
 </div>
 
+{% if missing %}
+<h2>{{ t('dash_missing') }} ({{ missing|length }})</h2>
+<section class="card">
+  <p class="muted">{{ t('dash_missing_intro') }}</p>
+  {% for m in missing[:12] %}
+    <div class="hit"><span class="badge version">{{ t('dash_missing_count', count=m.count) }}</span>
+      <strong>{{ m.label }}</strong>
+      <div class="meta">{{ t('dash_missing_by') }} {{ m.cited_by[:3]|join(' · ') }}{% if m.cited_by|length > 3 %} …{% endif %}</div></div>
+  {% endfor %}
+</section>
+{% endif %}
+
 <h2>{{ t('dash_attention') }}</h2>
 <section class="card">
   {% if not to_verify and not to_publish and not to_confirm %}

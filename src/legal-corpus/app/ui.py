@@ -15,7 +15,7 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import amendments, assist, corpus, explanations, pdf, playbook
+from app.services import amendments, assist, corpus, explanations, pdf, playbook, references
 from app.services.llm import LlmUnavailable
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
@@ -143,7 +143,8 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     to_verify = [t for t in texts if not t.verified_by and t.status != TextStatus.Archived]
     to_publish = [t for t in texts if t.verified_by and t.status == TextStatus.Draft]
     to_confirm = [r for r in rules if not r.get("confirmed_by")]
-    return _render(request, "dashboard.html", stats=stats, to_verify=to_verify, to_publish=to_publish,
+    missing = references.missing_laws(texts, references.Index.build(texts))
+    return _render(request, "dashboard.html", stats=stats, to_verify=to_verify, to_publish=to_publish, missing=missing,
                    to_confirm=to_confirm, counts=counts)
 
 
@@ -289,13 +290,14 @@ def text_page(text_id: str, request: Request, as_of: str = "", db: Session = Dep
         day = None
     text = corpus.get_text(db, text_id)
     lang = pick_language(request.cookies.get("lang"), request.headers.get("accept-language"))
+    ref_index = references.Index.build(corpus.list_texts(db))
     shown = {}
     for article in text.articles:
         explanation = next((e for e in article.explanations if e.language == lang), None)
         if explanation is not None:
             shown[article.id] = (explanation, explanations.status(explanation, article))
     return _render(request, "text_detail.html", text=text, as_of=day, wording_on=wording_on,
-                   ai=request.app.state.llm.name, explained=shown)
+                   ai=request.app.state.llm.name, explained=shown, linkify=references.linkify, ref_index=ref_index)
 
 
 @router.post("/texts/{text_id}")
