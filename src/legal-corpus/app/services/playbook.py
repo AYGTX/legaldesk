@@ -50,6 +50,8 @@ DETECTED_KEYS = {
     "bank_supervisor_access": ("Confidentiality without a central-bank exception", "Confidentialité sans exception pour la BCT"),
     "bank_customer_complaints": ("Customer complaint procedure", "Procédure de réclamation client"),
     "bank_aml": ("Anti-money laundering (third-party identification, record keeping)", "Lutte contre le blanchiment (identification par un tiers, conservation)"),
+    "resale_price": ("Imposed resale price", "Prix de revente imposé"),
+    "market_sharing": ("Market sharing between competitors", "Répartition de marché entre concurrents"),
 }
 
 _lock = threading.Lock()

@@ -60,6 +60,8 @@ public static class ContractRuleEngine
         BankSupervisorAccess(text, clauses, l, findings);
         BankCustomerComplaints(text, clauses, l, findings);
         BankAntiMoneyLaundering(text, clauses, l, findings);
+        ImposedResalePrice(clauses, l, findings);
+        MarketSharing(clauses, l, findings);
 
         if (findings.Count == 0)
             findings.Add(new RiskFinding(l.T("General", "Général"), Low,
@@ -629,6 +631,40 @@ public static class ContractRuleEngine
                     "La clause prévoit la destruction des documents clients à la fin du contrat ou leur conservation pendant moins de dix ans, alors que la banque doit les conserver au moins dix ans."),
                 l.T("Keep (or return to the bank) all records needed to trace operations and identify customers for at least ten years after the operation or the account's closure.",
                     "Conserver (ou restituer à la banque) tous les documents permettant de retracer les opérations et d'identifier les clients pendant au moins dix ans après l'opération ou la clôture du compte.")));
+    }
+
+    /// <summary>Fixing a reseller's minimum resale price or minimum margin is prohibited, directly or indirectly.</summary>
+    private static void ImposedResalePrice(List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        var c = clauses.FirstOrDefault(c =>
+            Has(c, "prix de revente", "prix public", "revendre", "marge", "resale price", "resell", "margin")
+            && Has(c, "minimum", "minimal", "minimale", "en dessous", "inférieur", "au moins", "ne pourra être", "below", "at least", "no less than"));
+        if (c is null) return;
+
+        findings.Add(Finding(c, "resale_price", l.T("Imposed resale price", "Prix de revente imposé"), High,
+            l.T("The clause sets a minimum resale price or margin for the reseller, a prohibited practice; the clause is void by law.",
+                "La clause fixe au revendeur un prix de revente ou une marge minimum, pratique interdite ; la clause est nulle de plein droit."),
+            l.T("Replace the minimum price with a recommended or maximum resale price, leaving the reseller free to set its prices.",
+                "Remplacer le prix minimum par un prix de revente conseillé ou maximum, en laissant le revendeur libre de fixer ses prix.")));
+    }
+
+    /// <summary>Agreements sharing markets or customers, or setting prices together, are prohibited and void.</summary>
+    private static void MarketSharing(List<Clause> clauses, Lang l, List<RiskFinding> findings)
+    {
+        var c = clauses.FirstOrDefault(c =>
+            Has(c, "répartir les marchés", "répartition des marchés", "répartition des clients", "répartir les clients", "se partager",
+                "ne pas se concurrencer", "aligner leurs prix", "prix communs", "se concerter sur les prix", "fixer ensemble",
+                "share the market", "allocate customers", "not compete with each other", "align their prices")
+            || (Has(c, "territoire", "zone", "région", "territory", "region")
+                && Has(c, "réservé à", "réservée à", "chacune des parties", "l'autre partie s'interdit", "reserved to", "each party")
+                && Has(c, "s'interdit", "s'engage à ne pas", "ne pourra pas", "shall not", "undertakes not to")));
+        if (c is null) return;
+
+        findings.Add(Finding(c, "market_sharing", l.T("Market sharing", "Répartition de marché"), High,
+            l.T("The clause shares markets, territories or customers between the parties, or has them set prices together: an anticompetitive agreement, void by law.",
+                "La clause répartit des marchés, des territoires ou des clients entre les parties, ou leur fait fixer leurs prix ensemble : une entente anticoncurrentielle, nulle de plein droit."),
+            l.T("Remove the sharing or price-coordination commitment, or have it checked by competition counsel (exemption, vertical exclusivity justified by the contract).",
+                "Supprimer l'engagement de répartition ou de concertation sur les prix, ou le faire valider par un conseil en concurrence (exemption, exclusivité verticale justifiée par le contrat).")));
     }
 
     private static void BankAccountAgreement(string text, List<Clause> clauses, Lang l, List<RiskFinding> findings)

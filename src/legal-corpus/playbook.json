@@ -515,6 +515,37 @@
       ],
       "confirmed_by": null,
       "confirmed_at": null
+    },
+    {
+      "key": "resale_price",
+      "label": "Prix de revente imposé",
+      "articles": [
+        {
+          "reference": "Loi n° 2015-36 du 15 septembre 2015",
+          "number": "36",
+          "why": "Interdit de fixer, directement ou indirectement, un prix minimum de revente ou une marge minimale."
+        },
+        {
+          "reference": "Loi n° 2015-36 du 15 septembre 2015",
+          "number": "5",
+          "why": "Les clauses se rapportant aux pratiques prohibées sont nulles de plein droit ; l'imposition d'un prix minimum de revente y figure parmi les abus."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
+    },
+    {
+      "key": "market_sharing",
+      "label": "Répartition de marché entre concurrents",
+      "articles": [
+        {
+          "reference": "Loi n° 2015-36 du 15 septembre 2015",
+          "number": "5",
+          "why": "Prohibe les ententes visant à répartir les marchés ou à faire obstacle à la libre fixation des prix ; les clauses qui s'y rapportent sont nulles de plein droit."
+        }
+      ],
+      "confirmed_by": null,
+      "confirmed_at": null
     }
   ],
   "regulations": {
