@@ -57,6 +57,12 @@
     article inserted after article 42. The splitter should read the suffix as part of the number (42, 42 bis,
     42 ter…), order and cite them correctly, and flag only true duplicates. Existing laws and LegalDesk must not change.
 
+3b. **Language model setup that stays configured.** Harvey sometimes shows « Aucun modèle de langage n'est disponible.
+    Réglez CORPUS_AI_PROVIDER… ». Harvey reads `src/legal-corpus/data/.env` at startup, but a value already set in the
+    shell takes priority, and the provider is only checked at startup. Fix: a settings page in Harvey where you choose
+    the provider and paste the key. It is saved in `data/.env`, applied without a restart, and tested with a "Test
+    connection" button. If Groq has no key, fall back to the local model. Show the active provider in the header.
+
 ### Accuracy (benchmark follow-ups)
 3. A **non-compete** rule of its own, separate from exclusivity.
 4. **Penalty:** tell contractual penalties apart from tax or regulatory penalties.
