@@ -260,3 +260,5 @@ a.ref:hover { text-decoration-style: solid; }
 .defs dt { font-weight: 600; }
 .defs dd { margin: 0; color: var(--muted); font-size: 13.5px; }
 @media (max-width: 760px) { .defs { grid-template-columns: 1fr; } .defs dd { margin-bottom: 8px; } }
+
+.cov-question { font-size: 13px; color: var(--muted); margin-top: 3px; }

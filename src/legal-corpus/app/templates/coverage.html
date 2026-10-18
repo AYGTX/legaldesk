@@ -22,7 +22,8 @@
     <tbody>
     {% for row in cov.rows %}
       <tr>
-        <td><strong>{{ row.fr if lang == 'fr' else row.name }}</strong>{% if lang == 'fr' %}<div class="muted">{{ row.name }}</div>{% endif %}</td>
+        <td><strong>{{ row.fr if lang == 'fr' else row.name }}</strong>{% if lang == 'fr' %} <span class="muted">· {{ row.name }}</span>{% endif %}
+          <div class="cov-question">{{ row.question_fr if lang == 'fr' else row.question_en }}</div></td>
         <td><span class="badge cov-{{ row.status }}">{{ t('cov_' ~ row.status) }}</span></td>
         <td>{% for r in row.risks %}<a class="chip" href="/playbook/rules/{{ r.key|urlencode }}">{{ r.label }}</a> {% else %}<span class="muted">—</span>{% endfor %}</td>
       </tr>
