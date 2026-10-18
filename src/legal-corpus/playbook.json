@@ -410,8 +410,8 @@
           "why": "Sanctions du gouverneur de la BCT en cas de manquement à l'obligation d'information sur l'externalisation."
         }
       ],
-      "confirmed_by": null,
-      "confirmed_at": null
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-18T13:14:25+00:00"
     },
     {
       "key": "bank_secrecy",
@@ -428,8 +428,8 @@
           "why": "Confidentialité des données personnelles, même après la fin du traitement."
         }
       ],
-      "confirmed_by": null,
-      "confirmed_at": null
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-18T13:14:25+00:00"
     },
     {
       "key": "bank_account",
@@ -451,8 +451,8 @@
           "why": "Information du client sur le médiateur bancaire dans la convention de compte."
         }
       ],
-      "confirmed_by": null,
-      "confirmed_at": null
+      "confirmed_by": "H. Aymen",
+      "confirmed_at": "2026-10-18T13:14:25+00:00"
     }
   ],
   "regulations": {
