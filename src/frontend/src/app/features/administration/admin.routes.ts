@@ -11,6 +11,11 @@ export const adminRoutes: Routes = [
     title: 'Clause Templates — LegalDesk'
   },
   {
+    path: 'workflows',
+    loadComponent: () => import('./workflow-presets.component').then(m => m.WorkflowPresetsComponent),
+    title: 'Workflows — LegalDesk'
+  },
+  {
     path: 'clauses',
     loadComponent: () => import('../clauses/clause-library.component').then(m => m.ClauseLibraryComponent),
     title: 'Clause Library — LegalDesk'

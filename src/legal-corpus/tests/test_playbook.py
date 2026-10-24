@@ -4,15 +4,13 @@ from app.services import playbook
 from tests.conftest import LAW, make_text
 
 
-def _write(tmp_path, confirmed_by):
-    path = tmp_path / "playbook.json"
-    path.write_text(json.dumps({
+def _write(db, confirmed_by):
+    playbook.save(db, {
         "rules": [{"key": "personal_data", "label": "Données", "confirmed_by": confirmed_by,
                    "articles": [{"reference": "Loi test n° 1", "number": "2 bis", "why": "Sécurité"},
                                 {"reference": "Loi test n° 1", "number": "99", "why": "Absent"}]}],
-        "regulations": {"2004-63": "personal_data"},
-    }), encoding="utf-8")
-    return path
+    })
+    return db
 
 
 def _db(client):
@@ -21,18 +19,41 @@ def _db(client):
 
 def test_serves_only_confirmed_rules_with_verified_article_text(client, verified_text, tmp_path):
     db = _db(client)
-    assert playbook.resolve(db, _write(tmp_path, None))["rules"] == {}
+    assert playbook.resolve(_write(db, None))["rules"] == {}
 
-    result = playbook.resolve(db, _write(tmp_path, "H. Aymen"))
+    result = playbook.resolve(_write(db, "H. Aymen"))
     articles = result["rules"]["personal_data"]["articles"]
     assert [a["citation"] for a in articles] == ["Loi test n° 1, art. 2 bis"]
     assert articles[0]["text"].startswith("Le responsable du traitement")
     assert result["unresolved"] == ["personal_data: Loi test n° 1, art. 99"]
+    assert result["regulations"] == {}  # kept only so LegalDesk's client can still read the field
 
 
 def test_unverified_law_is_not_served(client, tmp_path):
     text = make_text(client)
     client.post(f"/api/v1/texts/{text['id']}/articles/import", json={"raw_text": LAW})
 
-    result = playbook.resolve(_db(client), _write(tmp_path, "H. Aymen"))
+    result = playbook.resolve(_write(_db(client), "H. Aymen"))
     assert result["rules"]["personal_data"]["articles"] == []
+
+
+def test_grid_starts_with_one_empty_risk_per_detected_risk(client):
+    db = _db(client)
+    playbook.bootstrap(db)
+    rules = playbook.load(db)["rules"]
+    assert [r["key"] for r in rules] == list(playbook.DETECTED_KEYS)
+    assert all(r["articles"] == [] and r["confirmed_by"] is None for r in rules)
+    playbook.bootstrap(db)  # a grid that has rules is never touched again
+    assert len(playbook.load(db)["rules"]) == len(playbook.DETECTED_KEYS)
+
+
+def test_old_playbook_file_is_imported_once(client, tmp_path):
+    old = tmp_path / "playbook.json"
+    old.write_text(json.dumps({"rules": [{"key": "payment", "label": "Prix", "articles": [
+        {"reference": "Loi test n° 1", "number": "2 bis", "why": "Sécurité"}], "phrases": ["paiement à 90 jours"]}],
+        "regulations": {"x": "y"}}), encoding="utf-8")
+    db = _db(client)
+    playbook.bootstrap(db, old)
+    rule = playbook.load(db)["rules"][0]
+    assert rule["key"] == "payment" and rule["articles"][0]["number"] == "2 bis" and rule["phrases"] == ["paiement à 90 jours"]
+    assert not old.exists() and (tmp_path / "playbook.json.imported").exists()

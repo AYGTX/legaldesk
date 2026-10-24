@@ -30,6 +30,11 @@ public class HtmlTemplateConfiguration : IEntityTypeConfiguration<HtmlTemplate>
             .HasForeignKey(t => t.RequestTypeId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(t => t.WorkflowPreset)
+            .WithMany()
+            .HasForeignKey(t => t.WorkflowPresetId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(t => t.Fields)
             .WithOne(f => f.HtmlTemplate)
             .HasForeignKey(f => f.HtmlTemplateId)

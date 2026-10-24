@@ -27,6 +27,7 @@ public class EvaluateReadinessCommandHandler(
     IAiService aiService,
     IGroundedComplianceReview complianceReview,
     ILegalPlaybookService playbook,
+    Microsoft.Extensions.Options.IOptions<SignFlow.Application.Common.Models.ReviewFeatures> features,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<EvaluateReadinessCommandHandler> logger) : ICommandHandler<EvaluateReadinessCommand, ReadinessDto>
@@ -62,15 +63,27 @@ public class EvaluateReadinessCommandHandler(
         // concurrently: sequentially the desk would take as long as the two combined, and this is
         // the screen a reviewer sits and waits on.
         var reviewTask = aiService.AnalyzeContractAsync(text, document.Title, DateTime.UtcNow, cancellationToken);
-        var complianceTask = complianceReview.ReviewAsync(text, document.Title, regulations, cancellationToken);
+        // The regulatory check is optional (Features:RegulatoryCompliance); when off, the verdict rests on the
+        // legal review alone.
+        var complianceTask = features.Value.RegulatoryCompliance
+            ? complianceReview.ReviewAsync(text, document.Title, regulations, cancellationToken)
+            : Task.FromResult<ComplianceAnalysis?>(null)!;
         await Task.WhenAll(reviewTask, complianceTask);
 
         var review = await reviewTask;
+
+        // A review that never ran has no findings, which would grade as a clean contract. Refuse to grade it and
+        // leave the stored verdict untouched.
+        if (review.Risk.ReviewFailed)
+            throw new ConflictException(review.Risk.Limitations?.FirstOrDefault()
+                ?? "The contract review is unavailable; the contract has not been graded.");
+
         review = review with { Risk = await playbook.AttachToRiskAsync(review.Risk, text, cancellationToken) };
-        var compliance = await complianceTask;
+        ComplianceAnalysis? compliance = await complianceTask;
 
         document.SetAiRiskAnalysis(JsonSerializer.Serialize(review.Risk, ContractJson.Options));
-        document.SetAiComplianceAnalysis(JsonSerializer.Serialize(compliance, ContractJson.Options));
+        if (compliance is not null)
+            document.SetAiComplianceAnalysis(JsonSerializer.Serialize(compliance, ContractJson.Options));
 
         // A date the owner has already confirmed outranks a fresh suggestion.
         if (!document.ObligationConfirmed && review.Obligation.DueDate.HasValue)
@@ -87,7 +100,7 @@ public class EvaluateReadinessCommandHandler(
             document.ReadinessItems.Count,
             [.. document.ReadinessItems.Where(i => i.Status == ReadinessItemStatus.Open).Select(i => i.Severity)],
             review.Risk.RiskScore,
-            compliance.ComplianceScore);
+            compliance?.ComplianceScore);
 
         document.SetReadiness(assessment.Verdict, assessment.Score);
 
@@ -106,7 +119,7 @@ public class EvaluateReadinessCommandHandler(
             "Contract {DocumentId} readiness evaluated by {UserId}: {Verdict}, score {Score}, {Open} open item(s)",
             document.Id, currentUser.UserId, assessment.Verdict, assessment.Score, assessment.OpenCount);
 
-        return ReadinessDto.From(document, assessment, review.Risk.RiskScore, compliance.ComplianceScore);
+        return ReadinessDto.From(document, assessment, review.Risk.RiskScore, compliance?.ComplianceScore);
     }
 
     /// <summary>

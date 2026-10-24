@@ -1,3 +1,5 @@
+#if LEGACY_RULES
+// Tests of the keyword rules Harvey's review replaced; compiled only with LEGACY_RULES.
 using SignFlow.Application.Common.Services;
 
 namespace SignFlow.UnitTests.Application;
@@ -55,3 +57,4 @@ public class BankRiskTests
             f => f.RuleKey == "bank_customer_complaints");
     }
 }
+#endif

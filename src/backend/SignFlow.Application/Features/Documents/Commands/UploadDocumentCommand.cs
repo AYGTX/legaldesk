@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Serialization;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 
@@ -45,6 +46,7 @@ public class UploadDocumentCommandHandler(
     IPdfService pdfService,
     IVirusScanService virusScan,
     IAiService aiService,
+    ILegalPlaybookService playbook,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<UploadDocumentCommandHandler> logger) : ICommandHandler<UploadDocumentCommand, DocumentUploadResult>
@@ -67,9 +69,14 @@ public class UploadDocumentCommandHandler(
         command.FileStream.Position = 0;
 
         // Fast rules-based pass so the risk card is populated the moment the upload lands. The full
-        // legal review is on demand (POST /documents/{id}/analyze) because it takes tens of seconds.
+        // legal review is on demand (POST /documents/{id}/analyze) because it takes tens of seconds; attaching
+        // the playbook's verified law citations here is cheap (cached playbook, local matching) and degrades
+        // to plain findings if the legal-corpus service is unreachable, so there is no reason to make the
+        // reader wait for "Analyze" just to see which article backs a flagged risk.
         var riskAnalysis = await aiService.AnalyzeContractRiskAsync(extractedText, command.Title, cancellationToken);
+        riskAnalysis = await playbook.AttachToRiskAsync(riskAnalysis, extractedText, cancellationToken);
         var obligationSuggestion = await aiService.SuggestObligationAsync(extractedText, command.Title, DateTime.UtcNow, cancellationToken);
+        var proposedTerm = await ProposeTermAsync(extractedText, command.Title, cancellationToken);
 
         var userId = currentUser.UserId!.Value;
         var folder = $"documents/{userId}";
@@ -91,6 +98,8 @@ public class UploadDocumentCommandHandler(
         document.SetCreatedBy(userId.ToString());
         document.SetAiRiskAnalysis(JsonSerializer.Serialize(riskAnalysis, ContractJson.Options));
         document.SetObligationSuggestion(obligationSuggestion.DueDate, obligationSuggestion.ObligationType, obligationSuggestion.Rationale);
+        if (proposedTerm?.EndDate is not null)
+            document.SuggestContractTerm(proposedTerm.StartDate, proposedTerm.EndDate, proposedTerm.AutoRenews ?? false, proposedTerm.NoticePeriodDays);
 
         // Apply the request type's SLA — snapshot the deadline from the creation timestamp so that
         // later changes to the request type's SLA never affect this in-flight request.
@@ -117,5 +126,23 @@ public class UploadDocumentCommandHandler(
         logger.LogInformation("Document {DocumentId} uploaded by user {UserId}", document.Id, userId);
 
         return new DocumentUploadResult(document.Id, document.Title, pageCount, storagePath);
+    }
+
+    /// <summary>The contract's term as the AI assistant reads it (dates backed by a verified excerpt), so the contract
+    /// appears in the schedule without anyone typing its dates; null when no model is configured or nothing is found.
+    /// A failure here never blocks the upload.</summary>
+    private async Task<SuggestedTermDto?> ProposeTermAsync(string text, string title, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        try
+        {
+            var terms = await ExtractKeyTermsCommandHandler.ReadAsync(aiService, text, title, "fr", ct);
+            return ExtractKeyTermsCommandHandler.Suggest(terms);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogInformation(ex, "No contract term proposed at upload");
+            return null;
+        }
     }
 }

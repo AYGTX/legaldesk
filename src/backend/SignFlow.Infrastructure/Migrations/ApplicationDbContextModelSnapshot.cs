@@ -1123,6 +1123,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<Guid?>("WorkflowPresetId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("WorkflowType")
                         .HasColumnType("int");
 
@@ -1135,6 +1138,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("IsActive");
 
                     b.HasIndex("RequestTypeId");
+
+                    b.HasIndex("WorkflowPresetId");
 
                     b.ToTable("HtmlTemplates");
                 });
@@ -1296,6 +1301,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AnnexClauseIdsJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1352,6 +1360,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<Guid?>("WorkflowPresetId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("WorkflowType")
                         .HasColumnType("int");
 
@@ -1364,6 +1375,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("IsActive");
 
                     b.HasIndex("RequestTypeId");
+
+                    b.HasIndex("WorkflowPresetId");
 
                     b.ToTable("PdfTemplates");
                 });
@@ -2169,6 +2182,118 @@ namespace SignFlow.Infrastructure.Migrations
                     b.ToTable("Workflows");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowPreset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("WorkflowType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("WorkflowPresets");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowPresetStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ApproverKind")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ApproverUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConditionFieldKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ConditionOperator")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("ConditionValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Department")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RoleName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Stage")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("WorkflowPresetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApproverUserId");
+
+                    b.HasIndex("WorkflowPresetId", "Order");
+
+                    b.ToTable("WorkflowPresetSteps");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowStep", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2464,11 +2589,18 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasForeignKey("RequestTypeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("SignFlow.Domain.Entities.WorkflowPreset", "WorkflowPreset")
+                        .WithMany()
+                        .HasForeignKey("WorkflowPresetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("DefaultApprover");
 
                     b.Navigation("RequestType");
+
+                    b.Navigation("WorkflowPreset");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.HtmlTemplateField", b =>
@@ -2516,11 +2648,18 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasForeignKey("RequestTypeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("SignFlow.Domain.Entities.WorkflowPreset", "WorkflowPreset")
+                        .WithMany()
+                        .HasForeignKey("WorkflowPresetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("DefaultApprover");
 
                     b.Navigation("RequestType");
+
+                    b.Navigation("WorkflowPreset");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.PdfTemplateField", b =>
@@ -2651,6 +2790,22 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowPresetStep", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ApproverUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SignFlow.Domain.Entities.WorkflowPreset", "WorkflowPreset")
+                        .WithMany("Steps")
+                        .HasForeignKey("WorkflowPresetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkflowPreset");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowStep", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.Recipient", "Recipient")
@@ -2731,6 +2886,11 @@ namespace SignFlow.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Workflow", b =>
+                {
+                    b.Navigation("Steps");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowPreset", b =>
                 {
                     b.Navigation("Steps");
                 });

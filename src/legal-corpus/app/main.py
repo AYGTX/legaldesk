@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import api, ui
+from app.services import playbook
 from app.auth import LoginRequired
 from app.services.llm import make_provider
 from app.config import BASE_DIR, Settings, load_settings
@@ -38,6 +39,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.session_factory = make_session_factory(settings.database_url)
+    with app.state.session_factory() as db:
+        playbook.bootstrap(db, settings.legacy_playbook_file, settings.seed_risks)
+        if settings.seed_risks:
+            playbook.seed_examples(db)
     app.state.embedder = None
     app.state.session_secret = settings.session_secret or _stored_secret(settings.session_secret_file)
     app.state.llm = make_provider(settings)

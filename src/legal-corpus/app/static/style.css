@@ -269,3 +269,31 @@ a.ref:hover { text-decoration-style: solid; }
 @media (max-width: 760px) { .defs { grid-template-columns: 1fr; } .defs dd { margin-bottom: 8px; } }
 
 .cov-question { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+.pager { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+.pager form { margin: 0; }
+
+/* Article tools stay folded so the law reads like a document. */
+.article-tools { margin-top: 4px; }
+.article-tools > summary { list-style: none; cursor: pointer; display: inline-block; font-size: .85em; color: var(--muted);
+  padding: 2px 8px; border-radius: 6px; }
+.article-tools > summary::-webkit-details-marker { display: none; }
+.article-tools > summary:hover, .article-tools[open] > summary { background: rgba(45, 52, 112, .07); color: var(--text); }
+.article-tools[open] { border-left: 2px solid var(--border); padding: 4px 0 4px 12px; margin: 6px 0; }
+.tools-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+.tools-row form { margin: 0; }
+.article { padding: 14px 0; }
+.goto-form { display: flex; gap: 6px; align-items: center; margin: 0; }
+.goto-form input { width: 90px; }
+
+.badge.risk-link { background: rgba(239, 128, 36, .12); color: #b85a0c; text-decoration: none; }
+.badge.risk-link:hover { background: rgba(239, 128, 36, .22); }
+
+.pb-detect { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.chip-off { opacity: .45; text-decoration: line-through; }
+.check-row { align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); margin: 0; }
+.check-row .check-toggle { display: flex; flex-direction: row; flex: 1 1 auto; gap: 10px; align-items: center; margin: 0;
+  font-weight: normal; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--text); }
+.check-row .check-toggle input { width: 16px; height: 16px; margin: 0; flex: 0 0 auto; }
+.check-row select { flex: 0 0 140px; }
+.check-row select { width: auto; }

@@ -40,7 +40,8 @@ public record HtmlTemplateDetailDto(
     List<HtmlTemplateFieldDto> Fields,
     Guid? RequestTypeId,
     string? RequestTypeName,
-    int? RequestTypeSlaHours);
+    int? RequestTypeSlaHours,
+    SignFlow.Application.Features.WorkflowPresets.TemplatePresetDto? WorkflowPreset = null);
 
 public class GetHtmlTemplateByIdQueryHandler(
     IApplicationDbContext db,
@@ -92,6 +93,7 @@ public class GetHtmlTemplateByIdQueryHandler(
                 f.DefaultValue)).ToList(),
             template.RequestTypeId,
             template.RequestType?.Name,
-            template.RequestType?.SlaHours);
+            template.RequestType?.SlaHours,
+            await SignFlow.Application.Features.WorkflowPresets.WorkflowPresetSummaries.LoadAsync(db, template.WorkflowPresetId, cancellationToken));
     }
 }

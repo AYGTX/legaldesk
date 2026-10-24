@@ -10,6 +10,8 @@ from app.services.splitter import normalize_number
 from app.services.textnorm import normalize_for_match
 
 MAX_LAW_CHARS = 50_000
+# Title, reference and summary are found at the start of a law; sending the whole code would exceed Groq's limits.
+METADATA_CHARS = 12_000
 
 
 # ------------------------------------------------------------------ 1. metadata for an imported law
@@ -33,7 +35,7 @@ class Metadata:
 
 
 def suggest_metadata(llm: LlmProvider, raw_text: str) -> Metadata:
-    answer = llm.complete_json(METADATA_SYSTEM, raw_text[:MAX_LAW_CHARS])
+    answer = llm.complete_json(METADATA_SYSTEM, raw_text[:METADATA_CHARS])
     reference = " ".join(str(answer.get("reference") or "").split())
     # A reference the text does not contain is a guess, and a wrong reference breaks the playbook's links.
     if reference and normalize_for_match(reference) not in normalize_for_match(raw_text):
@@ -50,7 +52,21 @@ def suggest_metadata(llm: LlmProvider, raw_text: str) -> Metadata:
 
 # ------------------------------------------------------------------ 2. articles that back a playbook rule
 
-ARTICLES_SYSTEM = """You help a lawyer link a contract risk to the articles of law that ground it. You get the risk and
+# Who Harvey works for and what a link between an article and a risk is for; shared by the suggestion prompts.
+CONTEXT = """Context: Harvey is the verified Tunisian law reference behind LegalDesk, a contract review tool used by
+in-house lawyers (for example at a Tunisian bank) to review commercial contracts with suppliers and customers.
+LegalDesk detects risky clauses in a contract (each risk is described below); for every risk found, the reviewer is
+shown the articles of law linked to that risk, to explain why the clause is risky or what the law requires instead.
+So an article grounds a risk only if a lawyer reviewing such a clause would cite that article to the business: it
+must govern the same legal question (same obligation, same type of clause, same party protection). An article on a
+neighbouring topic, or one that only shares a word with the risk (\"engagement\", \"responsabilité\",
+\"partie\"), does not ground it. Articles on capacity to contract, persons, family, succession or procedure rarely
+ground a contract-clause risk."""
+
+
+ARTICLES_SYSTEM = CONTEXT + """
+
+You help a lawyer link a contract risk to the articles of law that ground it. You get the risk and
 the articles of one Tunisian legal text. Answer with JSON only: {"articles": [{"number": "<article number as given>",
 "why": "<one sentence, in French, on why this article applies to the risk>"}]}. Pick at most 5 articles, most relevant
 first, and only articles that genuinely bear on the risk. If none does, answer {"articles": []}."""
@@ -86,6 +102,77 @@ def suggest_articles(llm: LlmProvider, risk: str, text: LegalText, already: set[
         suggestions.append(ArticleSuggestion(number, " ".join(str(item.get("why") or "").split())[:300],
                                              by_number[number].text))
     return suggestions[:5]
+
+
+# ------------------------------------------------------------------ 2b. risks an article might ground
+
+RULES_SYSTEM = CONTEXT + """
+
+You help a lawyer decide which contract risks, from a fixed list, an article of law could ground.
+You get the article's text and the list of risks, each with its key, its name and a description of what the risk is
+about. Read the descriptions: a risk fits only when the article's subject is the subject the description names, not
+when a word merely sounds related (an article on capacity to contract does not ground a risk about errors inside a
+contract).
+
+Work in two steps. First write the article's subject: the legal question it settles, in a few French words (for
+example "capacité du mineur commerçant", "réduction de la clause pénale par le juge"). Then, for each risk you
+consider, ask: does a clause carrying this risk raise exactly that legal question? Rate the fit "direct" only if it
+does; "indirect" if the article is merely on a neighbouring topic or only shares words with the risk.
+
+Answer with JSON only: {"subject": "<the article's subject>", "risks": [{"key": "<risk key>", "fit": "direct" or
+"indirect", "why": "<one sentence, in French, naming what the article requires or forbids that bears on this
+risk>"}]}. At most 3 risks, most relevant first. If none fits, answer {"subject": "...", "risks": []}: an empty
+answer is better than a loose one. Use only keys from the given list, copied exactly."""
+
+
+VERIFY_SYSTEM = CONTEXT + """
+
+You check proposed links between one article of law and contract risks, each risk on its own. For each risk, imagine a
+contract clause that carries the risk as described. Would a Tunisian lawyer, reviewing that clause, cite this article as the legal rule that makes
+the clause risky or that the clause must respect? Answer "yes" only if the article settles that very question for
+contracts between the parties; answer "no" if it concerns another situation (for example who may contract, a minor,
+procedure) even when words overlap. Answer with JSON only: {"cite": {"<risk key>": "yes" or "no", ...}}, one entry
+per risk given."""
+
+
+def confirmed(llm: LlmProvider, reference: str, number: str, text: str, risks: list[dict]) -> set[str]:
+    """One focused check of all suggested links at once; the keys answered "yes" are kept."""
+    if not risks:
+        return set()
+    listed = chr(10).join(f"- {r['key']} — {r['label']} : {r.get('description') or ''}" for r in risks)
+    prompt = f"Article {number} of {reference}:" + chr(10) + text[:MAX_LAW_CHARS] + chr(10) * 2 + "Risks:" + chr(10) + listed
+    answer = llm.complete_json(VERIFY_SYSTEM, prompt).get("cite")
+    if not isinstance(answer, dict):
+        return set()
+    # The model sometimes copies the whole line ("penalty — Clause pénale") instead of the key alone.
+    return {str(k).split("—")[0].split(":")[0].strip() for k, v in answer.items() if str(v).strip().lower() == "yes"}
+
+
+@dataclass
+class RuleSuggestion:
+    key: str
+    label: str
+    why: str = ""
+
+
+def suggest_rules(llm: LlmProvider, reference: str, number: str, text: str, rules: list[dict]) -> list[RuleSuggestion]:
+    catalog = "\n".join(f"- {r['key']} — {r['label']}" + (f" : {r['description']}" if r.get("description") else "")
+                        for r in rules)
+    answer = llm.complete_json(RULES_SYSTEM, f"Article {number} of {reference}:\n{text[:MAX_LAW_CHARS]}\n\nRisks:\n{catalog}")
+    by_label = {r["key"]: r["label"] for r in rules}
+    suggestions, seen = [], set()
+    for item in answer.get("risks") or answer.get("keys") or []:
+        if isinstance(item, dict) and str(item.get("fit", "direct")).lower() != "direct":
+            continue  # a neighbouring topic is not a legal basis
+        key = str((item.get("key") if isinstance(item, dict) else item) or "").strip()
+        why = " ".join(str(item.get("why") or "").split())[:300] if isinstance(item, dict) else ""
+        if key not in by_label or key in seen:
+            continue
+        seen.add(key)
+        suggestions.append(RuleSuggestion(key, by_label[key], why))
+    suggestions = suggestions[:3]
+    kept = confirmed(llm, reference, number, text, [r for r in rules if r["key"] in {s.key for s in suggestions}])
+    return [s for s in suggestions if s.key in kept]
 
 
 # ------------------------------------------------------------------ 3. other wordings of a risk

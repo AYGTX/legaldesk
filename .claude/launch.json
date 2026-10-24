@@ -4,15 +4,48 @@
     {
       "name": "signflow-frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "src/frontend", "run", "start"],
+      "runtimeArgs": [
+        "--prefix",
+        "src/frontend",
+        "run",
+        "start"
+      ],
       "port": 4200,
       "autoPort": true
     },
     {
       "name": "legal-corpus",
       "runtimeExecutable": "src/legal-corpus/.venv/Scripts/python.exe",
-      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", "src/legal-corpus", "--host", "127.0.0.1", "--port", "8100"],
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "src/legal-corpus",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8100"
+      ],
       "port": 8100
+    },
+    {
+      "name": "legaldesk-api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "src/backend/SignFlow.Api",
+        "--urls",
+        "http://localhost:5005"
+      ],
+      "port": 5005,
+      "env": {
+        "Demo__SeedContracts": "false",
+        "Ai__Provider": "Groq",
+        "ConnectionStrings__Redis": "",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     }
   ]
 }

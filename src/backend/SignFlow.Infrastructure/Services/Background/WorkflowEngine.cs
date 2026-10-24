@@ -179,12 +179,14 @@ public class WorkflowEngine(
         var document = await db.Documents
             .Include(d => d.Recipients)
             .Include(d => d.Workflow)
+                .ThenInclude(w => w.Steps)
             .FirstOrDefaultAsync(d => d.Id == documentId, cancellationToken);
 
         if (document is null) return;
 
         var recipient = document.Recipients.FirstOrDefault(r => r.Id == recipientId);
         recipient?.Reject(reason);
+        document.Workflow?.Steps.FirstOrDefault(s => s.RecipientId == recipientId)?.Reject(reason);
         document.Workflow?.Reject();
         document.SetStatus(DocumentStatus.Rejected);
 

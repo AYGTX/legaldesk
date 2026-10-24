@@ -27,12 +27,31 @@ _STRUCTURE = re.compile(
     r"^(?:LIVRE|Livre|TITRE|Titre|SOUS-TITRE|Sous-titre|Sous titre|CHAPITRE|Chapitre|SECTION|Section|SOUS-SECTION|"
     r"Sous-section|PARAGRAPHE|Paragraphe|Parag\.|الباب|القسم|العنوان)(?!\w)"
 )
+# An amendment note citing an amending text's own article ("(Abrogé et remplacé par art. 9 du décret-loi n° …)") can
+# have the page wrap right after the verb, landing "art. 9" at the very start of a line - which then reads exactly
+# like a genuine new heading. A real heading is never inside an open, unclosed "(...)" that reads as such a note.
+_OPEN_AMENDMENT_NOTE = re.compile(
+    r"\((?:(?!\)).)*?\b(?:modifiée?s?|ajoutée?s?|abrogée?s?|complétée?s?|remplacée?s?)\s+par\b(?:(?!\)).)*$",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 @dataclass(frozen=True)
 class SplitArticle:
     number: str
     text: str
+
+
+@dataclass(frozen=True)
+class Occurrence:
+    """One article heading match with its exact position in the raw text, duplicates included - unlike
+    split_articles, which only returns the parsed number and text. Lets a person remove one specific occurrence of a
+    repeated number (a stray cross-reference or a quoted footnote mistaken for a heading) without hand-editing the
+    full pasted text."""
+    number: str
+    text: str
+    start: int
+    end: int
 
 
 @dataclass(frozen=True)
@@ -77,9 +96,33 @@ def _strip_trailing_headings(paragraphs: list[str]) -> tuple[list[str], list[str
     return paragraphs, removed
 
 
+def _matches(text: str) -> list[re.Match]:
+    return [m for m in _HEADING.finditer(text) if not _OPEN_AMENDMENT_NOTE.search(text[max(0, m.start() - 300):m.start()])]
+
+
+def occurrences(raw_text: str) -> list[Occurrence]:
+    """Every article heading match with its exact span in the text, duplicates kept apart."""
+    text = raw_text.replace("\r\n", "\n")
+    matches = _matches(text)
+    result = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        paragraphs, _ = _strip_trailing_headings(unwrap(text[match.end():end]))
+        result.append(Occurrence(number=normalize_number(match.group("number")), text="\n".join(paragraphs),
+                                 start=match.start(), end=end))
+    return result
+
+
+def remove_occurrence(raw_text: str, start: int, end: int) -> str:
+    """Cuts one article occurrence (its heading and body) out of the text, by the exact span occurrences() gave for
+    it - used when a person resolves a duplicate number by picking which occurrence to drop."""
+    text = raw_text.replace("\r\n", "\n")
+    return text[:start] + text[end:]
+
+
 def split_articles(raw_text: str) -> SplitResult:
     text = raw_text.replace("\r\n", "\n")
-    matches = list(_HEADING.finditer(text))
+    matches = _matches(text)
     if not matches:
         return SplitResult(preamble="\n".join(unwrap(text)), articles=[])
 

@@ -1,3 +1,5 @@
+#if LEGACY_RULES
+// Tests of the keyword rules Harvey's review replaced; compiled only with LEGACY_RULES.
 using SignFlow.Application.Common.Services;
 
 namespace SignFlow.UnitTests.Application;
@@ -205,3 +207,4 @@ public class ContractRuleEngineTests
         Assert.Contains("médiateur", finding.Explanation);
     }
 }
+#endif

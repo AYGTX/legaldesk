@@ -37,7 +37,7 @@ public class AcknowledgeReviewCommandHandler(
             recipient.DocumentId,
             AuditAction.ReviewAcknowledged,
             command.IpAddress,
-            $"Confirmed the document and its AI review were read (review verdict: {document.ReadinessVerdict}" +
+            $"Confirmed the document and its Harvey review were read (review verdict: {document.ReadinessVerdict}" +
                 (document.ReadinessScore is { } score ? $", readiness {score}/100" : string.Empty) + ")",
             recipientId: recipient.Id,
             userAgent: command.UserAgent,

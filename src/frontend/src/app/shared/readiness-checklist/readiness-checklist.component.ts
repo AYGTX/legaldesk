@@ -1,8 +1,8 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -54,6 +54,13 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
             {{ 'shared.readiness.checklist.title' | translate }}
             <span class="count-chip">{{ openItems().length }}</span>
           </h3>
+          <span class="header-actions">
+          <button mat-button class="toggle-handled" (click)="accordion()?.openAll()">
+            <mat-icon>unfold_more</mat-icon> {{ 'shared.readiness.checklist.expandAll' | translate }}
+          </button>
+          <button mat-button class="toggle-handled" (click)="accordion()?.closeAll()">
+            <mat-icon>unfold_less</mat-icon> {{ 'shared.readiness.checklist.collapseAll' | translate }}
+          </button>
           @if (handledItems().length > 0) {
             <button mat-button class="toggle-handled" (click)="showHandled.set(!showHandled())">
               <mat-icon>{{ showHandled() ? 'visibility_off' : 'visibility' }}</mat-icon>
@@ -61,6 +68,7 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
                   | translate: { count: handledItems().length } }}
             </button>
           }
+          </span>
         </div>
 
         <mat-accordion multi>
@@ -109,6 +117,10 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
                     </button>
                   </div>
                 </div>
+              }
+
+              @if (referenceOf(item); as ref) {
+                <p class="item-reference">{{ 'documents.detail.analysis.reference' | translate }} : {{ ref }}</p>
               }
 
               @if (item.status !== 'Open' && item.resolutionNote) {
@@ -169,6 +181,7 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
     .checklist-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 600; color: var(--g-text); }
     .count-chip { font-size: 11.5px; font-weight: 700; background: var(--g-blue-container); color: var(--g-blue); border-radius: 20px; padding: 1px 9px; }
     .toggle-handled { font-size: 12.5px; }
+    .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
 
     .empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 0; color: var(--g-text-muted); text-align: center; }
     .empty mat-icon { font-size: 30px; width: 30px; height: 30px; color: #1e6b2e; }
@@ -176,6 +189,10 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
 
     .item-panel.handled { opacity: 0.62; }
     .item-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Let long finding titles wrap instead of being clipped by the fixed-height header. */
+    .item-panel ::ng-deep .mat-expansion-panel-header { height: auto; min-height: 48px; padding-top: 10px; padding-bottom: 10px; }
+    .item-panel ::ng-deep .mat-content { overflow: visible; }
+    .item-name { flex: 1 1 260px; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
     .status-icon { font-size: 19px; width: 19px; height: 19px; flex-shrink: 0; }
     .st-open { color: var(--g-text-muted); }
     .st-resolved { color: #1e6b2e; }
@@ -200,6 +217,7 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
     .accept-box { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #fef7e0; display: flex; flex-direction: column; gap: 6px; }
     .accept-box label { font-size: 12px; font-weight: 500; color: #b06000; }
     .accept-box textarea { width: 100%; box-sizing: border-box; border: 1px solid #e8c36a; border-radius: 6px; padding: 8px; font: inherit; font-size: 13px; }
+    .item-reference { font-size: 11.5px; color: var(--g-text-muted); margin: 0 0 8px; }
     .resolution-note { font-size: 12px; font-style: italic; color: var(--g-text-muted); margin: 0 0 8px; }
     .pre-line { white-space: pre-line; }
   `]
@@ -228,6 +246,7 @@ export class ReadinessChecklistComponent {
   readonly acceptReason = signal('');
 
   readonly busyId = signal<string | null>(null);
+  readonly accordion = viewChild(MatAccordion);
   readonly showHandled = signal(false);
 
   readonly openItems = computed(() => this.items().filter(i => i.status === 'Open'));
@@ -245,6 +264,13 @@ export class ReadinessChecklistComponent {
   /** Critical and high findings open by default — the reader should not have to hunt for them. */
   isSevere(item: ReadinessItem): boolean {
     return item.severity === 'Critical' || item.severity === 'High';
+  }
+
+  /** Where in the contract a risk sits: the evaluator keys risk items as "risk:clause|reference". */
+  referenceOf(item: ReadinessItem): string | null {
+    if (item.category !== 'Risk') return null;
+    const bar = item.sourceKey.indexOf('|');
+    return bar >= 0 ? item.sourceKey.slice(bar + 1) : null;
   }
 
   statusIcon(status: ReadinessItemStatus): string {

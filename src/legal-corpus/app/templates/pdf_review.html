@@ -17,7 +17,22 @@
 
   <section class="card">
     <h2>{{ t('pdf_found', count=split.articles|length) }}</h2>
-    {% if duplicates %}<div class="flash error">{{ t('pdf_duplicates', numbers=duplicates|join(', ')) }}</div>{% endif %}
+    {% if duplicates %}
+    <div class="flash error">{{ t('pdf_duplicates', numbers=duplicates|join(', ')) }}</div>
+    <p class="muted">{{ t('pdf_duplicates_resolve') }}</p>
+    {% for number in duplicates %}
+      <div class="article">
+        <div class="num">{{ t('article') }} {{ number }} — {{ dup_occurrences[number]|length }}</div>
+        {% for o in dup_occurrences[number] %}
+          <div class="row" style="align-items:flex-start;margin:6px 0">
+            <p class="body {{ rtl }}" style="flex:1 1 auto;margin:0">{{ o.text[:220] }}{{ '…' if o.text|length > 220 }}</p>
+            <button class="danger" type="submit" formaction="/import-pdf/review/remove-duplicate" formnovalidate
+                    name="span" value="{{ o.start }}:{{ o.end }}" style="flex:0 0 auto">{{ t('pdf_remove_occurrence') }}</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    {% endif %}
     {% if split.preamble %}
       <details><summary>{{ t('pdf_preamble') }}</summary><p class="body {{ rtl }}" style="white-space:pre-wrap">{{ split.preamble }}</p></details>
     {% endif %}

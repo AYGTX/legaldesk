@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Domain.Entities;
 using UglyToad.PdfPig;
+using UglyToad.PdfPig.Writer;
 
 namespace SignFlow.Infrastructure.Services.Pdf;
 
@@ -47,10 +48,24 @@ public class PdfPigService(ILogger<PdfPigService> logger) : IPdfService
         return Task.FromResult<Stream>(ms);
     }
 
-    public Task<Stream> MergePdfsAsync(IEnumerable<Stream> pdfs, CancellationToken cancellationToken = default)
+    /// <summary>Joins the PDFs end to end, in the order given. Each stream is read from its start.</summary>
+    public async Task<Stream> MergePdfsAsync(IEnumerable<Stream> pdfs, CancellationToken cancellationToken = default)
     {
-        var ms = new MemoryStream();
-        return Task.FromResult<Stream>(ms);
+        var files = new List<byte[]>();
+        foreach (var pdf in pdfs)
+        {
+            if (pdf.CanSeek) pdf.Position = 0;
+            using var buffer = new MemoryStream();
+            await pdf.CopyToAsync(buffer, cancellationToken);
+            files.Add(buffer.ToArray());
+        }
+
+        if (files.Count == 0)
+            throw new ArgumentException("There is nothing to merge.", nameof(pdfs));
+
+        // One file needs no merging, and the merger does not accept a list of one.
+        var merged = files.Count == 1 ? files[0] : PdfMerger.Merge(files);
+        return new MemoryStream(merged);
     }
 
     public Task<Stream> AddMetadataAsync(Stream pdfStream, Dictionary<string, string> metadata, CancellationToken cancellationToken = default)

@@ -20,7 +20,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { SigningService } from '../../core/services/signing.service';
 import { ReviewGateComponent } from '../../shared/review-gate/review-gate.component';
 import { ConfirmService } from '../../core/services/confirm.service';
-import { SigningSession, AssignedField, SignatureType, ChecklistItemInfo } from '../../core/models';
+import { SigningSession, AssignedField, FilledField, SignatureType, ChecklistItemInfo } from '../../core/models';
 import { SignatureDialogComponent } from './signature-dialog.component';
 import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/workflow-visualizer.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
@@ -71,7 +71,7 @@ import { environment } from '../../../environments/environment';
         @if (session() && session()!.isMyTurn && !session()!.isCompleted && !session()!.isRejected && !session()!.isExpired && session()!.documentStatus !== 'ChangesRequested' && session()!.recipient.approvalType !== 'ViewOnly') {
           @if (reviewMode()) {
             <div class="topbar-actions">
-              <button mat-stroked-button (click)="reviewMode.set(false)">
+              <button mat-stroked-button (click)="backToFields()">
                 <mat-icon>arrow_back</mat-icon> {{ 'signing.topbar.backToFields' | translate }}
               </button>
               <button mat-flat-button color="primary" (click)="approve()" [disabled]="approving() || !checklistComplete() || !gateCleared()"
@@ -115,7 +115,7 @@ import { environment } from '../../../environments/environment';
             <h2>{{ 'signing.viewer.title' | translate }}</h2>
             <p>{{ 'signing.viewer.body' | translate: { title: session()!.documentTitle } }}</p>
             @if (session()!.isHtmlTemplate && session()!.renderedHtmlContent) {
-              <div class="viewer-doc" [innerHTML]="session()!.renderedHtmlContent" (click)="onHtmlClick($event)"></div>
+              <div class="viewer-doc contract-doc" [innerHTML]="session()!.renderedHtmlContent" (click)="onHtmlClick($event)"></div>
             } @else {
               <button mat-flat-button color="primary" (click)="downloadDocument()" [disabled]="downloading()">
                 <mat-icon>open_in_new</mat-icon>
@@ -329,7 +329,7 @@ import { environment } from '../../../environments/environment';
             <div class="review-footer">
               <p class="review-legal" [innerHTML]="'signing.review.legalNotice' | translate"></p>
               <div class="review-actions">
-                <button mat-stroked-button (click)="reviewMode.set(false)">
+                <button mat-stroked-button (click)="backToFields()">
                   <mat-icon>arrow_back</mat-icon> {{ 'signing.topbar.backToFields' | translate }}
                 </button>
                 <button mat-flat-button color="primary" (click)="approve()" [disabled]="approving() || !checklistComplete()"
@@ -344,7 +344,7 @@ import { environment } from '../../../environments/environment';
           <!-- HTML Template Signing View -->
           <div class="html-signing-body">
             <div class="html-doc-panel">
-              <div class="html-doc-content" [innerHTML]="session()!.renderedHtmlContent" (click)="onHtmlClick($event)"></div>
+              <div class="html-doc-content contract-doc" [innerHTML]="session()!.renderedHtmlContent" (click)="onHtmlClick($event)"></div>
             </div>
             <div class="html-sig-panel">
               @if (session()!.fields.length > 0) {
@@ -472,6 +472,22 @@ import { environment } from '../../../environments/environment';
                     <div class="pdf-page-canvas-wrapper" [style.width.px]="pageWidth()" [style.height.px]="pageHeight()">
                       <canvas [id]="'pdf-canvas-' + pageNum"></canvas>
 
+                      <!-- Values other participants already filled in -->
+                      @for (f of filledOnPage(pageNum); track f.id) {
+                        <div class="filled-field"
+                             [style.left.px]="f.x" [style.top.px]="f.y"
+                             [style.width.px]="f.width" [style.height.px]="f.height"
+                             [style.font-family]="f.fontFamily" [style.font-size.px]="f.fontSize" [style.color]="f.fontColor"
+                             [matTooltip]="f.signerName ?? ''">
+                          @if (isMark(f)) {
+                            <mat-icon class="filled-mark">verified</mat-icon>
+                            <span class="filled-sig">{{ f.signerName || f.value }}</span>
+                          } @else {
+                            <span class="filled-text">{{ f.value }}</span>
+                          }
+                        </div>
+                      }
+
                       <!-- Fields on this page -->
                       @for (field of fieldsOnPage(pageNum); track field.id) {
                         <div class="sign-field-overlay"
@@ -526,6 +542,7 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly tick = signal(0);
   private tickInterval?: ReturnType<typeof setInterval>;
 
+  private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly signingService = inject(SigningService);
   private readonly confirmService = inject(ConfirmService);
@@ -656,6 +673,15 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.session()?.fields.filter(f => f.page === page) ?? [];
   }
 
+  filledOnPage(page: number): FilledField[] {
+    return this.session()?.filledFields?.filter(f => f.page === page) ?? [];
+  }
+
+  /** A drawn or stamped signature stores no text, only the kind of mark: show who signed instead. */
+  isMark(f: FilledField): boolean {
+    return /^(signature|initial|stamp)/i.test(f.fieldType) || ['Drawn', 'Typed', 'Uploaded', 'Stamp'].includes(f.value ?? '');
+  }
+
   remaining(): RemainingTime | null {
     this.tick();
     const s = this.session();
@@ -743,6 +769,37 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {}
 
+  /** Kept so the pages can be drawn again after review mode removed their canvases. */
+  private pdfDoc: { numPages: number; getPage(n: number): Promise<any> } | null = null;
+
+  private async renderPages(): Promise<void> {
+    const pdfDoc = this.pdfDoc;
+    if (!pdfDoc) return;
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      const page = await pdfDoc.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      if (i === 1) {
+        this.scale.set(1.5);
+        this.pageWidth.set(viewport.width);
+        this.pageHeight.set(viewport.height);
+      }
+      const canvas = document.getElementById(`pdf-canvas-${i}`) as HTMLCanvasElement;
+      if (!canvas) continue;
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d')!;
+      await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    }
+  }
+
+  /** Back from the review screen: the PDF viewer is created anew, so its pages must be drawn again. */
+  backToFields(): void {
+    this.reviewMode.set(false);
+    if (this.session()?.isHtmlTemplate) return;
+    this.pdfLoading.set(true);
+    setTimeout(() => this.loadPdf(this.session()?.storagePath ?? ''), 100);
+  }
+
   private async loadPdf(storagePath: string): Promise<void> {
     try {
       const pdfjsLib = await import('pdfjs-dist');
@@ -751,25 +808,12 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
       ).toString();
 
       // Fetch via the configured API base URL (works in dev where the SPA and API are on different ports)
-      const blob = await firstValueFrom(this.signingService.streamDocument(this.token));
-      const data = await blob.arrayBuffer();
-      const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
-
-      for (let i = 1; i <= pdfDoc.numPages; i++) {
-        const page = await pdfDoc.getPage(i);
-        const viewport = page.getViewport({ scale: 1.5 });
-        if (i === 1) {
-          this.scale.set(1.5);
-          this.pageWidth.set(viewport.width);
-          this.pageHeight.set(viewport.height);
-        }
-        const canvas = document.getElementById(`pdf-canvas-${i}`) as HTMLCanvasElement;
-        if (!canvas) continue;
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d')!;
-        await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+      if (!this.pdfDoc) {
+        const blob = await firstValueFrom(this.signingService.streamDocument(this.token));
+        const data = await blob.arrayBuffer();
+        this.pdfDoc = await pdfjsLib.getDocument({ data }).promise;
       }
+      await this.renderPages();
       this.pdfLoading.set(false);
     } catch {
       this.pdfLoading.set(false);
@@ -1013,10 +1057,11 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
     this.confirmService.prompt({
       message: this.translate.instant('signing.declineReasonPrompt'),
       inputType: 'textarea',
-      required: false
+      required: true,
+      disableClose: true
     }).subscribe(reason => {
-      if (reason === null) return; // Cancelled
-      this.reject(reason);
+      if (reason === null || !reason.trim()) return; // Cancelled, or nothing written
+      this.reject(reason.trim());
     });
   }
 
@@ -1054,7 +1099,11 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  /** Browsers only let a script close tabs it opened itself, so fall back to leaving the page. */
   closeTab(): void {
     window.close();
+    setTimeout(() => {
+      if (!window.closed) this.router.navigate(['/documents']);
+    }, 150);
   }
 }

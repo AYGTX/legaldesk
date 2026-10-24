@@ -1,0 +1,172 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   Contract theme — the look of every HTML contract.
+
+   ONE stylesheet, THREE places that must stay identical:
+     • here        (editor preview, signing view and new-request preview, via angular.json "styles")
+     • SignFlow.Infrastructure/Services/Pdf/ContractTheme.css  (embedded, injected into the Puppeteer PDF)
+   A unit test (ContractThemeSyncTests) fails when the two copies differ — edit both.
+
+   Everything is scoped under .contract-doc so it never leaks into the app. The generator prompt
+   (LlmAiService.GenerateHtmlFromTextAsync) lists the cd-* components below; add a component here and there together.
+   Plain CSS only (no nesting, no @layer) so it runs unchanged in the browser and in headless Chromium.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.contract-doc {
+  --cd-accent: #0b57d0;
+  --cd-accent-soft: #e8f0fe;
+  --cd-ink: #1f2328;
+  --cd-muted: #5f6b7a;
+  --cd-line: #d9dee5;
+  --cd-paper: #ffffff;
+  --cd-tint: #f6f8fb;
+  --cd-note: #0b57d0;
+  --cd-warn: #b45309;
+  --cd-serif: Georgia, "Liberation Serif", "Times New Roman", serif;
+  --cd-sans: "Google Sans", "Segoe UI", Roboto, Arial, "Liberation Sans", sans-serif;
+
+  counter-reset: cd-sec;
+  color: var(--cd-ink);
+  font-family: var(--cd-serif);
+  font-size: 15px;
+  line-height: 1.7;
+  text-align: left;
+  overflow-wrap: break-word;
+  font-variant-numeric: lining-nums;
+}
+.contract-doc *, .contract-doc *::before, .contract-doc *::after { box-sizing: border-box; }
+
+/* ── Plain elements: old templates with no cd-* classes still look composed ── */
+.contract-doc h1, .contract-doc h2, .contract-doc h3, .contract-doc h4 {
+  font-family: var(--cd-sans);
+  line-height: 1.3;
+  color: var(--cd-ink);
+  break-after: avoid;
+}
+.contract-doc h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.01em; }
+.contract-doc h2 { font-size: 18px; font-weight: 700; margin: 32px 0 10px; }
+.contract-doc h3 { font-size: 15px; font-weight: 700; margin: 22px 0 6px; }
+.contract-doc h4 { font-size: 13px; font-weight: 700; margin: 16px 0 4px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cd-muted); }
+.contract-doc p { margin: 0 0 12px; }
+.contract-doc ul, .contract-doc ol { margin: 0 0 12px; padding-left: 24px; }
+.contract-doc li { margin-bottom: 6px; }
+.contract-doc strong, .contract-doc b { font-weight: 700; }
+.contract-doc a { color: var(--cd-accent); }
+.contract-doc hr { border: 0; border-top: 1px solid var(--cd-line); margin: 24px 0; }
+
+.contract-doc table { width: 100%; border-collapse: collapse; margin: 14px 0 18px; font-size: 14px; break-inside: avoid; }
+.contract-doc th, .contract-doc td { border: 1px solid var(--cd-line); padding: 9px 12px; text-align: left; vertical-align: top; }
+.contract-doc th { background: var(--cd-tint); font-family: var(--cd-sans); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--cd-muted); }
+.contract-doc tbody tr:nth-child(even) td { background: #fbfcfd; }
+
+/* ── Title block ── */
+.contract-doc .cd-header {
+  margin: 0 0 28px;
+  padding: 0 0 22px;
+  border-bottom: 3px solid var(--cd-accent);
+}
+.contract-doc .cd-eyebrow {
+  font-family: var(--cd-sans);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--cd-accent); margin: 0 0 10px;
+}
+.contract-doc .cd-header h1 { margin: 0 0 6px; }
+.contract-doc .cd-subtitle { margin: 0; color: var(--cd-muted); font-size: 16px; }
+.contract-doc .cd-meta { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 18px 0 0; padding: 0; }
+.contract-doc .cd-meta > div { min-width: 120px; }
+.contract-doc .cd-meta dt { font-family: var(--cd-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cd-muted); margin: 0; }
+.contract-doc .cd-meta dd { margin: 2px 0 0; font-weight: 600; }
+
+/* ── Key terms at a glance ── */
+.contract-doc .cd-summary {
+  background: var(--cd-accent-soft);
+  border: 1px solid #c6d9fb;
+  border-left: 5px solid var(--cd-accent);
+  border-radius: 10px;
+  padding: 16px 20px 6px;
+  margin: 0 0 28px;
+  break-inside: avoid;
+}
+.contract-doc .cd-summary h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cd-accent); }
+.contract-doc .cd-summary dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 4px 28px; margin: 0; }
+.contract-doc .cd-summary dl > div { padding: 0 0 12px; }
+.contract-doc .cd-summary dt { font-family: var(--cd-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cd-muted); margin: 0; }
+.contract-doc .cd-summary dd { margin: 2px 0 0; font-weight: 700; font-size: 16px; }
+
+/* ── Parties ── */
+.contract-doc .cd-parties { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 0 0 28px; }
+.contract-doc .cd-party {
+  background: var(--cd-tint);
+  border: 1px solid var(--cd-line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  break-inside: avoid;
+}
+.contract-doc .cd-party-role { display: block; font-family: var(--cd-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cd-accent); margin-bottom: 4px; }
+.contract-doc .cd-party strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.contract-doc .cd-party p { margin: 0; font-size: 14px; color: var(--cd-muted); line-height: 1.55; }
+
+/* ── Numbered sections and clauses ── */
+.contract-doc .cd-section { counter-increment: cd-sec; counter-reset: cd-sub; margin: 0 0 8px; }
+.contract-doc .cd-section > h2 {
+  display: flex; align-items: center; gap: 12px;
+  margin: 30px 0 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--cd-line);
+}
+.contract-doc .cd-section > h2::before {
+  content: counter(cd-sec);
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--cd-accent); color: #fff;
+  font-size: 13px; font-weight: 700;
+}
+.contract-doc .cd-clauses { list-style: none; margin: 0 0 12px; padding: 0; }
+.contract-doc .cd-clauses > li { counter-increment: cd-sub; position: relative; padding-left: 44px; margin: 0 0 10px; }
+.contract-doc .cd-clauses > li::before {
+  content: counter(cd-sec) "." counter(cd-sub);
+  position: absolute; left: 0; top: 0;
+  font-family: var(--cd-sans); font-size: 13px; font-weight: 700; color: var(--cd-accent);
+}
+
+/* ── Callouts ── */
+.contract-doc .cd-callout {
+  margin: 16px 0; padding: 12px 16px;
+  border-radius: 8px; border: 1px solid #c6d9fb; border-left: 4px solid var(--cd-note);
+  background: var(--cd-accent-soft);
+  font-size: 14px; line-height: 1.6;
+  break-inside: avoid;
+}
+.contract-doc .cd-callout > :last-child { margin-bottom: 0; }
+.contract-doc .cd-callout-title { display: block; font-family: var(--cd-sans); font-weight: 700; margin-bottom: 2px; }
+.contract-doc .cd-callout.cd-warning { background: #fff7ed; border-color: #fed7aa; border-left-color: var(--cd-warn); }
+.contract-doc .cd-callout.cd-warning .cd-callout-title { color: var(--cd-warn); }
+
+/* ── Filled-in values (the {{placeholders}}) ── */
+.contract-doc .form-row { display: flex; align-items: baseline; gap: 14px; padding: 7px 0; border-bottom: 1px dotted var(--cd-line); break-inside: avoid; }
+.contract-doc .form-row > :first-child { flex: 0 0 38%; color: var(--cd-muted); font-family: var(--cd-sans); font-size: 13px; font-weight: 600; }
+.contract-doc .form-row > :last-child { flex: 1; }
+.contract-doc .field-value {
+  display: inline-block; min-width: 4ch;
+  padding: 0 6px; border-radius: 4px;
+  background: var(--cd-accent-soft); color: #0842a0;
+  font-weight: 600;
+}
+
+/* ── Signatures ── */
+.contract-doc .cd-signatures { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px; margin: 36px 0 8px; break-inside: avoid; }
+.contract-doc .cd-sign { break-inside: avoid; }
+.contract-doc .cd-sign-role { display: block; font-family: var(--cd-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cd-accent); margin-bottom: 8px; }
+.contract-doc .cd-sign-box { min-height: 72px; display: flex; align-items: flex-end; border-bottom: 1.5px solid var(--cd-ink); padding-bottom: 4px; }
+.contract-doc .cd-sign-name { margin: 6px 0 0; font-weight: 700; }
+.contract-doc .cd-sign-meta { margin: 0; font-size: 13px; color: var(--cd-muted); }
+
+/* ── Page breaks: keep small blocks whole when printed ── */
+.contract-doc .cd-section > h2, .contract-doc .cd-clauses > li, .contract-doc .cd-party { break-inside: avoid; }
+.contract-doc .cd-pagebreak { break-after: page; }
+
+@media (max-width: 560px) {
+  .contract-doc { font-size: 14px; }
+  .contract-doc h1 { font-size: 23px; }
+  .contract-doc .form-row { flex-direction: column; gap: 2px; }
+  .contract-doc .form-row > :first-child { flex: none; }
+  .contract-doc .cd-clauses > li { padding-left: 38px; }
+}

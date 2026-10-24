@@ -4,8 +4,6 @@ namespace SignFlow.IntegrationTests.Stubs;
 
 internal sealed class NullLegalCorpusClient : ILegalCorpusClient
 {
-    public bool IsEnabled => false;
-
     public Task<IReadOnlyList<LegalArticleContext>> SearchAsync(string query, int topK, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<LegalArticleContext>>([]);
 
@@ -18,4 +16,10 @@ internal sealed class NullLegalCorpusClient : ILegalCorpusClient
 
     public Task<ClauseClassification> ClassifyAsync(IReadOnlyList<ClauseText> clauses, CancellationToken ct = default) =>
         Task.FromResult(new ClauseClassification(false, []));
+
+    public Task<IReadOnlyList<RiskFinding>> ReviewAsync(IReadOnlyList<ClauseText> clauses, string? language, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<RiskFinding>>([]);
+
+    public Task<DetectedFormFields> DetectFormFieldsAsync(Stream pdf, string fileName, CancellationToken ct = default) =>
+        Task.FromResult(new DetectedFormFields(0, null, false, []));
 }

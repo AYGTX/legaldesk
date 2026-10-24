@@ -12,8 +12,6 @@
       max-width: 760px; margin: 0 auto;
       background: #fff; border: 1px solid #c7d0dc; border-radius: 12px;
       padding: 40px 48px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      font-family: 'Google Sans Text', 'Roboto', sans-serif;
-      font-size: 15px; line-height: 1.7; color: #1f1f1f;
     }
     .html-sig-panel {
       width: 320px; flex-shrink: 0; border-left: 1px solid #c7d0dc;
@@ -105,34 +103,34 @@
 
     /* Field Navigator */
     .field-navigator {
-      width: 280px; flex-shrink: 0;
+      width: 360px; flex-shrink: 0;
       background: white; border-right: 1px solid #e2e8f0;
       display: flex; flex-direction: column; overflow: hidden;
     }
-    .nav-header { padding: 16px; border-bottom: 1px solid #e2e8f0; }
-    .nav-header h3 { font-size: 15px; font-weight: 600; margin: 0 0 12px; color: #1e293b; }
-    .progress-bar-wrapper { height: 6px; background: #e2e8f0; border-radius: 3px; margin-bottom: 6px; }
+    .nav-header { padding: 20px; border-bottom: 1px solid #e2e8f0; }
+    .nav-header h3 { font-size: 17px; font-weight: 600; margin: 0 0 12px; color: #1e293b; }
+    .progress-bar-wrapper { height: 8px; background: #e2e8f0; border-radius: 3px; margin-bottom: 6px; }
     .progress-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; transition: width 0.3s; }
-    .progress-text { font-size: 13px; color: #64748b; }
+    .progress-text { font-size: 14px; color: #64748b; }
 
-    .field-list { flex: 1; overflow-y: auto; padding: 8px; }
+    .field-list { flex: 0 1 auto; max-height: 40%; overflow-y: auto; padding: 10px 12px; }
     .field-nav-item {
       display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      padding: 14px 14px; border-radius: 10px; cursor: pointer;
       margin-bottom: 4px; border: 1px solid transparent;
       transition: background 0.15s;
     }
     .field-nav-item:hover { background: #f1f5f9; }
     .field-nav-item.current { background: #eef2ff; border-color: #6366f1; }
     .field-nav-item.signed .nav-status-icon { color: #22c55e; }
-    .nav-status-icon { font-size: 18px; width: 18px; height: 18px; color: #94a3b8; flex-shrink: 0; }
+    .nav-status-icon { font-size: 22px; width: 22px; height: 22px; color: #94a3b8; flex-shrink: 0; }
     .nav-field-info { flex: 1; }
-    .nav-type { display: block; font-size: 14px; font-weight: 500; color: #1e293b; }
-    .nav-page { font-size: 12px; color: #94a3b8; }
+    .nav-type { display: block; font-size: 15px; font-weight: 500; color: #1e293b; }
+    .nav-page { font-size: 13px; color: #94a3b8; }
     .required-badge { font-size: 11px; background: #fef3c7; color: #d97706; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
 
     .doc-message {
-      margin: 8px; padding: 12px; background: #eff6ff;
+      margin: 8px 12px; padding: 14px; background: #eff6ff;
       border-radius: 8px; display: flex; gap: 8px;
       font-size: 13px; color: #3b82f6;
     }
@@ -303,7 +301,7 @@
     .review-legal { font-size: 13px; color: #64748b; margin: 0 0 20px; line-height: 1.6; }
     .review-actions { display: flex; gap: 12px; justify-content: flex-end; }
 
-.nav-comments { margin-top: 16px; border-top: 1px solid #e8edf2; padding-top: 12px; }
+.nav-comments { flex: 1 1 0; min-height: 160px; overflow-y: auto; margin-top: 8px; border-top: 1px solid #e8edf2; padding: 16px 20px 20px; box-sizing: border-box; }
 .waiting-comments { width: 100%; max-width: 560px; margin-top: 24px; text-align: left; }
 
 .role-info-card { display: flex; align-items: center; gap: 10px; background: #eef4fd; border: 1px solid #c2d7f5; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
@@ -344,3 +342,14 @@
   background: #e6f4ea;
   color: #137333;
 }
+
+/* Values already filled in by other participants: read-only, over the PDF */
+.filled-field {
+  position: absolute; display: flex; align-items: center; gap: 4px; overflow: hidden;
+  padding: 0 4px; box-sizing: border-box; pointer-events: auto;
+  background: rgba(230, 244, 234, 0.55); border: 1px solid rgba(52, 168, 83, 0.55); border-radius: 3px;
+  color: #1f2937; font-size: 13px;
+}
+.filled-text, .filled-sig { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.filled-sig { font-style: italic; }
+.filled-mark { font-size: 16px; width: 16px; height: 16px; color: #1e8e3e; flex-shrink: 0; }

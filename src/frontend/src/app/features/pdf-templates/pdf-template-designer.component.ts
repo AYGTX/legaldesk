@@ -15,18 +15,26 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { firstValueFrom } from 'rxjs';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ScanOverlayComponent } from '../../shared/scan-overlay/scan-overlay.component';
+import { PdfTextEditorDialogComponent, PdfTextEditorDialogData } from '../documents/pdf-text-editor-dialog.component';
+import { ClausePickerDialogComponent } from '../clauses/clause-picker-dialog.component';
+import { firstValueFrom, switchMap } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { v4 as uuidv4 } from 'uuid';
 import { PdfTemplateService } from '../../core/services/pdf-template.service';
 import { UserService } from '../../core/services/user.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
+import { WorkflowPresetService } from '../../core/services/workflow-preset.service';
+import { WorkflowPresetDto } from '../../core/models/workflow-preset.models';
 import {
   PdfFieldType, PdfFieldFillRole, PdfTemplateFieldDto, PDF_AUTO_FILL_OPTIONS
 } from '../../core/models/pdf-template.models';
 import { WorkflowType, UserDto, RequestType } from '../../core/models';
 import { formatSla } from '../../core/utils/sla';
 import { buildApprovalPath, compactStages } from './approval-path.util';
+import { StageLanesComponent } from '../../shared/stage-lanes/stage-lanes.component';
+import { WorkflowTypeToggleComponent } from '../../shared/workflow-type-toggle/workflow-type-toggle.component';
 
 interface TemplateField {
   tempId: string;
@@ -68,20 +76,14 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
     CommonModule, RouterLink, FormsModule, DragDropModule,
     MatToolbarModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatCheckboxModule, MatTooltipModule,
-    MatProgressSpinnerModule, MatSnackBarModule, TranslatePipe
-  ],
+    MatProgressSpinnerModule, MatSnackBarModule, MatDialogModule, StageLanesComponent, WorkflowTypeToggleComponent, TranslatePipe
+  , ScanOverlayComponent],
   template: `
     <div class="dz">
       <mat-toolbar class="dz-toolbar">
         <button mat-icon-button routerLink="/pdf-templates" [matTooltip]="'common.back' | translate"><mat-icon>arrow_back</mat-icon></button>
         <input class="tpl-name-input" [(ngModel)]="name" [placeholder]="'pdfTemplates.designer.namePlaceholder' | translate" />
         <span class="flex-1"></span>
-
-        <div class="wf-selector">
-          <button class="wf-btn" [class.active]="workflowType() === 'Sequential'" (click)="workflowType.set('Sequential')" [matTooltip]="'designer.workflow.sequentialHint' | translate"><mat-icon>linear_scale</mat-icon></button>
-          <button class="wf-btn" [class.active]="workflowType() === 'Parallel'" (click)="workflowType.set('Parallel')" [matTooltip]="'designer.workflow.parallelHint' | translate"><mat-icon>account_tree</mat-icon></button>
-          <button class="wf-btn" [class.active]="workflowType() === 'Mixed'" (click)="workflowType.set('Mixed')" [matTooltip]="'designer.workflow.mixedHint' | translate"><mat-icon>device_hub</mat-icon></button>
-        </div>
 
         <button class="grid-toggle" [class.active]="snapToGrid()" (click)="snapToGrid.set(!snapToGrid())"
                 [matTooltip]="'pdfTemplates.designer.snapToGrid' | translate">
@@ -95,6 +97,17 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
             <button mat-icon-button (click)="nextPage()" [disabled]="currentPage() >= pageCount()"><mat-icon>chevron_right</mat-icon></button>
           </div>
         }
+
+        <button mat-stroked-button [disabled]="!doc()" (click)="editText()"
+                [matTooltip]="'pdfTemplates.designer.editTextHint' | translate">
+          <mat-icon>edit_note</mat-icon> {{ 'documents.detail.editText.button' | translate }}
+        </button>
+
+        <button mat-stroked-button class="detect-btn" [disabled]="detecting() || !doc()" (click)="detectFields()"
+                [matTooltip]="'pdfTemplates.designer.detectFieldsHint' | translate">
+          <mat-icon>auto_awesome</mat-icon>
+          {{ detecting() ? ('pdfTemplates.designer.detecting' | translate) : ('pdfTemplates.designer.detectFields' | translate) }}
+        </button>
 
         @if (checkedCount() > 0) {
           <button mat-stroked-button color="warn" class="remove-selected-btn" (click)="removeChecked()"
@@ -110,10 +123,76 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
       </mat-toolbar>
 
       <div class="dz-body">
-        <!-- Field palette -->
-        <div class="palette" cdkDropList #paletteList="cdkDropList"
+        <!-- Left: how the people act (same place as in the document designer) -->
+        <aside class="side side-left">
+          <div class="props circuit-tab">
+            <label class="pl">{{ 'admin.workflows.pickLabel' | translate }}</label>
+            <mat-form-field appearance="outline" class="ff">
+              <mat-select [value]="workflowPresetId() ?? ''" (selectionChange)="onPresetChosen($event.value)">
+                <mat-option value="">{{ 'admin.workflows.pickNone' | translate }}</mat-option>
+                @for (p of selectablePresets(); track p.id) { <mat-option [value]="p.id">{{ p.name }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+
+            @if (selectedPreset(); as preset) {
+              <ol class="preset-steps">
+                @for (st of preset.steps; track st.order) {
+                  <li>
+                    <span class="preset-badge">{{ st.order }}</span>
+                    <span class="preset-who"><strong>{{ st.label || ('admin.workflows.step' | translate) }}</strong> · {{ stepWho(st) }}</span>
+                    @if (st.conditionFieldKey) { <span class="preset-cond">{{ 'admin.workflows.onlyWhen' | translate }} {{ st.conditionFieldKey }}{{ st.conditionOperator ? ' ' + st.conditionOperator + ' ' + st.conditionValue : '' }}</span> }
+                  </li>
+                }
+              </ol>
+              <p class="preset-note">{{ 'workflow.type.' + preset.workflowType | translate }} · {{ 'admin.workflows.follows' | translate }}</p>
+              @for (w of presetWarnings(); track w.code) {
+                <p class="preset-warn"><mat-icon>warning_amber</mat-icon> {{ 'admin.workflows.warn.' + w.code | translate: w.params }}</p>
+              }
+            } @else {
+            <sf-workflow-type-toggle [compact]="true" [value]="workflowType()" (valueChange)="setWorkflowType($event)"></sf-workflow-type-toggle>
+            }
+
+            @if (!selectedPreset() || needsDefaultApprover()) {
+            <label class="pl">{{ 'pdfTemplates.designer.defaultApprover' | translate }}</label>
+            <mat-form-field appearance="outline" class="ff">
+              <mat-select [value]="defaultApproverId() ?? ''" (selectionChange)="defaultApproverId.set($event.value || undefined)">
+                <mat-option value="">{{ 'pdfTemplates.designer.noDefaultApprover' | translate }}</mat-option>
+                @for (u of users(); track u.id) { <mat-option [value]="u.id">{{ u.fullName }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+            }
+            <mat-checkbox [checked]="hideIdentities()" (change)="hideIdentities.set($event.checked)">{{ 'designer.anon.hideIdentities' | translate }}</mat-checkbox>
+
+            @if (!selectedPreset()) { <ng-container *ngTemplateOutlet="pathPanel"></ng-container> }
+
+            <div class="annex-box">
+              <label class="pl">{{ 'pdfTemplates.annex.title' | translate }}</label>
+              <p class="annex-hint">{{ 'pdfTemplates.annex.designerHint' | translate }}</p>
+              @for (c of annexClauses(); track c.id) {
+                <div class="annex-row">
+                  <mat-icon>menu_book</mat-icon><span>{{ c.title }}</span>
+                  <button type="button" (click)="removeAnnexClause(c.id)" [attr.aria-label]="'common.delete' | translate"><mat-icon>close</mat-icon></button>
+                </div>
+              }
+              <button mat-stroked-button type="button" (click)="addAnnexClause()"><mat-icon>add</mat-icon> {{ 'pdfTemplates.annex.add' | translate }}</button>
+            </div>
+            <div class="default-approver-box">
+              <label class="pl">{{ 'pdfTemplates.designer.requestType' | translate }}</label>
+              <mat-form-field appearance="outline" class="ff">
+                <mat-select [value]="requestTypeId() ?? ''" (selectionChange)="requestTypeId.set($event.value || undefined)">
+                  <mat-option value="">{{ 'pdfTemplates.designer.noRequestType' | translate }}</mat-option>
+                  @for (rt of requestTypes(); track rt.id) { <mat-option [value]="rt.id">{{ rt.name }} ({{ formatSla(rt.slaHours) }})</mat-option> }
+                </mat-select>
+              </mat-form-field>
+              <mat-checkbox [checked]="isActive()" (change)="isActive.set($event.checked)">{{ 'pdfTemplates.designer.active' | translate }}</mat-checkbox>
+            </div>
+          </div>
+        </aside>
+
+       <div class="dz-center">
+        <!-- Field palette: a bar above the page -->
+        <div class="palette" cdkDropList #paletteList="cdkDropList" cdkDropListOrientation="horizontal"
              [cdkDropListConnectedTo]="canvasList ? [canvasList] : []" cdkDropListSortingDisabled>
-          <div class="palette-title">{{ 'pdfTemplates.designer.fieldTypes' | translate }}</div>
           @for (fd of fieldDefs; track fd.type) {
             <div class="palette-chip" [cdkDragData]="fd" cdkDrag>
               <div *cdkDragPreview class="drag-preview"><mat-icon>{{ fd.icon }}</mat-icon></div>
@@ -121,13 +200,7 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
               <span>{{ ('pdfTemplates.fieldTypes.' + fd.type) | translate }}</span>
             </div>
           }
-          <div class="legend">
-            <div class="legend-title">{{ 'pdfTemplates.designer.fillRoleLegend' | translate }}</div>
-            <div class="legend-item"><span class="dot" [style.background]="roleColors.Requester"></span>{{ 'pdfTemplates.fillRoles.Requester' | translate }}</div>
-            <div class="legend-item"><span class="dot" [style.background]="roleColors.Approver"></span>{{ 'pdfTemplates.fillRoles.Approver' | translate }}</div>
-            <div class="legend-item"><span class="dot" [style.background]="roleColors.System"></span>{{ 'pdfTemplates.fillRoles.System' | translate }}</div>
-          </div>
-          <div class="multi-hint">{{ 'pdfTemplates.designer.multiSelectHint' | translate }}</div>
+          <mat-icon class="palette-info" [matTooltip]="'pdfTemplates.designer.multiSelectHint' | translate">info_outline</mat-icon>
         </div>
 
         <!-- Canvas -->
@@ -139,6 +212,7 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
                [style.width.px]="canvasWidth()" [style.height.px]="canvasHeight()"
                (click)="onCanvasClick($event)">
             <canvas #pdfCanvas class="pdf-canvas"></canvas>
+            @if (detecting()) { <sf-scan-overlay /> }
             @if (snapToGrid()) {
               <div class="grid-overlay" [style.background-size]="gridSize + 'px ' + gridSize + 'px'"></div>
             }
@@ -159,7 +233,10 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
           </div>
         </div>
 
-        <!-- Properties panel -->
+       </div>
+
+        <!-- Right side: the selected field's properties, and the approval circuit -->
+        <aside class="side side-right">
         @if (selected(); as sel) {
           <div class="props">
             <div class="props-head">
@@ -230,33 +307,14 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
             <button mat-stroked-button color="warn" class="del-btn" (click)="deleteField(sel, $event)">
               <mat-icon>delete</mat-icon> {{ 'pdfTemplates.designer.removeField' | translate }}
             </button>
-            <ng-container *ngTemplateOutlet="pathPanel"></ng-container>
           </div>
         } @else {
           <div class="props empty-props">
             <mat-icon>touch_app</mat-icon>
             <p>{{ 'pdfTemplates.designer.selectOrDragHint' | translate }}</p>
-            <div class="default-approver-box">
-              <label class="pl">{{ 'pdfTemplates.designer.defaultApprover' | translate }}</label>
-              <mat-form-field appearance="outline" class="ff">
-                <mat-select [value]="defaultApproverId() ?? ''" (selectionChange)="defaultApproverId.set($event.value || undefined)">
-                  <mat-option value="">{{ 'pdfTemplates.designer.noDefaultApprover' | translate }}</mat-option>
-                  @for (u of users(); track u.id) { <mat-option [value]="u.id">{{ u.fullName }}</mat-option> }
-                </mat-select>
-              </mat-form-field>
-              <label class="pl">{{ 'pdfTemplates.designer.requestType' | translate }}</label>
-              <mat-form-field appearance="outline" class="ff">
-                <mat-select [value]="requestTypeId() ?? ''" (selectionChange)="requestTypeId.set($event.value || undefined)">
-                  <mat-option value="">{{ 'pdfTemplates.designer.noRequestType' | translate }}</mat-option>
-                  @for (rt of requestTypes(); track rt.id) { <mat-option [value]="rt.id">{{ rt.name }} ({{ formatSla(rt.slaHours) }})</mat-option> }
-                </mat-select>
-              </mat-form-field>
-              <mat-checkbox [checked]="isActive()" (change)="isActive.set($event.checked)">{{ 'pdfTemplates.designer.active' | translate }}</mat-checkbox>
-              <mat-checkbox [checked]="hideIdentities()" (change)="hideIdentities.set($event.checked)">{{ 'designer.anon.hideIdentities' | translate }}</mat-checkbox>
-            </div>
-            <ng-container *ngTemplateOutlet="pathPanel"></ng-container>
           </div>
         }
+        </aside>
       </div>
     </div>
 
@@ -268,6 +326,18 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
           <div class="path-empty">{{ 'pdfTemplates.designer.path.empty' | translate }}</div>
         }
 
+        @if (workflowType() === 'Mixed' && path().steps.length > 0) {
+          <sf-stage-lanes [items]="mixedItems()" (changed)="onStagesChanged($any($event))">
+            <ng-template #card let-s>
+              <div class="signer" [class.signer-selected]="selected()?.tempId === s.tempId" (click)="selectById(s.tempId)">
+                <div class="signer-text">
+                  <span class="signer-label">{{ s.label }}</span>
+                  <span class="signer-who" [class.pending]="s.atRequestTime">{{ whoLabel(s) }}</span>
+                </div>
+              </div>
+            </ng-template>
+          </sf-stage-lanes>
+        } @else {
         @for (step of path().steps; track step.index) {
           <div class="path-step">
             <span class="step-badge" [style.background]="stepColor(step.index)">{{ step.index }}</span>
@@ -298,6 +368,7 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
             </div>
           </div>
         }
+        }
 
         @if (path().steps.length > 0) {
           <div class="path-summary">
@@ -316,15 +387,12 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
     </ng-template>
   `,
   styles: [`
-    :host { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    :host { display: flex; flex-direction: column; height: calc(100% + 64px); margin: -32px -36px; overflow: hidden; }
     .dz { display: flex; flex-direction: column; flex: 1; min-height: 0; }
     .dz-toolbar { gap: 8px; background: #fff; border-bottom: 1px solid #e0e0e0; }
     .tpl-name-input { border: none; font-size: 16px; font-weight: 500; outline: none; padding: 6px 8px; border-radius: 6px; min-width: 240px; }
     .tpl-name-input:focus { background: #f1f3f4; }
     .flex-1 { flex: 1; }
-    .wf-selector { display: flex; gap: 2px; background: #f1f3f4; border-radius: 8px; padding: 2px; }
-    .wf-btn { border: none; background: transparent; border-radius: 6px; padding: 6px; cursor: pointer; color: #5f6368; display: flex; }
-    .wf-btn.active { background: #fff; color: #0b57d0; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
     .grid-toggle { border: 1px solid #dadce0; background: #fff; border-radius: 8px; padding: 6px; cursor: pointer; color: #5f6368; display: flex; }
     .grid-toggle.active { border-color: #0b57d0; background: #e8f0fe; color: #0b57d0; }
     .page-controls { display: flex; align-items: center; }
@@ -332,15 +400,17 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
     .save-btn { background: #0b57d0 !important; color: #fff !important; border-radius: 18px !important; }
 
     .dz-body { flex: 1; display: flex; overflow: hidden; }
-    .palette { width: 160px; border-right: 1px solid #e0e0e0; padding: 12px; overflow-y: auto; background: #fafafa; flex-shrink: 0; }
-    .palette-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #80868b; margin-bottom: 8px; }
-    .palette-chip { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 8px; background: #fff; margin-bottom: 6px; cursor: grab; font-size: 13px; }
+    .dz-center { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .palette { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #e0e0e0; padding: 8px 12px; overflow-x: auto; overflow-y: hidden; background: #fafafa; flex-shrink: 0; }
+    .palette-info { margin-left: auto; flex-shrink: 0; color: #80868b; cursor: help; }
+    .palette-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #80868b; margin-right: 4px; white-space: nowrap; flex-shrink: 0; }
+    .palette-chip { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 8px; background: #fff; cursor: grab; font-size: 13px; flex-shrink: 0; white-space: nowrap; }
     .palette-chip:hover { border-color: #0b57d0; }
     /* transition: none keeps CDK's drop animation from flying the preview toward the hidden placeholder. */
     .drag-preview { background: #0b57d0; color: #fff; padding: 8px; border-radius: 8px; transition: none; }
-    .legend { margin-top: 16px; }
-    .legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #80868b; margin-bottom: 6px; }
-    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6368; margin-bottom: 4px; }
+    .legend { display: flex; align-items: center; gap: 12px; }
+    .legend-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #80868b; white-space: nowrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6368; white-space: nowrap; }
     .legend-item .dot, .role-btn .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
     .canvas-area { flex: 1; min-height: 0; overflow: auto; padding: 24px; display: flex; justify-content: center; background: #eef1f4; position: relative; }
@@ -356,7 +426,8 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
     .placed-field { position: absolute; z-index: 2; border: 2px solid; border-radius: 4px; cursor: move; box-sizing: border-box; }
     .placed-field.selected { box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor; }
     .placed-field.checked { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #d93025; }
-    .multi-hint { margin-top: 14px; font-size: 11px; color: #80868b; line-height: 1.4; }
+    .multi-hint { display: flex; align-items: center; gap: 4px; max-width: 230px; font-size: 11px; color: #80868b; line-height: 1.3; }
+    .multi-hint mat-icon { font-size: 14px; width: 14px; height: 14px; flex-shrink: 0; }
     .remove-selected-btn { border-radius: 18px !important; }
     .pf-header { display: flex; align-items: center; gap: 4px; color: #fff; font-size: 11px; padding: 1px 4px; height: 18px; overflow: hidden; white-space: nowrap; }
     .pf-header mat-icon { font-size: 13px; width: 13px; height: 13px; }
@@ -365,7 +436,24 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
     .pf-del mat-icon { font-size: 14px; width: 14px; height: 14px; }
     .placed-field.selected .pf-del { display: flex; }
 
-    .props { width: 300px; border-left: 1px solid #e0e0e0; padding: 16px; overflow-y: auto; background: #fff; flex-shrink: 0; }
+    .side { width: 300px; background: #fff; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; }
+    .circuit-tab .path-box { margin-top: 12px; }
+    .annex-box { margin-top: 16px; border-top: 1px solid #e8edf2; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .annex-hint { margin: 0; font-size: 12px; color: #5f6368; line-height: 1.45; }
+    .annex-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid #e0e4ea; border-radius: 8px; background: #f8faff; font-size: 13px; }
+    .annex-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .annex-row mat-icon { font-size: 18px; width: 18px; height: 18px; color: #7627bb; }
+    .annex-row button { border: none; background: transparent; cursor: pointer; padding: 0; display: inline-flex; color: #5f6368; }
+    .preset-steps { list-style: none; margin: 4px 0 8px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .preset-steps li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; font-size: 13px; }
+    .preset-badge { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #0b57d0; color: #fff; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+    .preset-cond { width: 100%; padding-left: 30px; font-size: 12px; color: #b06000; }
+    .preset-note { margin: 0 0 8px; font-size: 12px; color: #5f6368; }
+    .preset-warn { display: flex; align-items: flex-start; gap: 6px; margin: 0 0 8px; font-size: 12px; line-height: 1.4; color: #b06000; }
+    .preset-warn mat-icon { font-size: 16px; width: 16px; height: 16px; flex: none; }
+    .side-left { width: 290px; border-right: 1px solid #e0e0e0; }
+    .side-right { border-left: 1px solid #e0e0e0; }
+    .props { flex: 1; padding: 16px; overflow-y: auto; background: #fff; min-height: 0; }
     .props-head { display: flex; align-items: center; justify-content: space-between; }
     .props-head h3 { font-size: 15px; margin: 0; }
     .pl { display: block; font-size: 12px; font-weight: 500; color: #5f6368; margin: 14px 0 4px; }
@@ -416,7 +504,9 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   private readonly svc = inject(PdfTemplateService);
   private readonly userService = inject(UserService);
   private readonly requestTypeSvc = inject(RequestTypeService);
+  private readonly presetSvc = inject(WorkflowPresetService);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
 
   readonly fieldDefs = PDF_FIELD_DEFS;
@@ -430,6 +520,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   readonly currentPage = signal(1);
   readonly pageCount = signal(1);
   readonly saving = signal(false);
+  readonly detecting = signal(false);
   readonly selected = signal<TemplateField | null>(null);
   /** Fields ticked for bulk actions with Ctrl/Shift+click or Ctrl+A. Separate from `selected`, which drives the properties panel. */
   readonly checked = signal<ReadonlySet<string>>(new Set());
@@ -443,6 +534,32 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   readonly isActive = signal(true);
   readonly defaultApproverId = signal<string | undefined>(undefined);
   readonly requestTypeId = signal<string | undefined>(undefined);
+  readonly workflowPresetId = signal<string | undefined>(undefined);
+  /** Clauses carried onto every request as an annex. */
+  readonly annexClauses = signal<{ id: string; title: string }[]>([]);
+  readonly presets = signal<WorkflowPresetDto[]>([]);
+  readonly selectedPreset = computed(() => this.presets().find(p => p.id === this.workflowPresetId()) ?? null);
+  /** Active workflows, plus the one this template already follows even if it has since been switched off. */
+  readonly selectablePresets = computed(() => this.presets().filter(p => p.isActive || p.id === this.workflowPresetId()));
+
+  private readonly approverSignatureCount = computed(() =>
+    this.fields().filter(f => f.fillRole === 'Approver' && f.type === 'Signature').length);
+
+  /** Signature fields past the workflow's last step still need someone: the default approver, or the requester's choice. */
+  readonly needsDefaultApprover = computed(() => this.approverSignatureCount() > (this.selectedPreset()?.steps.length ?? 0));
+
+  /** Where the workflow and the template's signature fields do not line up. */
+  readonly presetWarnings = computed(() => {
+    const preset = this.selectedPreset();
+    if (!preset) return [];
+    const steps = preset.steps.length;
+    const sigs = this.approverSignatureCount();
+    const warnings: { code: string; params: Record<string, string> }[] = [];
+    if (steps > sigs) warnings.push({ code: 'stepsIgnored', params: { steps: String(steps), fields: String(sigs), extra: String(steps - sigs) } });
+    if (sigs > steps) warnings.push({ code: 'fieldsUncovered', params: { steps: String(steps), fields: String(sigs), extra: String(sigs - steps) } });
+    if (!preset.isActive) warnings.push({ code: 'inactive', params: {} });
+    return warnings;
+  });
 
   readonly snapToGrid = signal(true);
   readonly gridSize = 10;
@@ -468,6 +585,71 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
    * the step badges use the Approver colour because steps only exist for approvers.
    */
   stepColor(_step: number): string { return ROLE_COLORS.Approver; }
+
+  /**
+   * Same rule as the request wizard: from "one after the other" each signature starts on its own stage, from
+   * "all at once" they all start on the same one. They can then be regrouped by dragging.
+   */
+  /** Adds an approved library clause to the annex every request from this template carries. */
+  addAnnexClause(): void {
+    this.dialog.open(ClausePickerDialogComponent, { width: '780px', maxWidth: '95vw' })
+      .afterClosed().subscribe((clause?: { id: string; title: string }) => {
+        if (!clause || this.annexClauses().some(c => c.id === clause.id)) return;
+        this.annexClauses.update(list => [...list, { id: clause.id, title: clause.title }]);
+      });
+  }
+
+  removeAnnexClause(id: string): void { this.annexClauses.update(list => list.filter(c => c.id !== id)); }
+
+  /** Picking a workflow hands routing over to it, so the workflow type follows the workflow. */
+  onPresetChosen(id: string): void {
+    this.workflowPresetId.set(id || undefined);
+    const preset = this.presets().find(p => p.id === id);
+    if (preset && preset.workflowType !== this.workflowType()) this.setWorkflowType(preset.workflowType);
+  }
+
+  stepWho(s: { kind: string; userName?: string; roleName?: string; department?: string }): string {
+    switch (s.kind) {
+      case 'User': return s.userName ?? '?';
+      case 'Role': return `${this.translate.instant('admin.workflows.kind.Role')}: ${s.roleName}`;
+      default: return `${this.translate.instant('admin.workflows.kind.Department')}: ${s.department}`;
+    }
+  }
+
+  setWorkflowType(type: WorkflowType): void {
+    const previous = this.workflowType();
+    if (type === previous) return;
+    if (type === 'Mixed') {
+      const together = previous === 'Parallel';
+      const order = this.signatureIds();
+      this.fields.update(fs => fs.map(f => order.includes(f.tempId)
+        ? { ...f, workflowStage: together ? 1 : order.indexOf(f.tempId) + 1 }
+        : f));
+    }
+    this.workflowType.set(type);
+  }
+
+  /** The signatures as stage items for the shared lane editor: the stage is the path step they run in. */
+  readonly mixedItems = computed(() =>
+    this.path().steps.flatMap(step => step.signers.map(s => ({ ...s, stage: step.index }))));
+
+  /** A drop in the lane editor: every signature takes its new stage, and approver fields that followed one move with it. */
+  onStagesChanged(items: { stage: number; tempId: string }[]): void {
+    const newStage = new Map(items.map(i => [i.tempId, i.stage]));
+    this.fields.update(fs => {
+      const stepOf = this.path().stepOf;
+      const stageOfStep = new Map<number, number>();
+      items.forEach(i => { const step = stepOf.get(i.tempId); if (step !== undefined && !stageOfStep.has(step)) stageOfStep.set(step, i.stage); });
+      return fs.map(f => {
+        if (newStage.has(f.tempId)) return { ...f, workflowStage: newStage.get(f.tempId)! };
+        const step = stepOf.get(f.tempId);
+        if (f.fillRole === 'Approver' && step !== undefined && stageOfStep.has(step)) return { ...f, workflowStage: stageOfStep.get(step)! };
+        return f;
+      });
+    });
+    const sel = this.selected();
+    if (sel) this.syncSelected(sel.tempId);
+  }
 
   stepOf(f: TemplateField): number | undefined { return this.path().stepOf.get(f.tempId); }
 
@@ -549,6 +731,11 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       error: () => {}
     });
 
+    this.presetSvc.getAll().subscribe({
+      next: p => this.presets.set(p),
+      error: () => {}
+    });
+
     this.svc.getById(this.templateId).subscribe({
       next: t => {
         this.name = t.name;
@@ -558,6 +745,8 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
         this.isActive.set(t.isActive);
         this.defaultApproverId.set(t.defaultApproverId);
         this.requestTypeId.set(t.requestTypeId);
+        this.workflowPresetId.set(t.workflowPreset?.id);
+        this.annexClauses.set((t.annexClauses ?? []).map(c => ({ id: c.id, title: c.title })));
         this.fields.set(t.fields.map(f => ({
           tempId: uuidv4(),
           id: f.id,
@@ -726,6 +915,68 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
     this.snack.open(this.translate.instant('pdfTemplates.designer.removedFields', { count }), 'OK', { duration: 3000 });
   }
 
+  /**
+   * Asks the server to find the contract's fields and adds the proposals to the canvas, unsaved: the admin moves,
+   * relabels or deletes them like any other field, and nothing is stored until Save. A proposal that overlaps a field
+   * already placed is skipped, so running it twice, or after placing fields by hand, adds nothing twice.
+   */
+  /** Click-to-edit view of the template's PDF text; after a save the page is redrawn from the edited file. */
+  editText(): void {
+    this.dialog.open(PdfTextEditorDialogComponent, {
+      data: { documentId: this.templateId, documentTitle: this.name, target: 'template' } satisfies PdfTextEditorDialogData,
+      width: '1000px',
+      maxWidth: '96vw',
+      disableClose: true
+    }).afterClosed().subscribe(result => {
+      if (!result) return;
+      this.pdfLoading.set(true);
+      this.loadPdf();
+    });
+  }
+
+  detectFields(): void {
+    this.detecting.set(true);
+    this.svc.stream(this.templateId).pipe(switchMap(blob => this.svc.detectFields(blob))).subscribe({
+      next: result => {
+        const taken = new Set(this.fields().map(f => f.fieldKey));
+        const existing = this.fields();
+        const added: TemplateField[] = [];
+        for (const d of result.fields) {
+          const overlaps = existing.some(f => f.page === d.page && this.overlaps(f, d));
+          if (overlaps) continue;
+          let key = d.fieldKey, n = 2;
+          while (taken.has(key)) key = `${d.fieldKey}_${n++}`;
+          taken.add(key);
+          added.push({
+            tempId: uuidv4(), fieldKey: key, label: d.label, type: d.type, fillRole: d.fillRole, page: d.page,
+            x: d.x, y: d.y, width: d.width, height: d.height, isRequired: d.isRequired,
+            autoFillFrom: d.autoFillFrom ?? undefined,
+            optionsJson: d.options.length ? JSON.stringify(d.options) : undefined,
+            workflowStage: 1
+          });
+        }
+        this.fields.update(fs => [...fs, ...added]);
+        this.detecting.set(false);
+        // With no vision model installed, an empty result usually means "static PDF": say why rather than "none found".
+        const key = added.length ? 'pdfTemplates.designer.detected'
+          : result.model === null && result.fields.length === 0 ? 'pdfTemplates.designer.detectNoModel'
+          : 'pdfTemplates.designer.detectNone';
+        this.snack.open(this.translate.instant(key, { count: added.length }), 'OK', { duration: 6000 });
+      },
+      error: (err: { status?: number }) => {
+        this.detecting.set(false);
+        const key = err?.status === 503 ? 'pdfTemplates.designer.detectUnavailable' : 'pdfTemplates.designer.detectFailed';
+        this.snack.open(this.translate.instant(key), 'OK', { duration: 5000 });
+      }
+    });
+  }
+
+  private overlaps(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
+    const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+    const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+    return w > 0 && h > 0 && (w * h) / Math.min(a.width * a.height, b.width * b.height) > 0.5;
+  }
+
   deleteField(field: TemplateField, event: Event): void {
     event.stopPropagation();
     this.fields.update(fs => fs.filter(f => f.tempId !== field.tempId));
@@ -841,7 +1092,9 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       fields,
       workflowType: this.workflowType(),
       hideRecipientIdentities: this.hideIdentities(),
-      requestTypeId: this.requestTypeId()
+      requestTypeId: this.requestTypeId(),
+      workflowPresetId: this.workflowPresetId(),
+      annexClauseIds: this.annexClauses().map(c => c.id)
     }).subscribe({
       next: () => {
         this.saving.set(false);

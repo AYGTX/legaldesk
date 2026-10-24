@@ -17,7 +17,8 @@ public record UpdateHtmlTemplateCommand(
     List<HtmlTemplateFieldInput> Fields,
     WorkflowType WorkflowType = WorkflowType.Sequential,
     bool HideRecipientIdentities = false,
-    Guid? RequestTypeId = null) : ICommand;
+    Guid? RequestTypeId = null,
+    Guid? WorkflowPresetId = null) : ICommand;
 
 public class UpdateHtmlTemplateCommandValidator : AbstractValidator<UpdateHtmlTemplateCommand>
 {
@@ -67,6 +68,11 @@ public class UpdateHtmlTemplateCommandHandler(
                 throw new Common.Exceptions.ValidationException("The selected request type is invalid or inactive.");
         }
 
+        if (command.WorkflowPresetId.HasValue
+            && command.WorkflowPresetId != template.WorkflowPresetId // a template may keep a preset that was deactivated since
+            && !await db.WorkflowPresets.AnyAsync(p => p.Id == command.WorkflowPresetId.Value && p.IsActive, cancellationToken))
+            throw new Common.Exceptions.ValidationException("The selected workflow is invalid or inactive.");
+
         template.Update(
             command.Name,
             command.HtmlContent,
@@ -76,6 +82,7 @@ public class UpdateHtmlTemplateCommandHandler(
             command.WorkflowType,
             command.HideRecipientIdentities,
             command.RequestTypeId);
+        template.SetWorkflowPreset(command.WorkflowPresetId);
 
         // Replace fields: remove old ones and add new ones
         var existingFields = template.Fields.ToList();

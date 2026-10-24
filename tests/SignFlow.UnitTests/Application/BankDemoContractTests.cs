@@ -1,3 +1,5 @@
+#if LEGACY_RULES
+// Tests of the keyword rules Harvey's review replaced; compiled only with LEGACY_RULES.
 using SignFlow.Application.Common.Services;
 
 namespace SignFlow.UnitTests.Application;
@@ -45,3 +47,4 @@ public class BankDemoContractTests
             ContractRuleEngine.Analyze("ARTICLE 1 - GARANTIE Une indemnisation de toute nature est due au Client en cas de sinistre survenu pendant la durée du présent contrat et pour toutes les prestations qui y sont décrites.").Findings,
             f => f.RuleKey == "indemnification").Explanation);
 }
+#endif

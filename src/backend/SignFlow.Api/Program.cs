@@ -39,6 +39,8 @@ try
     Log.Information("Starting LegalDesk API...");
 
     var builder = WebApplication.CreateBuilder(args);
+    // Machine-local settings that must never be committed (Seed:Users with passwords, keys). Optional.
+    builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
 
     builder.Host.UseSerilog((context, services, config) =>
         config.ReadFrom.Configuration(context.Configuration)
@@ -157,7 +159,7 @@ try
 
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
     {
-        Authorization = [new HangfireAuthFilter()]
+        Authorization = [new HangfireAuthFilter(app.Environment.IsDevelopment())]
     });
 
     // Recurring SLA sweep: mark overdue in-progress requests as Expired every 15 minutes.
@@ -219,12 +221,22 @@ finally
     Log.CloseAndFlush();
 }
 
-public class HangfireAuthFilter : Hangfire.Dashboard.IDashboardAuthorizationFilter
+/// <summary>
+/// The dashboard can trigger and delete background jobs, so it is closed by default: in development only requests
+/// from this machine get in; anywhere else only an authenticated Administrator does.
+/// </summary>
+public class HangfireAuthFilter(bool isDevelopment) : Hangfire.Dashboard.IDashboardAuthorizationFilter
 {
     public bool Authorize(Hangfire.Dashboard.DashboardContext context)
     {
-        // Hangfire dashboard requires local network access or admin JWT in production.
-        // For development, allow all; in production restrict via network policy.
-        return true;
+        var http = Hangfire.Dashboard.AspNetCoreDashboardContextExtensions.GetHttpContext(context);
+
+        if (isDevelopment)
+        {
+            var remote = http.Connection.RemoteIpAddress;
+            return remote is not null && System.Net.IPAddress.IsLoopback(remote);
+        }
+
+        return http.User.Identity?.IsAuthenticated == true && http.User.IsInRole("Administrator");
     }
 }

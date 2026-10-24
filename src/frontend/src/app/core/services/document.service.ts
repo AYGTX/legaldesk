@@ -1,3 +1,5 @@
+import { AskContractRequest, AskContractReply } from '../models/contract-chat.model';
+import { ContractScheduleRow, KeyTerms, RenewalNote } from '../models/contract-lifecycle-ai.model';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
@@ -25,6 +27,7 @@ export class DocumentService {
     pageSize?: number;
     search?: string;
     status?: string;
+    statuses?: string;
     sortBy?: string;
     descending?: boolean;
     requestTypeId?: string;
@@ -82,6 +85,21 @@ export class DocumentService {
     return this.api.patch<void>(`/v1/documents/${id}/term`, term);
   }
 
+  /** Every contract with its end date and notice deadline, most urgent first. */
+  getSchedule(): Observable<ContractScheduleRow[]> {
+    return this.api.get<ContractScheduleRow[]>('/v1/documents/schedule');
+  }
+
+  /** Harvey reads the contract's key data, each value with the sentence it comes from. Nothing is saved. */
+  extractKeyTerms(id: string, language: string): Observable<KeyTerms> {
+    return this.api.post<KeyTerms>(`/v1/documents/${id}/key-terms?language=${language}`, {});
+  }
+
+  /** Harvey's decision note for the contract's next deadline: renew, renegotiate or terminate. */
+  writeRenewalNote(id: string, language: string): Observable<RenewalNote> {
+    return this.api.post<RenewalNote>(`/v1/documents/${id}/renewal-note?language=${language}`, {});
+  }
+
   delete(id: string): Observable<void> {
     return this.api.delete<void>(`/v1/documents/${id}`);
   }
@@ -133,6 +151,11 @@ export class DocumentService {
   /** Runs the full model-backed legal review — takes tens of seconds, so this is user-triggered. */
   analyzeContract(id: string): Observable<ContractAnalysisResponse> {
     return this.api.post<ContractAnalysisResponse>(`/v1/documents/${id}/analyze`, {});
+  }
+
+  /** One turn of "ask the contract": answered from the contract's text only, with verified excerpts. */
+  askContract(id: string, request: AskContractRequest): Observable<AskContractReply> {
+    return this.api.post<AskContractReply>(`/v1/documents/${id}/ask`, request);
   }
 
   /** Checks the contract against the published regulatory watch registry — user-triggered. */

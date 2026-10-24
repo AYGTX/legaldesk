@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -20,7 +20,7 @@ import { formatSla } from '../../core/utils/sla';
   selector: 'sf-upload-document',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, ReactiveFormsModule,
+    CommonModule, ReactiveFormsModule,
     MatCardModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatProgressBarModule, MatSelectModule,
     MatTooltipModule, TranslatePipe
@@ -28,7 +28,6 @@ import { formatSla } from '../../core/utils/sla';
   template: `
     <div class="upload-page">
       <div class="page-header">
-        <button mat-icon-button routerLink="/documents"><mat-icon>arrow_back</mat-icon></button>
         <div>
           <h1 class="page-title">{{ 'documents.upload.title' | translate }}</h1>
           <p class="page-subtitle">{{ 'documents.upload.subtitle' | translate }}</p>

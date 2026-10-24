@@ -39,7 +39,7 @@
   },
   "newContractRequest": {
     "title": "New contract request",
-    "subtitle": "Upload the contract, let the AI review it first, settle what it finds, then choose who takes part and send.",
+    "subtitle": "Upload the contract, let Harvey review it first, settle what it finds, then choose who takes part and send.",
     "back": "Back",
     "saving": "Saving…",
     "uploading": "Uploading…",
@@ -47,7 +47,7 @@
     "uploadFailed": "Could not upload the file",
     "steps": {
       "request": "Request",
-      "review": "AI review",
+      "review": "Harvey review",
       "resolve": "Resolve",
       "people": "Participants",
       "send": "Send"
@@ -65,7 +65,7 @@
       "typeHint": "The type sets the deadline and decides which regulations the review checks."
     },
     "review": {
-      "title": "The AI is reading your contract",
+      "title": "Harvey is reading your contract",
       "note": "This takes a few moments. Nobody else sees the contract until you send it.",
       "failedTitle": "The review could not run",
       "failedHint": "The contract is saved as a draft. Try again, or continue without the review.",
@@ -88,13 +88,22 @@
       "hint": "Pick people from your organisation or add an outside signer. Order matters in a sequential circuit.",
       "sequential": "One after another",
       "parallel": "All at once",
+      "mixed": "In stages",
+      "mixedHint": "Drag each person into the stage you want. People on the same stage act at the same time; the next stage only starts once the previous one is done.",
+      "newStageHere": "Drop here to create a stage",
+      "signerFirstWarning": "A signer comes before (or at the same time as) a reviewer or approver: the contract could be signed before it has been reviewed. The signer should come last.",
+      "orderByRole": "Order by role",
+      "stageTogether": "Act at the same time",
+      "stageAlone": "One person",
+      "drag": "Drag to change stage",
+      "stage": "Stage",
       "pick": "Choose a person…",
       "external": "Outside signer…",
       "name": "Full name",
       "email": "Email address",
       "roleLabel": "Role in this contract (optional, e.g. Legal team)",
       "add": "Add a participant",
-      "signaturesAuto": "A signature box is placed for each signer on the last page. You can move it in the designer before sending.",
+      "signaturesAuto": "A signature box is placed automatically on the last page for each person whose role is \"Signs\". Approvers and reviewers do not get one. You can move them in the designer before sending.",
       "previewHint": "Blue boxes show where each signer will sign. You can move them in the designer before sending.",
       "unnamedSigner": "Signer",
       "save": "Save and continue",
@@ -114,7 +123,7 @@
     "send": {
       "title": "Check and send",
       "contract": "Contract",
-      "review": "AI review",
+      "review": "Harvey review",
       "deadline": "deadline",
       "openItems": "{{count}} finding(s) still open",
       "verdict": {
@@ -150,7 +159,8 @@
     "uploadFile": "Upload a new file",
     "usePdfTemplate": "Use a PDF template",
     "useHtmlTemplate": "Use an HTML template",
-    "insights": "Insights"
+    "insights": "Insights",
+    "schedule": "Contract schedule"
   },
   "layout": {
     "tagline": "Contract Lifecycle Management",
@@ -171,6 +181,7 @@
     "pageTitle": "Administration",
     "pageSubtitle": "Manage users, roles, and system settings",
     "tabs": {
+      "workflows": "Workflows",
       "users": "Users",
       "requestTypes": "Contract Types",
       "htmlTemplates": "Contract Templates",
@@ -241,6 +252,64 @@
       "createUser": "Create User",
       "saveChanges": "Save Changes",
       "operationFailed": "Operation failed"
+    },
+    "workflows": {
+      "back": "Back to workflows",
+      "unsaved": "Unsaved changes",
+      "preview": "Preview",
+      "previewHint": "How the path will look to the person making a request.",
+      "together": "At the same time",
+      "discardTitle": "Leave without saving?",
+      "discardMessage": "Your changes to this workflow have not been saved and will be lost.",
+      "discard": "Leave without saving",
+      "keepEditing": "Keep editing",
+      "intro": "Reusable approval paths. A template follows one, so the path is defined once and changed in one place.",
+      "new": "New workflow",
+      "search": "Search workflows…",
+      "noMatch": "No workflow matches this search.",
+      "createTitle": "New workflow",
+      "editTitle": "Edit workflow",
+      "name": "Name",
+      "namePlaceholder": "e.g. Contracts over 10,000 TND",
+      "howTheyAct": "How the approvers act",
+      "steps": "Steps",
+      "stepsHint": "Step 1 goes to the template's first approver signature field, step 2 to the second, and so on.",
+      "stepLabel": "What this step is for",
+      "stepLabelPlaceholder": "e.g. Legal review",
+      "stage": "Stage",
+      "approver": "Approver",
+      "step": "Step",
+      "kind": {
+        "User": "Person",
+        "Role": "Role",
+        "Department": "Department"
+      },
+      "exactlyOne": "A role or department is looked up when the request is created and must match exactly one active person, otherwise the request is refused. Name the person instead if several people share it.",
+      "onlyWhen": "Only when",
+      "fieldKey": "Field key",
+      "operator": "Comparison",
+      "isFilled": "is filled in",
+      "value": "Value",
+      "conditionHint": "Compares the answer given to this field in the request. If the answer is left blank the step still applies, so an approval is never skipped by accident.",
+      "addStep": "Add step",
+      "none": "No workflow yet.",
+      "createFirst": "Create your first workflow",
+      "usedBy": "Used by {{count}} template(s)",
+      "nameRequired": "Enter a name.",
+      "saved": "Workflow saved",
+      "saveFailed": "The workflow could not be saved.",
+      "deleteTitle": "Delete workflow",
+      "deleteMessage": "Delete \"{{name}}\"?",
+      "deleted": "Workflow deleted",
+      "deleteFailed": "The workflow could not be deleted.",
+      "pickLabel": "Workflow",
+      "pickNone": "No workflow (set the approvers on this template)",
+      "follows": "Routing follows this workflow",
+      "warn": {
+        "stepsIgnored": "The workflow has {{steps}} steps but this template has {{fields}} approver signature field(s): the last {{extra}} step(s) are ignored.",
+        "fieldsUncovered": "{{extra}} approver signature field(s) come after the workflow's {{steps}} step(s) and fall back to the default approver or the requester's choice.",
+        "inactive": "This workflow is switched off. Requests cannot be created until you choose another one or switch it back on."
+      }
     },
     "requestTypes": {
       "intro": "Configure the request categories and their signing deadlines (SLA). This is the source of truth applied to every new request.",
@@ -431,11 +500,16 @@
       "searchPlaceholder": "Search contracts…",
       "clearSearch": "Clear",
       "allStatuses": "All",
+      "statusFilter": "Status",
+      "statusesSelected": "{{count}} statuses",
+      "showHistory": "Show other contracts you received",
+      "hideHistory": "Hide other contracts you received",
       "allTypes": "All types",
       "status": {
         "Draft": "Draft",
         "Pending": "Pending",
         "Sent": "Sent",
+        "InProgress": "In progress",
         "Completed": "Completed",
         "Rejected": "Rejected",
         "Expired": "Expired",
@@ -467,6 +541,7 @@
         "Draft": "Draft",
         "Pending": "Pending",
         "Sent": "Sent",
+        "InProgress": "In progress",
         "Completed": "Completed",
         "Rejected": "Rejected",
         "Expired": "Expired",
@@ -496,6 +571,8 @@
         "inProgress": "In Progress",
         "skipped": "Skipped",
         "delegated": "Delegated",
+        "notRequired": "Not required",
+        "expired": "Expired",
         "pending": "Pending",
         "changesRequested": "Changes requested"
       },
@@ -524,11 +601,15 @@
       "fields": {
         "total": "Total fields",
         "signed": "Signed",
-        "pending": "Pending"
+        "pending": "Pending",
+        "filledByOwner": "Filled in by the requester",
+        "signaturesSigned": "signatures done",
+        "otherFields": "+ {{count}} field(s) to fill in (text, date…)",
+        "showLess": "Show less"
       },
       "fieldPage": "Page {{page}}",
       "moreFields": "+{{count}} more fields",
-      "aiSummary": "AI Summary",
+      "aiSummary": "Harvey Summary",
       "generated": "Generated {{date}}",
       "summaryError": "Could not generate summary",
       "noSummary": "No summary yet",
@@ -550,6 +631,11 @@
         "copied": "Copied to clipboard",
         "addToLibrary": "Add to clause library",
         "addedToLibrary": "Clause added to the library as a draft",
+        "handled": "Handled ({{count}})",
+        "profileTitle": "Contract profile",
+        "noneOpen": "Nothing left to handle.",
+        "status": { "Open": "Open", "Resolved": "Fixed", "Dismissed": "Dismissed" },
+        "filterAll": "All",
         "whyItMatters": "Why it matters",
         "recommendedAction": "Recommended action",
         "proposedLanguage": "Proposed language",
@@ -607,7 +693,7 @@
         "title": "Obligation Tracking",
         "dueDate": "Due date",
         "type": "Obligation type",
-        "suggested": "AI-suggested — please confirm",
+        "suggested": "Harvey-suggested — please confirm",
         "edit": "Edit obligation",
         "save": "Save",
         "saveFailed": "Failed to save obligation",
@@ -620,6 +706,36 @@
       "reopenFailed": "Failed to reopen request",
       "changesRequestedTitle": "Changes requested",
       "changesRequestedBy": "{{name}} requested changes",
+      "rejectedTitle": "Contract declined",
+      "rejectedBy": "{{name}} declined this contract",
+      "rejectedNoReason": "no reason given",
+      "rejectedHint": "A participant declined this contract.",
+      "circuit": {
+        "title": "Signing circuit",
+        "sequential": "Sequential — each signer is notified after the previous one",
+        "notifiedAfter": "Notified after step {{step}}"
+      },
+      "rail": {
+        "imported": "Imported", "review": "Review", "signature": "Signature", "active": "Active",
+        "reviewOpen": "{{count}} to handle", "reviewHandled": "All handled",
+        "declinedBy": "Declined by {{name}}", "paused": "Paused", "waitingOn": "Waiting on {{name}}",
+        "draftHint": "Not sent yet.", "risk": "Risk", "fitness": "Readiness",
+        "riskAnalysed": "Risk scored on the text analysed on {{date}}.",
+        "riskStale": "{{count}} point(s) handled since: re-run the review on the corrected version to update it."
+      },
+      "send": {
+      "intro": "Your request is filled in but not sent yet. Harvey has read the contract with your answers. Resolve the critical findings, then send it.",
+      "button": "Send for signature",
+      "sending": "Sending…",
+      "sent": "Request sent."
+    },
+    "next": {
+        "title": "Next actions", "none": "Nothing to do for now.",
+        "fixDecline": "Deal with the refusal", "fixDeclineSub": "See the signing circuit",
+        "risks": "{{count}} high-severity risk(s)", "risksSub": "Open the legal review",
+        "setTerm": "Record the contract term", "setTermSub": "No term entered",
+        "points": "Open points", "open": "to handle", "handled": "{{count}} already handled"
+      },
       "changesRequestedHint": "A participant requested changes. Upload a revised PDF to restart the approval round.",
       "changeNotePlaceholder": "What changed in this revision? (optional)",
       "uploadRevision": "Upload Revision",
@@ -653,6 +769,19 @@
         "hint": "Look through the contract below — details, participants, history — then continue when you are ready."
       },
       "editText": {
+        "recs": {
+          "title": "Recommendations",
+          "hint": "Click a line in the PDF to choose where to write, then click a piece of the proposed wording to put it there.",
+          "selected": "Selected line:",
+          "none": "No line selected: click a line in the PDF first.",
+          "why": "Why it matters",
+          "action": "Recommended action",
+          "proposed": "Proposed wording",
+          "copy": "Copy",
+          "copied": "Wording copied.",
+          "use": "Put this in the selected line",
+          "segmentTip": "Each piece fits on one line. Click one to replace the selected line with it."
+        },
         "button": "Edit text",
         "title": "Edit contract text",
         "hint": "Click a line to change it. Edited lines turn amber; nothing is saved until you save.",
@@ -679,7 +808,11 @@
       "versionTooltip": "This contract has been revised — see the version history",
       "tabs": {
         "overview": "Overview",
-        "intelligence": "Legal intelligence"
+        "intelligence": "Legal intelligence",
+        "summary": "Summary",
+        "review": "Legal review",
+        "harvey": "Ask Harvey",
+        "signing": "Signing & follow-up"
       },
       "readiness": {
         "ctaTitle": "This contract has not been reviewed yet",
@@ -740,7 +873,63 @@
         "downloadVersion": "Download v{{version}}",
         "downloadFailed": "That version could not be downloaded."
       },
-      "severityPossible": "To review — possible risks"
+      "severityPossible": "To review — possible risks",
+      "chat": {
+        "title": "Ask the contract",
+        "empty": "Ask a question about this contract. Answers come only from its text, with the passages that support them.",
+        "placeholder": "Ask about this contract…",
+        "send": "Send",
+        "clear": "Clear conversation",
+        "thinking": "Reading the contract…",
+        "disclaimer": "An aid to reading, not legal advice. Check important points in the contract itself, or with a lawyer.",
+        "verifiedHint": "Found word for word in the contract",
+        "unverified": "No supporting passage was found in the contract — treat this answer as unverified.",
+        "suggestions": {
+          "term": "What is the term and how does it renew?",
+          "termination": "How can each party terminate?",
+          "liability": "Is liability capped?",
+          "payment": "What are the payment terms?"
+        },
+        "errors": {
+          "notConfigured": "Harvey is not configured on this server.",
+          "forbidden": "Only the contract owner or an administrator can ask questions about it.",
+          "unreadable": "This contract has no readable text to answer from.",
+          "failed": "Harvey could not answer. Please try again."
+        }
+      },
+      "lifecycleAi": {
+        "title": "Harvey — key data and renewal",
+        "extract": "Extract key data",
+        "note": "Renewal note",
+        "needEndDate": "Record the contract's end date first.",
+        "keyData": "Key data (each value comes with the contract's sentence)",
+        "nothingFound": "Harvey found no key data it could point to in the contract.",
+        "apply": "Apply to the contract term",
+        "applyHint": "Fills start date, end date, renewal and notice period. You can still edit them.",
+        "noteTitle": "Renewal note",
+        "deadline": "Last day to give notice: {{date}}",
+        "disclaimer": "Written by Harvey from the contract and the recorded dates. A decision aid, not legal advice.",
+        "failed": "Harvey could not answer this time. Try again in a moment.",
+        "reco": {
+          "Renew": "Renew",
+          "Renegotiate": "Renegotiate",
+          "Terminate": "Terminate",
+          "Review": "To review"
+        },
+        "field": {
+          "parties": "Parties",
+          "start_date": "Start date",
+          "end_date": "End date",
+          "duration": "Duration",
+          "auto_renewal": "Automatic renewal",
+          "notice_period_days": "Notice period (days)",
+          "amount": "Amount",
+          "payment_terms": "Payment terms",
+          "governing_law": "Governing law",
+          "jurisdiction": "Jurisdiction"
+        },
+        "applied": "Applied to the contract term (see the Summary tab)."
+      }
     },
     "upload": {
       "title": "Upload Contract",
@@ -857,7 +1046,13 @@
       "Dropdown": "Dropdown",
       "Radio": "Radio",
       "Stamp": "Stamp",
-      "Attachment": "Attachment"
+      "Attachment": "Attachment",
+      "MultilineText": "Long text",
+      "Number": "Number",
+      "Image": "Image",
+      "QrCode": "QR code",
+      "Barcode": "Barcode",
+      "Custom": "Custom"
     },
     "canvas": {
       "requiredSuffix": "(required)",
@@ -867,6 +1062,8 @@
       "heading": "Field Properties",
       "fieldType": "Field Type",
       "assignedTo": "Assigned To",
+      "fieldLabel": "Field name",
+      "fieldLabelPlaceholder": "e.g. Client name",
       "requiredCheckbox": "Participants must complete this field",
       "position": "Position",
       "size": "Size",
@@ -1094,7 +1291,19 @@
     "noDocumentsWaiting": "No contracts are waiting for your signature",
     "noActionWaiting": "No contracts are waiting for your action",
     "needsAction": "Needs your action",
-    "history": "History",
+    "history": "Other contracts",
+    "yourTask": "Your role",
+    "view": "View",
+    "taskNote": {
+      "youDeclined": "You declined this contract — the process is over.",
+      "declinedNothingToDo": "This contract was declined — you have nothing left to do.",
+      "cancelledNothingToDo": "This contract was cancelled — you have nothing to do.",
+      "expiredNothingToDo": "This request has expired — you have nothing to do.",
+      "youDone": "You have completed your step.",
+      "contractDone": "This contract is complete — you have nothing to do.",
+      "paused": "Contract paused, waiting for the owner's revision.",
+      "waitingTurn": "It is not your turn yet."
+    },
     "from": "From",
     "deadline": "Deadline {{date}}",
     "signNow": "Sign Now",
@@ -1128,6 +1337,7 @@
       "changesRequested": "Changes requested"
     },
     "new": {
+      "approverByWorkflow": "Step {{step}} of the workflow “{{workflow}}”: {{who}}.",
       "pageTitle": "New Request",
       "pageSub": "Fill out a template and send it for approval.",
       "stepChoose": "Choose template",
@@ -1179,6 +1389,7 @@
     "actionFailed": "Something went wrong — please try again"
   },
   "audit": {
+    "system": "System",
     "title": "Traceability",
     "subtitle": "Complete activity log for this contract",
     "exportCsv": "Export CSV",
@@ -1217,7 +1428,16 @@
       "AuthenticationEvent": "Authentication event",
       "ChangesRequested": "Changes requested",
       "RevisionUploaded": "Revision uploaded",
-      "SignaturesVoided": "Signatures voided"
+      "SignaturesVoided": "Signatures voided",
+      "ContractAnalysed": "Contract analysed by Harvey",
+      "ComplianceAnalysed": "Compliance analysed by Harvey",
+      "ReadinessEvaluated": "Pre-flight review run",
+      "ReadinessItemUpdated": "Review point updated",
+      "VersionsCompared": "Versions compared",
+      "ReviewAcknowledged": "Review acknowledged",
+      "ContractQuestionAsked": "Question asked to Harvey about the contract",
+      "ContractKeyTermsExtracted": "Key data extracted by Harvey",
+      "ContractRenewalNoteWritten": "Renewal note written by Harvey"
     }
   },
   "orgAudit": {
@@ -1261,7 +1481,16 @@
       "AuthenticationEvent": "Authentication event",
       "ChangesRequested": "Changes requested",
       "RevisionUploaded": "Revision uploaded",
-      "SignaturesVoided": "Signatures voided"
+      "SignaturesVoided": "Signatures voided",
+      "ContractAnalysed": "Contract analysed by Harvey",
+      "ComplianceAnalysed": "Compliance analysed by Harvey",
+      "ReadinessEvaluated": "Pre-flight review run",
+      "ReadinessItemUpdated": "Review point updated",
+      "VersionsCompared": "Versions compared",
+      "ReviewAcknowledged": "Review acknowledged",
+      "ContractQuestionAsked": "Question asked to Harvey about the contract",
+      "ContractKeyTermsExtracted": "Key data extracted by Harvey",
+      "ContractRenewalNoteWritten": "Renewal note written by Harvey"
     }
   },
   "templates": {
@@ -1308,6 +1537,25 @@
       "description": "Bring your own PDF and place signature fields from scratch. Best for one-off contracts you won't reuse."
     }
   },
+  "workflow": {
+    "type": {
+      "Sequential": "One after the other",
+      "Parallel": "All at once",
+      "Mixed": "In stages"
+    },
+    "hint": {
+      "Sequential": "Each person acts in turn, in the order of the list.",
+      "Parallel": "Everyone acts at the same time.",
+      "Mixed": "Same stage = at the same time; the next stage only starts once the previous one is done. Drag people to group them."
+    },
+    "stages": {
+      "stage": "Stage",
+      "together": "At the same time",
+      "alone": "One person",
+      "newStageHere": "Drop here to create a stage",
+      "drag": "Drag to change stage"
+    }
+  },
   "shared": {
     "pdfPreview": {
       "loading": "Loading the contract…",
@@ -1339,6 +1587,14 @@
       "minutesAgo": "{{count}}m ago",
       "hoursAgo": "{{count}}h ago",
       "daysAgo": "{{count}}d ago"
+    },
+    "scanOverlay": {
+      "reading": "Reading the page",
+      "blanks": "Looking for blanks to fill",
+      "checkboxes": "Spotting checkboxes",
+      "signatures": "Finding signature lines",
+      "labels": "Naming each field",
+      "almost": "Almost there"
     },
     "workflowVisualizer": {
       "header": "Sequential signing — each signatory is notified only after the previous one finishes",
@@ -1414,6 +1670,8 @@
         "reopen": "Reopen",
         "showHandled": "Show handled ({{count}})",
         "hideHandled": "Hide handled ({{count}})",
+        "expandAll": "Expand all",
+        "collapseAll": "Collapse all",
         "updateFailed": "Could not update this item. Please try again."
       }
     }
@@ -1490,7 +1748,7 @@
   "signing": {
     "gate": {
       "title": "Before you continue",
-      "subtitle": "Read the contract below, then see what the AI review found. You can act on this request once you confirm.",
+      "subtitle": "Read the contract below, then see what the Harvey review found. You can act on this request once you confirm.",
       "verdict": {
         "Ready": "Ready",
         "NeedsWork": "Needs work",
@@ -1510,12 +1768,12 @@
       "showFewer": "Show fewer",
       "showReview": "Show the review",
       "hideReview": "Hide the review",
-      "restricted": "The AI review of this contract is shown to members of the organisation only. Please read the document carefully before you continue.",
-      "noReview": "No AI review has been run on this contract. Please read the document carefully before you continue.",
+      "restricted": "The Harvey review of this contract is shown to members of the organisation only. Please read the document carefully before you continue.",
+      "noReview": "No Harvey review has been run on this contract. Please read the document carefully before you continue.",
       "confirm": "I have read the document.",
-      "confirmWithReview": "I have read the document and the AI review.",
+      "confirmWithReview": "I have read the document and the Harvey review.",
       "continue": "Confirm and continue",
-      "done": "You confirmed you read the document and its AI review.",
+      "done": "You confirmed you read the document and its Harvey review.",
       "doneNoReview": "You confirmed you read the document.",
       "mustConfirm": "Confirm you have read the document before you act on this request.",
       "failed": "Could not record your confirmation. Try again."
@@ -1541,7 +1799,7 @@
     "signatureImageAlt": "Signature",
     "dismiss": "Dismiss",
     "enterFieldPrompt": "Enter {{fieldType}}:",
-    "declineReasonPrompt": "Please provide a reason for declining (optional):",
+    "declineReasonPrompt": "Please write the reason for declining:",
     "requestChangesPrompt": "Describe the changes you need (required — the owner will revise the contract):",
     "untitledDocument": "contract",
     "summary": {
@@ -1639,6 +1897,45 @@
     }
   },
   "htmlTemplateEditor": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "settings": {
+        "title": "Settings",
+        "basics": "Basics",
+        "routing": "Routing",
+        "privacy": "Privacy",
+        "clearApprover": "Clear approver"
+      },
+      "lint": {
+        "title": "Template checks",
+        "none": "No problems found.",
+        "emptyContent": "The template is empty.",
+        "undefinedPlaceholder": "{{key}} is used in the text but is not a field.",
+        "unusedField": "Field {{key}} is not used in the text.",
+        "signatureNotPlaced": "Signature {{key}} is not placed in the text; it will be added at the end.",
+        "noApprover": "No approver signature field: this template cannot be sent for signing.",
+        "unclosedCondition": "Conditions are not balanced: {{opens}} opened, {{closes}} closed.",
+        "duplicateKey": "Two fields share the key {{key}}.",
+        "unsafeMarkup": "Scripts and event handlers are removed when the contract is shown."
+      },
+      "review": {
+        "button": "Legal review",
+        "tooltip": "Review the template's wording with the legal review",
+        "title": "Legal review",
+        "intro": "Run the legal review to see what a lawyer would look at in the contract this template produces.",
+        "running": "Reviewing the template…",
+        "disclaimer": "Harvey-assisted checks against verified law. A lawyer validates every contract.",
+        "none": "No issues found.",
+        "stale": "template changed since this review",
+        "failed": "The review could not run. Please try again.",
+        "insert": "Insert proposed wording",
+        "severity": {
+          "Critical": "Critical",
+          "High": "High",
+          "Medium": "Medium",
+          "Low": "Low"
+        }
+      },
     "workflowType": "Workflow",
     "requestType": "Contract type",
     "noRequestType": "— No contract type (open-ended) —",
@@ -1651,7 +1948,7 @@
     "fieldsScannedPlural": "Added {{count}} fields found in pasted HTML",
     "backToTemplates": "Back to contract templates",
     "namePlaceholder": "Contract template name…",
-    "generateWithAi": "Generate with AI",
+    "generateWithAi": "Generate with Harvey",
     "preview": "Preview",
     "descriptionPlaceholder": "Optional description…",
     "defaultApprover": "Default approver",
@@ -1683,12 +1980,12 @@
     "roleApproverOption": "Approver (signs or completes once the contract is routed)",
     "autoFillLabel": "Auto-fill",
     "autoFillNone": "None",
-    "aiHint": "Describe the contract or paste a draft. AI will generate the HTML layout and suggest the parameterised clauses automatically.",
+    "aiHint": "Describe the contract or paste a draft. Harvey will generate the HTML layout and suggest the parameterised clauses automatically.",
     "aiPromptPlaceholder": "Examples:\n• A B2B service contract with counterparty, scope, term, payment terms and signatures\n• An NDA with company name, effective date, duration and signature\n• Paste the raw text of an existing contract…",
     "generating": "Generating…",
     "generate": "Generate",
     "templateGenerated": "Contract template generated! Review and adjust as needed.",
-    "aiGenerationFailed": "AI generation failed",
+    "aiGenerationFailed": "Harvey generation failed",
     "nameRequired": "Contract template name is required",
     "htmlContentRequired": "Contract content is required",
     "templateUpdated": "Contract template updated",
@@ -1954,6 +2251,14 @@
     }
   },
   "pdfTemplates": {
+    "annex": {
+      "title": "Annex clauses",
+      "designerHint": "Clauses added here are appended as an annex to every request made from this template. The wording goes on extra pages after the PDF, so the PDF itself stays as it is.",
+      "add": "Add a clause",
+      "requestTitle": "Additional clauses",
+      "requestHint": "Add approved clauses from the library. They are appended as an annex after the contract and sealed with it.",
+      "always": "always included"
+    },
     "list": {
       "title": "PDF Forms",
       "subtitle": "Reusable requests built on a stored PDF, with fields mapped to page coordinates.",
@@ -1985,6 +2290,7 @@
       "failed": "Upload failed"
     },
     "designer": {
+      "tabs": {"properties":"Properties","circuit":"Circuit"},
       "namePlaceholder": "Form name",
       "fieldTypes": "Field types",
       "fillRoleLegend": "Fill responsibility",
@@ -2032,6 +2338,16 @@
       "active": "Active (available to users)",
       "saved": "PDF form saved",
       "saveFailed": "Failed to save PDF form",
+      "detectFields": "Detect fields",
+      "textSaved": "Template text saved. New requests will use the edited PDF; requests already created keep their copy.",
+      "editTextHint": "Click a line of the PDF to rewrite it. The fields you placed stay where they are.",
+      "detectFieldsHint": "Finds the blanks, checkboxes and signatures of this contract and proposes them as fields. You review them, then save.",
+      "detecting": "Detecting fields…",
+      "detected": "{{count}} fields proposed — check them, then save",
+      "detectNone": "No new fields found",
+      "detectUnavailable": "Field detection is unavailable (legal-corpus service not enabled)",
+      "detectFailed": "Field detection failed",
+      "detectNoModel": "Only fields already fillable in the PDF were found: the vision model is not installed on the server.",
       "snapToGrid": "Snap fields to grid"
     },
     "fieldTypes": {
@@ -2060,6 +2376,7 @@
       "requestTitle": "Request · title"
     },
     "request": {
+      "workflow": "Workflow: {{name}}",
       "subtitle": "Fill your fields and choose approvers to send this request.",
       "yourFields": "Your information",
       "approvers": "Approvers",
@@ -2095,10 +2412,10 @@
     "items": {
       "generation": {
         "title": "Contract generation and templates",
-        "desc": "Reusable HTML and PDF contract templates with dynamic parameters, fields auto-filled per contract type, and AI generation from a plain-text brief. A shared clause library of approved bilingual wording — with categories, versioning and a draft/approved lifecycle — is insertable straight into a template. Any wording can be made conditional: it appears only when a field the template already collects satisfies a comparison you choose. Those conditions are deterministic tests over that one field — not a rules engine, and no AND/OR or nesting — and they are evaluated by the same renderer for the signing screen and the signed PDF, so both always agree."
+        "desc": "Reusable HTML and PDF contract templates with dynamic parameters, fields auto-filled per contract type, and Harvey generation from a plain-text brief. A shared clause library of approved bilingual wording — with categories, versioning and a draft/approved lifecycle — is insertable straight into a template. Any wording can be made conditional: it appears only when a field the template already collects satisfies a comparison you choose. Those conditions are deterministic tests over that one field — not a rules engine, and no AND/OR or nesting — and they are evaluated by the same renderer for the signing screen and the signed PDF, so both always agree."
       },
       "aiReview": {
-        "title": "AI-assisted contract review",
+        "title": "Harvey-assisted contract review",
         "desc": "Every uploaded contract gets an instant rules-based scan and a pre-signature summary. From the contract page, a full legal-model review can be run on demand: it identifies the contract, flags missing, weak or contradictory clauses with severity and proposed wording, and extracts the next renewal or expiry date — falling back to the rules-based scan if the model is unavailable. A dedicated Contract Review desk runs that review automatically on upload and turns it into a readiness verdict with a tick-off list of adjustments; the verdict itself is a deterministic rule set over those findings — not a legal opinion — and sending a contract with unresolved critical findings is blocked."
       },
       "workflow": {
@@ -2130,7 +2447,7 @@
         "desc": "A legal-team-curated registry of Tunisian, European and sector-specific texts — data protection, consumer, telecom, commercial — each publishable with an effective date and an optional contract-family scope. Curation and publication are legal-team actions today, not an automated crawler of external sources."
       },
       "compliance": {
-        "title": "AI compliance analysis",
+        "title": "Harvey compliance analysis",
         "desc": "On demand from the contract page, a full legal-model review confronts the contract with every published regulatory text and returns, for each one, whether it is addressed, a gap or unclear — with the reasoning, the consequence, and the clause wording that would close the gap. It judges substance rather than the presence of keywords, and grades each gap so the review desk can rank it. If the model is unavailable the check degrades to the keyword scan and says so on the panel. It remains an analysis, not a legal opinion."
       },
       "riskMap": {
@@ -2175,6 +2492,12 @@
     "hint": "PDF only, up to 50 MB. The analysis starts as soon as you submit.",
     "analyse": "Analyse this contract",
     "reviewAnother": "Review another",
+    "send": {
+      "intro": "This request has not been sent yet. Fix what is listed below, then send it to the signers.",
+      "button": "Send for signature",
+      "sending": "Sending…",
+      "sent": "Request sent."
+    },
     "requestTypeHint": "The contract family decides which regulations the compliance check runs against.",
     "whatWeCheck": "What we check",
     "failed": "The review could not be completed. Please try again.",
@@ -2203,11 +2526,51 @@
       "title": "Next steps",
       "promote": "Send to validation circuit",
       "blockedHint": "Resolve or dismiss the critical issues first.",
+      "editText": "Edit the text with the recommendations",
       "uploadRevision": "Upload a corrected version",
       "uploading": "Uploading…",
       "revisionUploaded": "Revision uploaded — re-analysing.",
       "rerun": "Re-run the analysis",
       "openContract": "Open the full contract file"
     }
+  },
+  "schedule": {
+    "title": "Contract schedule",
+    "intro": "Every contract with its end date and notice deadline, most urgent first. Dates marked ✦ were read from the contract by Harvey and still need confirming.",
+    "kpi": {
+      "noticePassed": "Notice deadline passed",
+      "soon": "Ending within 90 days",
+      "inForce": "In force",
+      "missing": "Dates missing"
+    },
+    "filter": {
+      "all": "All",
+      "urgent": "Act now",
+      "soon": "Ending soon",
+      "proposed": "Dates to confirm",
+      "missing": "Dates missing"
+    },
+    "col": {
+      "contract": "Contract",
+      "status": "Status",
+      "end": "End date",
+      "daysLeft": "Days left",
+      "notice": "Last day to give notice",
+      "renewal": "Renewal"
+    },
+    "stage": {
+      "Unknown": "Not tracked",
+      "NotStarted": "Not started",
+      "InForce": "In force",
+      "NoticeDeadlinePassed": "Notice deadline passed",
+      "ExpiringSoon": "Expiring soon",
+      "Expired": "Expired",
+      "MissingDates": "Dates missing"
+    },
+    "proposed": "proposed by Harvey",
+    "proposedHint": "Read from the contract at upload. Open the contract and save its term to confirm.",
+    "autoRenews": "Renews automatically",
+    "noRenewal": "No",
+    "empty": "No contract matches this filter."
   }
 }

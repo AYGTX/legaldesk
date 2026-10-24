@@ -1,3 +1,4 @@
+import { TemplatePreset } from './workflow-preset.models';
 import { WorkflowType } from './document.models';
 
 /** Field types supported by the PDF-template flow (mirrors backend PdfFieldType). */
@@ -76,6 +77,17 @@ export interface PdfTemplateDetailDto {
   requestTypeId?: string;
   requestTypeName?: string;
   requestTypeSlaHours?: number;
+  /** The reusable approval workflow this template follows, with its steps. */
+  workflowPreset?: TemplatePreset;
+  /** Library clauses appended, as an annex, to every request made from this template. */
+  annexClauses?: AnnexClause[];
+}
+
+/** A library clause carried onto requests as an annex. */
+export interface AnnexClause {
+  id: string;
+  title: string;
+  version: number;
 }
 
 export interface CreatePdfTemplateResult {
@@ -93,6 +105,8 @@ export interface UpdatePdfTemplateRequest {
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
   requestTypeId?: string;
+  workflowPresetId?: string;
+  annexClauseIds?: string[];
 }
 
 export interface PdfApproverSelection {
@@ -106,4 +120,33 @@ export interface SubmitPdfTemplateRequest {
   approvers?: PdfApproverSelection[];
   title?: string;
   message?: string;
+  /** Library clauses the requester adds; they travel as an annex after the template's own. */
+  clauseIds?: string[];
+  /** False keeps the request a draft until it has been reviewed and the owner sends it. */
+  startImmediately?: boolean;
+}
+
+/** A field proposed by the form detector; coordinates use the designer's model (top-left, 1.5x the PDF's points). */
+export interface DetectedFormField {
+  fieldKey: string;
+  label: string;
+  type: PdfFieldType;
+  fillRole: PdfFieldFillRole;
+  page: number;
+  x: number; y: number; width: number; height: number;
+  isRequired: boolean;
+  autoFillFrom?: string;
+  options: string[];
+  /** "pdf": already fillable in the PDF; "model": found by the vision model. */
+  source: 'pdf' | 'model';
+  /** "ai": label tidied by a local language model; "rule": from the built-in rules. */
+  confidence: 'rule' | 'ai';
+}
+
+export interface DetectedFormFields {
+  pages: number;
+  /** Null when the vision model is not installed on the server. */
+  model: string | null;
+  aiUsed: boolean;
+  fields: DetectedFormField[];
 }

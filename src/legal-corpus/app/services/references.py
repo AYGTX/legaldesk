@@ -21,6 +21,7 @@ _CODES = {
     "code des obligations et des contrats": "Code des obligations et des contrats",
     "code de commerce": "Code de commerce",
     "code des sociétés commerciales": "Code des sociétés commerciales",
+    "code des assurances": "Code des assurances",
 }
 _CODE = r"(?P<code>" + "|".join(re.escape(c) for c in _CODES) + r")"
 
@@ -153,8 +154,8 @@ def linkify(article: Article, own: LegalText, index: Index, missing_title: str =
             targets = [a for n in ref.numbers if (a := index.article(ref.law, n))]
         if targets:
             first = targets[0]
-            out.append(Markup('<a class="ref" href="/texts/{}#art-{}" title="{}">{}</a>').format(
-                first.legal_text_id, first.id, f"art. {', '.join(t.number for t in targets)}", label))
+            out.append(Markup('<a class="ref" href="/articles/{}/go" title="{}">{}</a>').format(
+                first.id, f"art. {', '.join(t.number for t in targets)}", label))
         elif ref.law and index.texts.get(ref.law):
             out.append(Markup('<a class="ref" href="/texts/{}">{}</a>').format(index.texts[ref.law][0].id, label))
         elif ref.law and ref.law not in own_keys:

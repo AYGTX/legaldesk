@@ -20,7 +20,10 @@ public record UpdatePdfTemplateCommand(
     List<PdfTemplateFieldInput> Fields,
     WorkflowType WorkflowType = WorkflowType.Sequential,
     bool HideRecipientIdentities = false,
-    Guid? RequestTypeId = null) : ICommand;
+    Guid? RequestTypeId = null,
+    Guid? WorkflowPresetId = null,
+    /// <summary>Clauses always appended, as an annex, to requests made from this template.</summary>
+    List<Guid>? AnnexClauseIds = null) : ICommand;
 
 public class UpdatePdfTemplateCommandValidator : AbstractValidator<UpdatePdfTemplateCommand>
 {
@@ -78,6 +81,11 @@ public class UpdatePdfTemplateCommandHandler(
                 throw new Common.Exceptions.ValidationException("The selected request type is invalid or inactive.");
         }
 
+        if (command.WorkflowPresetId.HasValue
+            && command.WorkflowPresetId != template.WorkflowPresetId // a template may keep a preset that was deactivated since
+            && !await db.WorkflowPresets.AnyAsync(p => p.Id == command.WorkflowPresetId.Value && p.IsActive, cancellationToken))
+            throw new Common.Exceptions.ValidationException("The selected workflow is invalid or inactive.");
+
         template.Update(
             command.Name,
             command.Description,
@@ -86,6 +94,18 @@ public class UpdatePdfTemplateCommandHandler(
             command.WorkflowType,
             command.HideRecipientIdentities,
             command.RequestTypeId);
+        template.SetWorkflowPreset(command.WorkflowPresetId);
+
+        var annexIds = (command.AnnexClauseIds ?? []).Distinct().ToList();
+        if (annexIds.Count > 0)
+        {
+            // A clause already on the template may have been deprecated since; it stays until someone removes it.
+            var allowed = await db.Clauses.CountAsync(c => annexIds.Contains(c.Id)
+                && (c.Status == ClauseStatus.Approved || template.AnnexClauseIds.Contains(c.Id)), cancellationToken);
+            if (allowed != annexIds.Count)
+                throw new Common.Exceptions.ValidationException("Only approved clauses from the library can be added to the annex.");
+        }
+        template.SetAnnexClauses(annexIds);
 
         // Replace fields wholesale (designer save semantics), mirroring the HTML-template flow.
         foreach (var existing in template.Fields.ToList())

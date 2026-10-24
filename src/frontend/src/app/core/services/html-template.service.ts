@@ -5,7 +5,7 @@ import { PagedResult } from '../models';
 import {
   HtmlTemplateDto, HtmlTemplateDetailDto,
   CreateHtmlTemplateRequest, UpdateHtmlTemplateRequest,
-  SubmitFromTemplateRequest, GeneratedHtmlTemplate
+  SubmitFromTemplateRequest, GeneratedHtmlTemplate, TemplateReviewResult
 } from '../models/html-template.models';
 
 @Injectable({ providedIn: 'root' })
@@ -34,6 +34,11 @@ export class HtmlTemplateService {
 
   submit(templateId: string, request: SubmitFromTemplateRequest): Observable<{ documentId: string }> {
     return this.api.post<{ documentId: string }>(`/v1/html-templates/${templateId}/submit`, request);
+  }
+
+  /** Legal review of the template as it stands in the editor (unsaved edits included). 409 when the review could not run. */
+  review(htmlContent: string, fields: { fieldKey: string; label: string; type: string; role: string }[]): Observable<TemplateReviewResult> {
+    return this.api.post<TemplateReviewResult>('/v1/html-templates/review', { htmlContent, fields });
   }
 
   generateFromText(userText: string): Observable<GeneratedHtmlTemplate> {

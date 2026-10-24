@@ -21,12 +21,16 @@ public class GetDocumentSummaryQueryHandler(
             ?? throw new NotFoundException("Document", query.DocumentId);
 
         // Return persisted summary if already generated
-        if (document.AiSummary is not null)
+        if (!string.IsNullOrWhiteSpace(document.AiSummary))
             return new AiDocumentSummaryDto(document.AiSummary, document.AiSummaryGeneratedAt!.Value);
 
         // Generate, persist, and return
         var text = await textProvider.GetTextAsync(document, cancellationToken);
         var summary = await aiService.SummarizeDocumentAsync(text, document.Title, cancellationToken);
+
+        // An empty answer is not a summary: keep it out of the database so the next request tries again.
+        if (string.IsNullOrWhiteSpace(summary))
+            return new AiDocumentSummaryDto(string.Empty, DateTime.UtcNow);
 
         document.SetAiSummary(summary);
         await db.SaveChangesAsync(cancellationToken);

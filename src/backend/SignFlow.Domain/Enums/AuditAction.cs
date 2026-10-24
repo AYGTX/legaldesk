@@ -34,5 +34,8 @@ public enum AuditAction
     ReadinessEvaluated = 29,
     ReadinessItemUpdated = 30,
     VersionsCompared = 31,
-    ReviewAcknowledged = 32
+    ReviewAcknowledged = 32,
+    ContractQuestionAsked = 33,
+    ContractKeyTermsExtracted = 34,
+    ContractRenewalNoteWritten = 35
 }

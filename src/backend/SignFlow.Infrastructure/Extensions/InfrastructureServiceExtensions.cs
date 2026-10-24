@@ -61,9 +61,16 @@ public static class InfrastructureServiceExtensions
         services.Configure<GroqSettings>(configuration.GetSection("Groq"));
         services.Configure<LocalLlmSettings>(configuration.GetSection("LocalLlm"));
         services.Configure<LegalCorpusSettings>(configuration.GetSection("LegalCorpus"));
+        services.Configure<SignFlow.Application.Common.Models.ReviewFeatures>(configuration.GetSection("Features"));
 
         // JWT Authentication
         var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()!;
+        // The signing key is a secret: it lives in user secrets (development) or the Jwt__Secret environment
+        // variable, never in appsettings. Refuse to start rather than sign tokens with an empty or short key.
+        if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
+            throw new InvalidOperationException(
+                "Jwt:Secret is missing or shorter than 32 characters. Set it with `dotnet user-secrets set Jwt:Secret <value>` " +
+                "in development, or the Jwt__Secret environment variable elsewhere.");
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -195,6 +202,9 @@ public static class InfrastructureServiceExtensions
             : null;
 
         await context.Database.MigrateAsync();
-        await DatabaseSeeder.SeedAsync(context, userManager, roleManager, demoContracts, logger);
+        var seedUsers = new SeedUsersOptions(
+            configuration.GetValue("Seed:DefaultUsers", true),
+            configuration.GetSection("Seed:Users").Get<List<SeedUser>>() ?? []);
+        await DatabaseSeeder.SeedAsync(context, userManager, roleManager, demoContracts, logger, seedUsers);
     }
 }

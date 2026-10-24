@@ -27,7 +27,13 @@ public record CreateRequestFromPdfTemplateCommand(
     /// </summary>
     List<ApproverSelection>? Approvers = null,
     string? Title = null,
-    string? Message = null) : ICommand<Guid>;
+    string? Message = null,
+    /// <summary>Library clauses the requester adds, appended as an annex after any the template always carries.</summary>
+    List<Guid>? ClauseIds = null,
+    /// <summary>
+    /// False keeps the request a draft: nobody is notified until the owner has run the pre-flight review and sends it.
+    /// </summary>
+    bool StartImmediately = true) : ICommand<Guid>;
 
 public class CreateRequestFromPdfTemplateCommandValidator : AbstractValidator<CreateRequestFromPdfTemplateCommand>
 {
@@ -47,7 +53,10 @@ public class CreateRequestFromPdfTemplateCommandValidator : AbstractValidator<Cr
 public class CreateRequestFromPdfTemplateCommandHandler(
     IApplicationDbContext db,
     IStorageService storage,
+    IPdfService pdfService,
+    IHtmlTemplatePdfGenerator htmlPdf,
     IWorkflowEngine workflowEngine,
+    IWorkflowPresetResolver presets,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<CreateRequestFromPdfTemplateCommandHandler> logger) : ICommandHandler<CreateRequestFromPdfTemplateCommand, Guid>
@@ -96,26 +105,92 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         if (approverSigFields.Count == 0)
             throw new Common.Exceptions.ValidationException("This template has no approver signature field, so it cannot be sent for signing.");
 
-        // Resolve one approver per signature field: field PreAssignedApprover > template DefaultApprover > supplied list.
-        var resolvedApprovers = await ResolveApproversAsync(template, approverSigFields, command.Approvers ?? [], cancellationToken);
+        // A workflow preset, when the template has one, names the signer of the first signature fields in order and
+        // may drop a step whose condition does not hold for these answers, together with that step's signature field.
+        var routing = await presets.ResolveAsync(
+            template.WorkflowPresetId, approverSigFields.Count, command.FilledValues,
+            template.Fields.ToDictionary(f => f.FieldKey, f => Enum.Parse<HtmlTemplateFieldType>(f.Type.ToString())),
+            cancellationToken);
 
-        // Copy the persisted base PDF into the document store so each instance has its own stampable file
-        // while the template's original stays pristine and reused for every instance.
-        var destinationPath = $"documents/{initiatorId}/{Path.GetFileNameWithoutExtension(template.FileName)}_{Guid.NewGuid():N}.pdf";
-        await storage.CopyAsync(template.StoragePath, destinationPath, cancellationToken);
+        var presetFor = new List<PresetAssignment?>(approverSigFields.Count);
+        var skippedFieldIds = new HashSet<Guid>();
+        if (routing is not null)
+        {
+            var kept = new List<PdfTemplateField>();
+            for (var i = 0; i < approverSigFields.Count; i++)
+            {
+                var assignment = i < routing.Assignments.Count ? routing.Assignments[i] : null;
+                if (assignment is { Skipped: true }) { skippedFieldIds.Add(approverSigFields[i].Id); continue; }
+                kept.Add(approverSigFields[i]);
+                presetFor.Add(assignment);
+            }
+
+            if (kept.Count == 0)
+                throw new Common.Exceptions.ValidationException(
+                    $"Every approval step of the workflow \"{routing.PresetName}\" is skipped for these answers, so nobody would sign.");
+
+            approverSigFields = kept;
+        }
+        else
+        {
+            presetFor.AddRange(approverSigFields.Select(_ => (PresetAssignment?)null));
+        }
+
+        var workflowType = routing?.WorkflowType ?? template.WorkflowType;
+
+        // Resolve one approver per signature field: workflow step > field PreAssignedApprover > template DefaultApprover > supplied list.
+        var resolvedApprovers = await ResolveApproversAsync(template, approverSigFields, presetFor, command.Approvers ?? [], cancellationToken);
+
+        // Clauses the template always carries, then the ones the requester added: approved wording only.
+        var annexClauses = await LoadAnnexClausesAsync(template, command.ClauseIds, cancellationToken);
+
+        // Each instance gets its own stampable file in the document store while the template's original stays pristine
+        // and reused for every instance. With an annex the copy is the base PDF followed by the clause pages.
+        string destinationPath;
+        var fileSize = template.FileSizeBytes;
+        var pageCount = template.PageCount;
+        if (annexClauses.Count == 0)
+        {
+            destinationPath = $"documents/{initiatorId}/{Path.GetFileNameWithoutExtension(template.FileName)}_{Guid.NewGuid():N}.pdf";
+            await storage.CopyAsync(template.StoragePath, destinationPath, cancellationToken);
+        }
+        else
+        {
+            var annexHtml = PdfClauseAnnex.BuildHtml(
+                [.. annexClauses.Select(c => new PdfClauseAnnex.AnnexClause(c.Title, c.Body, c.Language))],
+                command.FilledValues,
+                template.Fields.ToDictionary(f => f.FieldKey, f => Enum.Parse<HtmlTemplateFieldType>(f.Type.ToString())));
+
+            await using var annexPdf = await htmlPdf.GenerateAsync(annexHtml, "Annex", [], cancellationToken);
+            await using var basePdf = await storage.DownloadAsync(template.StoragePath, cancellationToken);
+            await using var merged = await pdfService.MergePdfsAsync([basePdf, annexPdf], cancellationToken);
+
+            // A failed merge must stop the request: an empty stream would be stored as the contract.
+            if (!merged.CanSeek || merged.Length == 0)
+                throw new InvalidOperationException("The contract could not be assembled with its annex.");
+
+            merged.Position = 0;
+            pageCount = await pdfService.GetPageCountAsync(merged, cancellationToken);
+            if (merged.CanSeek) merged.Position = 0;
+            fileSize = merged.Length;
+
+            destinationPath = await storage.UploadAsync(
+                merged, $"{Path.GetFileNameWithoutExtension(template.FileName)}_{Guid.NewGuid():N}.pdf",
+                "application/pdf", $"documents/{initiatorId}", cancellationToken);
+        }
 
         var document = Document.Create(
             title,
             fileName: template.FileName,
             storagePath: destinationPath,
-            fileSizeBytes: template.FileSizeBytes,
-            pageCount: template.PageCount,
+            fileSizeBytes: fileSize,
+            pageCount: pageCount,
             ownerId: initiatorId,
             description: template.Description,
             message: command.Message);
 
         document.SetPdfTemplateSource(template.Id, JsonSerializer.Serialize(command.FilledValues));
-        document.SetWorkflowType(template.WorkflowType);
+        document.SetWorkflowType(workflowType);
         document.SetHideRecipientIdentities(template.HideRecipientIdentities);
         document.SetCreatedBy(initiatorId.ToString());
 
@@ -123,6 +198,8 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         // the type's SLA (or reassigning the template's type) never affect this in-flight request.
         if (template.RequestType is { } requestType)
             document.ApplyRequestType(requestType.Id, requestType.SlaHours);
+
+        foreach (var clause in annexClauses) clause.RecordUsage();
 
         db.Documents.Add(document);
         await db.SaveChangesAsync(cancellationToken);
@@ -133,28 +210,34 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         var stageToRecipient = new Dictionary<int, Recipient>();
         var firstApproverEmail = string.Empty;
 
+        // Mixed stages, renumbered 1..n: a skipped step leaves a gap that nothing downstream should have to understand.
+        var stageOf = approverSigFields.Select((f, i) => presetFor[i]?.Stage ?? f.WorkflowStage).ToList();
+        var stageRank = stageOf.Distinct().Order().Select((stage, index) => (stage, rank: index + 1)).ToDictionary(x => x.stage, x => x.rank);
+
         for (var i = 0; i < approverSigFields.Count; i++)
         {
             var sf = approverSigFields[i];
             var (name, email, company) = resolvedApprovers[i];
 
-            var order = template.WorkflowType switch
+            var order = workflowType switch
             {
                 WorkflowType.Parallel => 1,
-                WorkflowType.Mixed => sf.WorkflowStage,
+                WorkflowType.Mixed => stageRank[stageOf[i]],
                 _ => i + 1
             };
 
-            var recipient = Recipient.Create(document.Id, name, email, order, ApprovalType.Signature, company: company);
+            var recipient = Recipient.Create(document.Id, name, email, order, ApprovalType.Signature, company: company, roleLabel: presetFor[i]?.Label);
             db.Recipients.Add(recipient);
             sigFieldRecipient[sf.Id] = recipient;
-            stageToRecipient.TryAdd(sf.WorkflowStage, recipient);
+            stageToRecipient.TryAdd(stageOf[i], recipient);
             if (i == 0) firstApproverEmail = email;
         }
 
         // Materialize every configured field onto the instance document at its coordinates.
         foreach (var f in template.Fields)
         {
+            if (skippedFieldIds.Contains(f.Id)) continue; // its workflow step does not apply to this request
+
             Guid? recipientId = null;
             var isReadOnly = false;
             string? presetValue = null;
@@ -193,13 +276,17 @@ public class CreateRequestFromPdfTemplateCommandHandler(
 
         await db.SaveChangesAsync(cancellationToken);
 
-        await workflowEngine.StartAsync(document.Id, cancellationToken);
+        if (command.StartImmediately)
+            await workflowEngine.StartAsync(document.Id, cancellationToken);
 
         await auditService.LogAsync(
             document.Id,
-            AuditAction.DocumentSent,
+            command.StartImmediately ? AuditAction.DocumentSent : AuditAction.DocumentCreated,
             "system",
-            $"Request '{title}' created from PDF template '{template.Name}' and sent to {firstApproverEmail}",
+            $"Request '{title}' created from PDF template '{template.Name}'"
+                + (routing is null ? "" : $" following the workflow '{routing.PresetName}'")
+                + (annexClauses.Count == 0 ? "" : $", with {annexClauses.Count} annexed clause(s): {string.Join("; ", annexClauses.Select(c => $"{c.Title} v{c.Version}"))}")
+                + (command.StartImmediately ? $" and sent to {firstApproverEmail}" : ", waiting for the pre-flight review before it is sent"),
             initiatorId,
             actorEmail: currentUser.UserEmail,
             cancellationToken: cancellationToken);
@@ -209,17 +296,39 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         return document.Id;
     }
 
+    /// <summary>The template's own annex clauses, then the requester's, each once and in order. Only approved clauses may travel.</summary>
+    private async Task<List<Clause>> LoadAnnexClausesAsync(PdfTemplate template, List<Guid>? requested, CancellationToken ct)
+    {
+        var fixedIds = template.AnnexClauseIds;
+        var requestedIds = (requested ?? []).Where(id => !fixedIds.Contains(id)).Distinct().ToList();
+        var ids = fixedIds.Concat(requestedIds).ToList();
+        if (ids.Count == 0) return [];
+
+        var found = await db.Clauses.Where(c => ids.Contains(c.Id)).ToListAsync(ct);
+
+        // A clause the template always carries stays even if it was deprecated since; one the requester picks must be approved.
+        var unusable = requestedIds.Where(id => found.FirstOrDefault(c => c.Id == id) is not { Status: ClauseStatus.Approved }).ToList();
+        if (unusable.Count > 0)
+            throw new Common.Exceptions.ValidationException("Only approved clauses from the library can be added to a contract.");
+
+        return [.. ids.Select(id => found.FirstOrDefault(c => c.Id == id)).OfType<Clause>()];
+    }
+
     private async Task<List<(string Name, string Email, string? Company)>> ResolveApproversAsync(
         PdfTemplate template,
         List<PdfTemplateField> approverSigFields,
+        List<PresetAssignment?> presetFor,
         List<ApproverSelection> supplied,
         CancellationToken cancellationToken)
     {
         var suppliedIndex = 0;
         var selections = new List<ApproverSelection>(approverSigFields.Count);
-        foreach (var field in approverSigFields)
+        for (var fieldIndex = 0; fieldIndex < approverSigFields.Count; fieldIndex++)
         {
-            if (field.PreAssignedApproverId.HasValue)
+            var field = approverSigFields[fieldIndex];
+            if (presetFor[fieldIndex]?.Approver is { } presetApprover)
+                selections.Add(presetApprover);
+            else if (field.PreAssignedApproverId.HasValue)
                 selections.Add(new ApproverSelection(field.PreAssignedApproverId, null, null));
             else if (template.DefaultApproverId.HasValue)
                 selections.Add(new ApproverSelection(template.DefaultApproverId, null, null));

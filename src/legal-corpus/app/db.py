@@ -36,6 +36,7 @@ def make_session_factory(database_url: str) -> sessionmaker[Session]:
 _ADDED_COLUMNS = {
     "articles": {"excluded_from_search": "BOOLEAN NOT NULL DEFAULT 0", "applies_from": "DATE"},
     "article_versions": {"applies_from": "DATE"},
+    "playbook_rules": {"description": "TEXT", "catalog_seeded": "BOOLEAN NOT NULL DEFAULT 0", "checks": "JSON"},
 }
 
 

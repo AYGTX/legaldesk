@@ -26,7 +26,8 @@ public class PdfTemplatesController(
     ICommandHandler<CreateRequestFromPdfTemplateCommand, Guid> submitHandler,
     IQueryHandler<GetPdfTemplatesQuery, PagedResult<PdfTemplateDto>> listHandler,
     IQueryHandler<GetPdfTemplateByIdQuery, PdfTemplateDetailDto> detailHandler,
-    IStorageService storageService) : ControllerBase
+    IStorageService storageService,
+    ILegalCorpusClient legalCorpus) : ControllerBase
 {
     /// <summary>List templates (admins/managers see all; others see active only)</summary>
     [HttpGet]
@@ -62,6 +63,25 @@ public class PdfTemplatesController(
         var stream = await storageService.DownloadAsync(template.StoragePath, ct);
         // No filename → Content-Disposition: inline, letting the browser/PDF.js render it.
         return File(stream, "application/pdf", enableRangeProcessing: true);
+    }
+
+    /// <summary>
+    /// Proposes fields for a contract PDF (text boxes, checkboxes, signatures) with a label, type, fill role and
+    /// auto-fill for each, so a company can turn a finished contract into a template. Nothing is saved: the designer
+    /// shows the proposal and the admin confirms or edits it. 503 when the legal-corpus service is not enabled.
+    /// </summary>
+    [HttpPost("detect-fields")]
+    [Authorize(Roles = "Administrator,Manager")]
+    [RequestSizeLimit(25 * 1024 * 1024)]
+    [ProducesResponseType(typeof(DetectedFormFields), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 503)]
+    public async Task<ActionResult<DetectedFormFields>> DetectFields(IFormFile file, CancellationToken ct)
+    {
+        if (file.Length == 0 || !file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            return Problem("Upload a PDF file.", statusCode: 400);
+
+        await using var stream = file.OpenReadStream();
+        return Ok(await legalCorpus.DetectFormFieldsAsync(stream, file.FileName, ct));
     }
 
     /// <summary>Upload the base PDF for a new template (admin/manager only). Fields are configured afterwards.</summary>
@@ -110,9 +130,24 @@ public class PdfTemplatesController(
                     f.PreAssignedApproverId, f.WorkflowStage)).ToList(),
                 request.WorkflowType,
                 request.HideRecipientIdentities,
-                request.RequestTypeId), ct);
+                request.RequestTypeId,
+                request.WorkflowPresetId,
+                request.AnnexClauseIds), ct);
         return NoContent();
     }
+
+    /// <summary>Edit the text of a template's PDF in the browser (admin/manager only). Requests already created keep their copy.</summary>
+    [HttpPost("{id:guid}/edit-pdf")]
+    [Authorize(Roles = "Administrator,Manager")]
+    [ProducesResponseType(typeof(EditPdfTemplateResult), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    public async Task<ActionResult<EditPdfTemplateResult>> EditPdf(
+        [FromRoute] Guid id,
+        [FromBody] EditPdfRequest request,
+        [FromServices] ICommandHandler<EditPdfTemplateCommand, EditPdfTemplateResult> editHandler,
+        CancellationToken ct)
+        => Ok(await editHandler.HandleAsync(new EditPdfTemplateCommand(id, request.Edits), ct));
 
     /// <summary>Soft-delete a template (admin/manager only)</summary>
     [HttpDelete("{id:guid}")]
@@ -140,7 +175,9 @@ public class PdfTemplatesController(
                 request.FilledValues,
                 request.Approvers?.Select(a => new ApproverSelection(a.UserId, a.ExternalName, a.ExternalEmail)).ToList(),
                 request.Title,
-                request.Message), ct);
+                request.Message,
+                request.ClauseIds,
+                request.StartImmediately), ct);
         return CreatedAtAction(nameof(GetById), new { id }, new SubmitFromPdfTemplateResponse(documentId));
     }
 }
@@ -175,7 +212,9 @@ public record UpdatePdfTemplateRequest(
     List<PdfTemplateFieldRequest> Fields,
     WorkflowType WorkflowType = WorkflowType.Sequential,
     bool HideRecipientIdentities = false,
-    Guid? RequestTypeId = null);
+    Guid? RequestTypeId = null,
+    Guid? WorkflowPresetId = null,
+    List<Guid>? AnnexClauseIds = null);
 
 // ApproverSelectionRequest is shared with HtmlTemplatesController (same namespace).
 
@@ -183,6 +222,8 @@ public record SubmitFromPdfTemplateRequest(
     Dictionary<string, string> FilledValues,
     List<ApproverSelectionRequest>? Approvers = null,
     string? Title = null,
-    string? Message = null);
+    string? Message = null,
+    List<Guid>? ClauseIds = null,
+    bool StartImmediately = true);
 
 public record SubmitFromPdfTemplateResponse(Guid DocumentId);

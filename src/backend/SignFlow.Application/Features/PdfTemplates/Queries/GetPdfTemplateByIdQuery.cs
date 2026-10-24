@@ -46,7 +46,12 @@ public record PdfTemplateDetailDto(
     List<PdfTemplateFieldDto> Fields,
     Guid? RequestTypeId,
     string? RequestTypeName,
-    int? RequestTypeSlaHours);
+    int? RequestTypeSlaHours,
+    SignFlow.Application.Features.WorkflowPresets.TemplatePresetDto? WorkflowPreset = null,
+    List<AnnexClauseDto>? AnnexClauses = null);
+
+/// <summary>A clause carried onto every request made from the template, as an annex.</summary>
+public record AnnexClauseDto(Guid Id, string Title, int Version);
 
 public class GetPdfTemplateByIdQueryHandler(
     IApplicationDbContext db,
@@ -101,6 +106,16 @@ public class GetPdfTemplateByIdQueryHandler(
                 f.WorkflowStage)).ToList(),
             template.RequestTypeId,
             template.RequestType?.Name,
-            template.RequestType?.SlaHours);
+            template.RequestType?.SlaHours,
+            await SignFlow.Application.Features.WorkflowPresets.WorkflowPresetSummaries.LoadAsync(db, template.WorkflowPresetId, cancellationToken),
+            await LoadAnnexAsync(template.AnnexClauseIds, cancellationToken));
+    }
+
+    private async Task<List<AnnexClauseDto>> LoadAnnexAsync(IReadOnlyList<Guid> ids, CancellationToken ct)
+    {
+        if (ids.Count == 0) return [];
+        var found = await db.Clauses.AsNoTracking().Where(c => ids.Contains(c.Id))
+            .Select(c => new AnnexClauseDto(c.Id, c.Title, c.Version)).ToListAsync(ct);
+        return [.. ids.Select(id => found.FirstOrDefault(c => c.Id == id)).OfType<AnnexClauseDto>()];
     }
 }

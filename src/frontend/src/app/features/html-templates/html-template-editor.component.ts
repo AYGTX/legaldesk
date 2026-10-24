@@ -1,6 +1,6 @@
-import { Component, OnInit, inject, signal, ElementRef, ViewChild } from '@angular/core';
+import { Component, HostListener, OnInit, SecurityContext, computed, inject, signal, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,17 +8,30 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ClausePickerDialogComponent } from '../clauses/clause-picker-dialog.component';
 import { ConditionDialogComponent } from './condition-dialog.component';
 import { HtmlTemplateService } from '../../core/services/html-template.service';
+import { WorkflowPresetService } from '../../core/services/workflow-preset.service';
+import { WorkflowPresetDto } from '../../core/models/workflow-preset.models';
 import { UserService } from '../../core/services/user.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
-import { HtmlTemplateFieldInput, HtmlFieldType, HtmlFieldRole } from '../../core/models/html-template.models';
+import { HtmlTemplateFieldInput, HtmlFieldType, HtmlFieldRole, TemplateReviewResult } from '../../core/models/html-template.models';
+import { RiskFinding } from '../../core/models/contract-intelligence.model';
 import { WorkflowType } from '../../core/models/document.models';
 import { UserDto, RequestType } from '../../core/models';
 import { formatSla } from '../../core/utils/sla';
+import { EditHistory } from '../../core/utils/edit-history';
+import { WorkflowTypeToggleComponent } from '../../shared/workflow-type-toggle/workflow-type-toggle.component';
+import { ApprovalPathSummaryComponent } from '../../shared/approval-path-summary/approval-path-summary.component';
+import { buildApprovalPath } from '../pdf-templates/approval-path.util';
+import { lintTemplate } from './template-lint';
 
 const WORKFLOW_TYPES: { value: WorkflowType; labelKey: string }[] = [
   { value: 'Sequential', labelKey: 'designer.workflow.sequential' },
@@ -48,13 +61,18 @@ const AUTO_FILL_OPTIONS = [
   { value: 'request.title', labelKey: 'htmlTemplateEditor.autoFillOption.requestTitle' },
 ];
 
+/** What undo/redo restores: the contract text and the fields that go with it. */
+interface EditorSnapshot { html: string; fields: HtmlTemplateFieldInput[]; }
+
 @Component({
   selector: 'sf-html-template-editor',
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterLink,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatTooltipModule, MatDialogModule, TranslatePipe
+    MatSnackBarModule, MatTooltipModule, MatDialogModule, TranslatePipe,
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatAutocompleteModule, MatSlideToggleModule,
+    WorkflowTypeToggleComponent, ApprovalPathSummaryComponent
   ],
   template: `
     <div class="editor-page">
@@ -83,55 +101,98 @@ const AUTO_FILL_OPTIONS = [
         </div>
       </div>
 
-      <!-- Meta row -->
-      <div class="meta-row">
-        <div class="meta-field">
-          <label>{{ 'common.description' | translate }}</label>
-          <input [(ngModel)]="description" [placeholder]="'htmlTemplateEditor.descriptionPlaceholder' | translate" class="meta-input" />
-        </div>
-        <div class="meta-field">
-          <label>{{ 'htmlTemplateEditor.defaultApprover' | translate }}</label>
-          <select [(ngModel)]="defaultApproverId" class="meta-select">
-            <option value="">{{ 'htmlTemplateEditor.userPicksAtSubmit' | translate }}</option>
-            @for (u of users(); track u.id) {
-              <option [value]="u.id">{{ u.fullName }} ({{ u.email }})</option>
-            }
-          </select>
-        </div>
-        <div class="meta-field">
-          <label>{{ 'htmlTemplateEditor.requestType' | translate }}</label>
-          <select [(ngModel)]="requestTypeId" class="meta-select">
-            <option value="">{{ 'htmlTemplateEditor.noRequestType' | translate }}</option>
-            @for (rt of requestTypes(); track rt.id) {
-              <option [value]="rt.id">{{ rt.name }} ({{ formatSla(rt.slaHours) }})</option>
-            }
-          </select>
-        </div>
-        <div class="meta-field">
-          <label>{{ 'htmlTemplateEditor.workflowType' | translate }}</label>
-          <div class="wf-toggle-group">
-            @for (w of workflowTypes; track w.value) {
-              <button type="button" class="wf-toggle-btn" [class.active]="workflowType() === w.value" (click)="workflowType.set(w.value)">
-                {{ w.labelKey | translate }}
-              </button>
-            }
-          </div>
-        </div>
-        <div class="meta-field meta-toggle">
-          <label>{{ 'designer.anon.hideIdentities' | translate }}</label>
-          <button class="toggle-btn" [class.on]="hideRecipientIdentities()" (click)="hideRecipientIdentities.set(!hideRecipientIdentities())" [matTooltip]="'designer.anon.hideIdentitiesHint' | translate">
-            {{ hideRecipientIdentities() ? ('common.yes' | translate) : ('common.no' | translate) }}
-          </button>
-        </div>
-        @if (isEdit) {
-          <div class="meta-field meta-toggle">
-            <label>{{ 'htmlTemplateEditor.active' | translate }}</label>
-            <button class="toggle-btn" [class.on]="isActive" (click)="isActive = !isActive">
-              {{ isActive ? ('htmlTemplateEditor.active' | translate) : ('htmlTemplateEditor.inactive' | translate) }}
-            </button>
+      <!-- Settings: what the template is, how it routes, who can see whom -->
+      <section class="settings">
+        <button type="button" class="settings-head" (click)="settingsOpen.set(!settingsOpen())" [attr.aria-expanded]="settingsOpen()">
+          <mat-icon>tune</mat-icon>
+          <span class="settings-title">{{ 'htmlTemplateEditor.settings.title' | translate }}</span>
+          @if (!settingsOpen()) { <span class="settings-summary">{{ settingsSummary() }}</span> }
+          <mat-icon class="settings-chevron">{{ settingsOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </button>
+        @if (settingsOpen()) {
+          <div class="settings-grid">
+            <div class="s-card">
+              <h3><mat-icon>description</mat-icon> {{ 'htmlTemplateEditor.settings.basics' | translate }}</h3>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ff">
+                <mat-label>{{ 'common.description' | translate }}</mat-label>
+                <input matInput [(ngModel)]="description" [placeholder]="'htmlTemplateEditor.descriptionPlaceholder' | translate" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ff">
+                <mat-label>{{ 'htmlTemplateEditor.requestType' | translate }}</mat-label>
+                <mat-select [(ngModel)]="requestTypeId">
+                  <mat-option value="">{{ 'htmlTemplateEditor.noRequestType' | translate }}</mat-option>
+                  @for (rt of requestTypes(); track rt.id) {
+                    <mat-option [value]="rt.id">{{ rt.name }} ({{ formatSla(rt.slaHours) }})</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (isEdit) {
+                <mat-slide-toggle [(ngModel)]="isActive">
+                  {{ isActive ? ('htmlTemplateEditor.active' | translate) : ('htmlTemplateEditor.inactive' | translate) }}
+                </mat-slide-toggle>
+              }
+            </div>
+
+            <div class="s-card">
+              <h3><mat-icon>route</mat-icon> {{ 'htmlTemplateEditor.settings.routing' | translate }}</h3>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ff">
+                <mat-label>{{ 'admin.workflows.pickLabel' | translate }}</mat-label>
+                <mat-select [ngModel]="workflowPresetId()" (ngModelChange)="onPresetChosen($event)">
+                  <mat-option value="">{{ 'admin.workflows.pickNone' | translate }}</mat-option>
+                  @for (p of selectablePresets(); track p.id) {
+                    <mat-option [value]="p.id">{{ p.name }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (!selectedPreset()) {
+                <sf-workflow-type-toggle [compact]="true" [value]="workflowType()" (valueChange)="workflowType.set($event)"></sf-workflow-type-toggle>
+              }
+              @if (!selectedPreset() || needsDefaultApprover()) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ff">
+                <mat-label>{{ 'htmlTemplateEditor.defaultApprover' | translate }}</mat-label>
+                <input matInput [matAutocomplete]="approverAuto" [ngModel]="approverInput()" (ngModelChange)="onApproverInput($event)"
+                       [placeholder]="'htmlTemplateEditor.userPicksAtSubmit' | translate" />
+                @if (defaultApproverId()) {
+                  <button matSuffix mat-icon-button type="button" (click)="clearApprover()" [attr.aria-label]="'htmlTemplateEditor.settings.clearApprover' | translate">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                }
+                <mat-autocomplete #approverAuto="matAutocomplete" [displayWith]="displayUser">
+                  @for (u of filteredUsers(); track u.id) {
+                    <mat-option [value]="u">{{ u.fullName }} <span class="opt-sub">{{ u.email }}</span></mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+              }
+              @if (selectedPreset(); as preset) {
+                <ol class="preset-steps">
+                  @for (st of preset.steps; track st.order) {
+                    <li>
+                      <span class="preset-badge">{{ st.order }}</span>
+                      <span class="preset-who"><strong>{{ st.label || ('admin.workflows.step' | translate) }}</strong> · {{ stepWho(st) }}</span>
+                      @if (st.conditionFieldKey) { <span class="preset-cond">{{ 'admin.workflows.onlyWhen' | translate }} {{ st.conditionFieldKey }}{{ st.conditionOperator ? ' ' + st.conditionOperator + ' ' + st.conditionValue : '' }}</span> }
+                    </li>
+                  }
+                </ol>
+                <p class="s-hint">{{ 'workflow.type.' + preset.workflowType | translate }} · {{ 'admin.workflows.follows' | translate }}</p>
+                @for (w of presetWarnings(); track w.code) {
+                  <p class="s-warn"><mat-icon>warning_amber</mat-icon> {{ 'admin.workflows.warn.' + w.code | translate: w.params }}</p>
+                }
+              } @else {
+                <sf-approval-path-summary [path]="path()" [names]="userNames()"></sf-approval-path-summary>
+              }
+            </div>
+
+            <div class="s-card">
+              <h3><mat-icon>visibility_off</mat-icon> {{ 'htmlTemplateEditor.settings.privacy' | translate }}</h3>
+              <mat-slide-toggle [checked]="hideRecipientIdentities()" (change)="hideRecipientIdentities.set($event.checked)">
+                {{ 'designer.anon.hideIdentities' | translate }}
+              </mat-slide-toggle>
+              <p class="s-hint">{{ 'designer.anon.hideIdentitiesHint' | translate }}</p>
+            </div>
           </div>
         }
-      </div>
+      </section>
 
       <!-- Editor body -->
       <div class="editor-body">
@@ -139,6 +200,16 @@ const AUTO_FILL_OPTIONS = [
         <div class="html-panel">
           <div class="panel-header">
             <span class="panel-label">{{ 'htmlTemplateEditor.htmlContentLabel' | translate }}</span>
+            <span class="hist-btns">
+              <button type="button" class="hist-btn" [disabled]="!history.canUndo()" (click)="history.undo()"
+                      [matTooltip]="('htmlTemplateEditor.undo' | translate) + ' (Ctrl+Z)'" [attr.aria-label]="'htmlTemplateEditor.undo' | translate">
+                <mat-icon>undo</mat-icon>
+              </button>
+              <button type="button" class="hist-btn" [disabled]="!history.canRedo()" (click)="history.redo()"
+                      [matTooltip]="('htmlTemplateEditor.redo' | translate) + ' (Ctrl+Shift+Z)'" [attr.aria-label]="'htmlTemplateEditor.redo' | translate">
+                <mat-icon>redo</mat-icon>
+              </button>
+            </span>
             <button class="clause-lib-btn" (click)="openClausePicker()"
                     [matTooltip]="'clauses.picker.buttonTooltip' | translate">
               <mat-icon>menu_book</mat-icon> {{ 'clauses.picker.button' | translate }}
@@ -147,12 +218,74 @@ const AUTO_FILL_OPTIONS = [
                     [matTooltip]="'htmlTemplateEditor.conditions.buttonTooltip' | translate">
               <mat-icon>rule</mat-icon> {{ 'htmlTemplateEditor.conditions.button' | translate }}
             </button>
+            <button class="clause-lib-btn issues-chip" [class.has-errors]="lintErrors() > 0" (click)="issuesOpen.set(!issuesOpen())"
+                    [matTooltip]="'htmlTemplateEditor.lint.title' | translate">
+              <mat-icon>{{ lintErrors() > 0 ? 'error_outline' : (lint().length ? 'warning_amber' : 'check_circle_outline') }}</mat-icon>
+              {{ lint().length }}
+            </button>
+            <button class="clause-lib-btn review-btn" (click)="runReview()" [disabled]="reviewing()"
+                    [matTooltip]="'htmlTemplateEditor.review.tooltip' | translate">
+              @if (reviewing()) { <mat-spinner diameter="14"></mat-spinner> } @else { <mat-icon>gavel</mat-icon> }
+              {{ 'htmlTemplateEditor.review.button' | translate }}
+            </button>
             <span class="panel-hint" [innerHTML]="'htmlTemplateEditor.panelHint' | translate: { example: curlyExample }"></span>
           </div>
+          @if (issuesOpen()) {
+            <div class="issues-panel">
+              <div class="issues-section">
+                <h4>{{ 'htmlTemplateEditor.lint.title' | translate }}</h4>
+                @if (lint().length === 0) {
+                  <p class="issue ok"><mat-icon>check_circle</mat-icon> {{ 'htmlTemplateEditor.lint.none' | translate }}</p>
+                }
+                @for (i of lint(); track $index) {
+                  <p class="issue" [class.error]="i.severity === 'error'">
+                    <mat-icon>{{ i.severity === 'error' ? 'error_outline' : 'warning_amber' }}</mat-icon>
+                    {{ 'htmlTemplateEditor.lint.' + i.code | translate: i.params }}
+                  </p>
+                }
+              </div>
+              <div class="issues-section">
+                <h4>{{ 'htmlTemplateEditor.review.title' | translate }}
+                  @if (review() && reviewStale()) { <span class="stale">{{ 'htmlTemplateEditor.review.stale' | translate }}</span> }
+                </h4>
+                @if (reviewing()) {
+                  <p class="issue"><mat-spinner diameter="14"></mat-spinner> {{ 'htmlTemplateEditor.review.running' | translate }}</p>
+                }
+                @if (reviewError()) {
+                  <p class="issue error"><mat-icon>error_outline</mat-icon> {{ reviewError() }}</p>
+                }
+                @if (!review() && !reviewing() && !reviewError()) {
+                  <p class="issue muted">{{ 'htmlTemplateEditor.review.intro' | translate }}</p>
+                }
+                @if (review(); as r) {
+                  <p class="issue muted">{{ 'htmlTemplateEditor.review.disclaimer' | translate }}</p>
+                  @if (r.findings.length === 0) {
+                    <p class="issue ok"><mat-icon>check_circle</mat-icon> {{ 'htmlTemplateEditor.review.none' | translate }}</p>
+                  }
+                  @for (f of r.findings; track $index) {
+                    <div class="finding" [attr.data-severity]="f.severity">
+                      <div class="finding-head">
+                        <strong>{{ f.clauseType }}</strong>
+                        <span class="sev">{{ 'htmlTemplateEditor.review.severity.' + f.severity | translate }}</span>
+                      </div>
+                      <p>{{ f.explanation }}</p>
+                      @if (f.recommendedAction) { <p class="rec">{{ f.recommendedAction }}</p> }
+                      @if (f.proposedLanguage) {
+                        <button type="button" class="clause-lib-btn" (click)="insertProposed(f)">
+                          <mat-icon>add_circle_outline</mat-icon> {{ 'htmlTemplateEditor.review.insert' | translate }}
+                        </button>
+                      }
+                    </div>
+                  }
+                  @for (l of r.limitations; track $index) { <p class="issue muted">{{ l }}</p> }
+                }
+              </div>
+            </div>
+          }
           @if (previewing()) {
-            <div class="preview-pane" [innerHTML]="previewHtml"></div>
+            <div class="preview-pane contract-doc" [innerHTML]="previewHtml"></div>
           } @else {
-            <textarea #htmlEditor class="html-textarea" [(ngModel)]="htmlContent"
+            <textarea #htmlEditor class="html-textarea" [ngModel]="htmlContent" (ngModelChange)="onHtmlTyped($event)"
               [placeholder]="'htmlTemplateEditor.htmlPlaceholder' | translate" (paste)="onHtmlPaste()"></textarea>
           }
         </div>
@@ -197,7 +330,7 @@ const AUTO_FILL_OPTIONS = [
                 </div>
 
                 @if (expandedIdx() === i) {
-                  <div class="field-card-body">
+                  <div class="field-card-body" (input)="onFieldsEdited()" (change)="onFieldsEdited()">
                     <div class="fc-row">
                       <label>{{ 'htmlTemplateEditor.keyLabel' | translate }}</label>
                       <input [(ngModel)]="f.fieldKey" class="fc-input" [placeholder]="'htmlTemplateEditor.keyPlaceholder' | translate" (change)="sanitizeKey(f)" />
@@ -327,7 +460,7 @@ const AUTO_FILL_OPTIONS = [
 
             <div class="ai-panel-footer">
               <span class="ai-model-badge">
-                <span class="material-symbols-outlined">smart_toy</span> Groq AI
+                <span class="material-symbols-outlined">smart_toy</span> Harvey
               </span>
               <div class="ai-footer-actions">
                 <button mat-stroked-button (click)="aiPanelOpen.set(false)">{{ 'common.cancel' | translate }}</button>
@@ -358,21 +491,57 @@ const AUTO_FILL_OPTIONS = [
     .top-actions { display: flex; gap: 8px; align-items: center; }
     .save-btn { background: #0b57d0 !important; color: #fff !important; border-radius: 20px !important; display: flex; align-items: center; gap: 6px; }
 
-    /* Meta row */
-    .meta-row { display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e8edf2; align-items: flex-start; flex-wrap: wrap; }
-    .meta-field { display: flex; flex-direction: column; gap: 4px; min-width: 200px; }
-    .meta-field label { font-size: 11px; font-weight: 500; color: #5f6368; text-transform: uppercase; letter-spacing: 0.5px; }
-    .meta-input, .meta-select { height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #c7d0dc; background: #fff; font-size: 13px; font-family: inherit; outline: none; }
-    .meta-input:focus, .meta-select:focus { border-color: #0b57d0; }
-    .meta-select { min-width: 240px; }
-    .meta-toggle { flex-direction: row; align-items: center; gap: 12px; }
-    .toggle-btn { height: 32px; padding: 0 16px; border-radius: 16px; border: 1px solid #c7d0dc; background: #fff; font-size: 13px; font-family: inherit; cursor: pointer; }
-    .toggle-btn.on { background: #d3e3fd; border-color: #0b57d0; color: #0b57d0; font-weight: 500; }
+    /* Settings */
+    .settings { border-bottom: 1px solid #e8edf2; padding: 8px 0 12px; }
+    .settings-head { display: flex; align-items: center; gap: 8px; width: 100%; border: none; background: transparent; padding: 4px 0; cursor: pointer; font-family: inherit; text-align: left; color: #1f1f1f; }
+    .settings-head mat-icon { color: #5f6368; font-size: 20px; width: 20px; height: 20px; }
+    .settings-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #5f6368; }
+    .settings-summary { flex: 1; min-width: 0; font-size: 13px; color: #5f6368; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .settings-chevron { margin-left: auto; }
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 8px; max-height: 38vh; overflow-y: auto; padding: 2px; }
+    .s-card { background: #fff; border: 1px solid #c7d0dc; border-radius: 12px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .s-card h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #0b57d0; }
+    .s-card h3 mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .s-card .ff { width: 100%; }
+    .s-card ::ng-deep .mat-mdc-form-field-infix { min-height: 44px; padding-top: 10px !important; padding-bottom: 10px !important; font-size: 14px; }
+    .s-hint { margin: 0; font-size: 12px; color: #5f6368; line-height: 1.5; }
+    .opt-sub { color: #5f6368; font-size: 12px; margin-left: 6px; }
+    .preset-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .preset-steps li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; font-size: 13px; }
+    .preset-badge { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #0b57d0; color: #fff; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+    .preset-cond { width: 100%; padding-left: 30px; font-size: 12px; color: #b06000; }
+    .s-warn { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 12px; line-height: 1.4; color: #b06000; }
+    .s-warn mat-icon { font-size: 16px; width: 16px; height: 16px; flex: none; }
 
-    .wf-toggle-group { display: flex; border: 1px solid #c7d0dc; border-radius: 8px; overflow: hidden; height: 36px; }
-    .wf-toggle-btn { flex: 1; border: none; background: #fff; font-size: 12px; font-family: inherit; cursor: pointer; padding: 0 10px; border-right: 1px solid #c7d0dc; color: #5f6368; }
-    .wf-toggle-btn:last-child { border-right: none; }
-    .wf-toggle-btn.active { background: #0b57d0; color: #fff; font-weight: 500; }
+    /* Undo / redo, lint and review */
+    .hist-btns { display: inline-flex; gap: 2px; margin-right: 4px; }
+    .hist-btn { width: 30px; height: 30px; border: none; background: transparent; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #444746; }
+    .hist-btn:hover:not([disabled]) { background: #e8eaed; }
+    .hist-btn[disabled] { color: #bdc1c6; cursor: default; }
+    .hist-btn mat-icon { font-size: 19px; width: 19px; height: 19px; }
+    .panel-header { gap: 8px; flex-wrap: wrap; justify-content: flex-start !important; }
+    .panel-header .panel-hint { margin-left: auto; }
+    .issues-chip { background: #e6f4ea; color: #137333; border-color: #ceead6; }
+    .issues-chip.has-errors { background: #fce8e6; color: #c5221f; border-color: #f6c6c2; }
+    .review-btn[disabled] { opacity: 0.7; cursor: default; }
+    .issues-panel { max-height: 40%; overflow-y: auto; border-bottom: 1px solid #e8edf2; background: #fbfcfe; padding: 10px 16px 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .issues-section h4 { margin: 0 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #5f6368; }
+    .issue { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0; font-size: 12.5px; line-height: 1.45; color: #b06000; }
+    .issue mat-icon { font-size: 16px; width: 16px; height: 16px; flex: none; margin-top: 1px; }
+    .issue.error { color: #c5221f; }
+    .issue.ok { color: #137333; }
+    .issue.muted { color: #5f6368; }
+    .stale { margin-left: 6px; padding: 1px 6px; border-radius: 8px; background: #fef7e0; color: #b06000; font-size: 10px; text-transform: none; letter-spacing: 0; }
+    .finding { border: 1px solid #dadce0; border-left-width: 4px; border-radius: 8px; padding: 8px 10px; margin: 6px 0; background: #fff; font-size: 12.5px; line-height: 1.5; }
+    .finding p { margin: 4px 0; }
+    .finding .rec { color: #0b57d0; }
+    .finding-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .finding .sev { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+    .finding[data-severity="Critical"] { border-left-color: #c5221f; } .finding[data-severity="Critical"] .sev { color: #c5221f; }
+    .finding[data-severity="High"] { border-left-color: #e8710a; } .finding[data-severity="High"] .sev { color: #e8710a; }
+    .finding[data-severity="Medium"] { border-left-color: #f9ab00; } .finding[data-severity="Medium"] .sev { color: #b06000; }
+    .finding[data-severity="Low"] { border-left-color: #5f6368; } .finding[data-severity="Low"] .sev { color: #5f6368; }
+
     .fc-hint { text-transform: none; font-weight: 400; color: #9aa0a6; letter-spacing: normal; }
 
     /* Editor body */
@@ -388,7 +557,7 @@ const AUTO_FILL_OPTIONS = [
     .panel-hint code { background: #e8f0fe; color: #0b57d0; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
 
     .html-textarea { flex: 1; width: 100%; border: none; outline: none; resize: none; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.6; padding: 16px; color: #1f1f1f; box-sizing: border-box; background: #fff; }
-    .preview-pane { flex: 1; overflow: auto; padding: 24px; font-family: 'Google Sans Text', sans-serif; font-size: 14px; line-height: 1.6; }
+    .preview-pane { flex: 1; overflow: auto; padding: 24px 32px; }
 
     /* Field sidebar */
     .field-sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; border: 1px solid #c7d0dc; border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
@@ -460,6 +629,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
   private readonly svc = inject(HtmlTemplateService);
   private readonly userSvc = inject(UserService);
   private readonly requestTypeSvc = inject(RequestTypeService);
+  private readonly presetSvc = inject(WorkflowPresetService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly snack = inject(MatSnackBar);
@@ -481,12 +651,18 @@ export class HtmlTemplateEditorComponent implements OnInit {
   expandedIdx = signal<number | null>(null);
   workflowType = signal<WorkflowType>('Sequential');
   hideRecipientIdentities = signal(false);
+  defaultApproverId = signal('');
+  /** The reusable approval workflow this template follows ('' = none). */
+  workflowPresetId = signal('');
+  presets = signal<WorkflowPresetDto[]>([]);
+  /** What the approver box shows: the text being typed, or the chosen user. */
+  approverInput = signal<string | UserDto>('');
+  settingsOpen = signal(true);
   readonly formatSla = formatSla;
 
   name = '';
   description = '';
   htmlContent = '';
-  defaultApproverId = '';
   requestTypeId = '';
   isActive = true;
 
@@ -494,22 +670,105 @@ export class HtmlTemplateEditorComponent implements OnInit {
   aiGenerating = signal(false);
   aiPrompt = '';
 
+  /** Bumped whenever the text or the fields change, so what is derived from them (path, lint, stale review) follows. */
+  private readonly version = signal(0);
+  issuesOpen = signal(false);
+  review = signal<TemplateReviewResult | null>(null);
+  reviewing = signal(false);
+  reviewError = signal('');
+  private readonly reviewedVersion = signal(-1);
+  readonly reviewStale = computed(() => this.reviewedVersion() !== this.version());
+
+  readonly lint = computed(() => { this.version(); return lintTemplate(this.htmlContent, this.fields()); });
+  readonly lintErrors = computed(() => this.lint().filter(i => i.severity === 'error').length);
+
+  readonly userNames = computed(() => Object.fromEntries(this.users().map(u => [u.id, u.fullName])));
+  readonly filteredUsers = computed(() => {
+    const typed = this.approverInput();
+    const q = typeof typed === 'string' ? typed.trim().toLowerCase() : '';
+    const all = this.users();
+    return (q ? all.filter(u => u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : all).slice(0, 50);
+  });
+
+  /** The approval path the server will build from the fields, workflow type and default approver. */
+  readonly path = computed(() => {
+    this.version();
+    return buildApprovalPath(
+      this.fields().map(f => ({
+        tempId: f.fieldKey, label: f.label, type: f.type, fillRole: f.role,
+        workflowStage: f.workflowStage || 1, preAssignedApproverId: f.preAssignedApproverId || undefined
+      })),
+      this.workflowType(), this.defaultApproverId() || undefined);
+  });
+
+  readonly selectedPreset = computed(() => this.presets().find(p => p.id === this.workflowPresetId()) ?? null);
+
+  /** Active workflows, plus the one this template already follows even if it has since been switched off. */
+  readonly selectablePresets = computed(() => this.presets().filter(p => p.isActive || p.id === this.workflowPresetId()));
+
+  private readonly approverSignatureCount = computed(() => {
+    this.version();
+    return this.fields().filter(f => f.role === 'Approver' && f.type === 'Signature').length;
+  });
+
+  /** Signature fields past the workflow's last step still need someone: the default approver, or the requester's choice. */
+  readonly needsDefaultApprover = computed(() => this.approverSignatureCount() > (this.selectedPreset()?.steps.length ?? 0));
+
+  /** Where the workflow and the template's signature fields do not line up. */
+  readonly presetWarnings = computed(() => {
+    const preset = this.selectedPreset();
+    if (!preset) return [];
+    const steps = preset.steps.length;
+    const sigs = this.approverSignatureCount();
+    const warnings: { code: string; params: Record<string, string> }[] = [];
+    if (steps > sigs) warnings.push({ code: 'stepsIgnored', params: { steps: String(steps), fields: String(sigs), extra: String(steps - sigs) } });
+    if (sigs > steps) warnings.push({ code: 'fieldsUncovered', params: { steps: String(steps), fields: String(sigs), extra: String(sigs - steps) } });
+    if (!preset.isActive) warnings.push({ code: 'inactive', params: {} });
+    return warnings;
+  });
+
+  /** One line for the collapsed settings bar. */
+  readonly settingsSummary = computed(() => {
+    const preset = this.selectedPreset();
+    const parts = preset ? [preset.name] : [this.translate.instant('workflow.type.' + this.workflowType())];
+    const approver = this.userNames()[this.defaultApproverId()];
+    if (approver) parts.push(approver);
+    const type = this.requestTypes().find(t => t.id === this.requestTypeId);
+    if (type) parts.push(`${type.name} (${formatSla(type.slaHours)})`);
+    return parts.join(' · ');
+  });
+
+  /**
+   * Undo/redo over the text and the field list together: AI generation and clause insertion change both, and a step
+   * back must not leave fields that no longer match the text.
+   */
+  readonly history = new EditHistory<EditorSnapshot>(
+    { html: '', fields: [] },
+    () => ({ html: this.htmlContent, fields: structuredClone(this.fields()) }),
+    snap => { this.htmlContent = snap.html; this.fields.set(structuredClone(snap.fields)); this.expandedIdx.set(null); this.bump(); },
+    (a, b) => a.html === b.html && JSON.stringify(a.fields) === JSON.stringify(b.fields));
+
   private readonly sanitizer = inject(DomSanitizer);
-  get previewHtml(): SafeHtml { return this.sanitizer.bypassSecurityTrustHtml(this.htmlContent); }
+  // Sanitised like the signing page, so the preview shows what a signer will see (and AI markup cannot run script).
+  get previewHtml(): string { return this.sanitizer.sanitize(SecurityContext.HTML, this.htmlContent) ?? ''; }
 
   ngOnInit() {
     this.templateId = this.route.snapshot.paramMap.get('id');
     this.isEdit = !!this.templateId;
 
-    this.userSvc.getUsers({ pageSize: 200 }).subscribe(r => this.users.set(r.items));
+    this.userSvc.getUsers({ pageSize: 200 }).subscribe(r => { this.users.set(r.items); this.syncApproverInput(); });
     this.requestTypeSvc.getActive().subscribe(types => this.requestTypes.set(types));
+    this.presetSvc.getAll().subscribe({ next: p => this.presets.set(p), error: () => this.presets.set([]) });
 
     if (this.isEdit && this.templateId) {
       this.svc.getById(this.templateId).subscribe(t => {
         this.name = t.name;
         this.description = t.description ?? '';
         this.htmlContent = t.htmlContent;
-        this.defaultApproverId = t.defaultApproverId ?? '';
+        this.defaultApproverId.set(t.defaultApproverId ?? '');
+        this.syncApproverInput();
+        this.workflowPresetId.set(t.workflowPreset?.id ?? '');
+        this.settingsOpen.set(false);
         this.requestTypeId = t.requestTypeId ?? '';
         this.isActive = t.isActive;
         this.workflowType.set(t.workflowType);
@@ -527,11 +786,123 @@ export class HtmlTemplateEditorComponent implements OnInit {
           preAssignedApproverId: f.preAssignedApproverId ?? '',
           workflowStage: f.workflowStage ?? 1
         })));
+        this.history.reset({ html: this.htmlContent, fields: structuredClone(this.fields()) });
+        this.bump();
       });
     }
   }
 
   togglePreview() { this.previewing.update(v => !v); }
+
+  private bump(): void { this.version.update(v => v + 1); }
+
+  /** Typing in the text box: a burst of keystrokes is one undo step. */
+  onHtmlTyped(value: string): void {
+    this.htmlContent = value;
+    this.bump();
+    this.history.typed();
+  }
+
+  /** An edit inside a field card (typing, a select, a checkbox). */
+  onFieldsEdited(): void {
+    this.bump();
+    this.history.typed();
+  }
+
+  /** Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y, except where the browser's own undo belongs to a small input. */
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const key = e.key.toLowerCase();
+    const redo = (key === 'z' && e.shiftKey) || key === 'y';
+    if (!(key === 'z' && !e.shiftKey) && !redo) return;
+
+    const target = e.target as HTMLElement | null;
+    const inOtherField = !!target && (
+      target.isContentEditable ||
+      target.closest('input, select') !== null ||
+      (target.tagName === 'TEXTAREA' && target !== this.htmlEditorRef?.nativeElement));
+    if (inOtherField) return;
+
+    e.preventDefault();
+    if (redo) this.history.redo(); else this.history.undo();
+  }
+
+  // ---- reusable workflow
+
+  /** Picking a workflow hands routing over to it, so the workflow type follows the workflow. */
+  onPresetChosen(id: string): void {
+    this.workflowPresetId.set(id);
+    const preset = this.presets().find(p => p.id === id);
+    if (preset) this.workflowType.set(preset.workflowType);
+    this.bump();
+  }
+
+  stepWho(s: { kind: string; userName?: string; roleName?: string; department?: string }): string {
+    switch (s.kind) {
+      case 'User': return s.userName ?? '?';
+      case 'Role': return `${this.translate.instant('admin.workflows.kind.Role')}: ${s.roleName}`;
+      default: return `${this.translate.instant('admin.workflows.kind.Department')}: ${s.department}`;
+    }
+  }
+
+  // ---- default approver box
+
+  displayUser = (u: UserDto | string | null): string => (u && typeof u !== 'string' ? u.fullName : (u ?? ''));
+
+  onApproverInput(value: string | UserDto): void {
+    this.approverInput.set(value);
+    // Typing again un-picks the approver; choosing a suggestion picks one.
+    this.defaultApproverId.set(typeof value === 'string' ? '' : value.id);
+    this.bump();
+  }
+
+  clearApprover(): void {
+    this.approverInput.set('');
+    this.defaultApproverId.set('');
+    this.bump();
+  }
+
+  /** Shows the saved approver by name once both the template and the user list have arrived. */
+  private syncApproverInput(): void {
+    const id = this.defaultApproverId();
+    if (!id) return;
+    const user = this.users().find(u => u.id === id);
+    if (user) this.approverInput.set(user);
+  }
+
+  // ---- review
+
+  /** Legal review of the template as it stands now, edits not yet saved included. */
+  runReview(): void {
+    if (!this.htmlContent.trim()) {
+      this.snack.open(this.translate.instant('htmlTemplateEditor.htmlContentRequired'), 'OK', { duration: 3000 });
+      return;
+    }
+    this.issuesOpen.set(true);
+    this.reviewing.set(true);
+    this.reviewError.set('');
+    const reviewing = this.version();
+    this.svc.review(this.htmlContent, this.fields().map(f => ({ fieldKey: f.fieldKey, label: f.label, type: f.type, role: f.role })))
+      .subscribe({
+        next: result => {
+          this.review.set(result);
+          this.reviewedVersion.set(reviewing);
+          this.reviewing.set(false);
+        },
+        error: (e: { error?: { detail?: string } }) => {
+          this.reviewing.set(false);
+          this.reviewError.set(e?.error?.detail || this.translate.instant('htmlTemplateEditor.review.failed'));
+        }
+      });
+  }
+
+  /** Drops a finding's proposed wording into the text as its own paragraph, as one undoable step. */
+  insertProposed(finding: RiskFinding): void {
+    if (!finding.proposedLanguage) return;
+    const escaped = finding.proposedLanguage.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    this.history.record(() => { this.insertAtCursor(`\n<p>${escaped}</p>\n`); this.bump(); });
+  }
 
   toggleField(i: number) {
     this.expandedIdx.update(v => v === i ? null : i);
@@ -547,14 +918,20 @@ export class HtmlTemplateEditorComponent implements OnInit {
       order: this.fields().length + 1,
       workflowStage: 1
     };
-    this.fields.update(arr => [...arr, f]);
-    this.expandedIdx.set(this.fields().length - 1);
+    this.history.record(() => {
+      this.fields.update(arr => [...arr, f]);
+      this.expandedIdx.set(this.fields().length - 1);
+      this.bump();
+    });
   }
 
   removeField(i: number, e: Event) {
     e.stopPropagation();
-    this.fields.update(arr => arr.filter((_, idx) => idx !== i));
-    if (this.expandedIdx() === i) this.expandedIdx.set(null);
+    this.history.record(() => {
+      this.fields.update(arr => arr.filter((_, idx) => idx !== i));
+      if (this.expandedIdx() === i) this.expandedIdx.set(null);
+      this.bump();
+    });
   }
 
   /** True when the text has a `{{key}}` for this field — for a signature, that is where its signature will be drawn. */
@@ -579,7 +956,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
 
   insertPlaceholder(key: string, e: Event) {
     e.stopPropagation();
-    this.insertAtCursor(`{{${key}}}`);
+    this.history.record(() => { this.insertAtCursor(`{{${key}}}`); this.bump(); });
   }
 
   /**
@@ -590,8 +967,11 @@ export class HtmlTemplateEditorComponent implements OnInit {
     this.dialog.open(ClausePickerDialogComponent, { width: '780px', maxWidth: '95vw' })
       .afterClosed().subscribe(clause => {
         if (!clause) return;
-        this.insertAtCursor(`\n${clause.body}\n`);
-        this.scanForNewFields();
+        this.history.record(() => {
+          this.insertAtCursor(`\n${clause.body}\n`);
+          this.scanForNewFields();
+          this.bump();
+        });
         this.snack.open(
           this.translate.instant('clauses.picker.inserted', { title: clause.title }),
           'OK', { duration: 3000 });
@@ -628,10 +1008,13 @@ export class HtmlTemplateEditorComponent implements OnInit {
       }
     }).afterClosed().subscribe((expression: string | undefined) => {
       if (!expression) return;
-      this.htmlContent =
-        this.htmlContent.slice(0, start) +
-        `${expression}\n${selected}\n{{/if}}` +
-        this.htmlContent.slice(end);
+      this.history.record(() => {
+        this.htmlContent =
+          this.htmlContent.slice(0, start) +
+          `${expression}\n${selected}\n{{/if}}` +
+          this.htmlContent.slice(end);
+        this.bump();
+      });
       this.snack.open(
         this.translate.instant('htmlTemplateEditor.conditions.applied'), 'OK', { duration: 3000 });
     });
@@ -655,7 +1038,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
 
   /** After pasting raw HTML, scan for {{placeholder}} keys not yet in the field list and add them. */
   onHtmlPaste() {
-    setTimeout(() => this.scanForNewFields(), 0);
+    setTimeout(() => { this.scanForNewFields(); this.bump(); }, 0);
   }
 
   private scanForNewFields() {
@@ -703,6 +1086,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
     this.aiGenerating.set(true);
     this.svc.generateFromText(this.aiPrompt).subscribe({
       next: result => {
+        this.history.record(() => {
         this.htmlContent = result.htmlContent;
         if (result.suggestedName && !this.name) this.name = result.suggestedName;
         this.fields.set(result.fields.map((f, i) => ({
@@ -715,6 +1099,9 @@ export class HtmlTemplateEditorComponent implements OnInit {
           autoFillFrom: f.autoFillFrom ?? '',
           workflowStage: 1
         })));
+        this.expandedIdx.set(null);
+        this.bump();
+        });
         this.aiGenerating.set(false);
         this.aiPanelOpen.set(false);
         this.snack.open(this.translate.instant('htmlTemplateEditor.templateGenerated'), 'OK', { duration: 4000 });
@@ -756,12 +1143,13 @@ export class HtmlTemplateEditorComponent implements OnInit {
         name: this.name,
         htmlContent: this.htmlContent,
         description: this.description || undefined,
-        defaultApproverId: this.defaultApproverId || undefined,
+        defaultApproverId: this.defaultApproverId() || undefined,
         isActive: this.isActive,
         fields: fieldsPayload,
         workflowType: this.workflowType(),
         hideRecipientIdentities: this.hideRecipientIdentities(),
-        requestTypeId: this.requestTypeId || undefined
+        requestTypeId: this.requestTypeId || undefined,
+        workflowPresetId: this.workflowPresetId() || undefined
       }).subscribe({
         next: () => {
           this.saving.set(false);
@@ -775,11 +1163,12 @@ export class HtmlTemplateEditorComponent implements OnInit {
         name: this.name,
         htmlContent: this.htmlContent,
         description: this.description || undefined,
-        defaultApproverId: this.defaultApproverId || undefined,
+        defaultApproverId: this.defaultApproverId() || undefined,
         fields: fieldsPayload,
         workflowType: this.workflowType(),
         hideRecipientIdentities: this.hideRecipientIdentities(),
-        requestTypeId: this.requestTypeId || undefined
+        requestTypeId: this.requestTypeId || undefined,
+        workflowPresetId: this.workflowPresetId() || undefined
       }).subscribe({
         next: () => {
           this.saving.set(false);

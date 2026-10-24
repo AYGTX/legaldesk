@@ -66,6 +66,7 @@
     /* ── Nav items ── */
     .nav-items {
       flex: 1;
+      min-height: 0; /* let the list shrink below its content so it scrolls instead of overflowing */
       padding: 8px 12px;
       overflow-y: auto;
       overflow-x: hidden;
@@ -74,6 +75,8 @@
       gap: 2px;
     }
     .sidenav.collapsed .nav-items { padding: 8px; }
+    /* Rows keep their height; without this they get squashed together when the window is short. */
+    .nav-items > *, .nav-children, .nav-child { flex-shrink: 0; }
 
     .nav-item {
       display: flex;

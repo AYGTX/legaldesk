@@ -6,12 +6,29 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { map } from 'rxjs';
 import { DocumentService } from '../../core/services/document.service';
+import { PdfTemplateService } from '../../core/services/pdf-template.service';
 import { PdfTextEdit } from '../../core/models';
 
 export interface PdfTextEditorDialogData {
+  /** The contract's id, or the template's id when `target` is 'template'. */
   documentId: string;
   documentTitle: string;
+  /** What is being edited: a contract (saved as a new version) or a PDF template (its base PDF is replaced). */
+  target?: 'document' | 'template';
+  /** Review findings shown beside the PDF; their proposed wording can be put into a line with one click. */
+  recommendations?: PdfEditorRecommendation[];
+}
+
+export interface PdfEditorRecommendation {
+  id: string;
+  severity: string;
+  title: string;
+  detail: string;
+  whyItMatters?: string;
+  recommendedAction?: string;
+  proposedLanguage?: string;
 }
 
 /** One editable line, in PDF points with the origin at the top-left of the page (PDF.js at scale 1). */
@@ -74,6 +91,7 @@ const BASELINE_TOLERANCE = 2;
       <span class="ed-count">{{ 'documents.detail.editText.changes' | translate: { count: editCount() } }}</span>
     </div>
 
+    <div class="ed-body">
     <mat-dialog-content class="ed-content">
       @if (loading()) {
         <div class="ed-state"><mat-spinner diameter="28"></mat-spinner> {{ 'documents.detail.editText.loading' | translate }}</div>
@@ -113,6 +131,60 @@ const BASELINE_TOLERANCE = 2;
       </div>
     </mat-dialog-content>
 
+      @if (data.recommendations?.length) {
+        <aside class="ed-side">
+          <h3 class="ed-side-title"><mat-icon>rule</mat-icon> {{ 'documents.detail.editText.recs.title' | translate }} ({{ data.recommendations!.length }})</h3>
+          <p class="ed-side-hint">{{ 'documents.detail.editText.recs.hint' | translate }}</p>
+          <div class="ed-selected" [class.ed-selected-none]="!lastLine()">
+            <mat-icon>{{ lastLine() ? 'text_fields' : 'ads_click' }}</mat-icon>
+            @if (lastLine(); as l) {
+              <span>{{ 'documents.detail.editText.recs.selected' | translate }} <em>« {{ textOf(l) }} »</em></span>
+            } @else {
+              <span>{{ 'documents.detail.editText.recs.none' | translate }}</span>
+            }
+          </div>
+
+          @for (rec of data.recommendations!; track rec.id) {
+            <div class="ed-rec" [class.ed-rec-open]="openRec() === rec.id">
+              <button type="button" class="ed-rec-head" (click)="openRec.set(openRec() === rec.id ? null : rec.id)">
+                <span class="ed-sev" [class]="'ed-sev ed-sev-' + rec.severity.toLowerCase()">{{ rec.severity }}</span>
+                <span class="ed-rec-title">{{ rec.title }}</span>
+                <mat-icon>{{ openRec() === rec.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+              </button>
+              @if (openRec() === rec.id) {
+                <div class="ed-rec-body">
+                  <p>{{ rec.detail }}</p>
+                  @if (rec.whyItMatters) {
+                    <p class="ed-rec-label">{{ 'documents.detail.editText.recs.why' | translate }}</p>
+                    <p>{{ rec.whyItMatters }}</p>
+                  }
+                  @if (rec.recommendedAction) {
+                    <p class="ed-rec-label">{{ 'documents.detail.editText.recs.action' | translate }}</p>
+                    <p>{{ rec.recommendedAction }}</p>
+                  }
+                  @if (rec.proposedLanguage) {
+                    <p class="ed-rec-label">
+                      {{ 'documents.detail.editText.recs.proposed' | translate }}
+                      <button type="button" class="ed-copy" (click)="copy(rec.proposedLanguage)">
+                        <mat-icon>content_copy</mat-icon> {{ 'documents.detail.editText.recs.copy' | translate }}
+                      </button>
+                    </p>
+                    <p class="ed-rec-tip">{{ 'documents.detail.editText.recs.segmentTip' | translate }}</p>
+                    @for (seg of segments(rec.proposedLanguage); track $index) {
+                      <button type="button" class="ed-seg" (click)="useSegment(seg)"
+                              [title]="'documents.detail.editText.recs.use' | translate">
+                        <mat-icon>keyboard_return</mat-icon><span>{{ seg }}</span>
+                      </button>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          }
+        </aside>
+      }
+    </div>
+
     <mat-dialog-actions class="ed-actions">
       <span class="ed-limits">{{ 'documents.detail.editText.limits' | translate }}</span>
       <span class="ed-spacer"></span>
@@ -145,6 +217,32 @@ const BASELINE_TOLERANCE = 2;
     .ed-revert { position: absolute; right: -22px; top: 0; width: 20px; height: 20px; padding: 0; border: none; border-radius: 50%; background: #FAEEDA; color: #854F0B; cursor: pointer; display: none; align-items: center; justify-content: center; }
     .ed-revert mat-icon { font-size: 14px; width: 14px; height: 14px; }
     .ed-line:hover .ed-revert { display: flex; }
+    .ed-body { display: flex; gap: 0; align-items: stretch; }
+    .ed-body .ed-content { flex: 1; min-width: 0; }
+    .ed-side { width: 340px; flex-shrink: 0; max-height: 70vh; overflow-y: auto; border-left: 1px solid #dadce0; padding: 4px 16px 16px; font-size: 13px; color: #3c4043; }
+    .ed-side-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; margin: 8px 0 4px; }
+    .ed-side-hint { margin: 0 0 10px; color: #5f6368; font-size: 12px; line-height: 1.4; }
+    .ed-selected { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; margin-bottom: 12px; border-radius: 8px; background: #e8f0fe; color: #174ea6; font-size: 12px; }
+    .ed-selected mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+    .ed-selected em { font-style: normal; font-weight: 500; word-break: break-word; }
+    .ed-selected-none { background: #fef7e0; color: #854F0B; }
+    .ed-rec { border: 1px solid #dadce0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .ed-rec-open { border-color: #378ADD; }
+    .ed-rec-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: none; background: #f8f9fa; cursor: pointer; text-align: left; font: inherit; font-weight: 500; color: inherit; }
+    .ed-rec-title { flex: 1; min-width: 0; }
+    .ed-sev { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 8px; background: #e8eaed; color: #3c4043; flex-shrink: 0; }
+    .ed-sev-critical { background: #fce8e6; color: #c5221f; }
+    .ed-sev-high { background: #fef0e0; color: #b45309; }
+    .ed-sev-medium { background: #fef7e0; color: #854F0B; }
+    .ed-rec-body { padding: 4px 12px 12px; }
+    .ed-rec-body p { margin: 6px 0; line-height: 1.45; }
+    .ed-rec-label { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #5f6368; margin-top: 12px !important; }
+    .ed-rec-tip { font-size: 12px; color: #5f6368; }
+    .ed-copy { display: inline-flex; align-items: center; gap: 4px; border: none; background: none; color: #1a73e8; cursor: pointer; font: inherit; font-size: 12px; text-transform: none; letter-spacing: 0; }
+    .ed-copy mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .ed-seg { display: flex; gap: 6px; align-items: flex-start; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 8px; border: 1px solid #c2d7f5; border-radius: 6px; background: #f1f6fe; color: #202124; cursor: pointer; font: inherit; font-size: 12px; line-height: 1.4; }
+    .ed-seg:hover { background: #dbe8fb; border-color: #378ADD; }
+    .ed-seg mat-icon { font-size: 14px; width: 14px; height: 14px; margin-top: 2px; color: #1a73e8; flex-shrink: 0; }
     .ed-actions { padding: 12px 24px; }
     .ed-limits { font-size: 12px; color: #5f6368; max-width: 60%; }
   `]
@@ -153,6 +251,7 @@ export class PdfTextEditorDialogComponent implements AfterViewInit, OnDestroy {
   readonly data = inject<PdfTextEditorDialogData>(MAT_DIALOG_DATA);
   readonly ref = inject<MatDialogRef<PdfTextEditorDialogComponent, { version: number } | undefined>>(MatDialogRef);
   private readonly documentService = inject(DocumentService);
+  private readonly pdfTemplateService = inject(PdfTemplateService);
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
@@ -162,6 +261,50 @@ export class PdfTextEditorDialogComponent implements AfterViewInit, OnDestroy {
   }
 
   readonly scale = DISPLAY_SCALE;
+
+  /** The line the user last clicked: where a recommendation's wording goes when they pick it. */
+  readonly lastLine = signal<EditorLine | null>(null);
+  readonly openRec = signal<string | null>(null);
+
+  constructor() {
+    this.openRec.set(this.data.recommendations?.[0]?.id ?? null);
+  }
+
+  /**
+   * A proposed clause split into pieces that fit on one line of the PDF (a line is edited as one row of text):
+   * first at sentence ends, then at word boundaries when a sentence is still long.
+   */
+  segments(text: string): string[] {
+    const MAX = 100;
+    const out: string[] = [];
+    for (const sentence of text.replace(/\s+/g, ' ').trim().split(/(?<=[.;:])\s+/)) {
+      let rest = sentence;
+      while (rest.length > MAX) {
+        let cut = rest.lastIndexOf(' ', MAX);
+        if (cut < MAX / 2) cut = MAX;
+        out.push(rest.slice(0, cut).trim());
+        rest = rest.slice(cut).trim();
+      }
+      if (rest) out.push(rest);
+    }
+    return out;
+  }
+
+  useSegment(text: string): void {
+    const line = this.lastLine();
+    if (!line) {
+      this.snack.open(this.translate.instant('documents.detail.editText.recs.none'), 'OK', { duration: 4000 });
+      return;
+    }
+    this.commit(line, text);
+  }
+
+  copy(text: string): void {
+    navigator.clipboard?.writeText(text).then(
+      () => this.snack.open(this.translate.instant('documents.detail.editText.recs.copied'), 'OK', { duration: 2500 }),
+      () => {}
+    );
+  }
   loading = signal(true);
   saving = signal(false);
   pageCount = signal(0);
@@ -188,7 +331,10 @@ export class PdfTextEditorDialogComponent implements AfterViewInit, OnDestroy {
   private readonly linesCache = new Map<number, EditorLine[]>();
 
   async ngAfterViewInit(): Promise<void> {
-    this.documentService.stream(this.data.documentId).subscribe({
+    const source$ = this.data.target === 'template'
+      ? this.pdfTemplateService.stream(this.data.documentId)
+      : this.documentService.stream(this.data.documentId);
+    source$.subscribe({
       next: async blob => {
         try {
           const pdfjsLib = await import('pdfjs-dist');
@@ -307,6 +453,7 @@ export class PdfTextEditorDialogComponent implements AfterViewInit, OnDestroy {
   }
 
   startEdit(line: EditorLine): void {
+    this.lastLine.set(line);
     this.editingId.set(line.id);
   }
 
@@ -381,10 +528,17 @@ export class PdfTextEditorDialogComponent implements AfterViewInit, OnDestroy {
     if (payload.length === 0) return;
 
     this.saving.set(true);
-    this.documentService.editPdf(this.data.documentId, payload).subscribe({
+    const isTemplate = this.data.target === 'template';
+    const save$ = isTemplate
+      ? this.pdfTemplateService.editPdf(this.data.documentId, payload).pipe(map(() => ({ version: 0 })))
+      : this.documentService.editPdf(this.data.documentId, payload);
+    save$.subscribe({
       next: res => {
         this.saving.set(false);
-        this.snack.open(this.translate.instant('documents.detail.editText.saved', { version: res.version }), 'OK', { duration: 5000 });
+        const message = isTemplate
+          ? this.translate.instant('pdfTemplates.designer.textSaved')
+          : this.translate.instant('documents.detail.editText.saved', { version: res.version });
+        this.snack.open(message, 'OK', { duration: 5000 });
         this.ref.close({ version: res.version });
       },
       error: () => {

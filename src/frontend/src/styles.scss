@@ -300,3 +300,11 @@ html.dark {
 
   ::-webkit-scrollbar-thumb { background: var(--g-border); }
 }
+
+/* ── Shared page header: every top-level page uses the same title block and full-width container ── */
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 24px;
+}
+.page-title { font-size: 24px; font-weight: 600; color: var(--g-text); margin: 0 0 4px; letter-spacing: -0.2px; }
+.page-subtitle { font-size: 14px; color: var(--g-text-3); margin: 0; }

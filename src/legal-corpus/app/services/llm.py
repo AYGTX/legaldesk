@@ -4,6 +4,7 @@ Only law text is ever sent to it — public texts, never a contract — and what
 reviews before anything is saved. With the provider set to "none" (the default) Harvey works exactly as before."""
 
 import json
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -33,11 +34,22 @@ def _post_json(url: str, body: dict, headers: dict[str, str], timeout: float) ->
                                      # Groq's firewall rejects Python's default User-Agent (Cloudflare error 1010).
                                      headers={"Content-Type": "application/json", "User-Agent": "Harvey-legal-corpus/1.0",
                                               **headers})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
-        raise LlmUnavailable(f"The language model could not be reached: {error}") from error
+    # One retry after a short pause: Groq answers 429 or 5xx when briefly overloaded.
+    for attempt in (1, 2):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            if attempt == 1 and (error.code == 429 or error.code >= 500):
+                time.sleep(3)
+                continue
+            raise LlmUnavailable(f"The language model answered HTTP {error.code}.") from error
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+            if attempt == 1:
+                time.sleep(2)
+                continue
+            raise LlmUnavailable(f"The language model could not be reached: {error}") from error
+    raise LlmUnavailable("The language model could not be reached.")
 
 
 def _parse(content: str) -> dict:
@@ -95,7 +107,7 @@ class LocalLlm:
 
 
 def make_provider(settings) -> LlmProvider:
-    provider = (settings.ai_provider or "none").lower()
+    provider = (settings.ai_provider or "groq").lower()
     if provider == "groq" and settings.groq_api_key:
         return GroqLlm(settings.groq_api_key, settings.groq_model)
     if provider == "local":

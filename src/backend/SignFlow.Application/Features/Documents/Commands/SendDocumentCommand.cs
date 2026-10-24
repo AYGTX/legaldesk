@@ -42,6 +42,13 @@ public class SendDocumentCommandHandler(
         if (!db.Recipients.Any(r => r.DocumentId == document.Id))
             throw new ConflictException("Document must have at least one recipient before sending.");
 
+        // A request made from a PDF template is filled in by someone other than the contract's author, so it never
+        // goes out unreviewed: the review reads the answers against the clauses before anyone is notified.
+        if (document.PdfTemplateId.HasValue && document.ReadinessVerdict == ReadinessVerdict.NotEvaluated)
+            throw new Common.Exceptions.ValidationException(
+                [new FluentValidation.Results.ValidationFailure("readinessRequired",
+                    "Run the pre-flight review on this request before sending it.")]);
+
         EnforceReadinessGate(document, command.Force);
 
         await workflowEngine.StartAsync(document.Id, cancellationToken);

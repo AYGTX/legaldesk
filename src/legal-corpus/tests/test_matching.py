@@ -83,10 +83,8 @@ def test_example_vectors_are_embedded_once():
 
 @pytest.fixture
 def api(tmp_path):
-    path = tmp_path / "playbook.json"
-    path.write_text(json.dumps({"rules": [], "regulations": {}}), encoding="utf-8")
     app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None,
-                              playbook_path=path, match_threshold=0.6))
+                              legacy_playbook_file=None, seed_risks=False, match_threshold=0.6))
     with TestClient(app) as c:
         c.post("/login", data={"login": "admin", "password": "admin"})
         text = c.post("/api/v1/texts", json={"title": "Données", "reference": "Loi test n° 1", "jurisdiction": "Tunisia",

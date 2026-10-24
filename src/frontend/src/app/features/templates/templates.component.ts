@@ -6,7 +6,9 @@ import { forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { TranslatePipe } from '@ngx-translate/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { HtmlTemplateService } from '../../core/services/html-template.service';
 import { PdfTemplateService } from '../../core/services/pdf-template.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -74,7 +76,7 @@ import { TemplateKind, UnifiedTemplate, fromHtmlTemplate, fromPdfTemplate } from
       } @else {
         <div class="list-surface">
           @for (t of templates(); track t.kind + t.id) {
-            <sf-template-card [template]="t" [canManage]="canManage()" (use)="useTemplate($event)" (manage)="manageTemplate($event)" />
+            <sf-template-card [template]="t" [canManage]="canManage()" (use)="useTemplate($event)" (manage)="manageTemplate($event)" (remove)="deleteTemplate($event)" />
           }
         </div>
       }
@@ -82,9 +84,6 @@ import { TemplateKind, UnifiedTemplate, fromHtmlTemplate, fromPdfTemplate } from
   `,
   styles: [`
     .templates-page { padding: 0; }
-    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
-    .page-title { font-size: 22px; font-weight: 500; color: #1f1f1f; margin: 0 0 4px; letter-spacing: -0.2px; }
-    .page-subtitle { font-size: 13px; color: #5f6368; margin: 0; }
     .manage-links { display: flex; gap: 8px; flex-wrap: wrap; }
 
     .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -108,6 +107,9 @@ export class TemplatesComponent implements OnInit {
   private readonly htmlSvc = inject(HtmlTemplateService);
   private readonly pdfSvc = inject(PdfTemplateService);
   private readonly auth = inject(AuthService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly snack = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -179,6 +181,23 @@ export class TemplatesComponent implements OnInit {
     } else {
       this.router.navigate(['/pdf-templates', t.id, 'new']);
     }
+  }
+
+  deleteTemplate(t: UnifiedTemplate) {
+    this.confirm.confirm({
+      message: this.translate.instant('pdfTemplates.list.confirmDelete', { name: t.name }),
+      confirmLabel: this.translate.instant('common.delete'),
+      danger: true
+    }).subscribe(ok => {
+      if (!ok) return;
+      this.pdfSvc.delete(t.id).subscribe({
+        next: () => {
+          this.snack.open(this.translate.instant('pdfTemplates.list.deleted'), 'OK', { duration: 3000 });
+          this.load();
+        },
+        error: () => this.snack.open(this.translate.instant('pdfTemplates.list.deleteFailed'), 'OK', { duration: 3000 })
+      });
+    });
   }
 
   manageTemplate(t: UnifiedTemplate) {

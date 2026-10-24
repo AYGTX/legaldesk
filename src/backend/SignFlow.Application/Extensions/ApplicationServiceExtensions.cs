@@ -26,6 +26,9 @@ using SignFlow.Application.Features.Reports.Queries;
 using SignFlow.Application.Features.Requests.Queries;
 using SignFlow.Application.Features.RequestTypes.Commands;
 using SignFlow.Application.Features.RequestTypes.Queries;
+using SignFlow.Application.Features.WorkflowPresets;
+using SignFlow.Application.Features.WorkflowPresets.Commands;
+using SignFlow.Application.Features.WorkflowPresets.Queries;
 using SignFlow.Application.Features.Vacations.Commands;
 using SignFlow.Application.Features.Vacations.Queries;
 using SignFlow.Application.Features.Gdpr.Commands;
@@ -66,10 +69,14 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ILegalPlaybookService, LegalPlaybookService>();
         services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
         services.AddScoped<ICommandHandler<EditDocumentPdfCommand, UploadRevisionResult>, EditDocumentPdfCommandHandler>();
+        services.AddScoped<ICommandHandler<EditPdfTemplateCommand, EditPdfTemplateResult>, EditPdfTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult>, ReviseFromTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateObligationCommand>, UpdateObligationCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateContractTermCommand>, UpdateContractTermCommandHandler>();
         services.AddScoped<ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto>, AnalyzeContractCommandHandler>();
+        services.AddScoped<ICommandHandler<AskContractQuestionCommand, ContractChatReplyDto>, AskContractQuestionCommandHandler>();
+        services.AddScoped<ICommandHandler<ExtractKeyTermsCommand, KeyTermsDto>, ExtractKeyTermsCommandHandler>();
+        services.AddScoped<ICommandHandler<WriteRenewalNoteCommand, RenewalNoteDto>, WriteRenewalNoteCommandHandler>();
         services.AddScoped<ICommandHandler<AnalyzeComplianceCommand, ComplianceAnalysisDto>, AnalyzeComplianceCommandHandler>();
         services.AddScoped<ICommandHandler<EvaluateReadinessCommand, ReadinessDto>, EvaluateReadinessCommandHandler>();
         services.AddScoped<ICommandHandler<SetReadinessItemStatusCommand, ReadinessDto>, SetReadinessItemStatusCommandHandler>();
@@ -107,6 +114,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IQueryHandler<GetAdminReportQuery, AdminReportDto>, GetAdminReportQueryHandler>();
         services.AddScoped<IQueryHandler<GetRiskMapQuery, RiskMapDto>, GetRiskMapQueryHandler>();
         services.AddScoped<IQueryHandler<GetContractLifecycleQuery, ContractLifecycleDto>, GetContractLifecycleQueryHandler>();
+        services.AddScoped<IQueryHandler<GetContractScheduleQuery, List<ContractScheduleRowDto>>, GetContractScheduleQueryHandler>();
 
         // Audit
         services.AddScoped<IQueryHandler<GetAuditTrailQuery, PagedResult<AuditLogDto>>, GetAuditTrailQueryHandler>();
@@ -183,6 +191,12 @@ public static class ApplicationServiceExtensions
 
         // HTML Templates
         services.AddScoped<ICommandHandler<GenerateHtmlTemplateCommand, GenerateHtmlTemplateResult>, GenerateHtmlTemplateCommandHandler>();
+        services.AddScoped<ICommandHandler<ReviewHtmlTemplateCommand, ReviewHtmlTemplateResult>, ReviewHtmlTemplateCommandHandler>();
+        services.AddScoped<IWorkflowPresetResolver, WorkflowPresetResolver>();
+        services.AddScoped<IQueryHandler<GetWorkflowPresetsQuery, List<WorkflowPresetDto>>, GetWorkflowPresetsQueryHandler>();
+        services.AddScoped<ICommandHandler<CreateWorkflowPresetCommand, Guid>, CreateWorkflowPresetCommandHandler>();
+        services.AddScoped<ICommandHandler<UpdateWorkflowPresetCommand>, UpdateWorkflowPresetCommandHandler>();
+        services.AddScoped<ICommandHandler<DeleteWorkflowPresetCommand>, DeleteWorkflowPresetCommandHandler>();
         services.AddScoped<ICommandHandler<CreateHtmlTemplateCommand, Guid>, CreateHtmlTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateHtmlTemplateCommand>, UpdateHtmlTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteHtmlTemplateCommand>, DeleteHtmlTemplateCommandHandler>();

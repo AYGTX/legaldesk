@@ -23,6 +23,7 @@ yarn-error.log
 *.env
 .env.*
 src/frontend/Email Password Role.txt
+src/backend/SignFlow.Api/appsettings.Local.json
 
 # OS / editor
 Thumbs.db

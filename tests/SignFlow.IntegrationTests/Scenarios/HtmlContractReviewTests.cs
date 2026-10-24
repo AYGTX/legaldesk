@@ -42,6 +42,7 @@ public class HtmlContractReviewTests
         public Task<ComplianceAnalysis> ReviewComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, IReadOnlyList<LegalArticleContext>? legalArticles = null, CancellationToken ct = default)
         { Texts.Add(text); return Task.FromResult(new ComplianceAnalysis(100, [], DateTime.UtcNow)); }
 
+        public Task<ContractAnswer> AnswerQuestionAsync(string text, string title, IReadOnlyList<ChatTurn> history, string question, string language, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<GeneratedHtmlTemplate> GenerateHtmlFromTextAsync(string userText, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<ContractRiskAnalysis> AnalyzeContractRiskAsync(string text, string title, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<ObligationSuggestion> SuggestObligationAsync(string text, string title, DateTime referenceDate, CancellationToken ct = default) => throw new NotSupportedException();
@@ -136,6 +137,7 @@ public class HtmlContractReviewTests
         var readiness = new EvaluateReadinessCommandHandler(fixture.Db, seed.Text, seed.Ai,
             new GroundedComplianceReview(seed.Ai, new NullLegalCorpusClient(), Playbook, NullLogger<GroundedComplianceReview>.Instance),
             Playbook,
+            Microsoft.Extensions.Options.Options.Create(new SignFlow.Application.Common.Models.ReviewFeatures { RegulatoryCompliance = true }),
             fixture.GetHandler<ICurrentUserService>(), fixture.GetHandler<IAuditService>(),
             NullLogger<EvaluateReadinessCommandHandler>.Instance);
         var result = await readiness.HandleAsync(new EvaluateReadinessCommand(seed.Document.Id));

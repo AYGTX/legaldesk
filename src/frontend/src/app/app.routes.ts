@@ -92,6 +92,11 @@ export const routes: Routes = [
         title: 'PDF Contract Templates — LegalDesk'
       },
       {
+        path: 'schedule',
+        loadComponent: () => import('./features/schedule/contract-schedule.component').then(m => m.ContractScheduleComponent),
+        title: 'Contract schedule — LegalDesk'
+      },
+      {
         path: 'reports',
         loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent),
         title: 'Reports — LegalDesk'

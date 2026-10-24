@@ -52,6 +52,7 @@ const NAV: NavEntry[] = [
     children: [
       { id: 'all', labelKey: 'nav.allContracts', path: '/documents', prefix: true, exclude: ['/documents/upload', '/documents/new-request'] },
       { id: 'review', labelKey: 'nav.review', path: '/review', prefix: true },
+      { id: 'schedule', labelKey: 'nav.schedule', path: '/schedule' },
       { id: 'upload', labelKey: 'nav.uploadFile', path: '/documents/new-request' },
       { id: 'use-pdf', labelKey: 'nav.usePdfTemplate', path: '/templates', query: { kind: 'pdf' }, alsoPrefixes: ['/pdf-templates'] },
       { id: 'use-html', labelKey: 'nav.useHtmlTemplate', path: '/requests/from-html-template' }
@@ -65,15 +66,15 @@ const NAV: NavEntry[] = [
       { id: 'audit', labelKey: 'nav.auditTrail', path: '/audit', prefix: true }
     ]
   },
-  { id: 'capabilities', labelKey: 'nav.capabilities', icon: 'checklist', path: '/capabilities' },
+  // Capability map hidden from the menu; the page is still reachable at /capabilities.
   {
     id: 'admin', labelKey: 'nav.administration', icon: 'admin_panel_settings', roles: ['Administrator'],
     children: [
       { id: 'users', labelKey: 'admin.tabs.users', path: '/admin', query: { tab: 'users' }, queryDefault: { tab: 'users' } },
       { id: 'types', labelKey: 'admin.tabs.requestTypes', path: '/admin', query: { tab: 'types' } },
       { id: 'manage-templates', labelKey: 'admin.tabs.htmlTemplates', path: '/admin/html-templates', prefix: true },
+      { id: 'workflows', labelKey: 'admin.tabs.workflows', path: '/admin/workflows', prefix: true },
       { id: 'clauses', labelKey: 'admin.tabs.clauses', path: '/admin/clauses', prefix: true },
-      { id: 'regulatory', labelKey: 'admin.tabs.regulatoryWatch', path: '/admin/regulatory-watch', prefix: true },
       { id: 'settings', labelKey: 'admin.tabs.systemSettings', path: '/admin', query: { tab: 'settings' } }
     ]
   }

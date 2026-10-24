@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,8 +13,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
-import { Readiness, RequestType } from '../../core/models';
+import { Readiness, ReadinessItem, RequestType } from '../../core/models';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { PdfEditorRecommendation, PdfTextEditorDialogComponent, PdfTextEditorDialogData } from '../documents/pdf-text-editor-dialog.component';
 import { ReadinessVerdictComponent } from '../../shared/readiness-verdict/readiness-verdict.component';
 import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
 
@@ -34,7 +37,7 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
   imports: [
     CommonModule, RouterLink, ReactiveFormsModule,
     MatCardModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
-    MatProgressBarModule, MatSelectModule, MatTooltipModule, MatSnackBarModule,
+    MatProgressBarModule, MatSelectModule, MatTooltipModule, MatSnackBarModule, MatDialogModule,
     ReadinessVerdictComponent, ReadinessChecklistComponent, TranslatePipe
   ],
   template: `
@@ -169,6 +172,13 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
               [highCount]="r.highCount" [handledCount]="r.handledCount">
             </sf-readiness-verdict>
 
+            @if (sendMode()) {
+              <div class="send-banner">
+                <mat-icon>mark_email_read</mat-icon>
+                <span>{{ 'review.send.intro' | translate }}</span>
+              </div>
+            }
+
             <div class="verdict-body">
               <mat-card class="checklist-card">
                 <mat-card-content>
@@ -184,12 +194,21 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
                 <mat-card-content>
                   <h3 class="next-title">{{ 'review.next.title' | translate }}</h3>
 
+                  @if (sendMode()) {
+                    <button mat-flat-button color="primary" class="next-btn"
+                            [disabled]="r.verdict === 'Blocked' || sending()"
+                            [matTooltip]="r.verdict === 'Blocked' ? ('review.next.blockedHint' | translate) : ''"
+                            (click)="send(false)">
+                      <mat-icon>send</mat-icon> {{ (sending() ? 'review.send.sending' : 'review.send.button') | translate }}
+                    </button>
+                  } @else {
                   <button mat-flat-button color="primary" class="next-btn"
                           [disabled]="r.verdict === 'Blocked'"
                           [matTooltip]="r.verdict === 'Blocked' ? ('review.next.blockedHint' | translate) : ''"
                           [routerLink]="['/documents', documentId(), 'designer']">
                     <mat-icon>send</mat-icon> {{ 'review.next.promote' | translate }}
                   </button>
+                  }
 
                   <button mat-stroked-button class="next-btn" (click)="revisionInput.click()"
                           [disabled]="uploadingRevision()">
@@ -198,6 +217,10 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
                   </button>
                   <input type="file" accept="application/pdf" hidden #revisionInput
                          (change)="onRevisionFile($event)" />
+
+                  <button mat-stroked-button class="next-btn" (click)="editText(r.items)">
+                    <mat-icon>edit_note</mat-icon> {{ 'review.next.editText' | translate }}
+                  </button>
 
                   <button mat-stroked-button class="next-btn" (click)="rerun()" [disabled]="rerunning()">
                     <mat-icon>refresh</mat-icon>
@@ -227,6 +250,14 @@ export class ContractReviewComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly translate = inject(TranslateService);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly confirmService = inject(ConfirmService);
+
+  /** The request came from a template and is a draft nobody has been told about: this page reviews it, then sends it. */
+  readonly sendMode = signal(false);
+  readonly sending = signal(false);
 
   readonly stage = signal<ReviewStage>('drop');
   readonly selectedFile = signal<File | null>(null);
@@ -245,6 +276,20 @@ export class ContractReviewComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Arriving with a document id (a template request just filled in): review that draft straight away.
+    const existing = this.route.snapshot.queryParamMap.get('documentId');
+    if (existing) {
+      this.documentId.set(existing);
+      this.sendMode.set(true);
+      this.analysingStep.set('review.analysing.reviewing');
+      this.stage.set('analysing');
+      this.documentService.getDocument(existing).subscribe({
+        next: doc => this.form.patchValue({ title: doc.title }),
+        error: () => {}
+      });
+      this.evaluate();
+    }
+
     this.requestTypeService.getActive().subscribe({
       next: t => this.requestTypes.set(t),
       error: () => this.requestTypes.set([])
@@ -353,6 +398,69 @@ export class ContractReviewComponent implements OnInit {
       error: err => {
         this.uploadingRevision.set(false);
         this.error.set(err.error?.detail ?? this.translate.instant('review.failed'));
+      }
+    });
+  }
+
+  /**
+   * Opens the click-to-edit view of the contract with the open findings beside it. A save creates a new version
+   * of the contract, so the review is run again against it.
+   */
+  editText(items: ReadinessItem[]): void {
+    const recommendations: PdfEditorRecommendation[] = items
+      .filter(i => i.status === 'Open')
+      .map(i => ({
+        id: i.id, severity: i.severity, title: i.title, detail: i.detail,
+        whyItMatters: i.whyItMatters, recommendedAction: i.recommendedAction, proposedLanguage: i.proposedLanguage
+      }));
+    this.dialog.open(PdfTextEditorDialogComponent, {
+      data: {
+        documentId: this.documentId()!,
+        documentTitle: this.form.value.title ?? '',
+        recommendations
+      } satisfies PdfTextEditorDialogData,
+      width: '1360px',
+      maxWidth: '98vw',
+      disableClose: true
+    }).afterClosed().subscribe(result => {
+      if (result) this.rerun();
+    });
+  }
+
+  /**
+   * Starts the circuit. The API refuses a request with critical findings (never forceable) and asks for a
+   * confirmation when only high-severity ones remain.
+   */
+  send(force: boolean): void {
+    if (!this.documentId()) return;
+    this.sending.set(true);
+    this.error.set(null);
+    this.documentService.send(this.documentId()!, force).subscribe({
+      next: () => {
+        this.sending.set(false);
+        this.snack.open(this.translate.instant('review.send.sent'), 'OK', { duration: 4000 });
+        this.router.navigate(['/documents', this.documentId()]);
+      },
+      error: err => {
+        this.sending.set(false);
+        const errors = err.error?.errors as Record<string, string[]> | undefined;
+
+        if (errors?.['readinessWarning']) {
+          this.confirmService.confirm({
+            message: this.translate.instant('documents.detail.readiness.sendAnyway', { count: this.readiness()?.openCount ?? 0 }),
+            confirmLabel: this.translate.instant('documents.detail.readiness.sendAnywayConfirm')
+          }).subscribe(ok => { if (ok) this.send(true); });
+          return;
+        }
+        if (errors?.['readiness']) {
+          this.snack.open(this.translate.instant('documents.detail.readiness.sendBlocked'), 'OK', { duration: 6000 });
+          return;
+        }
+        if (errors?.['readinessRequired']) {
+          this.rerun();
+          return;
+        }
+        this.error.set(err.error?.detail ?? this.translate.instant('documents.detail.sendFailed'));
       }
     });
   }

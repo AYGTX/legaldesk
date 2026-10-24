@@ -72,6 +72,8 @@ public class GroundedComplianceReviewTests
 
     private sealed class FakeAi(string json) : IAiService
     {
+        public Task<ContractAnswer> AnswerQuestionAsync(string text, string title, IReadOnlyList<ChatTurn> history, string question, string language, CancellationToken ct = default) => throw new NotSupportedException();
+
         public IReadOnlyList<LegalArticleContext>? ReceivedArticles { get; private set; }
 
         public Task<ComplianceAnalysis> ReviewComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> regs,
@@ -90,11 +92,13 @@ public class GroundedComplianceReviewTests
         public Task<ComplianceAnalysis> AnalyzeContractComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> r, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
-    private sealed class FakeCorpus(bool enabled = true, bool searchFails = false, bool checkFails = false) : ILegalCorpusClient
+    private sealed class FakeCorpus(bool searchFails = false, bool checkFails = false) : ILegalCorpusClient
     {
+        public Task<DetectedFormFields> DetectFormFieldsAsync(Stream pdf, string fileName, CancellationToken ct = default) => throw new NotSupportedException();
         public List<string> Queries { get; } = [];
         public List<CitationCheckRequest> Checked { get; } = [];
-        public bool IsEnabled => enabled;
+        public Task<IReadOnlyList<RiskFinding>> ReviewAsync(IReadOnlyList<ClauseText> clauses, string? language, CancellationToken ct = default) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<LegalArticleContext>> SearchAsync(string query, int topK, CancellationToken ct = default)
         {
@@ -191,17 +195,5 @@ public class GroundedComplianceReviewTests
         Assert.Empty(ai.ReceivedArticles!);
         Assert.Equal("Addressed", Assert.Single(result.Findings).Status);
         Assert.Contains(result.Limitations!, l => l.Contains("unavailable"));
-    }
-
-    [Fact]
-    public async Task A_disabled_corpus_is_never_called()
-    {
-        var corpus = new FakeCorpus(enabled: false);
-        var ai = new FakeAi("""{ "findings": [ { "regulationIndex": 1, "status": "Addressed", "explanation": "ok" } ] }""");
-
-        await Review(ai, corpus).ReviewAsync(Contract, "Contrat", [DataProtection]);
-
-        Assert.Empty(corpus.Queries);
-        Assert.Empty(ai.ReceivedArticles!);
     }
 }

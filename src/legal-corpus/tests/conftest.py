@@ -13,7 +13,8 @@ Article 2 bis : Le responsable du traitement prend toutes les précautions utile
 
 @pytest.fixture
 def client():
-    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None))
+    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None,
+                              legacy_playbook_file=None, seed_risks=False))
     with TestClient(app) as c:
         assert c.post("/login", data={"login": "admin", "password": "admin"}, follow_redirects=False).status_code == 303
         yield c

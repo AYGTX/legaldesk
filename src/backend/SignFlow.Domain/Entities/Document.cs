@@ -349,6 +349,14 @@ public class Document : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>A term read from the contract by the AI assistant: recorded so the contract appears in the schedule,
+    /// but left unconfirmed until a person saves the term.</summary>
+    public void SuggestContractTerm(DateTime? startDate, DateTime? endDate, bool autoRenews, int? noticePeriodDays)
+    {
+        SetContractTerm(startDate, endDate, autoRenews, noticePeriodDays);
+        TermConfirmed = false;
+    }
+
     /// <summary>Records which rung of the alert ladder has been sent, so it never fires twice.</summary>
     public void MarkTermAlertSent(string stage)
     {

@@ -5,7 +5,7 @@ match anything. For each threshold the script prints precision (share of matches
 positives found). Pick the lowest threshold that keeps precision at or above the target, and set it with
 CORPUS_MATCH_THRESHOLD. Add every clause LegalDesk missed in a real review to the positives.
 
-    python tools/calibrate_matching.py [cases.json] [--rules playbook.json] [--target 0.9]
+    python tools/calibrate_matching.py [cases.json] [--rules exported.json] [--target 0.9]
 """
 
 import argparse
@@ -23,7 +23,7 @@ from app.services.matching import ExampleMatcher, RuleExamples, load_semantic  #
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("cases", nargs="?", default=str(ROOT / "tools" / "matching_cases.json"))
-    parser.add_argument("--rules", default=str(ROOT / "playbook.json"))
+    parser.add_argument("--rules", default=None, help="a JSON export of the grid; by default it is read from Harvey's database")
     parser.add_argument("--target", type=float, default=0.9)
     args = parser.parse_args()
 
@@ -31,7 +31,14 @@ def main() -> None:
     if embedder is None:
         sys.exit("sentence-transformers is not installed: pip install -r requirements-semantic.txt")
     cases = json.loads(Path(args.cases).read_text(encoding="utf-8"))
-    book = json.loads(Path(args.rules).read_text(encoding="utf-8"))
+    if args.rules:
+        book = json.loads(Path(args.rules).read_text(encoding="utf-8"))
+    else:
+        from app.db import make_session_factory
+        from app.services import playbook
+
+        with make_session_factory(load_settings().database_url)() as db:
+            book = playbook.load(db)
     rules = [RuleExamples(r["key"], r.get("label") or r["key"], [e["text"] for e in r.get("examples", [])],
                           [e["text"] for e in r.get("counter_examples", [])])
              for r in book["rules"] if r.get("examples")]

@@ -157,6 +157,10 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDashboard(System.Threading.CancellationToken)">
             <summary>Get dashboard statistics</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSchedule(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Reports.Queries.GetContractScheduleQuery,System.Collections.Generic.List{SignFlow.Application.Features.Reports.Queries.ContractScheduleRowDto}},System.Threading.CancellationToken)">
+            <summary>The contract schedule: every contract with its end date, notice deadline and stage, most urgent first
+            (administrators see all contracts, others their own)</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSlaMetrics(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RequestTypes.Queries.GetSlaMetricsQuery,SignFlow.Application.Features.RequestTypes.Queries.SlaMetricsDto},System.Threading.CancellationToken)">
             <summary>Get SLA metrics for the current user's requests</summary>
         </member>
@@ -169,7 +173,7 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.UpdateContractTerm(System.Guid,SignFlow.Api.Controllers.V1.UpdateContractTermRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.UpdateContractTermCommand},System.Threading.CancellationToken)">
             <summary>Record the negotiated contract term that drives the lifecycle alerts</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDocuments(System.Int32,System.Int32,System.String,System.Nullable{SignFlow.Domain.Enums.DocumentStatus},System.String,System.Boolean,System.Nullable{System.Guid},System.Threading.CancellationToken)">
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDocuments(System.Int32,System.Int32,System.String,System.Nullable{SignFlow.Domain.Enums.DocumentStatus},System.String,System.Boolean,System.Nullable{System.Guid},System.String,System.Threading.CancellationToken)">
             <summary>List documents with pagination, filtering and sorting</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDocument(System.Guid,System.Threading.CancellationToken)">
@@ -202,6 +206,19 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Analyze(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AnalyzeContractCommand,SignFlow.Application.Features.Documents.Commands.ContractAnalysisDto},System.Threading.CancellationToken)">
             <summary>Run a full legal review of the contract — gaps, weak clauses, proposed wording and the next obligation date</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Ask(System.Guid,SignFlow.Api.Controllers.V1.AskContractQuestionRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AskContractQuestionCommand,SignFlow.Application.Features.Documents.Commands.ContractChatReplyDto},System.Threading.CancellationToken)">
+            <summary>
+            Ask a question about the contract. The answer comes only from the contract's own text and is shown with the
+            excerpts that support it, each checked word for word. The client keeps the conversation and sends it back.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.ExtractKeyTerms(System.Guid,System.String,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.ExtractKeyTermsCommand,SignFlow.Application.Features.Documents.Commands.KeyTermsDto},System.Threading.CancellationToken)">
+            <summary>The contract's key data read by the AI assistant, each value with the sentence it comes from (checked
+            word for word). Nothing is saved: apply the term with PATCH {id}/term.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.WriteRenewalNote(System.Guid,System.String,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.WriteRenewalNoteCommand,SignFlow.Application.Features.Documents.Commands.RenewalNoteDto},System.Threading.CancellationToken)">
+            <summary>A short AI decision note for the contract's next deadline: renew, renegotiate or terminate.</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.AnalyzeCompliance(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AnalyzeComplianceCommand,SignFlow.Application.Features.Documents.Commands.ComplianceAnalysisDto},System.Threading.CancellationToken)">
             <summary>Check the contract against the published regulatory watch registry — a keyword scan, not a legal opinion</summary>
         </member>
@@ -232,6 +249,12 @@
         <member name="M:SignFlow.Api.Controllers.V1.SendDocumentRequest.#ctor(System.Boolean)">
             <summary>Force lets the owner send past a "needs work" verdict after acknowledging it.</summary>
         </member>
+        <member name="T:SignFlow.Api.Controllers.V1.AskContractQuestionRequest">
+            <summary>A question about a contract, with the conversation so far (the client keeps it).</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AskContractQuestionRequest.#ctor(System.String,System.Collections.Generic.IReadOnlyList{SignFlow.Application.Common.Interfaces.ChatTurn},System.String)">
+            <summary>A question about a contract, with the conversation so far (the client keeps it).</summary>
+        </member>
         <member name="T:SignFlow.Api.Controllers.V1.FieldsController">
             <summary>Signature field designer endpoints</summary>
         </member>
@@ -259,7 +282,7 @@
         <member name="T:SignFlow.Api.Controllers.V1.HtmlTemplatesController">
             <summary>HTML template management and request submission</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.CreateHtmlTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.UpdateHtmlTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.DeleteHtmlTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.CreateRequestFromHtmlTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.GenerateHtmlTemplateCommand,SignFlow.Application.Features.HtmlTemplates.Commands.GenerateHtmlTemplateResult},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.HtmlTemplates.Queries.GetHtmlTemplatesQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.HtmlTemplates.Queries.HtmlTemplateDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.HtmlTemplates.Queries.GetHtmlTemplateByIdQuery,SignFlow.Application.Features.HtmlTemplates.Queries.HtmlTemplateDetailDto})">
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.CreateHtmlTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.UpdateHtmlTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.DeleteHtmlTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.CreateRequestFromHtmlTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.GenerateHtmlTemplateCommand,SignFlow.Application.Features.HtmlTemplates.Commands.GenerateHtmlTemplateResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.HtmlTemplates.Commands.ReviewHtmlTemplateCommand,SignFlow.Application.Features.HtmlTemplates.Commands.ReviewHtmlTemplateResult},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.HtmlTemplates.Queries.GetHtmlTemplatesQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.HtmlTemplates.Queries.HtmlTemplateDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.HtmlTemplates.Queries.GetHtmlTemplateByIdQuery,SignFlow.Application.Features.HtmlTemplates.Queries.HtmlTemplateDetailDto})">
             <summary>HTML template management and request submission</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.GetAll(System.Int32,System.Int32,System.String,System.Nullable{System.Boolean},System.Threading.CancellationToken)">
@@ -279,6 +302,12 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Generate(SignFlow.Api.Controllers.V1.GenerateHtmlTemplateRequest,System.Threading.CancellationToken)">
             <summary>Generate HTML content from plain text using AI (admin/manager only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Review(SignFlow.Api.Controllers.V1.ReviewHtmlTemplateRequest,System.Threading.CancellationToken)">
+            <summary>
+            Reviews the template as written (even unsaved) with the legal review: findings, each tied to a clause.
+            409 when the review could not run, rather than an empty result that reads as "no problems".
+            </summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Submit(System.Guid,SignFlow.Api.Controllers.V1.SubmitFromTemplateRequest,System.Threading.CancellationToken)">
             <summary>Submit a request from a template (any authenticated user)</summary>
@@ -304,7 +333,7 @@
             users create signing requests that reuse the stored PDF as their base document.
             </summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.CreatePdfTemplateCommand,SignFlow.Application.Features.PdfTemplates.Commands.CreatePdfTemplateResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.UpdatePdfTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.DeletePdfTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.CreateRequestFromPdfTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.PdfTemplates.Queries.GetPdfTemplatesQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.PdfTemplates.Queries.PdfTemplateDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.PdfTemplates.Queries.GetPdfTemplateByIdQuery,SignFlow.Application.Features.PdfTemplates.Queries.PdfTemplateDetailDto},SignFlow.Application.Common.Interfaces.IStorageService)">
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.CreatePdfTemplateCommand,SignFlow.Application.Features.PdfTemplates.Commands.CreatePdfTemplateResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.UpdatePdfTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.DeletePdfTemplateCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.CreateRequestFromPdfTemplateCommand,System.Guid},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.PdfTemplates.Queries.GetPdfTemplatesQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.PdfTemplates.Queries.PdfTemplateDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.PdfTemplates.Queries.GetPdfTemplateByIdQuery,SignFlow.Application.Features.PdfTemplates.Queries.PdfTemplateDetailDto},SignFlow.Application.Common.Interfaces.IStorageService,SignFlow.Application.Common.Interfaces.ILegalCorpusClient)">
             <summary>
             PDF-template request flow: admins upload a base PDF once and map fields to page coordinates;
             users create signing requests that reuse the stored PDF as their base document.
@@ -319,11 +348,21 @@
         <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Stream(System.Guid,System.Threading.CancellationToken)">
             <summary>Stream the template's base PDF inline (for the field designer and request preview)</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.DetectFields(Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">
+            <summary>
+            Proposes fields for a contract PDF (text boxes, checkboxes, signatures) with a label, type, fill role and
+            auto-fill for each, so a company can turn a finished contract into a template. Nothing is saved: the designer
+            shows the proposal and the admin confirms or edits it. 503 when the legal-corpus service is not enabled.
+            </summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Create(SignFlow.Api.Controllers.V1.CreatePdfTemplateRequest,System.Threading.CancellationToken)">
             <summary>Upload the base PDF for a new template (admin/manager only). Fields are configured afterwards.</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdatePdfTemplateRequest,System.Threading.CancellationToken)">
             <summary>Update metadata/workflow config and replace the field set (admin/manager only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.EditPdf(System.Guid,SignFlow.Api.Controllers.V1.EditPdfRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.EditPdfTemplateCommand,SignFlow.Application.Features.PdfTemplates.Commands.EditPdfTemplateResult},System.Threading.CancellationToken)">
+            <summary>Edit the text of a template's PDF in the browser (admin/manager only). Requests already created keep their copy.</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Delete(System.Guid,System.Threading.CancellationToken)">
             <summary>Soft-delete a template (admin/manager only)</summary>
@@ -558,9 +597,45 @@
         <member name="M:SignFlow.Api.Controllers.V1.VacationsController.Cancel(System.Guid,System.Threading.CancellationToken)">
             <summary>Cancel a scheduled vacation</summary>
         </member>
+        <member name="T:SignFlow.Api.Controllers.V1.WorkflowPresetsController">
+            <summary>
+            Reusable approval workflows. A template follows one, so the path is set up once and changed in one place.
+            Administrators manage them; administrators and managers can read them to pick one for a template.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.WorkflowPresetsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.WorkflowPresets.Queries.GetWorkflowPresetsQuery,System.Collections.Generic.List{SignFlow.Application.Features.WorkflowPresets.WorkflowPresetDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.WorkflowPresets.Commands.CreateWorkflowPresetCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.WorkflowPresets.Commands.UpdateWorkflowPresetCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.WorkflowPresets.Commands.DeleteWorkflowPresetCommand})">
+            <summary>
+            Reusable approval workflows. A template follows one, so the path is set up once and changed in one place.
+            Administrators manage them; administrators and managers can read them to pick one for a template.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.WorkflowPresetsController.GetAll(System.Boolean,System.Threading.CancellationToken)">
+            <summary>List workflows with their steps (administrators and managers)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.WorkflowPresetsController.Create(SignFlow.Api.Controllers.V1.SaveWorkflowPresetRequest,System.Threading.CancellationToken)">
+            <summary>Create a workflow (administrators only)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.WorkflowPresetsController.Update(System.Guid,SignFlow.Api.Controllers.V1.SaveWorkflowPresetRequest,System.Threading.CancellationToken)">
+            <summary>Change a workflow. Requests already created keep their approvers; new ones follow the change.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.WorkflowPresetsController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Delete a workflow no template follows</summary>
+        </member>
         <member name="T:Program">
             <summary>
             Auto-generated public partial Program class for top-level statement apps.
+            </summary>
+        </member>
+        <member name="T:HangfireAuthFilter">
+            <summary>
+            The dashboard can trigger and delete background jobs, so it is closed by default: in development only requests
+            from this machine get in; anywhere else only an authenticated Administrator does.
+            </summary>
+        </member>
+        <member name="M:HangfireAuthFilter.#ctor(System.Boolean)">
+            <summary>
+            The dashboard can trigger and delete background jobs, so it is closed by default: in development only requests
+            from this machine get in; anywhere else only an authenticated Administrator does.
             </summary>
         </member>
         <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Type)">

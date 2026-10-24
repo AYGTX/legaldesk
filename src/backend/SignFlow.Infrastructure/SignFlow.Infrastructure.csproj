@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The contract look, injected into the PDF; kept identical to src/frontend/src/styles/contract-theme.css. -->
+    <EmbeddedResource Include="Services\Pdf\ContractTheme.css" LogicalName="ContractTheme.css" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SignFlow.Domain\SignFlow.Domain.csproj" />
     <ProjectReference Include="..\SignFlow.Application\SignFlow.Application.csproj" />
   </ItemGroup>
@@ -45,6 +50,7 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup>

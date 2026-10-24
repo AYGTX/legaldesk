@@ -22,18 +22,23 @@ public abstract class OpenAiCompatibleProvider(IHttpClientFactory httpFactory, I
 
     public async Task<string> CompleteAsync(LlmRequest request, CancellationToken ct)
     {
-        var body = new
+        var model = ModelFor(request.Task);
+        var body = new Dictionary<string, object?>
         {
-            model = ModelFor(request.Task),
-            max_tokens = request.MaxTokens ?? MaxTokensFor(request.Task),
-            temperature = request.Temperature,
-            stream = false,
-            messages = new[]
+            ["model"] = model,
+            ["max_tokens"] = request.MaxTokens ?? MaxTokensFor(request.Task),
+            ["temperature"] = request.Temperature,
+            ["stream"] = false,
+            ["messages"] = new[]
             {
                 new { role = "system", content = request.SystemPrompt },
                 new { role = "user", content = request.UserMessage }
             }
         };
+        // gpt-oss models think before they answer, and that thinking counts against max_tokens: on a short answer
+        // (a summary) it can use the whole budget and leave an empty reply. Keep the thinking short.
+        if (model.Contains("gpt-oss", StringComparison.OrdinalIgnoreCase))
+            body["reasoning_effort"] = "low";
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, Endpoint)
         {
@@ -53,7 +58,11 @@ public abstract class OpenAiCompatibleProvider(IHttpClientFactory httpFactory, I
         }
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-        return doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()
-               ?? string.Empty;
+        var choice = doc.RootElement.GetProperty("choices")[0];
+        var content = choice.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(content))
+            logger.LogWarning("{Provider} returned an empty answer (finish reason: {Reason})", Name,
+                choice.TryGetProperty("finish_reason", out var r) ? r.GetString() : "unknown");
+        return content;
     }
 }

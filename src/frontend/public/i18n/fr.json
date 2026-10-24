@@ -39,7 +39,7 @@
   },
   "newContractRequest": {
     "title": "Nouvelle demande de contrat",
-    "subtitle": "Importez le contrat, laissez l'IA le relire d'abord, réglez ses constats, puis choisissez les participants et envoyez.",
+    "subtitle": "Importez le contrat, laissez Harvey le relire d'abord, réglez ses constats, puis choisissez les participants et envoyez.",
     "back": "Retour",
     "saving": "Enregistrement…",
     "uploading": "Import en cours…",
@@ -47,7 +47,7 @@
     "uploadFailed": "Impossible d'importer le fichier",
     "steps": {
       "request": "Demande",
-      "review": "Revue IA",
+      "review": "Revue Harvey",
       "resolve": "Régler",
       "people": "Participants",
       "send": "Envoi"
@@ -65,7 +65,7 @@
       "typeHint": "Le type fixe le délai et détermine les textes réglementaires vérifiés par la revue."
     },
     "review": {
-      "title": "L'IA lit votre contrat",
+      "title": "Harvey lit votre contrat",
       "note": "Cela prend quelques instants. Personne d'autre ne voit le contrat avant que vous l'envoyiez.",
       "failedTitle": "La revue n'a pas pu s'exécuter",
       "failedHint": "Le contrat est enregistré en brouillon. Réessayez, ou continuez sans la revue.",
@@ -88,13 +88,22 @@
       "hint": "Choisissez des personnes de votre organisation ou ajoutez un signataire externe. L'ordre compte dans un circuit séquentiel.",
       "sequential": "L'un après l'autre",
       "parallel": "Tous en même temps",
+      "mixed": "Par étapes",
+      "mixedHint": "Glissez chaque personne dans l'étape voulue. Les personnes d'une même étape agissent en même temps ; l'étape suivante ne démarre que lorsque la précédente est terminée.",
+      "newStageHere": "Déposer ici pour créer une étape",
+      "signerFirstWarning": "Un signataire passe avant (ou en même temps que) un relecteur ou un approbateur : le contrat pourrait être signé avant d'avoir été relu. Le signataire doit venir en dernier.",
+      "orderByRole": "Ordonner par rôle",
+      "stageTogether": "Agissent en même temps",
+      "stageAlone": "Une seule personne",
+      "drag": "Glisser pour changer d'étape",
+      "stage": "Étape",
       "pick": "Choisir une personne…",
       "external": "Signataire externe…",
       "name": "Nom complet",
       "email": "Adresse e-mail",
       "roleLabel": "Rôle dans ce contrat (facultatif, ex. Service juridique)",
       "add": "Ajouter un participant",
-      "signaturesAuto": "Une zone de signature est placée pour chaque signataire sur la dernière page. Vous pouvez la déplacer dans le concepteur avant l'envoi.",
+      "signaturesAuto": "Une zone de signature est placée automatiquement sur la dernière page pour chaque personne dont le rôle est « Signe ». Les approbateurs et relecteurs n'en ont pas. Vous pouvez les déplacer dans le concepteur avant l'envoi.",
       "previewHint": "Les cadres bleus montrent où chaque signataire signera. Vous pouvez les déplacer dans le concepteur avant l'envoi.",
       "unnamedSigner": "Signataire",
       "save": "Enregistrer et continuer",
@@ -114,7 +123,7 @@
     "send": {
       "title": "Vérifier et envoyer",
       "contract": "Contrat",
-      "review": "Revue IA",
+      "review": "Revue Harvey",
       "deadline": "délai",
       "openItems": "{{count}} constat(s) encore ouvert(s)",
       "verdict": {
@@ -150,7 +159,8 @@
     "uploadFile": "Importer un nouveau fichier",
     "usePdfTemplate": "Utiliser un modèle PDF",
     "useHtmlTemplate": "Utiliser un modèle HTML",
-    "insights": "Analyses"
+    "insights": "Analyses",
+    "schedule": "Échéancier"
   },
   "layout": {
     "tagline": "Gestion du cycle de vie contractuel",
@@ -171,6 +181,7 @@
     "pageTitle": "Administration",
     "pageSubtitle": "Gérez les utilisateurs, les rôles et les paramètres système",
     "tabs": {
+      "workflows": "Circuits d'approbation",
       "users": "Utilisateurs",
       "requestTypes": "Types de contrats",
       "htmlTemplates": "Modèles de contrats",
@@ -241,6 +252,64 @@
       "createUser": "Créer l'utilisateur",
       "saveChanges": "Enregistrer les modifications",
       "operationFailed": "Échec de l'opération"
+    },
+    "workflows": {
+      "back": "Retour aux circuits",
+      "unsaved": "Modifications non enregistrées",
+      "preview": "Aperçu",
+      "previewHint": "Le circuit tel que la personne qui fait une demande le verra.",
+      "together": "En même temps",
+      "discardTitle": "Quitter sans enregistrer ?",
+      "discardMessage": "Vos modifications de ce circuit n'ont pas été enregistrées et seront perdues.",
+      "discard": "Quitter sans enregistrer",
+      "keepEditing": "Continuer la modification",
+      "intro": "Circuits d'approbation réutilisables. Un modèle en suit un : le circuit est défini une fois et modifié en un seul endroit.",
+      "new": "Nouveau circuit",
+      "search": "Rechercher un circuit…",
+      "noMatch": "Aucun circuit ne correspond à cette recherche.",
+      "createTitle": "Nouveau circuit",
+      "editTitle": "Modifier le circuit",
+      "name": "Nom",
+      "namePlaceholder": "ex. Contrats de plus de 10 000 TND",
+      "howTheyAct": "Façon d'agir des approbateurs",
+      "steps": "Étapes",
+      "stepsHint": "L'étape 1 va au premier champ de signature d'approbateur du modèle, l'étape 2 au deuxième, et ainsi de suite.",
+      "stepLabel": "Objet de cette étape",
+      "stepLabelPlaceholder": "ex. Revue juridique",
+      "stage": "Palier",
+      "approver": "Approbateur",
+      "step": "Étape",
+      "kind": {
+        "User": "Personne",
+        "Role": "Rôle",
+        "Department": "Service"
+      },
+      "exactlyOne": "Un rôle ou un service est recherché à la création de la demande et doit correspondre à une seule personne active, sinon la demande est refusée. Nommez plutôt la personne si plusieurs la partagent.",
+      "onlyWhen": "Seulement si",
+      "fieldKey": "Clé du champ",
+      "operator": "Comparaison",
+      "isFilled": "est renseigné",
+      "value": "Valeur",
+      "conditionHint": "Compare la réponse donnée à ce champ dans la demande. Si la réponse est vide, l'étape s'applique quand même : une approbation n'est jamais sautée par accident.",
+      "addStep": "Ajouter une étape",
+      "none": "Aucun circuit pour le moment.",
+      "createFirst": "Créer votre premier circuit",
+      "usedBy": "Utilisé par {{count}} modèle(s)",
+      "nameRequired": "Saisissez un nom.",
+      "saved": "Circuit enregistré",
+      "saveFailed": "Le circuit n'a pas pu être enregistré.",
+      "deleteTitle": "Supprimer le circuit",
+      "deleteMessage": "Supprimer « {{name}} » ?",
+      "deleted": "Circuit supprimé",
+      "deleteFailed": "Le circuit n'a pas pu être supprimé.",
+      "pickLabel": "Circuit d'approbation",
+      "pickNone": "Aucun circuit (définir les approbateurs sur ce modèle)",
+      "follows": "Le routage suit ce circuit",
+      "warn": {
+        "stepsIgnored": "Le circuit compte {{steps}} étapes mais ce modèle a {{fields}} champ(s) de signature d'approbateur : les {{extra}} dernière(s) étape(s) sont ignorée(s).",
+        "fieldsUncovered": "{{extra}} champ(s) de signature d'approbateur viennent après les {{steps}} étape(s) du circuit et reviennent à l'approbateur par défaut ou au choix du demandeur.",
+        "inactive": "Ce circuit est désactivé. Aucune demande ne peut être créée tant que vous n'en choisissez pas un autre ou que vous ne le réactivez pas."
+      }
     },
     "requestTypes": {
       "intro": "Configurez les catégories de demandes et leurs délais de signature (SLA). C'est la référence appliquée à chaque nouvelle demande.",
@@ -431,11 +500,16 @@
       "searchPlaceholder": "Rechercher des contrats…",
       "clearSearch": "Effacer",
       "allStatuses": "Tous",
+      "statusFilter": "Statut",
+      "statusesSelected": "{{count}} statuts",
+      "showHistory": "Afficher les autres contrats reçus",
+      "hideHistory": "Masquer les autres contrats reçus",
       "allTypes": "Tous les types",
       "status": {
         "Draft": "Brouillon",
         "Pending": "En attente",
         "Sent": "Envoyé",
+        "InProgress": "En cours",
         "Completed": "Terminé",
         "Rejected": "Rejeté",
         "Expired": "Expiré",
@@ -467,6 +541,7 @@
         "Draft": "Brouillon",
         "Pending": "En attente",
         "Sent": "Envoyé",
+        "InProgress": "En cours",
         "Completed": "Terminé",
         "Rejected": "Rejeté",
         "Expired": "Expiré",
@@ -496,6 +571,8 @@
         "inProgress": "En cours",
         "skipped": "Ignoré",
         "delegated": "Délégué",
+        "notRequired": "Non requis",
+        "expired": "Expiré",
         "pending": "En attente",
         "changesRequested": "Modifications demandées"
       },
@@ -524,11 +601,15 @@
       "fields": {
         "total": "Champs au total",
         "signed": "Signés",
-        "pending": "En attente"
+        "pending": "En attente",
+        "filledByOwner": "Rempli par l’initiateur",
+        "signaturesSigned": "signatures apposées",
+        "otherFields": "+ {{count}} champ(s) à remplir (texte, date…)",
+        "showLess": "Afficher moins"
       },
       "fieldPage": "Page {{page}}",
       "moreFields": "+{{count}} champs supplémentaires",
-      "aiSummary": "Résumé IA",
+      "aiSummary": "Résumé Harvey",
       "generated": "Généré le {{date}}",
       "summaryError": "Impossible de générer le résumé",
       "noSummary": "Aucun résumé pour le moment",
@@ -550,6 +631,11 @@
         "copied": "Copié dans le presse-papiers",
         "addToLibrary": "Ajouter à la bibliothèque de clauses",
         "addedToLibrary": "Clause ajoutée à la bibliothèque en tant que brouillon",
+        "handled": "Traités ({{count}})",
+        "profileTitle": "Profil du contrat",
+        "noneOpen": "Plus rien à traiter.",
+        "status": { "Open": "Ouvert", "Resolved": "Corrigé", "Dismissed": "Écarté" },
+        "filterAll": "Tous",
         "whyItMatters": "Pourquoi c'est important",
         "recommendedAction": "Action recommandée",
         "proposedLanguage": "Formulation proposée",
@@ -607,7 +693,7 @@
         "title": "Suivi des obligations",
         "dueDate": "Date d'échéance",
         "type": "Type d'obligation",
-        "suggested": "Suggéré par l'IA — à confirmer",
+        "suggested": "Suggéré par Harvey — à confirmer",
         "edit": "Modifier l'obligation",
         "save": "Enregistrer",
         "saveFailed": "Échec de l'enregistrement de l'obligation",
@@ -620,6 +706,36 @@
       "reopenFailed": "Échec de la réouverture de la demande",
       "changesRequestedTitle": "Modifications demandées",
       "changesRequestedBy": "{{name}} a demandé des modifications",
+      "rejectedTitle": "Contrat refusé",
+      "rejectedBy": "{{name}} a refusé ce contrat",
+      "rejectedNoReason": "aucun motif indiqué",
+      "rejectedHint": "Un participant a refusé ce contrat.",
+      "circuit": {
+        "title": "Circuit de signature",
+        "sequential": "Séquentiel — chaque signataire est notifié après le précédent",
+        "notifiedAfter": "Notifié après l'étape {{step}}"
+      },
+      "rail": {
+        "imported": "Importé", "review": "Revue", "signature": "Signature", "active": "Actif",
+        "reviewOpen": "{{count}} à traiter", "reviewHandled": "Tout traité",
+        "declinedBy": "Refusé par {{name}}", "paused": "En pause", "waitingOn": "En attente de {{name}}",
+        "draftHint": "Pas encore envoyé.", "risk": "Risque", "fitness": "Aptitude",
+        "riskAnalysed": "Risque calculé sur le texte analysé le {{date}}.",
+        "riskStale": "{{count}} point(s) traité(s) depuis : relancez la revue sur la version corrigée pour le mettre à jour."
+      },
+      "send": {
+      "intro": "Votre demande est remplie mais pas encore envoyée. Harvey a lu le contrat avec vos réponses. Traitez les points critiques, puis envoyez-la.",
+      "button": "Envoyer pour signature",
+      "sending": "Envoi…",
+      "sent": "Demande envoyée."
+    },
+    "next": {
+        "title": "Prochaines actions", "none": "Rien à faire pour l'instant.",
+        "fixDecline": "Traiter le refus", "fixDeclineSub": "Voir le circuit de signature",
+        "risks": "{{count}} risque(s) élevé(s)", "risksSub": "Ouvrir la revue juridique",
+        "setTerm": "Enregistrer la durée du contrat", "setTermSub": "Aucune durée saisie",
+        "points": "Points ouverts", "open": "à traiter", "handled": "{{count}} déjà traité(s)"
+      },
       "changesRequestedHint": "Un participant a demandé des modifications. Importez un PDF révisé pour relancer le circuit d'approbation.",
       "changeNotePlaceholder": "Qu'est-ce qui a changé dans cette révision ? (facultatif)",
       "uploadRevision": "Importer la révision",
@@ -653,6 +769,19 @@
         "hint": "Parcourez le contrat ci-dessous — détails, participants, historique — puis continuez quand vous êtes prêt."
       },
       "editText": {
+        "recs": {
+          "title": "Recommandations",
+          "hint": "Cliquez sur une ligne du PDF pour choisir où écrire, puis sur un morceau de la formulation proposée pour l'y placer.",
+          "selected": "Ligne sélectionnée :",
+          "none": "Aucune ligne sélectionnée : cliquez d'abord sur une ligne du PDF.",
+          "why": "Pourquoi c'est important",
+          "action": "Action recommandée",
+          "proposed": "Formulation proposée",
+          "copy": "Copier",
+          "copied": "Formulation copiée.",
+          "use": "Placer ceci dans la ligne sélectionnée",
+          "segmentTip": "Chaque morceau tient sur une ligne. Cliquez sur l'un d'eux pour remplacer la ligne sélectionnée."
+        },
         "button": "Modifier le texte",
         "title": "Modifier le texte du contrat",
         "hint": "Cliquez sur une ligne pour la modifier. Les lignes modifiées passent en orange ; rien n'est enregistré avant la sauvegarde.",
@@ -679,7 +808,11 @@
       "versionTooltip": "Ce contrat a été révisé — consultez l'historique des versions",
       "tabs": {
         "overview": "Vue d’ensemble",
-        "intelligence": "Intelligence juridique"
+        "intelligence": "Intelligence juridique",
+        "summary": "Synthèse",
+        "review": "Revue juridique",
+        "harvey": "Harvey",
+        "signing": "Signature et suivi"
       },
       "readiness": {
         "ctaTitle": "Ce contrat n’a pas encore été analysé",
@@ -740,7 +873,63 @@
         "downloadVersion": "Télécharger la v{{version}}",
         "downloadFailed": "Cette version n’a pas pu être téléchargée."
       },
-      "severityPossible": "À valider — risques possibles"
+      "severityPossible": "À valider — risques possibles",
+      "chat": {
+        "title": "Interroger le contrat",
+        "empty": "Posez une question sur ce contrat. Les réponses viennent uniquement de son texte, avec les passages qui les appuient.",
+        "placeholder": "Posez une question sur ce contrat…",
+        "send": "Envoyer",
+        "clear": "Effacer la conversation",
+        "thinking": "Lecture du contrat…",
+        "disclaimer": "Une aide à la lecture, pas un avis juridique. Vérifiez les points importants dans le contrat lui-même, ou auprès d'un juriste.",
+        "verifiedHint": "Retrouvé mot pour mot dans le contrat",
+        "unverified": "Aucun passage du contrat n'appuie cette réponse — considérez-la comme non vérifiée.",
+        "suggestions": {
+          "term": "Quelle est la durée et comment se renouvelle-t-il ?",
+          "termination": "Comment chaque partie peut-elle résilier ?",
+          "liability": "La responsabilité est-elle plafonnée ?",
+          "payment": "Quelles sont les conditions de paiement ?"
+        },
+        "errors": {
+          "notConfigured": "Harvey n'est pas configuré sur ce serveur.",
+          "forbidden": "Seuls le propriétaire du contrat ou un administrateur peuvent l'interroger.",
+          "unreadable": "Ce contrat n'a pas de texte lisible pour répondre.",
+          "failed": "Harvey n'a pas pu répondre. Veuillez réessayer."
+        }
+      },
+      "lifecycleAi": {
+        "title": "Harvey — données clés et renouvellement",
+        "extract": "Extraire les données clés",
+        "note": "Note de renouvellement",
+        "needEndDate": "Renseignez d'abord la date d'échéance du contrat.",
+        "keyData": "Données clés (chaque valeur avec la phrase du contrat)",
+        "nothingFound": "Harvey n'a trouvé aucune donnée clé qu'il puisse citer dans le contrat.",
+        "apply": "Appliquer à la durée du contrat",
+        "applyHint": "Renseigne date d'effet, échéance, reconduction et préavis. Vous pourrez encore les modifier.",
+        "noteTitle": "Note de renouvellement",
+        "deadline": "Dernier jour pour dénoncer : {{date}}",
+        "disclaimer": "Rédigée par Harvey à partir du contrat et des dates enregistrées. Une aide à la décision, pas un avis juridique.",
+        "failed": "Harvey n'a pas pu répondre cette fois-ci. Réessayez dans un instant.",
+        "reco": {
+          "Renew": "Renouveler",
+          "Renegotiate": "Renégocier",
+          "Terminate": "Résilier",
+          "Review": "À examiner"
+        },
+        "field": {
+          "parties": "Parties",
+          "start_date": "Date d'effet",
+          "end_date": "Date d'échéance",
+          "duration": "Durée",
+          "auto_renewal": "Reconduction tacite",
+          "notice_period_days": "Préavis (jours)",
+          "amount": "Montant",
+          "payment_terms": "Modalités de paiement",
+          "governing_law": "Droit applicable",
+          "jurisdiction": "Juridiction"
+        },
+        "applied": "Appliqué à la durée du contrat (voir l'onglet Synthèse)."
+      }
     },
     "upload": {
       "title": "Importer un contrat",
@@ -857,7 +1046,13 @@
       "Dropdown": "Liste déroulante",
       "Radio": "Bouton radio",
       "Stamp": "Cachet",
-      "Attachment": "Pièce jointe"
+      "Attachment": "Pièce jointe",
+      "MultilineText": "Texte long",
+      "Number": "Nombre",
+      "Image": "Image",
+      "QrCode": "QR code",
+      "Barcode": "Code-barres",
+      "Custom": "Personnalisé"
     },
     "canvas": {
       "requiredSuffix": "(obligatoire)",
@@ -867,6 +1062,8 @@
       "heading": "Propriétés du champ",
       "fieldType": "Type de champ",
       "assignedTo": "Assigné à",
+      "fieldLabel": "Nom du champ",
+      "fieldLabelPlaceholder": "ex. Nom du client",
       "requiredCheckbox": "Les intervenants doivent remplir ce champ",
       "position": "Position",
       "size": "Taille",
@@ -1094,7 +1291,19 @@
     "noDocumentsWaiting": "Aucun contrat n'attend votre signature",
     "noActionWaiting": "Aucun contrat n'attend votre action",
     "needsAction": "Nécessite votre action",
-    "history": "Historique",
+    "history": "Autres contrats",
+    "yourTask": "Votre rôle",
+    "view": "Voir",
+    "taskNote": {
+      "youDeclined": "Vous avez refusé ce contrat — le processus est terminé.",
+      "declinedNothingToDo": "Ce contrat a été refusé — vous n'avez plus rien à faire.",
+      "cancelledNothingToDo": "Ce contrat a été annulé — vous n'avez rien à faire.",
+      "expiredNothingToDo": "Cette demande a expiré — vous n'avez rien à faire.",
+      "youDone": "Vous avez terminé votre étape.",
+      "contractDone": "Ce contrat est terminé — vous n'avez rien à faire.",
+      "paused": "Contrat en pause, en attente d'une révision du propriétaire.",
+      "waitingTurn": "Ce n'est pas encore votre tour."
+    },
     "from": "De",
     "deadline": "Échéance {{date}}",
     "signNow": "Signer maintenant",
@@ -1128,6 +1337,7 @@
       "changesRequested": "Modifications demandées"
     },
     "new": {
+      "approverByWorkflow": "Étape {{step}} du circuit « {{workflow}} » : {{who}}.",
       "pageTitle": "Nouvelle demande",
       "pageSub": "Remplissez un modèle et envoyez-le pour approbation.",
       "stepChoose": "Choisir le modèle",
@@ -1179,6 +1389,7 @@
     "actionFailed": "Une erreur s'est produite — veuillez réessayer"
   },
   "audit": {
+    "system": "Système",
     "title": "Traçabilité",
     "subtitle": "Historique complet des activités de ce contrat",
     "exportCsv": "Exporter en CSV",
@@ -1217,7 +1428,16 @@
       "AuthenticationEvent": "Événement d'authentification",
       "ChangesRequested": "Modifications demandées",
       "RevisionUploaded": "Révision téléversée",
-      "SignaturesVoided": "Signatures annulées"
+      "SignaturesVoided": "Signatures annulées",
+      "ContractAnalysed": "Contrat analysé par Harvey",
+      "ComplianceAnalysed": "Conformité analysée par Harvey",
+      "ReadinessEvaluated": "Revue préalable effectuée",
+      "ReadinessItemUpdated": "Point de revue mis à jour",
+      "VersionsCompared": "Versions comparées",
+      "ReviewAcknowledged": "Revue prise en compte",
+      "ContractQuestionAsked": "Question posée à Harvey sur le contrat",
+      "ContractKeyTermsExtracted": "Données clés extraites par Harvey",
+      "ContractRenewalNoteWritten": "Note de renouvellement rédigée par Harvey"
     }
   },
   "orgAudit": {
@@ -1261,7 +1481,16 @@
       "AuthenticationEvent": "Événement d'authentification",
       "ChangesRequested": "Modifications demandées",
       "RevisionUploaded": "Révision téléversée",
-      "SignaturesVoided": "Signatures annulées"
+      "SignaturesVoided": "Signatures annulées",
+      "ContractAnalysed": "Contrat analysé par Harvey",
+      "ComplianceAnalysed": "Conformité analysée par Harvey",
+      "ReadinessEvaluated": "Revue préalable effectuée",
+      "ReadinessItemUpdated": "Point de revue mis à jour",
+      "VersionsCompared": "Versions comparées",
+      "ReviewAcknowledged": "Revue prise en compte",
+      "ContractQuestionAsked": "Question posée à Harvey sur le contrat",
+      "ContractKeyTermsExtracted": "Données clés extraites par Harvey",
+      "ContractRenewalNoteWritten": "Note de renouvellement rédigée par Harvey"
     }
   },
   "templates": {
@@ -1308,6 +1537,25 @@
       "description": "Importez votre propre PDF et placez les champs de signature à partir de zéro. Idéal pour les contrats ponctuels que vous ne réutiliserez pas."
     }
   },
+  "workflow": {
+    "type": {
+      "Sequential": "L'un après l'autre",
+      "Parallel": "Tous en même temps",
+      "Mixed": "Par étapes"
+    },
+    "hint": {
+      "Sequential": "Chaque personne agit à son tour, dans l'ordre de la liste.",
+      "Parallel": "Tout le monde agit en même temps.",
+      "Mixed": "Une même étape = en même temps ; l'étape suivante ne démarre que lorsque la précédente est terminée. Glissez les personnes pour les regrouper."
+    },
+    "stages": {
+      "stage": "Étape",
+      "together": "En même temps",
+      "alone": "Une seule personne",
+      "newStageHere": "Déposer ici pour créer une étape",
+      "drag": "Glisser pour changer d'étape"
+    }
+  },
   "shared": {
     "pdfPreview": {
       "loading": "Chargement du contrat…",
@@ -1339,6 +1587,14 @@
       "minutesAgo": "il y a {{count}} min",
       "hoursAgo": "il y a {{count}} h",
       "daysAgo": "il y a {{count}} j"
+    },
+    "scanOverlay": {
+      "reading": "Lecture de la page",
+      "blanks": "Recherche des zones à remplir",
+      "checkboxes": "Repérage des cases à cocher",
+      "signatures": "Détection des lignes de signature",
+      "labels": "Nom de chaque champ",
+      "almost": "Bientôt terminé"
     },
     "workflowVisualizer": {
       "header": "Signature séquentielle — chaque signataire n'est notifié qu'une fois le précédent terminé",
@@ -1414,6 +1670,8 @@
         "reopen": "Rouvrir",
         "showHandled": "Afficher les points traités ({{count}})",
         "hideHandled": "Masquer les points traités ({{count}})",
+        "expandAll": "Tout développer",
+        "collapseAll": "Tout réduire",
         "updateFailed": "Impossible de mettre à jour ce point. Veuillez réessayer."
       }
     }
@@ -1490,7 +1748,7 @@
   "signing": {
     "gate": {
       "title": "Avant de continuer",
-      "subtitle": "Lisez le contrat ci-dessous, puis consultez ce que la revue IA a relevé. Vous pourrez agir sur cette demande une fois votre confirmation donnée.",
+      "subtitle": "Lisez le contrat ci-dessous, puis consultez ce que la revue Harvey a relevé. Vous pourrez agir sur cette demande une fois votre confirmation donnée.",
       "verdict": {
         "Ready": "Prêt",
         "NeedsWork": "À retravailler",
@@ -1510,12 +1768,12 @@
       "showFewer": "Afficher moins",
       "showReview": "Afficher la revue",
       "hideReview": "Masquer la revue",
-      "restricted": "La revue IA de ce contrat n'est montrée qu'aux membres de l'organisation. Lisez attentivement le document avant de continuer.",
-      "noReview": "Aucune revue IA n'a été lancée sur ce contrat. Lisez attentivement le document avant de continuer.",
+      "restricted": "La revue Harvey de ce contrat n'est montrée qu'aux membres de l'organisation. Lisez attentivement le document avant de continuer.",
+      "noReview": "Aucune revue Harvey n'a été lancée sur ce contrat. Lisez attentivement le document avant de continuer.",
       "confirm": "J'ai lu le document.",
-      "confirmWithReview": "J'ai lu le document et la revue IA.",
+      "confirmWithReview": "J'ai lu le document et la revue Harvey.",
       "continue": "Confirmer et continuer",
-      "done": "Vous avez confirmé avoir lu le document et sa revue IA.",
+      "done": "Vous avez confirmé avoir lu le document et sa revue Harvey.",
       "doneNoReview": "Vous avez confirmé avoir lu le document.",
       "mustConfirm": "Confirmez avoir lu le document avant d'agir sur cette demande.",
       "failed": "Impossible d'enregistrer votre confirmation. Réessayez."
@@ -1541,7 +1799,7 @@
     "signatureImageAlt": "Signature",
     "dismiss": "Fermer",
     "enterFieldPrompt": "Saisissez la valeur du champ « {{fieldType}} » :",
-    "declineReasonPrompt": "Veuillez indiquer un motif de refus (facultatif) :",
+    "declineReasonPrompt": "Veuillez indiquer le motif du refus :",
     "requestChangesPrompt": "Décrivez les modifications souhaitées (obligatoire — le propriétaire révisera le contrat) :",
     "untitledDocument": "contrat",
     "summary": {
@@ -1639,6 +1897,45 @@
     }
   },
   "htmlTemplateEditor": {
+      "undo": "Annuler",
+      "redo": "Rétablir",
+      "settings": {
+        "title": "Paramètres",
+        "basics": "Général",
+        "routing": "Circuit",
+        "privacy": "Confidentialité",
+        "clearApprover": "Retirer l'approbateur"
+      },
+      "lint": {
+        "title": "Vérifications du modèle",
+        "none": "Aucun problème détecté.",
+        "emptyContent": "Le modèle est vide.",
+        "undefinedPlaceholder": "{{key}} est utilisé dans le texte mais n'est pas un champ.",
+        "unusedField": "Le champ {{key}} n'est pas utilisé dans le texte.",
+        "signatureNotPlaced": "La signature {{key}} n'est pas placée dans le texte ; elle sera ajoutée à la fin.",
+        "noApprover": "Aucun champ de signature d'approbateur : ce modèle ne peut pas être envoyé en signature.",
+        "unclosedCondition": "Les conditions ne sont pas équilibrées : {{opens}} ouverte(s), {{closes}} fermée(s).",
+        "duplicateKey": "Deux champs partagent la clé {{key}}.",
+        "unsafeMarkup": "Les scripts et gestionnaires d'événements sont retirés à l'affichage du contrat."
+      },
+      "review": {
+        "button": "Revue juridique",
+        "tooltip": "Faire relire le texte du modèle par la revue juridique",
+        "title": "Revue juridique",
+        "intro": "Lancez la revue juridique pour voir ce qu'un juriste examinerait dans le contrat que produit ce modèle.",
+        "running": "Revue du modèle en cours…",
+        "disclaimer": "Contrôles assistés par Harvey, appuyés sur le droit vérifié. Un juriste valide chaque contrat.",
+        "none": "Aucun point relevé.",
+        "stale": "modèle modifié depuis cette revue",
+        "failed": "La revue n'a pas pu s'exécuter. Veuillez réessayer.",
+        "insert": "Insérer la formulation proposée",
+        "severity": {
+          "Critical": "Critique",
+          "High": "Élevé",
+          "Medium": "Moyen",
+          "Low": "Faible"
+        }
+      },
     "workflowType": "Flux de travail",
     "requestType": "Type de contrat",
     "noRequestType": "— Aucun type de contrat (sans échéance) —",
@@ -1651,7 +1948,7 @@
     "fieldsScannedPlural": "{{count}} champs ajoutés depuis le HTML collé",
     "backToTemplates": "Retour aux modèles de contrats",
     "namePlaceholder": "Nom du modèle de contrat…",
-    "generateWithAi": "Générer avec l'IA",
+    "generateWithAi": "Générer avec Harvey",
     "preview": "Aperçu",
     "descriptionPlaceholder": "Description facultative…",
     "defaultApprover": "Approbateur par défaut",
@@ -1683,12 +1980,12 @@
     "roleApproverOption": "Approbateur (signe ou complète une fois le contrat acheminé)",
     "autoFillLabel": "Remplissage automatique",
     "autoFillNone": "Aucun",
-    "aiHint": "Décrivez le contrat ou collez un brouillon. L'IA générera la mise en page HTML et proposera automatiquement les clauses paramétrées.",
+    "aiHint": "Décrivez le contrat ou collez un brouillon. Harvey générera la mise en page HTML et proposera automatiquement les clauses paramétrées.",
     "aiPromptPlaceholder": "Exemples :\n• Un contrat de service B2B avec la contrepartie, l'objet, la durée, les modalités de paiement et les signatures\n• Un accord de confidentialité (NDA) avec le nom de l'entreprise, la date d'effet, la durée et la signature\n• Collez le texte brut d'un contrat existant…",
     "generating": "Génération…",
     "generate": "Générer",
     "templateGenerated": "Modèle de contrat généré ! Vérifiez et ajustez si nécessaire.",
-    "aiGenerationFailed": "Échec de la génération par IA",
+    "aiGenerationFailed": "Échec de la génération par Harvey",
     "nameRequired": "Le nom du modèle de contrat est requis",
     "htmlContentRequired": "Le contenu du contrat est requis",
     "templateUpdated": "Modèle de contrat mis à jour",
@@ -1954,6 +2251,14 @@
     }
   },
   "pdfTemplates": {
+    "annex": {
+      "title": "Clauses en annexe",
+      "designerHint": "Les clauses ajoutées ici sont jointes en annexe à chaque demande créée depuis ce modèle. La formulation figure sur des pages supplémentaires à la suite du PDF, qui reste tel quel.",
+      "add": "Ajouter une clause",
+      "requestTitle": "Clauses complémentaires",
+      "requestHint": "Ajoutez des clauses approuvées de la bibliothèque. Elles sont jointes en annexe après le contrat et scellées avec lui.",
+      "always": "toujours incluse"
+    },
     "list": {
       "title": "Formulaires PDF",
       "subtitle": "Demandes réutilisables basées sur un PDF stocké, avec des champs positionnés sur les pages.",
@@ -1985,6 +2290,7 @@
       "failed": "Échec du téléversement"
     },
     "designer": {
+      "tabs": {"properties":"Propriétés","circuit":"Circuit"},
       "namePlaceholder": "Nom du formulaire",
       "fieldTypes": "Types de champs",
       "fillRoleLegend": "Responsabilité de saisie",
@@ -2032,6 +2338,16 @@
       "active": "Actif (disponible pour les utilisateurs)",
       "saved": "Formulaire PDF enregistré",
       "saveFailed": "Échec de l'enregistrement du formulaire PDF",
+      "detectFields": "Détecter les champs",
+      "textSaved": "Texte du modèle enregistré. Les nouvelles demandes utiliseront le PDF modifié ; les demandes déjà créées gardent leur copie.",
+      "editTextHint": "Cliquez sur une ligne du PDF pour la réécrire. Les champs placés ne bougent pas.",
+      "detectFieldsHint": "Repère les zones à remplir, cases à cocher et signatures de ce contrat et les propose comme champs. Vous les vérifiez, puis vous enregistrez.",
+      "detecting": "Détection des champs…",
+      "detected": "{{count}} champs proposés — vérifiez-les, puis enregistrez",
+      "detectNone": "Aucun nouveau champ trouvé",
+      "detectUnavailable": "La détection des champs est indisponible (service legal-corpus non activé)",
+      "detectFailed": "Échec de la détection des champs",
+      "detectNoModel": "Seuls les champs déjà remplissables du PDF ont été trouvés : le modèle de vision n'est pas installé sur le serveur.",
       "snapToGrid": "Aligner les champs sur la grille"
     },
     "fieldTypes": {
@@ -2060,6 +2376,7 @@
       "requestTitle": "Demande · titre"
     },
     "request": {
+      "workflow": "Circuit : {{name}}",
       "subtitle": "Remplissez vos champs et choisissez les approbateurs pour envoyer cette demande.",
       "yourFields": "Vos informations",
       "approvers": "Approbateurs",
@@ -2095,11 +2412,11 @@
     "items": {
       "generation": {
         "title": "Génération et modèles de contrats",
-        "desc": "Modèles de contrats HTML et PDF réutilisables, paramétrage dynamique des champs, pré-remplissage selon le type de contrat et génération assistée par IA à partir d’un simple texte. Une bibliothèque de clauses partagée — rédactions bilingues validées, catégorisées, versionnées, avec cycle brouillon/validée — s’insère directement dans un modèle. Toute rédaction peut devenir conditionnelle : elle n’apparaît que si un champ déjà collecté par le modèle satisfait la comparaison choisie. Ces conditions sont des tests déterministes portant sur ce seul champ — ni moteur de règles, ni ET/OU, ni imbrication — et elles sont évaluées par le même moteur de rendu pour l’écran de signature et le PDF signé, qui concordent donc toujours."
+        "desc": "Modèles de contrats HTML et PDF réutilisables, paramétrage dynamique des champs, pré-remplissage selon le type de contrat et génération assistée par Harvey à partir d’un simple texte. Une bibliothèque de clauses partagée — rédactions bilingues validées, catégorisées, versionnées, avec cycle brouillon/validée — s’insère directement dans un modèle. Toute rédaction peut devenir conditionnelle : elle n’apparaît que si un champ déjà collecté par le modèle satisfait la comparaison choisie. Ces conditions sont des tests déterministes portant sur ce seul champ — ni moteur de règles, ni ET/OU, ni imbrication — et elles sont évaluées par le même moteur de rendu pour l’écran de signature et le PDF signé, qui concordent donc toujours."
       },
       "aiReview": {
-        "title": "Revue contractuelle assistée par IA",
-        "desc": "Chaque contrat déposé bénéficie d’une analyse instantanée par moteur de règles et d’une synthèse pré-signature. Depuis la fiche du contrat, une revue juridique complète par le modèle de langage peut être lancée à la demande : elle identifie le contrat, signale les clauses manquantes, faibles ou contradictoires avec leur gravité et une formulation proposée, et extrait la prochaine échéance de renouvellement ou d’expiration — avec repli sur l’analyse par règles si le modèle est indisponible. Un espace Revue de contrat dédié lance cette revue automatiquement au dépôt et la traduit en verdict d’aptitude assorti d’une liste d’ajustements à cocher ; le verdict lui-même repose sur un jeu de règles déterministe appliqué à ces constats — il ne constitue pas un avis juridique — et l’envoi d’un contrat comportant des points critiques non traités est bloqué."
+        "title": "Revue contractuelle assistée par Harvey",
+        "desc": "Chaque contrat déposé bénéficie d’une analyse instantanée par moteur de règles et d’une synthèse pré-signature. Depuis la fiche du contrat, une revue juridique complète par Harvey peut être lancée à la demande : elle identifie le contrat, signale les clauses manquantes, faibles ou contradictoires avec leur gravité et une formulation proposée, et extrait la prochaine échéance de renouvellement ou d’expiration — avec repli sur l’analyse par règles si le modèle est indisponible. Un espace Revue de contrat dédié lance cette revue automatiquement au dépôt et la traduit en verdict d’aptitude assorti d’une liste d’ajustements à cocher ; le verdict lui-même repose sur un jeu de règles déterministe appliqué à ces constats — il ne constitue pas un avis juridique — et l’envoi d’un contrat comportant des points critiques non traités est bloqué."
       },
       "workflow": {
         "title": "Workflow de validation digitalisé",
@@ -2130,7 +2447,7 @@
         "desc": "Un référentiel de textes tunisiens, européens et sectoriels curé par l’équipe juridique — protection des données, consommation, télécommunications, droit commercial — chacun publiable avec une date d’effet et un périmètre optionnel par famille de contrat. La curation et la publication sont aujourd’hui des actions de l’équipe juridique, pas une veille automatisée de sources externes."
       },
       "compliance": {
-        "title": "Analyse de conformité par IA",
+        "title": "Analyse de conformité par Harvey",
         "desc": "À la demande depuis la fiche contrat, une revue complète par le modèle juridique confronte le contrat à chaque texte réglementaire publié et indique, pour chacun, s’il est couvert, s’il constitue un écart ou s’il reste incertain — avec le raisonnement, la conséquence et la rédaction de clause qui comblerait l’écart. L’appréciation porte sur le fond et non sur la présence de mots-clés, et chaque écart est gradué pour que l’espace de revue puisse le hiérarchiser. Si le modèle est indisponible, le contrôle bascule sur l’analyse par mots-clés et l’indique dans le panneau. Cela reste une analyse, pas un avis juridique."
       },
       "riskMap": {
@@ -2175,6 +2492,12 @@
     "hint": "PDF uniquement, jusqu’à 50 Mo. L’analyse démarre dès la validation.",
     "analyse": "Analyser ce contrat",
     "reviewAnother": "Analyser un autre contrat",
+    "send": {
+      "intro": "Cette demande n’a pas encore été envoyée. Corrigez les points ci-dessous, puis envoyez-la aux signataires.",
+      "button": "Envoyer pour signature",
+      "sending": "Envoi…",
+      "sent": "Demande envoyée."
+    },
     "requestTypeHint": "Le type de contrat détermine les textes réglementaires utilisés pour le contrôle de conformité.",
     "whatWeCheck": "Ce que nous vérifions",
     "failed": "La revue n’a pas pu aboutir. Veuillez réessayer.",
@@ -2203,11 +2526,51 @@
       "title": "Étapes suivantes",
       "promote": "Envoyer en circuit de validation",
       "blockedHint": "Traitez ou écartez d’abord les points critiques.",
+      "editText": "Modifier le texte avec les recommandations",
       "uploadRevision": "Téléverser une version corrigée",
       "uploading": "Téléversement…",
       "revisionUploaded": "Version corrigée téléversée — nouvelle analyse en cours.",
       "rerun": "Relancer l’analyse",
       "openContract": "Ouvrir la fiche complète du contrat"
     }
+  },
+  "schedule": {
+    "title": "Échéancier",
+    "intro": "Tous les contrats avec leur échéance et leur date limite de préavis, les plus urgents d'abord. Les dates marquées ✦ ont été lues dans le contrat par Harvey et restent à confirmer.",
+    "kpi": {
+      "noticePassed": "Préavis dépassé",
+      "soon": "Échéance sous 90 jours",
+      "inForce": "En vigueur",
+      "missing": "Dates manquantes"
+    },
+    "filter": {
+      "all": "Tous",
+      "urgent": "À traiter",
+      "soon": "Échéance proche",
+      "proposed": "Dates à confirmer",
+      "missing": "Dates manquantes"
+    },
+    "col": {
+      "contract": "Contrat",
+      "status": "Statut",
+      "end": "Échéance",
+      "daysLeft": "Jours restants",
+      "notice": "Dernier jour pour dénoncer",
+      "renewal": "Reconduction"
+    },
+    "stage": {
+      "Unknown": "Non suivi",
+      "NotStarted": "Pas encore en vigueur",
+      "InForce": "En vigueur",
+      "NoticeDeadlinePassed": "Préavis dépassé",
+      "ExpiringSoon": "Expire bientôt",
+      "Expired": "Expiré",
+      "MissingDates": "Dates manquantes"
+    },
+    "proposed": "proposé par Harvey",
+    "proposedHint": "Lu dans le contrat au dépôt. Ouvrez le contrat et enregistrez sa durée pour confirmer.",
+    "autoRenews": "Reconduction tacite",
+    "noRenewal": "Non",
+    "empty": "Aucun contrat ne correspond à ce filtre."
   }
 }

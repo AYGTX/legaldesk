@@ -11,7 +11,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatTabsModule } from '@angular/material/tabs';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { ConfirmService } from '../../core/services/confirm.service';
@@ -46,7 +47,7 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
     MatTableModule, MatPaginatorModule,
     MatButtonModule, MatIconModule,
     MatMenuModule, MatProgressSpinnerModule, MatTooltipModule, MatDialogModule,
-    MatTabsModule, TranslatePipe
+    MatFormFieldModule, MatSelectModule, TranslatePipe
   ],
   template: `
     <div class="documents-page">
@@ -62,29 +63,9 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
         </button>
       </div>
 
-      <mat-tab-group animationDuration="0ms" [selectedIndex]="defaultTabIndex()">
-
-        <!-- ── Needs your action ── -->
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <mat-icon class="tab-icon">inbox</mat-icon>
-            {{ 'requests.tabs.actionRequired' | translate }}
-            @if (actionRequiredCount() > 0) {
-              <span class="tab-badge">{{ actionRequiredCount() }}</span>
-            }
-          </ng-template>
-
-          <div class="tab-body">
-            @if (requestsLoading()) {
-              <div class="loading-state"><mat-spinner diameter="36"></mat-spinner></div>
-            } @else if (received().length === 0) {
-              <div class="empty-state">
-                <div class="empty-icon-wrap"><mat-icon>mark_email_read</mat-icon></div>
-                <p class="empty-title">{{ 'requests.allCaughtUp' | translate }}</p>
-                <p class="empty-sub">{{ 'requests.noActionWaiting' | translate }}</p>
-              </div>
-            } @else {
-              @if (awaitingMe().length > 0) {
+      <!-- ── Action required (top) ── -->
+      @if (awaitingMe().length > 0) {
+        <section class="action-section">
                 <div class="section-header">
                   <span class="section-label">{{ 'requests.needsAction' | translate }}</span>
                   <span class="count-chip urgent">{{ awaitingMe().length }}</span>
@@ -111,6 +92,9 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
                             {{ rem.text }}
                           </span>
                         }
+                        <button mat-stroked-button (click)="openContract(r)">
+                          <mat-icon>visibility</mat-icon> {{ 'requests.openDocument' | translate }}
+                        </button>
                         <button mat-flat-button class="sign-btn" (click)="openSigning(r)">
                           <mat-icon>{{ actionIcon(r) }}</mat-icon> {{ actionLabel(r) | translate }}
                         </button>
@@ -118,51 +102,14 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
                     </div>
                   }
                 </div>
-              }
+        </section>
+      }
 
-              @if (otherReceived().length > 0) {
-                <div class="section-header" [style.margin-top]="awaitingMe().length ? '24px' : '0'">
-                  <span class="section-label">{{ 'requests.history' | translate }}</span>
-                  <span class="count-chip">{{ otherReceived().length }}</span>
-                </div>
-                <div class="list-surface">
-                  @for (r of otherReceived(); track r.documentId; let last = $last) {
-                    <div class="list-row" [class.no-border]="last">
-                      <div class="row-icon-wrap" [style.background]="receivedStatusBg(r.myStatus)" [style.color]="receivedStatusColor(r.myStatus)">
-                        <mat-icon>{{ receivedStatusIcon(r.myStatus) }}</mat-icon>
-                      </div>
-                      <div class="row-body">
-                        <span class="row-title faded">{{ r.title }}</span>
-                        <span class="row-meta">
-                          {{ 'requests.from' | translate }} {{ r.ownerName }}
-                          @if (r.signedAt) { &nbsp;·&nbsp; {{ 'requests.signed' | translate }} {{ r.signedAt | date:'MMM d, y' }} }
-                        </span>
-                      </div>
-                      <div class="row-end">
-                        <span class="status-chip" [style.background]="receivedStatusBg(r.myStatus)" [style.color]="receivedStatusColor(r.myStatus)">
-                          {{ receivedStatusLabel(r.myStatus) }}
-                        </span>
-                        <button mat-icon-button [matTooltip]="'requests.openDocument' | translate" matTooltipPosition="left" (click)="openSigning(r)">
-                          <mat-icon>open_in_new</mat-icon>
-                        </button>
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-            }
-          </div>
-        </mat-tab>
-
-        <!-- ── All documents ── -->
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <mat-icon class="tab-icon">description</mat-icon>
-            {{ 'documents.list.allDocumentsTab' | translate }}
-          </ng-template>
-
-      <!-- ── Toolbar ── -->
-      <div class="tab-body">
+      <!-- ── All contracts ── -->
+      <section class="contracts-section">
+        <div class="section-header">
+          <span class="section-label">{{ 'documents.list.allDocumentsTab' | translate }}</span>
+        </div>
       <div class="toolbar">
 
         <!-- Search -->
@@ -180,18 +127,25 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
           }
         </div>
 
-        <!-- Status pills -->
-        <div class="filter-pills">
-          <button class="pill" [class.active]="statusControl.value === ''" (click)="setStatus('')">{{ 'documents.list.allStatuses' | translate }}</button>
-          @for (s of statusOptions; track s.value) {
-            <button class="pill"
-                    [class.active]="statusControl.value === s.value"
-                    (click)="setStatus(s.value)"
-                    [style.--pill-color]="s.color">
-              {{ s.label }}
-            </button>
-          }
-        </div>
+        <!-- Status (multi-select) -->
+        <mat-form-field appearance="outline" class="status-field" subscriptSizing="dynamic">
+          <mat-select [formControl]="statusControl" multiple [placeholder]="'documents.list.statusFilter' | translate" [attr.aria-label]="'documents.list.statusFilter' | translate">
+            <mat-select-trigger>
+              @if ((statusControl.value ?? []).length === 0) {
+                {{ 'documents.list.allStatuses' | translate }}
+              } @else if ((statusControl.value ?? []).length === 1) {
+                {{ statusLabel(statusControl.value![0]) }}
+              } @else {
+                {{ 'documents.list.statusesSelected' | translate: { count: statusControl.value!.length } }}
+              }
+            </mat-select-trigger>
+            @for (s of statusOptions; track s.value) {
+              <mat-option [value]="s.value">
+                <span class="status-dot" [style.background]="s.color"></span>{{ s.label }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
 
         <!-- Request type (native select) -->
         @if (requestTypes().length > 0) {
@@ -348,10 +302,54 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
           showFirstLastButtons>
         </mat-paginator>
       </div>
-      </div>
-        </mat-tab>
+      </section>
 
-      </mat-tab-group>
+      <!-- ── Other contracts received (history) ── -->
+      @if (otherReceived().length > 0) {
+        <section class="history-section">
+          <button class="history-toggle" (click)="showHistory.set(!showHistory())">
+            <mat-icon>{{ showHistory() ? 'expand_less' : 'expand_more' }}</mat-icon>
+            {{ (showHistory() ? 'documents.list.hideHistory' : 'documents.list.showHistory') | translate }}
+            <span class="count-chip">{{ otherReceived().length }}</span>
+          </button>
+          @if (showHistory()) {
+              @if (otherReceived().length > 0) {
+                <div class="section-header" [style.margin-top]="awaitingMe().length ? '24px' : '0'">
+                  <span class="section-label">{{ 'requests.history' | translate }}</span>
+                  <span class="count-chip">{{ otherReceived().length }}</span>
+                </div>
+                <div class="list-surface">
+                  @for (r of otherReceived(); track r.documentId; let last = $last) {
+                    <div class="list-row" [class.no-border]="last">
+                      <div class="row-icon-wrap" [style.background]="receivedStatusBg(effectiveStatus(r))" [style.color]="receivedStatusColor(effectiveStatus(r))">
+                        <mat-icon>{{ receivedStatusIcon(effectiveStatus(r)) }}</mat-icon>
+                      </div>
+                      <div class="row-body">
+                        <span class="row-title faded">{{ r.title }}</span>
+                        <span class="row-meta">
+                          {{ 'requests.from' | translate }} {{ r.ownerName }}
+                          @if (r.signedAt) { &nbsp;·&nbsp; {{ 'requests.signed' | translate }} {{ r.signedAt | date:'MMM d, y' }} }
+                        </span>
+                        <span class="row-task">
+                          {{ 'requests.yourTask' | translate }} : <strong>{{ taskLabel(r) }}</strong>
+                        </span>
+                        <span class="row-note" [class.row-note-over]="isDeclined(r)">{{ taskNote(r) }}</span>
+                      </div>
+                      <div class="row-end">
+                        <span class="status-chip" [style.background]="receivedStatusBg(effectiveStatus(r))" [style.color]="receivedStatusColor(effectiveStatus(r))">
+                          {{ receivedStatusLabel(effectiveStatus(r)) }}
+                        </span>
+                        <button mat-stroked-button (click)="openContract(r)">
+                          <mat-icon>visibility</mat-icon> {{ 'requests.view' | translate }}
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+          }
+        </section>
+      }
     </div>
   `,
   styleUrl: './documents-list.component.scss'
@@ -377,7 +375,8 @@ export class DocumentsListComponent implements OnInit {
   }));
 
   readonly searchControl = new FormControl('');
-  readonly statusControl = new FormControl('');
+  readonly statusControl = new FormControl<string[]>([]);
+  readonly showHistory = signal(false);
   readonly requestTypeControl = new FormControl('');
 
   readonly loading = signal(true);
@@ -389,8 +388,6 @@ export class DocumentsListComponent implements OnInit {
   readonly received = signal<ReceivedRequest[]>([]);
   readonly awaitingMe = computed(() => this.received().filter(r => r.isMyTurn));
   readonly otherReceived = computed(() => this.received().filter(r => !r.isMyTurn));
-  readonly actionRequiredCount = computed(() => this.awaitingMe().length);
-  readonly defaultTabIndex = computed(() => this.actionRequiredCount() > 0 ? 0 : 1);
 
   private static readonly RECEIVED_STATUS_LABEL_KEYS: Record<string, string> = {
     Pending: 'pending', InProgress: 'inProgress', Completed: 'completed', Rejected: 'rejected',
@@ -404,6 +401,12 @@ export class DocumentsListComponent implements OnInit {
   private static readonly ACTION_ICONS: Record<string, string> = {
     Signature: 'draw', Approval: 'fact_check', Review: 'rate_review', ViewOnly: 'visibility', Stamp: 'draw'
   };
+
+  /** A participant who never got to act on a contract that ended without them shows the contract's outcome, not "pending". */
+  effectiveStatus(r: ReceivedRequest): string {
+    const open = r.myStatus === 'Pending' || r.myStatus === 'InProgress';
+    return open && ['Rejected', 'Cancelled', 'Expired'].includes(r.documentStatus) ? r.documentStatus : r.myStatus;
+  }
 
   receivedStatusLabel(status: string): string {
     const key = DocumentsListComponent.RECEIVED_STATUS_LABEL_KEYS[status];
@@ -424,6 +427,29 @@ export class DocumentsListComponent implements OnInit {
     }
   }
 
+  /** The job this participant was given on the contract: sign, approve, review… */
+  taskLabel(r: ReceivedRequest): string {
+    return r.roleLabel || this.translate.instant(`documents.detail.roles.${r.approvalType}`);
+  }
+
+  /** The contract was declined, so nothing is expected from anyone any more. */
+  isDeclined(r: ReceivedRequest): boolean {
+    return r.documentStatus === 'Rejected';
+  }
+
+  /** One line saying where the participant stands: done, nothing to do, or waiting for others. */
+  taskNote(r: ReceivedRequest): string {
+    let key: string;
+    if (r.documentStatus === 'Rejected') key = r.myStatus === 'Rejected' ? 'youDeclined' : 'declinedNothingToDo';
+    else if (r.documentStatus === 'Cancelled') key = 'cancelledNothingToDo';
+    else if (r.documentStatus === 'Expired') key = 'expiredNothingToDo';
+    else if (r.myStatus === 'Completed') key = 'youDone';
+    else if (r.documentStatus === 'Completed') key = 'contractDone';
+    else if (r.documentStatus === 'ChangesRequested') key = 'paused';
+    else key = 'waitingTurn';
+    return this.translate.instant(`requests.taskNote.${key}`);
+  }
+
   actionLabel(r: ReceivedRequest): string {
     return DocumentsListComponent.ACTION_LABEL_KEYS[r.approvalType] ?? 'requests.signNow';
   }
@@ -435,11 +461,14 @@ export class DocumentsListComponent implements OnInit {
     return remainingTime(expiresAt);
   }
 
-  /**
-   * Opens the contract page, where the participant can read everything about the document first. The
-   * contract page carries the button that continues to the signing screen.
-   */
+  /** Goes straight to the screen that shows the document itself, with the approve / sign / decline controls. */
   openSigning(r: ReceivedRequest): void {
+    if (r.secureToken && r.isMyTurn) this.router.navigate(['/sign', r.secureToken]);
+    else this.openContract(r);
+  }
+
+  /** The contract page: details, history and analysis. */
+  openContract(r: ReceivedRequest): void {
     this.router.navigate(['/documents', r.documentId]);
   }
 
@@ -457,10 +486,6 @@ export class DocumentsListComponent implements OnInit {
   pageSize = 25;
   private pageNumber = 1;
 
-  setStatus(value: string): void {
-    this.statusControl.setValue(value);
-  }
-
   statusLabel(status: string): string { return this.translate.instant(`documents.list.status.${status}`); }
   statusColor(status: string): string { return STATUS_COLORS[status] ?? '#5f6368'; }
   statusBg(status: string): string {
@@ -476,7 +501,7 @@ export class DocumentsListComponent implements OnInit {
 
   ngOnInit(): void {
     const queryStatus = this.route.snapshot.queryParamMap.get('status');
-    if (queryStatus) this.statusControl.setValue(queryStatus);
+    if (queryStatus) this.statusControl.setValue(queryStatus.split(',').filter(Boolean));
 
     this.requestTypeService.getActive().subscribe({
       next: types => this.requestTypes.set(types),
@@ -506,7 +531,7 @@ export class DocumentsListComponent implements OnInit {
       pageNumber: this.pageNumber,
       pageSize: this.pageSize,
       search: this.searchControl.value ?? '',
-      status: this.statusControl.value ?? '',
+      statuses: (this.statusControl.value ?? []).join(',') || undefined,
       requestTypeId: this.requestTypeControl.value || undefined
     }).subscribe({
       next: result => {

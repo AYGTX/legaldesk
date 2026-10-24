@@ -6,6 +6,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { StageLanesComponent } from '../../shared/stage-lanes/stage-lanes.component';
+import { WorkflowTypeToggleComponent } from '../../shared/workflow-type-toggle/workflow-type-toggle.component';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,6 +28,8 @@ import { DocumentService } from '../../core/services/document.service';
 import { VacationService } from '../../core/services/vacation.service';
 import { UserService } from '../../core/services/user.service';
 import { ApprovalType, DocumentDetail, FieldDto, RecipientInputDto, FieldType, UserDto, WorkflowType } from '../../core/models';
+import { PdfTemplateService } from '../../core/services/pdf-template.service';
+import { ScanOverlayComponent } from '../../shared/scan-overlay/scan-overlay.component';
 import { v4 as uuidv4 } from 'uuid';
 
 interface DesignerField {
@@ -80,8 +84,8 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
     MatToolbarModule, MatButtonModule, MatIconModule, MatSidenavModule,
     MatListModule, MatFormFieldModule, MatInputModule, MatSelectModule,
     MatCheckboxModule, MatTooltipModule, MatProgressSpinnerModule,
-    MatDividerModule, MatSnackBarModule, MatChipsModule, TranslatePipe
-  ],
+    MatDividerModule, MatSnackBarModule, MatChipsModule, StageLanesComponent, WorkflowTypeToggleComponent, TranslatePipe
+  , ScanOverlayComponent],
   template: `
     <div class="designer-wrapper">
       <!-- Top Toolbar -->
@@ -130,6 +134,14 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
 
           <mat-divider vertical class="toolbar-divider"></mat-divider>
 
+          <button mat-stroked-button (click)="detectFields()" [disabled]="detecting()"
+                  [matTooltip]="'pdfTemplates.designer.detectFieldsHint' | translate">
+            <mat-icon>auto_awesome</mat-icon>
+            {{ detecting() ? ('pdfTemplates.designer.detecting' | translate) : ('pdfTemplates.designer.detectFields' | translate) }}
+          </button>
+
+          <mat-divider vertical class="toolbar-divider"></mat-divider>
+
           <button mat-stroked-button (click)="save()" [disabled]="saving() || !canSave()"
                   [matTooltip]="saveButtonTooltip()">
             <mat-icon>save</mat-icon>
@@ -151,17 +163,9 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
               </button>
             </div>
 
-            <!-- Workflow type selector -->
-            <div class="wf-type-selector">
-              <button class="wft-btn" [class.active]="workflowType() === 'Sequential'" (click)="workflowType.set('Sequential')" [title]="'designer.workflow.sequentialHint' | translate">
-                <mat-icon>linear_scale</mat-icon><span>{{ 'designer.workflow.sequential' | translate }}</span>
-              </button>
-              <button class="wft-btn" [class.active]="workflowType() === 'Parallel'" (click)="workflowType.set('Parallel')" [title]="'designer.workflow.parallelHint' | translate">
-                <mat-icon>account_tree</mat-icon><span>{{ 'designer.workflow.parallel' | translate }}</span>
-              </button>
-              <button class="wft-btn" [class.active]="workflowType() === 'Mixed'" (click)="workflowType.set('Mixed')" [title]="'designer.workflow.mixedHint' | translate">
-                <mat-icon>device_hub</mat-icon><span>{{ 'designer.workflow.mixed' | translate }}</span>
-              </button>
+            <!-- How the people act: same toggle and wording as the request wizard and the template designer -->
+            <div class="wf-wrap">
+              <sf-workflow-type-toggle [compact]="true" [value]="workflowType()" (valueChange)="setWorkflowType($event)"></sf-workflow-type-toggle>
             </div>
 
             <!-- Anonymous recipients toggle -->
@@ -237,16 +241,9 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
 
             @if (recipients().length === 0) {
               <p class="sidebar-hint">{{ 'designer.recipients.addAtLeastOneHint' | translate }}</p>
-            } @else if (workflowType() === 'Sequential') {
-              <p class="sidebar-hint"><mat-icon class="seq-icon">linear_scale</mat-icon>{{ 'designer.recipients.sequentialOrderHint' | translate }}</p>
-            } @else if (workflowType() === 'Parallel') {
-              <p class="sidebar-hint"><mat-icon class="seq-icon">account_tree</mat-icon>{{ 'designer.recipients.parallelOrderHint' | translate }}</p>
-            } @else {
-              <p class="sidebar-hint"><mat-icon class="seq-icon">device_hub</mat-icon>{{ 'designer.recipients.mixedOrderHint' | translate }}</p>
             }
 
-            <div class="recipient-list">
-              @for (rc of recipientColors(); track rc.recipientId; let i = $index; let first = $first; let last = $last) {
+            <ng-template #chip let-rc let-i="index">
                 @let fieldCount = recipientFieldCounts().get(rc.recipientId) ?? 0;
                 <div class="recipient-chip"
                      [class.selected-recipient]="selectedRecipientId() === rc.recipientId"
@@ -278,8 +275,8 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                     }
                     <div class="rc-actions">
                       @if (workflowType() === 'Sequential') {
-                        <button class="rc-btn" [disabled]="first" (click)="moveRecipient(i, -1)" [title]="'designer.recipients.moveUp' | translate">▲</button>
-                        <button class="rc-btn" [disabled]="last" (click)="moveRecipient(i, 1)" [title]="'designer.recipients.moveDown' | translate">▼</button>
+                        <button class="rc-btn" [disabled]="i === 0" (click)="moveRecipient(i, -1)" [title]="'designer.recipients.moveUp' | translate">▲</button>
+                        <button class="rc-btn" [disabled]="i === recipients().length - 1" (click)="moveRecipient(i, 1)" [title]="'designer.recipients.moveDown' | translate">▼</button>
                       } @else if (workflowType() === 'Mixed') {
                         <button class="rc-btn" [disabled]="rc.order <= 1" (click)="changeStage(i, -1)" [title]="'designer.recipients.earlierStage' | translate">▲</button>
                         <button class="rc-btn" (click)="changeStage(i, 1)" [title]="'designer.recipients.laterStage' | translate">▼</button>
@@ -296,14 +293,31 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                         <option [value]="role">{{ ('designer.roles.' + role) | translate }}</option>
                       }
                     </select>
+                    @if (selectedRecipientId() === rc.recipientId) {
                     <input class="rc-role-label" type="text" maxlength="100"
                            [placeholder]="'designer.recipients.roleLabelPlaceholder' | translate"
                            [value]="recipientRoleLabelOf(rc.recipientId)"
                            (change)="setRecipientRoleLabel(rc.recipientId, $any($event.target).value)" />
+                    }
                   </div>
                 </div>
-              }
-            </div>
+            </ng-template>
+
+            @if (workflowType() === 'Mixed') {
+              <div class="recipient-lanes">
+                <sf-stage-lanes [items]="stageItems()" (changed)="onStagesChanged($any($event))">
+                  <ng-template #card let-item>
+                    <ng-container *ngTemplateOutlet="chip; context: { $implicit: item.rc, index: item.index }"></ng-container>
+                  </ng-template>
+                </sf-stage-lanes>
+              </div>
+            } @else {
+              <div class="recipient-list">
+                @for (rc of recipientColors(); track rc.recipientId; let i = $index) {
+                  <ng-container *ngTemplateOutlet="chip; context: { $implicit: rc, index: i }"></ng-container>
+                }
+              </div>
+            }
           } @else {
             <!-- Collapsed state: icon strip -->
             <button mat-icon-button class="sidebar-expand-btn" (click)="sidebarCollapsed.set(false)" [matTooltip]="'designer.sidebar.expand' | translate">
@@ -377,6 +391,7 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                    (click)="onCanvasClick($event)">
 
                 <canvas #pdfCanvas class="pdf-canvas"></canvas>
+                @if (detecting()) { <sf-scan-overlay /> }
                 @if (snapToGrid()) {
                   <div class="grid-overlay" [style.background-size]="gridSize + 'px ' + gridSize + 'px'"></div>
                 }
@@ -397,7 +412,7 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                       <div class="field-recipient-dot" [style.background]="fieldRecipientColor(field)"></div>
                     </div>
                     <div class="field-label">
-                      {{ ('designer.fieldTypes.' + field.fieldType) | translate }}
+                      {{ field.label || (('designer.fieldTypes.' + field.fieldType) | translate) }}
                       @if (field.fieldType === 'Radio' && field.groupName) {
                         <span class="field-group-tag">{{ field.groupName }}</span>
                       }
@@ -429,6 +444,15 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
                   <mat-icon>{{ fieldIcon(selectedField()!.fieldType) }}</mat-icon>
                   {{ ('designer.fieldTypes.' + selectedField()!.fieldType) | translate }}
                 </div>
+              </div>
+
+              <div class="property-group">
+                <label class="property-label">{{ 'designer.properties.fieldLabel' | translate }}</label>
+                <mat-form-field appearance="outline" class="full-width">
+                  <input matInput maxlength="100" [value]="selectedField()!.label"
+                         [placeholder]="'designer.properties.fieldLabelPlaceholder' | translate"
+                         (change)="updateFieldProp('label', $any($event.target).value.trim())" />
+                </mat-form-field>
               </div>
 
               <div class="property-group">
@@ -516,6 +540,7 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly documentService = inject(DocumentService);
   private readonly vacationService = inject(VacationService);
+  private readonly pdfTemplateService = inject(PdfTemplateService);
   private readonly userService = inject(UserService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
@@ -540,6 +565,7 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly allFields = signal<DesignerField[]>([]);
   readonly recipients = signal<RecipientInputDto[]>([]);
+  readonly detecting = signal(false);
   readonly canSave = computed(() => this.recipients().length > 0 && this.allFields().length > 0);
 
   readonly history = signal<DesignerField[][]>([[]]);
@@ -662,7 +688,7 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
           options: f.options,
           groupName: f.groupName,
           color: '#6366f1',
-          label: f.fieldType
+          label: f.label ?? ''
         }));
         this.allFields.set(fields);
         this.pushHistory(fields);
@@ -818,7 +844,7 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
       recipientId,
       zIndex: this.allFields().length + 1,
       color: '#6366f1',
-      label: dragData.label,
+      label: '',
       options: undefined,
       groupName
     };
@@ -985,6 +1011,32 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.recipients.set(list.map((r, i) => ({ ...r, order: i + 1 })));
   }
 
+  /**
+   * Same rule as the request wizard and the template designer: from "one after the other" each person starts on their
+   * own stage, from "all at once" everyone starts on the same one; back to "one after the other" the stage order
+   * becomes the order of the list.
+   */
+  setWorkflowType(type: WorkflowType): void {
+    const previous = this.workflowType();
+    if (type === previous) return;
+    this.recipients.update(rs => {
+      if (type === 'Mixed') return rs.map((r, i) => ({ ...r, order: previous === 'Parallel' ? 1 : i + 1 }));
+      if (type === 'Sequential') return [...rs].sort((a, b) => a.order - b.order).map((r, i) => ({ ...r, order: i + 1 }));
+      return rs;
+    });
+    this.workflowType.set(type);
+  }
+
+  /** The participants as stage items for the shared lane editor. A computed, so the cards are not rebuilt on every refresh. */
+  readonly stageItems = computed(() =>
+    this.recipientColors().map((rc, index) => ({ stage: rc.order, rc, index })));
+
+  /** A drop in the lane editor: each participant takes the stage they were dropped on. */
+  onStagesChanged(items: { stage: number; index: number }[]): void {
+    const stageByIndex = new Map(items.map(i => [i.index, i.stage]));
+    this.recipients.update(rs => rs.map((r, i) => ({ ...r, order: stageByIndex.get(i) ?? r.order })));
+  }
+
   changeStage(index: number, delta: -1 | 1): void {
     const r = this.recipients()[index];
     if (!r) return;
@@ -1034,6 +1086,63 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+  }
+
+  /**
+   * Asks the server to find the contract's fields and adds the proposals to the canvas, unsaved: they can be moved,
+   * relabelled or deleted like any other field, and nothing is stored until Save. A proposal that overlaps a field
+   * already placed is skipped, so running it twice, or after placing fields by hand, adds nothing twice.
+   */
+  detectFields(): void {
+    this.detecting.set(true);
+    this.documentService.stream(this.documentId).pipe(switchMap(blob => this.pdfTemplateService.detectFields(blob))).subscribe({
+      next: result => {
+        const existing = this.allFields();
+        const recipientId = this.selectedRecipientId() ?? this.recipients()[0]?.id ?? undefined;
+        const added: DesignerField[] = [];
+        for (const d of result.fields) {
+          if (existing.some(f => f.pageNumber === d.page && this.overlapsField(f, d))) continue;
+          added.push({
+            tempId: uuidv4(),
+            id: undefined,
+            fieldType: d.type === 'Textarea' ? 'MultilineText' : d.type,
+            pageNumber: d.page,
+            xPosition: this.snap(d.x),
+            yPosition: this.snap(d.y),
+            width: d.width,
+            height: d.height,
+            isRequired: d.isRequired,
+            recipientId,
+            zIndex: existing.length + added.length + 1,
+            color: '#6366f1',
+            label: d.label,
+            options: d.options.length ? JSON.stringify(d.options) : undefined
+          });
+        }
+        if (added.length) {
+          const updated = [...existing, ...added];
+          this.allFields.set(updated);
+          this.pushHistory(updated);
+        }
+        this.detecting.set(false);
+        // With no vision model installed, an empty result usually means "static PDF": say why rather than "none found".
+        const key = added.length ? 'pdfTemplates.designer.detected'
+          : result.model === null && result.fields.length === 0 ? 'pdfTemplates.designer.detectNoModel'
+          : 'pdfTemplates.designer.detectNone';
+        this.snackBar.open(this.translate.instant(key, { count: added.length }), 'OK', { duration: 6000 });
+      },
+      error: (err: { status?: number }) => {
+        this.detecting.set(false);
+        const key = err?.status === 503 ? 'pdfTemplates.designer.detectUnavailable' : 'pdfTemplates.designer.detectFailed';
+        this.snackBar.open(this.translate.instant(key), 'OK', { duration: 5000 });
+      }
+    });
+  }
+
+  private overlapsField(a: DesignerField, b: { x: number; y: number; width: number; height: number }): boolean {
+    const w = Math.min(a.xPosition + a.width, b.x + b.width) - Math.max(a.xPosition, b.x);
+    const h = Math.min(a.yPosition + a.height, b.y + b.height) - Math.max(a.yPosition, b.y);
+    return w > 0 && h > 0 && (w * h) / Math.min(a.width * a.height, b.width * b.height) > 0.5;
   }
 
   private pushHistory(fields: DesignerField[]): void {
@@ -1102,7 +1211,8 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
       recipientId: f.recipientId,
       zIndex: f.zIndex,
       options: f.options,
-      groupName: f.groupName
+      groupName: f.groupName,
+      label: f.label || undefined
     }));
 
     const wfType = this.workflowType();

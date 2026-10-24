@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -148,3 +148,42 @@ def wording_on(article: Article, day: date) -> tuple[str, str] | None:
         if version.applies_from is None or version.applies_from <= day:
             return version.number, version.text
     return None
+
+
+class PlaybookRule(Base):
+    """One risk of the risk grid (« Grille des risques »). Linked articles are stored by law reference and article
+    number, so a link survives re-importing the law; the short lists (phrases, examples, model clause) are JSON."""
+
+    __tablename__ = "playbook_rules"
+
+    key: Mapped[str] = mapped_column(String(80), primary_key=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    label: Mapped[str] = mapped_column(String(300))
+    # What the risk is about, in plain words: shown to reviewers and sent to the AI assistant so it can tell risks apart.
+    description: Mapped[str | None] = mapped_column(Text)
+    confirmed_by: Mapped[str | None] = mapped_column(String(200))
+    confirmed_at: Mapped[str | None] = mapped_column(String(40))
+    phrases: Mapped[list] = mapped_column(JSON, default=list)
+    examples: Mapped[list] = mapped_column(JSON, default=list)
+    counter_examples: Mapped[list] = mapped_column(JSON, default=list)
+    model_clause: Mapped[dict | None] = mapped_column(JSON)
+    # Harvey's own example clauses were copied in once; never again, so a clause someone removed stays removed.
+    catalog_seeded: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Built-in checks of this risk: {check id: {"enabled": bool, "severity": High|Medium|Low}}; absent = default.
+    checks: Mapped[dict | None] = mapped_column(JSON)
+
+    articles: Mapped[list["PlaybookRuleArticle"]] = relationship(
+        back_populates="rule", cascade="all, delete-orphan", order_by="PlaybookRuleArticle.position")
+
+
+class PlaybookRuleArticle(Base):
+    __tablename__ = "playbook_rule_articles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    rule_key: Mapped[str] = mapped_column(ForeignKey("playbook_rules.key", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    reference: Mapped[str] = mapped_column(String(300))
+    number: Mapped[str] = mapped_column(String(40))
+    why: Mapped[str | None] = mapped_column(Text)
+
+    rule: Mapped[PlaybookRule] = relationship(back_populates="articles")

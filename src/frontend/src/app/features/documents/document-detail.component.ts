@@ -19,13 +19,12 @@ import { ConfirmService } from '../../core/services/confirm.service';
 import { HubService } from '../../core/services/hub.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DocumentDetail, WorkflowParticipant, AiSummaryDto, Readiness } from '../../core/models';
-import { ReadinessVerdictComponent } from '../../shared/readiness-verdict/readiness-verdict.component';
 import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
-import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/workflow-visualizer.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
 import { ContractAnalysisPanelComponent } from './contract-analysis-panel.component';
-import { ContractCompliancePanelComponent } from './contract-compliance-panel.component';
+import { ContractChatPanelComponent } from './contract-chat-panel.component';
 import { ContractTermPanelComponent } from './contract-term-panel.component';
+import { ContractLifecycleAiPanelComponent } from './contract-lifecycle-ai-panel.component';
 import { VersionCompareDialogComponent, VersionCompareDialogData } from './version-compare-dialog.component';
 import { PdfTextEditorDialogComponent, PdfTextEditorDialogData } from './pdf-text-editor-dialog.component';
 import { TemplateRevisionDialogComponent, TemplateRevisionDialogData } from './template-revision-dialog.component';
@@ -38,9 +37,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
     CommonModule, FormsModule, RouterLink,
     MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatStepperModule, MatChipsModule, MatDividerModule, MatTooltipModule, MatDialogModule,
-    MatTabsModule, MatSnackBarModule, WorkflowVisualizerComponent, CommentsPanelComponent,
-    ContractAnalysisPanelComponent, ContractCompliancePanelComponent, ContractTermPanelComponent,
-    ReadinessVerdictComponent, ReadinessChecklistComponent, TranslatePipe
+    MatTabsModule, MatSnackBarModule, CommentsPanelComponent,
+    ContractAnalysisPanelComponent, ContractChatPanelComponent, ContractTermPanelComponent, ContractLifecycleAiPanelComponent,
+    ReadinessChecklistComponent, TranslatePipe
   ],
   template: `
     <div class="detail-page">
@@ -68,6 +67,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 }
                 <span class="meta-item"><mat-icon>description</mat-icon> {{ (doc()!.pageCount === 1 ? 'documents.detail.pageCountSingular' : 'documents.detail.pageCountPlural') | translate: { count: doc()!.pageCount } }}</span>
                 <span class="meta-item"><mat-icon>schedule</mat-icon> {{ doc()!.createdAt | date:'MMM d, y' }}</span>
+                <span class="meta-item file-name" [matTooltip]="doc()!.fileName"><mat-icon>attach_file</mat-icon> <span class="file-text">{{ doc()!.fileName }}</span></span>
                 @if (remaining(); as r) {
                   <span class="remaining" [class]="'rem-' + r.level">
                     <mat-icon>{{ r.expired ? 'error' : 'timer' }}</mat-icon> {{ r.text }}
@@ -124,8 +124,87 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
           </div>
         </div>
 
+        <!--
+          One status card instead of several banners: where the contract stands, the stages it goes through,
+          and the two scores. Clicking the scores opens the review tab where the detail lives.
+        -->
+        <section class="status-rail">
+          <div class="rail-main">
+            <div class="rail-head">
+              <span class="rail-icon" [class]="'tone-' + railTone()"><mat-icon>{{ railIcon() }}</mat-icon></span>
+              <div>
+                <p class="rail-title">{{ railTitle() }}</p>
+                @if (railSub()) { <p class="rail-sub">{{ railSub() }}</p> }
+              </div>
+            </div>
+            <ol class="rail-steps">
+              @for (s of railSteps(); track s.key; let last = $last; let i = $index) {
+                <li class="rail-step" [class.last]="last">
+                  <span class="rail-dot" [class]="'dot-' + s.state">
+                    @switch (s.state) {
+                      @case ('done') { <mat-icon>check</mat-icon> }
+                      @case ('error') { <mat-icon>close</mat-icon> }
+                      @case ('warn') { <mat-icon>pause</mat-icon> }
+                      @default { {{ i + 1 }} }
+                    }
+                  </span>
+                  <span class="rail-step-text">
+                    <span class="rail-step-label">{{ s.label }}</span>
+                    @if (s.note) { <span class="rail-step-note" [class.note-error]="s.state === 'error'">{{ s.note }}</span> }
+                  </span>
+                  @if (!last) { <span class="rail-line" [class.line-done]="s.state === 'done'"></span> }
+                </li>
+              }
+            </ol>
+            @if (canReview() && doc()!.readinessVerdict !== 'NotEvaluated') {
+              <!-- The one place to run the review again: it refreshes the findings, the adjustments and the verdict together. -->
+              <div class="rail-actions">
+                <button mat-stroked-button (click)="runReview()" [disabled]="reviewing()">
+                  <mat-icon>refresh</mat-icon>
+                  {{ (reviewing() ? 'documents.detail.readiness.running' : 'documents.detail.readiness.rerun') | translate }}
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (doc()!.readinessVerdict !== 'NotEvaluated' && (riskScore() !== null || doc()!.readinessScore != null)) {
+            <div class="rail-score-block">
+            <div class="rail-scores" (click)="showChecklist()">
+              @if (riskScore() !== null) {
+                <ng-container *ngTemplateOutlet="ring; context: { label: ('documents.detail.rail.risk' | translate), value: riskScore(), color: ringColor(riskScore()!, false) }"></ng-container>
+              }
+              @if (doc()!.readinessScore != null) {
+                <ng-container *ngTemplateOutlet="ring; context: { label: ('documents.detail.rail.fitness' | translate), value: doc()!.readinessScore, color: ringColor(doc()!.readinessScore!, true) }"></ng-container>
+              }
+            </div>
+            @if (riskScore() !== null) {
+              <!-- The risk score rates the text Harvey read; closing checklist points does not re-score it, a new review does. -->
+              <p class="rail-score-note">
+                {{ 'documents.detail.rail.riskAnalysed' | translate: { date: (doc()!.aiRiskAnalysisGeneratedAt | date:'dd/MM/yyyy') } }}
+                @if ((readiness()?.handledCount ?? 0) > 0) {
+                  <span class="rail-score-hint">{{ 'documents.detail.rail.riskStale' | translate: { count: readiness()!.handledCount } }}</span>
+                }
+              </p>
+            }
+            </div>
+          }
+        </section>
+        <ng-template #ring let-label="label" let-value="value" let-color="color">
+          <div class="ring">
+            <div class="ring-chart">
+              <svg viewBox="0 0 64 64" width="64" height="64">
+                <circle cx="32" cy="32" r="26" class="ring-track" />
+                <circle cx="32" cy="32" r="26" class="ring-value" [attr.stroke]="color"
+                        stroke-dasharray="163.36" [attr.stroke-dashoffset]="163.36 * (1 - value / 100)" />
+              </svg>
+              <span class="ring-num">{{ value }}</span>
+            </div>
+            <span class="ring-label">{{ label }}</span>
+          </div>
+        </ng-template>
+
         <!-- Changes-requested banner: a participant paused the flow; the owner answers with a revised PDF -->
-        @if (doc()!.status === 'ChangesRequested') {
+        @if (doc()!.status === 'ChangesRequested' && isOwner()) {
           <div class="changes-banner">
             <div class="cb-left">
               <mat-icon class="crb-icon">published_with_changes</mat-icon>
@@ -210,25 +289,6 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
           </div>
         }
 
-        <!-- Completion banner -->
-        @if (doc()!.status === 'Completed') {
-          <div class="completion-banner">
-            <div class="cb-left">
-              <mat-icon class="cb-icon">verified</mat-icon>
-              <div>
-                <strong>{{ 'documents.detail.completedTitle' | translate }}</strong>
-                <span class="cb-sub">
-                  {{ 'documents.detail.allSignedOn' | translate: { date: (doc()!.completedAt | date:'MMMM d, y') } }}
-                  @if (doc()!.verificationCode) { · {{ 'documents.detail.verificationCode' | translate }}: <code>{{ doc()!.verificationCode }}</code> }
-                </span>
-              </div>
-            </div>
-            <button mat-flat-button class="cb-download-btn" (click)="download()">
-              <mat-icon>download</mat-icon> {{ 'documents.detail.downloadSigned' | translate }}
-            </button>
-          </div>
-        }
-
         <!--
           Intelligence band. The legal read on the contract is the first thing on the page, above
           the fold — before this it sat at the bottom of a 340px sidebar and was routinely missed.
@@ -250,55 +310,168 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               </button>
             }
           </div>
-        } @else {
-          <div class="intel-band" (click)="tabIndex.set(1)">
-            <sf-readiness-verdict [compact]="true"
-              [verdict]="doc()!.readinessVerdict"
-              [score]="doc()!.readinessScore"
-              [riskScore]="riskScore()"
-              [complianceScore]="complianceScore()"
-              [openCount]="readiness()?.openCount ?? 0"
-              [criticalCount]="readiness()?.criticalCount ?? 0"
-              [highCount]="readiness()?.highCount ?? 0"
-              [handledCount]="readiness()?.handledCount ?? 0">
-            </sf-readiness-verdict>
-          </div>
         }
 
         <mat-tab-group class="detail-tabs" [selectedIndex]="tabIndex()" (selectedIndexChange)="tabIndex.set($event)">
+          <!-- 1. Summary: what the contract is, what to fix first, what comes next -->
           <mat-tab>
             <ng-template mat-tab-label>
-              <mat-icon class="tab-icon">assignment</mat-icon> {{ 'documents.detail.tabs.overview' | translate }}
+              <mat-icon class="tab-icon">dashboard</mat-icon> {{ 'documents.detail.tabs.summary' | translate }}
+              @if ((readiness()?.openCount ?? 0) > 0) { <span class="tab-badge">{{ readiness()!.openCount }}</span> }
             </ng-template>
+            <div class="summary-grid">
+            <div class="intel-layout">
+            <!-- AI Summary -->
+            <mat-card class="ai-summary-card">
+              <mat-card-header>
+                <mat-card-title class="ai-summary-title">
+                  <mat-icon class="ai-icon">auto_awesome</mat-icon> {{ 'documents.detail.aiSummary' | translate }}
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (summaryLoading()) {
+                  <div class="summary-skeleton">
+                    <div class="skeleton-line long"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line medium"></div>
+                  </div>
+                } @else if (summary()) {
+                  <p class="summary-text">{{ summary()!.summary }}</p>
+                  <span class="summary-meta">{{ 'documents.detail.generated' | translate: { date: (summary()!.generatedAt | date:'MMM d, y') } }}</span>
+                } @else if (summaryError()) {
+                  <div class="summary-empty">
+                    <mat-icon>smart_toy</mat-icon>
+                    <p>{{ 'documents.detail.summaryError' | translate }}</p>
+                    <button mat-stroked-button (click)="generateSummary()">{{ 'common.retry' | translate }}</button>
+                  </div>
+                } @else {
+                  <div class="summary-empty">
+                    <mat-icon>smart_toy</mat-icon>
+                    <p>{{ 'documents.detail.noSummary' | translate }}</p>
+                    <button mat-stroked-button (click)="generateSummary()">{{ 'documents.detail.generateSummary' | translate }}</button>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+            <!-- What Harvey read the contract as (type, parties, law…). Its findings are the checklist below: one list, not two. -->
+            @if (doc()!.aiRiskAnalysisJson) {
+              <sf-contract-analysis-panel [wide]="true" [canRun]="false" [profileOnly]="true"
+                [documentId]="doc()!.id"
+                [riskAnalysisJson]="doc()!.aiRiskAnalysisJson"
+                [generatedAt]="doc()!.aiRiskAnalysisGeneratedAt">
+              </sf-contract-analysis-panel>
+            }
+              @if (readiness(); as r) {
+                <mat-card class="readiness-card" id="readiness-checklist">
+                  <mat-card-content>
+                    <!-- The verdict itself is the band above the tabs; here, only what to do about it. -->
+                    <sf-readiness-checklist
+                      [documentId]="doc()!.id"
+                      [items]="r.items"
+                      [readonly]="!canReview()"
+                      (changed)="onReadinessChanged($event)">
+                    </sf-readiness-checklist>
+                  </mat-card-content>
+                </mat-card>
+              }
+            <!-- Contract term & lifecycle -->
+            <sf-contract-term-panel [wide]="true"
+              [documentId]="doc()!.id"
+              [contractStartDate]="doc()!.contractStartDate"
+              [contractEndDate]="doc()!.contractEndDate"
+              [autoRenews]="doc()!.autoRenews"
+              [noticePeriodDays]="doc()!.noticePeriodDays"
+              [termConfirmed]="doc()!.termConfirmed"
+              [canEdit]="isOwner() || auth.isAdmin()"
+              (saved)="load()">
+            </sf-contract-term-panel>
+            </div>
+            <aside class="summary-aside">
+              <mat-card>
+                <mat-card-content>
+                  <h3 class="eyebrow">{{ 'documents.detail.next.title' | translate }}</h3>
+                  <ul class="next-list">
+                    @for (a of nextActions(); track a.key) {
+                      <li>
+                        <button class="next-item" (click)="a.go()">
+                          <span class="next-ico" [class]="'tone-' + a.tone"><mat-icon>{{ a.icon }}</mat-icon></span>
+                          <span class="next-text">
+                            <span class="next-title">{{ a.title }}</span>
+                            <span class="next-sub">{{ a.sub }}</span>
+                          </span>
+                        </button>
+                      </li>
+                    } @empty {
+                      <li class="next-empty">{{ 'documents.detail.next.none' | translate }}</li>
+                    }
+                  </ul>
+                </mat-card-content>
+              </mat-card>
+              @if (readiness(); as r) {
+                <mat-card>
+                  <mat-card-content>
+                    <h3 class="eyebrow">{{ 'documents.detail.next.points' | translate }}</h3>
+                    <p class="points-count">{{ r.openCount }} <span>{{ 'documents.detail.next.open' | translate }}</span></p>
+                    <p class="points-sub">{{ 'documents.detail.next.handled' | translate: { count: r.handledCount } }}</p>
+                  </mat-card-content>
+                </mat-card>
+              }
+            </aside>
+            </div>
+          </mat-tab>
 
+          <!-- 2. Harvey: ask the contract, key data, renewal note -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">auto_awesome</mat-icon> {{ 'documents.detail.tabs.harvey' | translate }}
+            </ng-template>
+            <div class="harvey-grid">
+            <!-- Ask the contract -->
+            <sf-contract-chat-panel [documentId]="doc()!.id"></sf-contract-chat-panel>
+            <!-- Harvey: key data and renewal note -->
+            <sf-contract-lifecycle-ai-panel
+              [documentId]="doc()!.id"
+              [hasEndDate]="!!doc()!.contractEndDate"
+              [canEdit]="isOwner() || auth.isAdmin()"
+              (applied)="load()">
+            </sf-contract-lifecycle-ai-panel>
+            </div>
+          </mat-tab>
+
+          <!-- 3. Signing and follow-up: workflow, recipients, fields, comments, versions, obligations -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">draw</mat-icon> {{ 'documents.detail.tabs.signing' | translate }}
+            </ng-template>
         <div class="detail-layout">
           <!-- Left: Recipients & Workflow -->
           <div class="left-column">
-            <!-- Sequential workflow visualizer -->
-            @if (workflowParticipants().length > 0) {
-              <mat-card class="workflow-card">
-                <mat-card-header><mat-card-title>{{ 'documents.detail.signingWorkflow' | translate }}</mat-card-title></mat-card-header>
-                <mat-card-content>
-                  <sf-workflow-visualizer [participants]="workflowParticipants()"></sf-workflow-visualizer>
-                </mat-card-content>
-              </mat-card>
-            }
-
             <!-- Recipients -->
             <mat-card class="recipients-card">
-              <mat-card-header><mat-card-title>{{ 'documents.detail.recipientsTitle' | translate }}</mat-card-title></mat-card-header>
+              <mat-card-header>
+                <mat-card-title>{{ 'documents.detail.circuit.title' | translate }}</mat-card-title>
+                @if (doc()!.workflowType === 'Sequential') {
+                  <mat-card-subtitle>{{ 'documents.detail.circuit.sequential' | translate }}</mat-card-subtitle>
+                }
+              </mat-card-header>
               <mat-card-content>
-                @for (r of doc()!.recipients; track r.id) {
+                @for (r of doc()!.recipients; track r.id; let isLast = $last) {
+                  <div class="circuit-item" [class.is-last]="isLast">
+                  <div class="recipient-avatar" [class]="'recipient-avatar av-' + (stoppedFor(r) ? 'skipped' : r.status.toLowerCase())">{{ initials(r.name) }}</div>
+                  <div class="circuit-body">
                   <div class="recipient-row">
-                    <div class="recipient-avatar">{{ initials(r.name) }}</div>
                     <div class="recipient-info">
-                      <span class="recipient-name">{{ r.name }}</span>
-                      <span class="recipient-email">{{ r.email }}</span>
-                      @if (r.approvalType !== 'Signature' || r.roleLabel) {
+                      <div class="recipient-line">
+                        <span class="recipient-name">{{ r.name }}</span>
                         <span class="role-chip" [class]="'role-' + r.approvalType.toLowerCase()">
-                          <mat-icon>{{ roleIcon(r.approvalType) }}</mat-icon>
                           {{ r.roleLabel || (('documents.detail.roles.' + r.approvalType) | translate) }}
                         </span>
+                      </div>
+                      <span class="recipient-email">{{ r.email }}</span>
+                      @if (r.declineReason && (r.status === 'Rejected' || r.status === 'ChangesRequested')) {
+                        <span class="recipient-note">“{{ r.declineReason }}”</span>
+                      } @else if (r.status === 'Pending' && r.order > 1 && !stoppedFor(r)) {
+                        <span class="recipient-wait">{{ 'documents.detail.circuit.notifiedAfter' | translate: { step: r.order - 1 } }}</span>
                       }
                     </div>
                     @if (r.approvalType === 'ViewOnly') {
@@ -306,8 +479,10 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                         <mat-icon>visibility</mat-icon> {{ 'documents.detail.roles.ViewOnly' | translate }}
                       </div>
                     } @else {
-                    <div class="recipient-status" [class]="'rs-' + r.status.toLowerCase()">
-                      @switch (r.status) {
+                    <div class="recipient-status" [class]="'rs-' + (stoppedFor(r) ? 'skipped' : r.status.toLowerCase())">
+                      @switch (stoppedFor(r) ?? r.status) {
+                        @case ('Rejected_') { <mat-icon>block</mat-icon> {{ 'documents.detail.recipientStatus.notRequired' | translate }} }
+                        @case ('Expired_') { <mat-icon>schedule</mat-icon> {{ 'documents.detail.recipientStatus.expired' | translate }} }
                         @case ('Completed') { <mat-icon>check_circle</mat-icon> {{ (r.approvalType === 'Review' || r.approvalType === 'Approval' ? 'documents.detail.recipientStatus.approved' : 'documents.detail.recipientStatus.signed') | translate }} }
                         @case ('Rejected') { <mat-icon>cancel</mat-icon> {{ 'documents.detail.recipientStatus.rejected' | translate }} }
                         @case ('ChangesRequested') { <mat-icon>published_with_changes</mat-icon> {{ 'documents.detail.recipientStatus.changesRequested' | translate }} }
@@ -358,7 +533,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                       </div>
                     }
                   }
-                  <mat-divider></mat-divider>
+                  </div>
+                  </div>
                 }
                 @if (doc()!.recipients.length === 0) {
                   <div class="empty-recipients">
@@ -400,34 +576,36 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             <mat-card>
               <mat-card-header><mat-card-title>{{ 'documents.detail.signatureFields' | translate }}</mat-card-title></mat-card-header>
               <mat-card-content>
-                <div class="fields-summary">
-                  <div class="field-stat">
-                    <span class="field-count">{{ doc()!.fields.length }}</span>
-                    <span class="field-label">{{ 'documents.detail.fields.total' | translate }}</span>
-                  </div>
-                  <div class="field-stat">
-                    <span class="field-count signed">{{ signedCount() }}</span>
-                    <span class="field-label">{{ 'documents.detail.fields.signed' | translate }}</span>
-                  </div>
-                  <div class="field-stat">
-                    <span class="field-count pending">{{ doc()!.fields.length - signedCount() }}</span>
-                    <span class="field-label">{{ 'documents.detail.fields.pending' | translate }}</span>
-                  </div>
+                <div class="fields-progress">
+                  <span class="fp-count">{{ signedCount() }}</span>
+                  <span class="fp-total">/ {{ signingFields().length }} {{ 'documents.detail.fields.signaturesSigned' | translate }}</span>
                 </div>
+                <div class="fp-bar"><div class="fp-fill" [style.width.%]="signingFields().length ? signedCount() * 100 / signingFields().length : 0"></div></div>
+                @if (doc()!.fields.length > signingFields().length) {
+                  <p class="fp-other">{{ 'documents.detail.fields.otherFields' | translate: { count: doc()!.fields.length - signingFields().length } }}</p>
+                }
 
-                @for (field of doc()!.fields.slice(0, 5); track field.id) {
+                @for (field of (showAllFields() ? doc()!.fields : doc()!.fields.slice(0, 5)); track field.id) {
                   <div class="field-row">
                     <mat-icon class="field-icon" [class.signed-icon]="field.isSigned">
                       {{ field.isSigned ? 'check_circle' : 'radio_button_unchecked' }}
                     </mat-icon>
-                    <div>
-                      <span class="field-type">{{ field.fieldType }}</span>
-                      <span class="field-page">{{ 'documents.detail.fieldPage' | translate: { page: field.page } }}</span>
+                    <div class="field-text">
+                      <span class="field-type" [matTooltip]="field.label || ''">{{ field.label || (('designer.fieldTypes.' + field.fieldType) | translate) }}</span>
+                      <span class="field-meta">
+                        {{ ('designer.fieldTypes.' + field.fieldType) | translate }}
+                        · {{ 'documents.detail.fieldPage' | translate: { page: field.page } }}
+                        · {{ recipientNameOf(field.recipientId) ?? ('documents.detail.fields.filledByOwner' | translate) }}
+                      </span>
                     </div>
                   </div>
                 }
                 @if (doc()!.fields.length > 5) {
-                  <p class="more-fields">{{ 'documents.detail.moreFields' | translate: { count: doc()!.fields.length - 5 } }}</p>
+                  <button mat-button class="more-fields" (click)="showAllFields.set(!showAllFields())">
+                    <mat-icon>{{ showAllFields() ? 'expand_less' : 'expand_more' }}</mat-icon>
+                    @if (showAllFields()) { {{ 'documents.detail.fields.showLess' | translate }} }
+                    @else { {{ 'documents.detail.moreFields' | translate: { count: doc()!.fields.length - 5 } }} }
+                  </button>
                 }
               </mat-card-content>
             </mat-card>
@@ -475,112 +653,6 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 </mat-card-content>
               </mat-card>
             }
-
-          </div>
-        </div>
-          </mat-tab>
-
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon class="tab-icon">gavel</mat-icon> {{ 'documents.detail.tabs.intelligence' | translate }}
-              @if ((readiness()?.openCount ?? 0) > 0) {
-                <span class="tab-badge">{{ readiness()!.openCount }}</span>
-              }
-            </ng-template>
-
-            <!--
-              Full page width here, not the 340px rail: the analysis panel carries a contract
-              profile grid, severity-grouped findings and proposed wording, none of which fit in a
-              sidebar.
-            -->
-            <div class="intel-layout">
-              @if (readiness(); as r) {
-                <mat-card class="readiness-card">
-                  <mat-card-content>
-                    <div class="readiness-head">
-                      <sf-readiness-verdict
-                        [verdict]="r.verdict" [score]="r.score"
-                        [riskScore]="riskScore()" [complianceScore]="complianceScore()"
-                        [openCount]="r.openCount" [criticalCount]="r.criticalCount"
-                        [highCount]="r.highCount" [handledCount]="r.handledCount">
-                      </sf-readiness-verdict>
-                      @if (canReview()) {
-                        <button mat-stroked-button (click)="runReview()" [disabled]="reviewing()">
-                          <mat-icon>refresh</mat-icon>
-                          {{ (reviewing() ? 'documents.detail.readiness.running' : 'documents.detail.readiness.rerun') | translate }}
-                        </button>
-                      }
-                    </div>
-                    <sf-readiness-checklist
-                      [documentId]="doc()!.id"
-                      [items]="r.items"
-                      [readonly]="!canReview()"
-                      (changed)="onReadinessChanged($event)">
-                    </sf-readiness-checklist>
-                  </mat-card-content>
-                </mat-card>
-              }
-
-            <!-- AI Summary -->
-            <mat-card class="ai-summary-card">
-              <mat-card-header>
-                <mat-card-title class="ai-summary-title">
-                  <mat-icon class="ai-icon">auto_awesome</mat-icon> {{ 'documents.detail.aiSummary' | translate }}
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                @if (summaryLoading()) {
-                  <div class="summary-skeleton">
-                    <div class="skeleton-line long"></div>
-                    <div class="skeleton-line"></div>
-                    <div class="skeleton-line medium"></div>
-                  </div>
-                } @else if (summary()) {
-                  <p class="summary-text">{{ summary()!.summary }}</p>
-                  <span class="summary-meta">{{ 'documents.detail.generated' | translate: { date: (summary()!.generatedAt | date:'MMM d, y') } }}</span>
-                } @else if (summaryError()) {
-                  <div class="summary-empty">
-                    <mat-icon>smart_toy</mat-icon>
-                    <p>{{ 'documents.detail.summaryError' | translate }}</p>
-                    <button mat-stroked-button (click)="generateSummary()">{{ 'common.retry' | translate }}</button>
-                  </div>
-                } @else {
-                  <div class="summary-empty">
-                    <mat-icon>smart_toy</mat-icon>
-                    <p>{{ 'documents.detail.noSummary' | translate }}</p>
-                    <button mat-stroked-button (click)="generateSummary()">{{ 'documents.detail.generateSummary' | translate }}</button>
-                  </div>
-                }
-              </mat-card-content>
-            </mat-card>
-
-            <!-- Contract Risk Analysis -->
-            <sf-contract-analysis-panel [wide]="true"
-              [documentId]="doc()!.id"
-              [riskAnalysisJson]="doc()!.aiRiskAnalysisJson"
-              [generatedAt]="doc()!.aiRiskAnalysisGeneratedAt"
-              (analyzed)="load()">
-            </sf-contract-analysis-panel>
-
-            <!-- Regulatory Compliance Check -->
-            <sf-contract-compliance-panel [wide]="true"
-              [documentId]="doc()!.id"
-              [complianceAnalysisJson]="doc()!.aiComplianceAnalysisJson"
-              [generatedAt]="doc()!.aiComplianceAnalysisGeneratedAt"
-              (analyzed)="load()">
-            </sf-contract-compliance-panel>
-
-            <!-- Contract term & lifecycle -->
-            <sf-contract-term-panel [wide]="true"
-              [documentId]="doc()!.id"
-              [contractStartDate]="doc()!.contractStartDate"
-              [contractEndDate]="doc()!.contractEndDate"
-              [autoRenews]="doc()!.autoRenews"
-              [noticePeriodDays]="doc()!.noticePeriodDays"
-              [termConfirmed]="doc()!.termConfirmed"
-              [canEdit]="isOwner() || auth.isAdmin()"
-              (saved)="load()">
-            </sf-contract-term-panel>
 
             <!-- Obligation Tracking -->
             <mat-card class="obligation-card">
@@ -636,7 +708,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 }
               </mat-card-content>
             </mat-card>
-            </div>
+          </div>
+        </div>
           </mat-tab>
         </mat-tab-group>
       } @else if (error()) {
@@ -669,7 +742,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   readonly summaryLoading = signal(false);
   readonly summaryError = signal(false);
 
-  /** 0 = Overview, 1 = Legal intelligence. */
+  /** 0 = Summary, 1 = Review, 2 = Harvey, 3 = Signing and follow-up. */
   readonly tabIndex = signal(0);
   readonly readiness = signal<Readiness | null>(null);
   readonly reviewing = signal(false);
@@ -688,7 +761,9 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  readonly signedCount = () => this.doc()?.fields.filter(f => f.isSigned).length ?? 0;
+  /** Fields someone actually signs; text, date and other filled-in fields are not part of the signing progress. */
+  readonly signingFields = () => this.doc()?.fields.filter(f => ['Signature', 'Initials', 'Stamp'].includes(f.fieldType)) ?? [];
+  readonly signedCount = () => this.signingFields().filter(f => f.isSigned).length;
   readonly reopening = signal(false);
   readonly uploadingRevision = signal(false);
 
@@ -709,6 +784,148 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   /** The participant whose change request paused the document. */
   readonly changeRequester = () =>
     this.doc()?.recipients.find(r => r.status === 'ChangesRequested') ?? null;
+
+  readonly rejecter = () =>
+    this.doc()?.recipients.find(r => r.status === 'Rejected') ?? null;
+
+  // ── Status card ──────────────────────────────────────────────────────────────────────────
+
+  private tr(key: string, params?: object): string {
+    return this.translate.instant(`documents.detail.${key}`, params);
+  }
+
+  railTone(): 'error' | 'warn' | 'success' | 'info' | 'neutral' {
+    switch (this.doc()?.status) {
+      case 'Rejected': case 'Expired': return 'error';
+      case 'ChangesRequested': return 'warn';
+      case 'Completed': return 'success';
+      case 'Draft': case 'Cancelled': return 'neutral';
+      default: return 'info';
+    }
+  }
+
+  railIcon(): string {
+    switch (this.doc()?.status) {
+      case 'Rejected': return 'cancel';
+      case 'ChangesRequested': return 'published_with_changes';
+      case 'Completed': return 'verified';
+      case 'Expired': return 'schedule';
+      case 'Draft': return 'edit_note';
+      case 'Cancelled': return 'block';
+      default: return 'hourglass_top';
+    }
+  }
+
+  railTitle(): string {
+    switch (this.doc()?.status) {
+      case 'Rejected': return this.tr('rejectedTitle');
+      case 'ChangesRequested': return this.tr('changesRequestedTitle');
+      case 'Completed': return this.tr('completedTitle');
+      default: return this.statusLabel();
+    }
+  }
+
+  railSub(): string {
+    const d = this.doc();
+    if (!d) return '';
+    switch (d.status) {
+      case 'Rejected': {
+        const rj = this.rejecter();
+        if (!rj) return this.tr('rejectedHint');
+        return this.tr('rejectedBy', { name: rj.name }) +
+          (rj.declineReason ? ` — “${rj.declineReason}”` : ` — ${this.tr('rejectedNoReason')}`);
+      }
+      case 'ChangesRequested': {
+        const cr = this.changeRequester();
+        if (!cr) return this.tr('changesRequestedHint');
+        return this.tr('changesRequestedBy', { name: cr.name }) + (cr.declineReason ? ` — “${cr.declineReason}”` : '');
+      }
+      case 'Completed': {
+        const date = d.completedAt ? new Date(d.completedAt).toLocaleDateString(this.translate.getCurrentLang() ?? undefined) : '';
+        return this.tr('allSignedOn', { date }) + (d.verificationCode ? ` · ${d.verificationCode}` : '');
+      }
+      case 'Draft': return this.tr('rail.draftHint');
+      case 'Expired': case 'Cancelled': return '';
+      default: {
+        const current = this.workflowParticipants().find(p => p.isCurrent);
+        return current ? this.tr('rail.waitingOn', { name: current.name }) : '';
+      }
+    }
+  }
+
+  railSteps(): { key: string; label: string; state: 'done' | 'current' | 'error' | 'warn' | 'todo'; note?: string }[] {
+    const d = this.doc();
+    if (!d) return [];
+    const r = this.readiness();
+    const reviewed = d.readinessVerdict !== 'NotEvaluated';
+    const gates = d.recipients.filter(x => x.approvalType !== 'ViewOnly');
+    const doneCount = gates.filter(x => x.status === 'Completed').length;
+
+    let signature: { state: 'done' | 'current' | 'error' | 'warn' | 'todo'; note?: string };
+    switch (d.status) {
+      case 'Rejected':
+        signature = { state: 'error', note: this.rejecter() ? this.tr('rail.declinedBy', { name: this.rejecter()!.name }) : undefined };
+        break;
+      case 'ChangesRequested': signature = { state: 'warn', note: this.tr('rail.paused') }; break;
+      case 'Completed': signature = { state: 'done', note: gates.length ? `${doneCount}/${gates.length}` : undefined }; break;
+      case 'Draft': case 'Cancelled': case 'Expired': signature = { state: 'todo' }; break;
+      default: signature = { state: 'current', note: gates.length ? `${doneCount}/${gates.length}` : undefined };
+    }
+
+    return [
+      { key: 'imported', label: this.tr('rail.imported'), state: 'done' },
+      {
+        key: 'review', label: this.tr('rail.review'), state: reviewed ? 'done' : 'todo',
+        note: reviewed && r ? (r.openCount > 0 ? this.tr('rail.reviewOpen', { count: r.openCount }) : this.tr('rail.reviewHandled')) : undefined
+      },
+      { key: 'signature', label: this.tr('rail.signature'), ...signature },
+      { key: 'active', label: this.tr('rail.active'), state: d.status === 'Completed' ? 'done' : 'todo' }
+    ];
+  }
+
+  readonly showAllFields = signal(false);
+
+  /** Who a field belongs to, for the fields summary. */
+  recipientNameOf(recipientId?: string | null): string | null {
+    return recipientId ? this.doc()?.recipients.find(r => r.id === recipientId)?.name ?? null : null;
+  }
+
+  /** The review lives in the Summary tab: go there and bring the checklist into view. */
+  showChecklist(): void {
+    this.tabIndex.set(0);
+    setTimeout(() => document.getElementById('readiness-checklist')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
+  /** Green when the score is good: a high risk score is bad, a high readiness score is good. */
+  ringColor(value: number, highIsGood: boolean): string {
+    const good = highIsGood ? value : 100 - value;
+    if (good >= 70) return 'var(--g-green)';
+    if (good >= 40) return 'var(--g-yellow)';
+    return 'var(--g-red)';
+  }
+
+  /** The few things worth doing next on this contract, most pressing first. */
+  nextActions(): { key: string; tone: 'danger' | 'warning' | 'muted'; icon: string; title: string; sub: string; go: () => void }[] {
+    const d = this.doc();
+    if (!d) return [];
+    const out: { key: string; tone: 'danger' | 'warning' | 'muted'; icon: string; title: string; sub: string; go: () => void }[] = [];
+
+    if (d.status === 'Rejected') {
+      out.push({ key: 'declined', tone: 'danger', icon: 'cancel', title: this.tr('next.fixDecline'), sub: this.tr('next.fixDeclineSub'), go: () => this.tabIndex.set(2) });
+    }
+    const r = this.readiness();
+    const severe = (r?.criticalCount ?? 0) + (r?.highCount ?? 0);
+    if (severe > 0) {
+      out.push({ key: 'risks', tone: 'warning', icon: 'warning', title: this.tr('next.risks', { count: severe }), sub: this.tr('next.risksSub'), go: () => this.showChecklist() });
+    }
+    if (!d.contractEndDate && this.canReview()) {
+      out.push({
+        key: 'term', tone: 'muted', icon: 'event', title: this.tr('next.setTerm'), sub: this.tr('next.setTermSub'),
+        go: () => document.querySelector('sf-contract-term-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      });
+    }
+    return out;
+  }
 
   /** Other authenticated users viewing this document right now (self excluded). */
   readonly activeViewers = computed(() => {
@@ -857,11 +1074,13 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     const ordered = [...recipients].sort((a, b) => a.order - b.order);
     const current = ordered.find(r =>
       r.status !== 'Completed' && r.status !== 'Rejected' && r.status !== 'Skipped');
+    // A declined contract is over: no later step is "signing now".
+    const over = this.doc()?.status === 'Completed' || this.doc()?.status === 'Rejected';
     return ordered.map(r => ({
       order: r.order,
       name: r.name,
       status: r.status as WorkflowParticipant['status'],
-      isCurrent: r.id === current?.id && this.doc()?.status !== 'Completed',
+      isCurrent: r.id === current?.id && !over,
       signedAt: r.signedAt
     }));
   };
@@ -873,6 +1092,18 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     Rejected: '#ef4444', Expired: '#f97316', WaitingForOthers: '#8b5cf6',
     ChangesRequested: '#f59e0b'
   };
+
+  /**
+   * A participant who never got to act on a contract that ended without them (declined, cancelled, expired) is not
+   * "pending" any more: nothing is expected from them. Returns the marker for the status to show instead, else null.
+   */
+  stoppedFor(r: { status: string }): 'Rejected_' | 'Expired_' | null {
+    if (r.status !== 'Pending' && r.status !== 'InProgress') return null;
+    const ended = this.doc()?.status;
+    if (ended === 'Rejected' || ended === 'Cancelled') return 'Rejected_';
+    if (ended === 'Expired') return 'Expired_';
+    return null;
+  }
 
   statusColor(): string { return this.STATUS_COLORS[this.doc()?.status ?? ''] ?? '#5f6368'; }
   statusBg(): string { return `${this.statusColor()}20`; }
@@ -902,7 +1133,9 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   }
 
   load(): void {
-    this.loading.set(true);
+    // Only the first load shows the spinner: a refresh after an action (saving the term, an analysis) updates the
+    // page in place, so open panels keep their state and the reader keeps their place.
+    if (!this.doc()) this.loading.set(true);
     this.documentService.getDocument(this.documentId).subscribe({
       next: doc => {
         this.doc.set(doc);
@@ -935,12 +1168,14 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
 
   /** Full pre-flight review: the model legal review plus the regulatory check, then a re-grade. */
   runReview(): void {
+    // The first review lands on the summary; a re-run leaves the reader on the tab they were looking at.
+    const first = this.doc()?.readinessVerdict === 'NotEvaluated';
     this.reviewing.set(true);
     this.documentService.evaluateReadiness(this.documentId).subscribe({
       next: r => {
         this.reviewing.set(false);
         this.readiness.set(r);
-        this.tabIndex.set(1);
+        if (first) this.tabIndex.set(0);
         // Reload for the refreshed risk/compliance JSON the panels below render from.
         this.load();
       },
@@ -992,7 +1227,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
         }
 
         if (errors?.['readiness']) {
-          this.tabIndex.set(1);
+          this.tabIndex.set(0);
           this.snack.open(this.translate.instant('documents.detail.readiness.sendBlocked'), 'OK', { duration: 6000 });
           return;
         }

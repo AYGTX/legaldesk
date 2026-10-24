@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
@@ -41,6 +43,37 @@ public class PdfTemplate : BaseEntity
     public Guid? RequestTypeId { get; private set; }
     public RequestType? RequestType { get; private set; }
 
+
+    /// <summary>
+    /// The reusable approval path this template follows, when it has one. The preset then decides who approves each
+    /// signature field (see <see cref="WorkflowPreset"/>); without one, the default approver and per-field choices apply.
+    /// </summary>
+    public Guid? WorkflowPresetId { get; private set; }
+    public WorkflowPreset? WorkflowPreset { get; private set; }
+
+    public void SetWorkflowPreset(Guid? presetId)
+    {
+        WorkflowPresetId = presetId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Library clauses appended, as an annex, to every request made from this template (a JSON array of clause ids).
+    /// A PDF template is a fixed file, so its own text cannot take a clause: the wording goes on extra pages after it.
+    /// </summary>
+    public string? AnnexClauseIdsJson { get; private set; }
+
+    [NotMapped]
+    public IReadOnlyList<Guid> AnnexClauseIds =>
+        string.IsNullOrWhiteSpace(AnnexClauseIdsJson) ? [] : JsonSerializer.Deserialize<List<Guid>>(AnnexClauseIdsJson) ?? [];
+
+    public void SetAnnexClauses(IEnumerable<Guid> clauseIds)
+    {
+        var ids = clauseIds.Distinct().ToList();
+        AnnexClauseIdsJson = ids.Count == 0 ? null : JsonSerializer.Serialize(ids);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public Guid CreatedById { get; private set; }
     public ApplicationUser CreatedByUser { get; private set; } = null!;
 
@@ -75,7 +108,19 @@ public class PdfTemplate : BaseEntity
             RequestTypeId = requestTypeId
         };
 
-    /// <summary>Updates metadata/config. The stored PDF itself is immutable once uploaded.</summary>
+    /// <summary>
+    /// Points the template at an edited copy of its PDF. Requests already created keep their own copy; only
+    /// requests created afterwards use the new file. The previous file stays in storage.
+    /// </summary>
+    public void ReplaceFile(string storagePath, long fileSizeBytes, int pageCount)
+    {
+        StoragePath = storagePath;
+        FileSizeBytes = fileSizeBytes;
+        PageCount = pageCount;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>Updates metadata/config. The stored PDF is replaced only through <see cref="ReplaceFile"/>.</summary>
     public void Update(
         string name,
         string? description,

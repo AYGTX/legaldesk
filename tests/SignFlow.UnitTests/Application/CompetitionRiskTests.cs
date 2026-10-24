@@ -1,3 +1,5 @@
+#if LEGACY_RULES
+// Tests of the keyword rules Harvey's review replaced; compiled only with LEGACY_RULES.
 using SignFlow.Application.Common.Services;
 
 namespace SignFlow.UnitTests.Application;
@@ -44,3 +46,4 @@ public class CompetitionRiskTests
             "Le territoire du Nord est réservé à la société Alpha et celui du Sud à la société Gamma ; chacune des parties s'interdit de démarcher les clients situés sur le territoire de l'autre.",
             "Chaque partie reste libre de commercialiser ses produits sur tout le territoire tunisien.")), f => f.RuleKey == "market_sharing");
 }
+#endif

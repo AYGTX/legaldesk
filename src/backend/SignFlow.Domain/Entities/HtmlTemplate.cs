@@ -34,6 +34,20 @@ public class HtmlTemplate : BaseEntity
     public Guid? RequestTypeId { get; private set; }
     public RequestType? RequestType { get; private set; }
 
+
+    /// <summary>
+    /// The reusable approval path this template follows, when it has one. The preset then decides who approves each
+    /// signature field (see <see cref="WorkflowPreset"/>); without one, the default approver and per-field choices apply.
+    /// </summary>
+    public Guid? WorkflowPresetId { get; private set; }
+    public WorkflowPreset? WorkflowPreset { get; private set; }
+
+    public void SetWorkflowPreset(Guid? presetId)
+    {
+        WorkflowPresetId = presetId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public Guid CreatedById { get; private set; }
     public ApplicationUser CreatedByUser { get; private set; } = null!;
 

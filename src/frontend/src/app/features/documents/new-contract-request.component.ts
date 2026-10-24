@@ -19,6 +19,9 @@ import {
 import { RequestStepperComponent } from '../../shared/request-stepper/request-stepper.component';
 import { ReadinessVerdictComponent } from '../../shared/readiness-verdict/readiness-verdict.component';
 import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
+import { StageLanesComponent } from '../../shared/stage-lanes/stage-lanes.component';
+import { normalizeStages } from '../../shared/stage-lanes/stage-lanes.util';
+import { WorkflowTypeToggleComponent } from '../../shared/workflow-type-toggle/workflow-type-toggle.component';
 import { PdfPreviewComponent, PreviewBox, PreviewPageSize } from '../../shared/pdf-preview/pdf-preview.component';
 import { PdfTextEditorDialogComponent, PdfTextEditorDialogData } from './pdf-text-editor-dialog.component';
 
@@ -33,6 +36,8 @@ interface Participant {
   email: string;
   approvalType: ApprovalType;
   roleLabel: string;
+  /** Stage number in a staged workflow: people on the same stage act at the same time. */
+  stage: number;
 }
 
 const EXTERNAL = '__external';
@@ -66,7 +71,7 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
   selector: 'sf-new-contract-request',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, FormsModule,
+    CommonModule, RouterLink, FormsModule, StageLanesComponent, WorkflowTypeToggleComponent,
     MatButtonModule, MatIconModule, MatProgressBarModule, MatTooltipModule, MatSnackBarModule,
     RequestStepperComponent, ReadinessVerdictComponent, ReadinessChecklistComponent, PdfPreviewComponent, TranslatePipe
   ],
@@ -222,48 +227,67 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
             <h3>{{ 'newContractRequest.people.title' | translate }}</h3>
             <p class="hint">{{ 'newContractRequest.people.hint' | translate }}</p>
 
-            <div class="wf-toggle">
-              <button type="button" [class.active]="workflowType === 'Sequential'" (click)="workflowType = 'Sequential'">
-                <mat-icon>linear_scale</mat-icon> {{ 'newContractRequest.people.sequential' | translate }}
-              </button>
-              <button type="button" [class.active]="workflowType === 'Parallel'" (click)="workflowType = 'Parallel'">
-                <mat-icon>account_tree</mat-icon> {{ 'newContractRequest.people.parallel' | translate }}
-              </button>
-            </div>
+            <sf-workflow-type-toggle [value]="workflowType" (valueChange)="setWorkflowType($event)"></sf-workflow-type-toggle>
 
-            @for (p of participants; track $index; let i = $index) {
-              <div class="person">
-                <span class="person-order">{{ workflowType === 'Parallel' ? '•' : i + 1 }}</span>
-                <div class="person-fields">
+            <ng-template #personFields let-p>
+              <div class="person-fields">
+                <div class="person-row">
+                  <select class="nc-input" [ngModel]="p.kind === 'external' ? EXTERNAL : p.userId" (ngModelChange)="pickUser(p, $event)">
+                    <option value="">{{ 'newContractRequest.people.pick' | translate }}</option>
+                    @for (u of users(); track u.id) { <option [value]="u.id">{{ u.fullName }} — {{ u.email }}</option> }
+                    <option [value]="EXTERNAL">{{ 'newContractRequest.people.external' | translate }}</option>
+                  </select>
+                  <select class="nc-input role" [(ngModel)]="p.approvalType">
+                    @for (role of roles; track role) { <option [value]="role">{{ ('newContractRequest.people.roles.' + role) | translate }}</option> }
+                  </select>
+                </div>
+                @if (p.kind === 'external') {
                   <div class="person-row">
-                    <select class="nc-input" [ngModel]="p.kind === 'external' ? EXTERNAL : p.userId" (ngModelChange)="pickUser(p, $event)">
-                      <option value="">{{ 'newContractRequest.people.pick' | translate }}</option>
-                      @for (u of users(); track u.id) { <option [value]="u.id">{{ u.fullName }} — {{ u.email }}</option> }
-                      <option [value]="EXTERNAL">{{ 'newContractRequest.people.external' | translate }}</option>
-                    </select>
-                    <select class="nc-input role" [(ngModel)]="p.approvalType">
-                      @for (role of roles; track role) { <option [value]="role">{{ ('newContractRequest.people.roles.' + role) | translate }}</option> }
-                    </select>
+                    <input class="nc-input" type="text" [(ngModel)]="p.name" [placeholder]="'newContractRequest.people.name' | translate" />
+                    <input class="nc-input" type="email" [(ngModel)]="p.email" [placeholder]="'newContractRequest.people.email' | translate" />
                   </div>
-                  @if (p.kind === 'external') {
-                    <div class="person-row">
-                      <input class="nc-input" type="text" [(ngModel)]="p.name" [placeholder]="'newContractRequest.people.name' | translate" />
-                      <input class="nc-input" type="email" [(ngModel)]="p.email" [placeholder]="'newContractRequest.people.email' | translate" />
-                    </div>
-                  }
-                  <input class="nc-input" type="text" [(ngModel)]="p.roleLabel" [placeholder]="'newContractRequest.people.roleLabel' | translate" />
-                </div>
-                <div class="person-actions">
-                  <button mat-icon-button (click)="moveParticipant(i, -1)" [disabled]="i === 0"><mat-icon>keyboard_arrow_up</mat-icon></button>
-                  <button mat-icon-button (click)="moveParticipant(i, 1)" [disabled]="i === participants.length - 1"><mat-icon>keyboard_arrow_down</mat-icon></button>
-                  <button mat-icon-button (click)="removeParticipant(i)" [disabled]="participants.length === 1"><mat-icon>delete_outline</mat-icon></button>
-                </div>
+                }
+                <input class="nc-input" type="text" [(ngModel)]="p.roleLabel" [placeholder]="'newContractRequest.people.roleLabel' | translate" />
               </div>
+            </ng-template>
+
+            @if (workflowType === 'Mixed') {
+              <sf-stage-lanes [items]="participants" (changed)="participants = $any($event)">
+                <ng-template #card let-p>
+                  <div class="person-card">
+                    <ng-container *ngTemplateOutlet="personFields; context: { $implicit: p }"></ng-container>
+                    <div class="person-actions">
+                      <button mat-icon-button (click)="removeParticipant(participants.indexOf(p))" [disabled]="participants.length === 1"><mat-icon>delete_outline</mat-icon></button>
+                    </div>
+                  </div>
+                </ng-template>
+              </sf-stage-lanes>
+            } @else {
+              @for (p of participants; track $index; let i = $index) {
+                <div class="person">
+                  <span class="person-order">{{ workflowType === 'Parallel' ? '•' : i + 1 }}</span>
+                  <ng-container *ngTemplateOutlet="personFields; context: { $implicit: p }"></ng-container>
+                  <div class="person-actions">
+                    <button mat-icon-button (click)="moveParticipant(i, -1)" [disabled]="i === 0"><mat-icon>keyboard_arrow_up</mat-icon></button>
+                    <button mat-icon-button (click)="moveParticipant(i, 1)" [disabled]="i === participants.length - 1"><mat-icon>keyboard_arrow_down</mat-icon></button>
+                    <button mat-icon-button (click)="removeParticipant(i)" [disabled]="participants.length === 1"><mat-icon>delete_outline</mat-icon></button>
+                  </div>
+                </div>
+              }
             }
 
             <button mat-stroked-button (click)="addParticipant()"><mat-icon>person_add</mat-icon> {{ 'newContractRequest.people.add' | translate }}</button>
 
-            <p class="hint"><mat-icon>draw</mat-icon> {{ 'newContractRequest.people.signaturesAuto' | translate }}</p>
+            @if (signerNotLast()) {
+              <div class="nc-warn">
+                <mat-icon>warning_amber</mat-icon>
+                <span>{{ 'newContractRequest.people.signerFirstWarning' | translate }}</span>
+                <button mat-stroked-button type="button" (click)="orderByRole()">{{ 'newContractRequest.people.orderByRole' | translate }}</button>
+              </div>
+            }
+            @if (hasSigner()) {
+              <p class="hint"><mat-icon>draw</mat-icon> {{ 'newContractRequest.people.signaturesAuto' | translate }}</p>
+            }
             @if (error()) { <div class="nc-error"><mat-icon>error_outline</mat-icon> {{ error() }}</div> }
           </div>
 
@@ -302,7 +326,7 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
               <dd>
                 @for (r of doc()?.recipients ?? []; track r.id; let i = $index) {
                   <div class="sum-person">
-                    <span class="person-order">{{ workflowType === 'Parallel' ? '•' : i + 1 }}</span>
+                    <span class="person-order">{{ workflowType === 'Parallel' ? '•' : workflowType === 'Mixed' ? r.order : i + 1 }}</span>
                     {{ r.name }} <span class="muted">— {{ ('newContractRequest.people.roles.' + r.approvalType) | translate }}</span>
                   </div>
                 }
@@ -347,11 +371,6 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
     </div>
   `,
   styles: [`
-    .nc-page { max-width: 760px; margin: 0 auto; transition: max-width 0.2s ease; }
-    .nc-page.wide { max-width: 1200px; }
-    .page-header { margin-bottom: 20px; }
-    .page-title { font-size: 22px; font-weight: 500; margin: 0 0 4px; color: #1f1f1f; }
-    .page-subtitle { font-size: 13px; color: #5f6368; margin: 0; }
     .nc-card { border: 1px solid #c7d0dc; border-radius: 12px; background: #fff; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
     .nc-card.center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px 24px; }
     .nc-card h2, .nc-card h3 { margin: 0 0 6px; font-weight: 500; }
@@ -381,15 +400,16 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
     @media (max-width: 1000px) { .people-layout { grid-template-columns: 1fr; } }
     .preview-col { position: sticky; top: 8px; }
     .fix-card { display: flex; flex-direction: column; gap: 8px; }
-    .wf-toggle { display: inline-flex; gap: 2px; background: #f1f3f4; border-radius: 8px; padding: 2px; margin: 8px 0 12px; }
-    .wf-toggle button { display: flex; align-items: center; gap: 4px; border: none; background: transparent; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; color: #5f6368; font-family: inherit; }
-    .wf-toggle button.active { background: #fff; color: #0b57d0; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
-    .wf-toggle mat-icon { font-size: 18px; width: 18px; height: 18px; }
     .person { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid #eef1f5; }
     .person-order { flex: 0 0 24px; height: 24px; border-radius: 50%; background: #e8f0fe; color: #174ea6; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; margin-top: 6px; }
     .person-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .person-row { display: flex; gap: 6px; } .person-row .role { max-width: 170px; }
     .person-actions { display: flex; }
+    .nc-warn { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #fef7e0; color: #b06000; font-size: 13px; }
+    .nc-warn mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+    .nc-warn span { flex: 1; min-width: 200px; }
+    .person-card { display: flex; gap: 6px; align-items: flex-start; }
+    .person-card .person-fields { flex: 1; min-width: 0; }
     .summary { display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px; margin: 12px 0; font-size: 14px; }
     .summary dt { color: #5f6368; } .summary dd { margin: 0; }
     .sum-person { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; } .sum-person .person-order { margin-top: 0; }
@@ -454,8 +474,8 @@ export class NewContractRequestComponent implements OnInit {
 
   title = '';
   requestTypeId: string | null = null;
-  workflowType: Exclude<WorkflowType, 'Mixed'> = 'Sequential';
-  participants: Participant[] = [this.blankParticipant()];
+  workflowType: WorkflowType = 'Sequential';
+  participants: Participant[] = [{ ...this.blankParticipant(), approvalType: 'Review' }];
   acknowledged = false;
 
   readonly stepLabels = computed(() => {
@@ -620,13 +640,81 @@ export class NewContractRequestComponent implements OnInit {
   // ---------------------------------------------------------------- 4 · participants
 
   private blankParticipant(): Participant {
-    return { kind: 'user', userId: '', name: '', email: '', approvalType: 'Signature', roleLabel: '' };
+    return { kind: 'user', userId: '', name: '', email: '', approvalType: 'Signature', roleLabel: '', stage: 1 };
   }
 
-  addParticipant(): void { this.participants = [...this.participants, { ...this.blankParticipant(), approvalType: 'Review' }]; }
+  /** Who has to act before whom: the people who check go first, the people who sign go last. */
+  private static readonly ROLE_RANK: Record<ApprovalType, number> = { ViewOnly: 1, Review: 1, Reject: 1, Approval: 2, Signature: 3, Stamp: 3 };
+  private rank(p: Participant): number { return NewContractRequestComponent.ROLE_RANK[p.approvalType] ?? 1; }
+
+  /**
+   * True when a signer could sign before the contract has been checked: they sit ahead of, or on the same stage as,
+   * someone who reviews or approves (or everyone acts at once).
+   */
+  signerNotLast(): boolean {
+    const signers = this.participants.filter(p => this.rank(p) === 3);
+    const checkers = this.participants.filter(p => p.approvalType === 'Review' || p.approvalType === 'Approval');
+    if (!signers.length || !checkers.length) return false;
+    if (this.workflowType === 'Parallel') return true;
+    if (this.workflowType === 'Mixed') {
+      return signers.some(s => checkers.some(c => c.stage >= s.stage));
+    }
+    const firstSigner = Math.min(...signers.map(s => this.participants.indexOf(s)));
+    return checkers.some(c => this.participants.indexOf(c) > firstSigner);
+  }
+
+  /** Reviewers first, then approvers, then signers. "All at once" becomes a staged flow, since it cannot be ordered. */
+  orderByRole(): void {
+    if (this.workflowType === 'Sequential') {
+      this.participants = [...this.participants].sort((a, b) => this.rank(a) - this.rank(b));
+      return;
+    }
+    this.workflowType = 'Mixed';
+    this.participants.forEach(p => p.stage = this.rank(p));
+    this.normalizeStages();
+  }
+
+  /**
+   * Switching to a staged workflow: from "one after the other" each person keeps their own stage, from
+   * "all at once" everyone starts on the same stage. Either way they can be regrouped by dragging.
+   */
+  setWorkflowType(type: WorkflowType): void {
+    if (type !== 'Mixed') { this.workflowType = type; return; }
+    if (this.workflowType === 'Mixed') return;
+    const together = this.workflowType === 'Parallel';
+    this.workflowType = 'Mixed';
+    this.participants.forEach((p, i) => p.stage = together ? 1 : i + 1);
+  }
+
+  /** Renumbers the stages 1..n in order, dropping empty ones, and keeps the list sorted by stage. */
+  private normalizeStages(): void {
+    this.participants = normalizeStages(this.participants);
+  }
+
+  hasSigner(): boolean {
+    return this.participants.some(p => p.approvalType === 'Signature');
+  }
+
+  addParticipant(): void {
+    const signerIndex = this.participants.findIndex(p => this.rank(p) === 3);
+
+    // No signer yet: the next person signs, last. Otherwise a new reviewer joins before the signers.
+    if (signerIndex < 0) {
+      const stage = Math.max(0, ...this.participants.map(p => p.stage)) + 1;
+      this.participants = [...this.participants, { ...this.blankParticipant(), approvalType: 'Signature', stage }];
+      return;
+    }
+
+    const person: Participant = { ...this.blankParticipant(), approvalType: 'Review', stage: this.participants[signerIndex].stage - 0.5 };
+    const next = [...this.participants];
+    next.splice(signerIndex, 0, person);
+    this.participants = next;
+    if (this.workflowType === 'Mixed') this.normalizeStages();
+  }
 
   removeParticipant(index: number): void {
     if (this.participants.length > 1) this.participants = this.participants.filter((_, i) => i !== index);
+    if (this.workflowType === 'Mixed') this.normalizeStages();
   }
 
   moveParticipant(index: number, direction: -1 | 1): void {
@@ -672,7 +760,7 @@ export class NewContractRequestComponent implements OnInit {
     const recipients: RecipientInputDto[] = this.participants.map((p, i) => ({
       name: p.name.trim(),
       email: p.email.trim(),
-      order: this.workflowType === 'Parallel' ? 1 : i + 1,
+      order: this.workflowType === 'Parallel' ? 1 : this.workflowType === 'Mixed' ? p.stage : i + 1,
       approvalType: p.approvalType,
       roleLabel: p.roleLabel.trim() || undefined
     }));
@@ -759,16 +847,17 @@ export class NewContractRequestComponent implements OnInit {
         this.doc.set(detail);
         this.title = detail.title;
         this.requestTypeId = this.requestTypes().find(t => t.name === detail.requestTypeName)?.id ?? null;
-        this.workflowType = detail.workflowType === 'Parallel' ? 'Parallel' : 'Sequential';
+        this.workflowType = detail.workflowType;
 
         if (detail.recipients.length > 0) {
           this.participants = detail.recipients.map(r => {
             const known = this.users().find(u => u.email.toLowerCase() === r.email.toLowerCase());
             return {
               kind: known ? 'user' : 'external', userId: known?.id ?? '', name: r.name, email: r.email,
-              approvalType: r.approvalType, roleLabel: r.roleLabel ?? ''
+              approvalType: r.approvalType, roleLabel: r.roleLabel ?? '', stage: r.order
             } as Participant;
           });
+          if (this.workflowType === 'Mixed') this.normalizeStages();
         }
 
         this.documents.getReadiness(id).subscribe({

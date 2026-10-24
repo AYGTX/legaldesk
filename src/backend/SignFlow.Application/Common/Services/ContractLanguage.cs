@@ -36,6 +36,18 @@ public static class ContractLanguage
         return null;
     }
 
+    /// <summary>
+    /// The language an answer about this contract is written in: the contract's own ("fr" or "en"), so a French
+    /// contract is never answered in English because the screen is set to English. When the contract's language
+    /// cannot be told (too short, mixed, Arabic), the language asked for is used.
+    /// </summary>
+    public static string ForAnswer(string? contractText, string? requested)
+    {
+        var detected = Detect(contractText);
+        if (detected is "fr" or "en") return detected;
+        return requested == "en" ? "en" : "fr";
+    }
+
     /// <summary>The regulations in the contract's language; all of them when the language is unknown or none match.</summary>
     public static List<T> Filter<T>(IReadOnlyList<T> regulations, Func<T, string> languageOf, string? contractLanguage)
     {

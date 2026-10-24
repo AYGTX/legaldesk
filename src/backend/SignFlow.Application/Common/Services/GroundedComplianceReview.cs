@@ -34,17 +34,14 @@ public class GroundedComplianceReview(
         List<ClauseLawMatch> relevantLaw = [];
         var corpusDown = false;
 
-        if (corpus.IsEnabled)
+        try
         {
-            try
-            {
-                relevantLaw = await MapClausesAsync(text, ct);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogWarning(ex, "Legal corpus search failed — reviewing without article text");
-                corpusDown = true;
-            }
+            relevantLaw = await MapClausesAsync(text, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Legal corpus search failed — reviewing without article text");
+            corpusDown = true;
         }
 
         var result = await aiService.ReviewComplianceAsync(text, title, regulations, BestArticles(relevantLaw), ct);

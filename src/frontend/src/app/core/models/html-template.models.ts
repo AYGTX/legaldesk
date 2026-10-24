@@ -1,4 +1,6 @@
+import { TemplatePreset } from './workflow-preset.models';
 import { WorkflowType } from './document.models';
+import { RiskFinding } from './contract-intelligence.model';
 
 export type HtmlFieldType = 'Text' | 'Textarea' | 'Date' | 'Number' | 'Checkbox' | 'Signature' | 'Dropdown';
 export type HtmlFieldRole = 'Initiator' | 'Approver';
@@ -54,6 +56,8 @@ export interface HtmlTemplateDetailDto {
   requestTypeId?: string;
   requestTypeName?: string;
   requestTypeSlaHours?: number;
+  /** The reusable approval workflow this template follows, with its steps. */
+  workflowPreset?: TemplatePreset;
 }
 
 export interface HtmlTemplateFieldInput {
@@ -79,6 +83,7 @@ export interface CreateHtmlTemplateRequest {
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
   requestTypeId?: string;
+  workflowPresetId?: string;
 }
 
 export interface UpdateHtmlTemplateRequest {
@@ -91,6 +96,7 @@ export interface UpdateHtmlTemplateRequest {
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
   requestTypeId?: string;
+  workflowPresetId?: string;
 }
 
 /** One approver choice: either an existing system user, or an external signer with no account (name + email only). */
@@ -121,4 +127,11 @@ export interface GeneratedHtmlTemplate {
   htmlContent: string;
   suggestedName: string;
   fields: GeneratedHtmlTemplateField[];
+}
+
+/** The legal review of a template as written: what a reviewer would flag in the contract it can produce. */
+export interface TemplateReviewResult {
+  riskScore: number;
+  findings: RiskFinding[];
+  limitations: string[];
 }

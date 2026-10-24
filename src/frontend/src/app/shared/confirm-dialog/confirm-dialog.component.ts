@@ -11,6 +11,7 @@ export interface ConfirmDialogData {
   confirmLabel: string;
   cancelLabel: string;
   danger?: boolean;
+  disableClose?: boolean;
   input?: {
     label?: string;
     type: 'text' | 'password' | 'textarea';

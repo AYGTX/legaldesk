@@ -88,6 +88,33 @@ def test_upload_choose_review_create(client):
     assert text["verified_by"] is None and text["status"] == "Draft"
 
 
+def test_duplicate_can_be_resolved_in_app_without_hand_editing_the_text(client):
+    raw = "Article 1 - Premier texte de loi assez long.\nArticle 1 - Le même numéro répété ici, aussi assez long."
+    page = client.post("/import-pdf/create", data={"raw_text": raw, "title": "Loi test", "jurisdiction": "Tunisia",
+                                                    "category": "Other", "language": "fr"}).text
+    assert "Some article numbers repeat" in page
+
+    # Find the exact span of the second occurrence from the page itself, the way the button does.
+    from app.services.splitter import occurrences
+    second = occurrences(raw)[1]
+    span = f"{second.start}:{second.end}"
+
+    resolved = client.post("/import-pdf/review/remove-duplicate", data={
+        "raw_text": raw, "title": "Loi test", "span": span,
+    }).text
+    assert "Occurrence removed" in resolved
+    assert "Some article numbers repeat" not in resolved
+    assert "1 article(s) found" in resolved
+
+
+def test_remove_duplicate_rejects_a_span_outside_the_text(client):
+    page = client.post("/import-pdf/review/remove-duplicate", data={
+        "raw_text": "Article 1 - Un texte.", "span": "0:9999",
+    }).text
+    assert "Some article numbers repeat" not in page
+    assert "1 article(s) found" in page  # the out-of-bounds removal was refused, text unchanged
+
+
 def test_create_with_repeated_numbers_keeps_the_review(client):
     raw = "Article 1 - Premier texte de loi assez long.\nArticle 1 - Le même numéro répété ici."
     page = client.post("/import-pdf/create", data={"raw_text": raw, "title": "Loi test", "jurisdiction": "Tunisia",
@@ -102,6 +129,24 @@ def test_scraps_are_dropped_and_split_numbers_mended():
               "Art. 2 - Les dispositions de la présente loi s'appliquent à toute personne."]]
     [law] = read_pdf(make_pdf(pages)).candidates
     assert law.reference == "Loi organique n° 2015-26 du 7 août 2015" and law.article_count == 2
+
+
+def test_promulgation_law_is_split_from_its_annexed_code():
+    """A law "portant promulgation du code X" reproduces the code as an annex: a standalone all-caps title line,
+    then the code's own numbering restarts at "Article premier" — colliding with the promulgation law's own short
+    articles unless they are split into two candidates."""
+    pages = [[HEADER.format(n=1), "Loi n° 92-24 du 9 mars 1992, portant promulgation du", "code des assurances.",
+              "Article premier - Les dispositions annexées sont réunies dans un code.",
+              "Art. 2 - Un délai est accordé aux entreprises.",
+              "La présente loi sera publiée au Journal de la République.",
+              "Tunis, le 9 mars 1992.",
+              "CODE DES ASSURANCES",
+              "Article premier - Le contrat d'assurance est une convention.",
+              "Art. 2 - Le contrat est rédigé en caractères apparents."]]
+    law, code = read_pdf(make_pdf(pages)).candidates
+    assert law.article_count == 2 and code.article_count == 2
+    assert code.title == "Code des assurances"
+    assert "Les dispositions annexées" in law.raw_text and "Le contrat d'assurance" in code.raw_text
 
 
 def test_a_single_real_text_goes_straight_to_review(client):

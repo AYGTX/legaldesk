@@ -47,11 +47,17 @@ import { RequestTypesComponent } from './request-types.component';
         @if (section() === 'users') {
           <div class="tab-content">
             <div class="toolbar">
-              <mat-form-field appearance="outline" class="search-field">
-                <mat-label>{{ 'admin.users.searchLabel' | translate }}</mat-label>
-                <input matInput [formControl]="searchControl" [placeholder]="'admin.users.searchPlaceholder' | translate" />
-                <mat-icon matSuffix>search</mat-icon>
-              </mat-form-field>
+              <div class="search-wrap">
+                <mat-icon class="search-icon">search</mat-icon>
+                <input class="search-input" [formControl]="searchControl"
+                       [placeholder]="'admin.users.searchPlaceholder' | translate"
+                       [attr.aria-label]="'admin.users.searchLabel' | translate" autocomplete="off" />
+                @if (searchControl.value) {
+                  <button class="clear-btn" (click)="searchControl.setValue('')">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                }
+              </div>
               <button mat-flat-button color="primary" (click)="openCreate()">
                 <mat-icon>person_add</mat-icon> {{ 'admin.users.addUser' | translate }}
               </button>

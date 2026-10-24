@@ -20,6 +20,8 @@ export interface PromptOptions {
   /** When true (default), the confirm button stays disabled until the input is non-empty. */
   required?: boolean;
   confirmLabel?: string;
+  /** The dialog only closes through its own buttons, so a stray click outside cannot dismiss or submit it. */
+  disableClose?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -49,13 +51,14 @@ export class ConfirmService {
         label: options.inputLabel,
         type: options.inputType ?? 'text',
         required: options.required ?? true
-      }
+      },
+      disableClose: options.disableClose
     }).pipe(map(result => (typeof result === 'string' ? result : null)));
   }
 
   private open(data: ConfirmDialogData): Observable<boolean | string | undefined> {
     return this.dialog
-      .open(ConfirmDialogComponent, { width: '440px', data, autoFocus: data.input ? 'input, textarea' : 'first-tabbable' })
+      .open(ConfirmDialogComponent, { width: '440px', data, autoFocus: data.input ? 'input, textarea' : 'first-tabbable', disableClose: data.disableClose })
       .afterClosed();
   }
 }

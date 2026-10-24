@@ -67,7 +67,9 @@ class ExampleMatcher:
             return np.vstack([self._cache[k] for k in keys])
 
     def classify(self, clauses: list[tuple[str, str]], rules: list[RuleExamples],
-                 threshold: float | None = None) -> list[Match]:
+                 threshold: float | None = None, within: float | None = None) -> list[Match]:
+        """One match per clause: the closest rule, when clearly ahead of the next. With `within`, every rule above the
+        threshold and no further than `within` below the best one matches, so a clause can carry several risks."""
         threshold = self.threshold if threshold is None else threshold
         rules = [r for r in rules if r.examples]
         if not rules or not clauses:
@@ -95,7 +97,11 @@ class ExampleMatcher:
             scored.sort(key=lambda s: s[0], reverse=True)
             best = scored[0]
             runner_up = scored[1][0] if len(scored) > 1 else -1.0
-            if best[0] >= threshold and best[0] - runner_up >= self.margin:
+            if within is not None:
+                for score, rule, sentence, example in scored:
+                    if score >= threshold and best[0] - score <= within:
+                        matches.append(Match(reference, rule.key, rule.label, round(score, 4), sentence, example))
+            elif best[0] >= threshold and best[0] - runner_up >= self.margin:
                 matches.append(Match(reference, best[1].key, best[1].label, round(best[0], 4), best[2], best[3]))
         return matches
 

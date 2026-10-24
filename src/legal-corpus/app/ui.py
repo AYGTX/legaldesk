@@ -1,3 +1,4 @@
+import logging
 import json
 from datetime import date
 from types import SimpleNamespace
@@ -7,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import auth
@@ -15,12 +17,14 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import amendments, assist, corpus, coverage, definitions, explanations, pdf, playbook, references
+from app.services import amendments, assist, corpus, definitions, explanations, pdf, playbook, references
+from app.services.corpus import RuleError
 from app.services.llm import LlmUnavailable
 from app.services.citations import check_citation
 from app.services.embeddings import Embedder
 from app.services.search import index_status, rebuild_index, search
-from app.services.splitter import split_articles
+from app.services.splitter import occurrences as split_occurrences
+from app.services.splitter import remove_occurrence, split_articles
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
@@ -50,7 +54,7 @@ def _render(request: Request, template: str, **context) -> HTMLResponse:
             "lang": lang,
             "flash": flash,
             "flash_kind": kind,
-            "flash_args": {"count": request.query_params.get("count", "")},
+            "flash_args": {"count": request.query_params.get("count", ""), "number": request.query_params.get("number", "")},
             "jurisdictions": list(Jurisdiction),
             "categories": list(Category),
             "statuses": list(TextStatus),
@@ -131,7 +135,7 @@ def logout():
 def dashboard(request: Request, db: Session = Depends(get_db)):
     texts = corpus.list_texts(db, None, None, None, None, None)
     counts = corpus.article_counts(db)
-    book = playbook.describe(db, _playbook_path(request))
+    book = playbook.describe(db)
     rules = book["rules"]
     stats = {
         "texts": len(texts),
@@ -206,7 +210,27 @@ def pdf_upload(request: Request, file: UploadFile = File(...)):
         # Only one real text: go straight to its review.
         c = with_articles[0]
         return _pdf_review(request, c.raw_text, c.title, c.reference, file.filename)
-    return _render(request, "pdf_choose.html", law=law, filename=file.filename)
+    return _render(request, "pdf_choose.html", law=law, filename=file.filename, roles=pdf.guess_roles(law.candidates))
+
+
+@router.post("/import-pdf/roles", response_class=HTMLResponse)
+async def pdf_roles(request: Request):
+    """A codified edition holds several texts: the code, the act that promulgated it, laws already written into it.
+    One is imported; the promulgation act becomes its reference and the others are named in its summary."""
+    form = await request.form()
+    count = int(form.get("count", 0))
+    candidates = [pdf.Candidate(form.get(f"title_{i}", ""), form.get(f"reference_{i}", ""), form.get(f"raw_text_{i}", ""),
+                                int(form.get(f"articles_{i}", 0))) for i in range(count)]
+    roles = [form.get(f"role_{i}", "ignore") for i in range(count)]
+    filename = form.get("filename", "")
+    if roles.count("main") != 1 or any(r not in pdf.ROLES for r in roles):
+        law = pdf.PdfLaw(pages=0, candidates=candidates)
+        return _render(request, "pdf_choose.html", law=law, filename=filename, roles=roles, error="pdf_one_main")
+    main, reference, summary = pdf.combine(candidates, roles)
+    draft = SimpleNamespace(title=main.title, reference=reference, source_url=None, jurisdiction=Jurisdiction.Tunisia,
+                            category=Category.Other, language=pdf.guess_language(main.raw_text), effective_date=None,
+                            keywords="", summary=summary)
+    return _pdf_review(request, main.raw_text, main.title, reference, filename, fields=draft)
 
 
 def _pdf_review(request: Request, raw_text: str, title: str, reference: str, filename: str | None,
@@ -219,8 +243,12 @@ def _pdf_review(request: Request, raw_text: str, title: str, reference: str, fil
     )
     numbers = [a.number for a in split.articles]
     duplicates = sorted({n for n in numbers if numbers.count(n) > 1})
+    # For each repeated number, every occurrence with its exact span, so a person can remove the wrong one in place
+    # instead of hand-editing the full pasted text.
+    dup_occurrences = {n: [o for o in split_occurrences(raw_text) if o.number == n] for n in duplicates}
     return _render(request, "pdf_review.html", text=draft, raw_text=raw_text, split=split, filename=filename,
-                   error=error, duplicates=duplicates, notice=notice, ai=request.app.state.llm.name)
+                   error=error, duplicates=duplicates, dup_occurrences=dup_occurrences, notice=notice,
+                   ai=request.app.state.llm.name)
 
 
 @router.post("/import-pdf/suggest", response_class=HTMLResponse)
@@ -235,7 +263,8 @@ def pdf_suggest(
     """Fills the empty fields with the model's suggestions; what the person already typed is kept."""
     try:
         meta = assist.suggest_metadata(request.app.state.llm, raw_text)
-    except LlmUnavailable:
+    except LlmUnavailable as error:
+        logging.getLogger("harvey").warning("Metadata suggestion failed: %s", error)
         return _pdf_review(request, raw_text, title, reference, filename, "amend_unavailable")
     draft = SimpleNamespace(
         title=title.strip() or meta.title, reference=reference.strip() or meta.reference,
@@ -254,6 +283,25 @@ def pdf_suggest(
 def pdf_review(request: Request, raw_text: str = Form(""), title: str = Form(""), reference: str = Form(""),
                filename: str = Form("")):
     return _pdf_review(request, raw_text, title, reference, filename)
+
+
+@router.post("/import-pdf/review/remove-duplicate", response_class=HTMLResponse)
+def pdf_remove_duplicate(
+    request: Request, raw_text: str = Form(""), title: str = Form(""), reference: str = Form(""),
+    filename: str = Form(""), span: str = Form(...),
+):
+    """Drops one occurrence of a duplicate article number, by the exact span its preview carried ("start:end"), so a
+    stray cross-reference or a quoted footnote mistaken for a heading can be removed without hand-editing the full
+    text. The span is only ever one this page itself printed, from the text currently in the form — never trusted
+    beyond the bounds of that same text."""
+    try:
+        start, end = (int(part) for part in span.split(":", 1))
+    except ValueError:
+        return _pdf_review(request, raw_text, title, reference, filename, "err_invalid")
+    if not (0 <= start < end <= len(raw_text)):
+        return _pdf_review(request, raw_text, title, reference, filename, "err_invalid")
+    cleaned = remove_occurrence(raw_text, start, end)
+    return _pdf_review(request, cleaned, title, reference, filename, notice="pdf_duplicate_removed")
 
 
 @router.post("/import-pdf/create", response_class=HTMLResponse)
@@ -282,8 +330,49 @@ def pdf_create(
     return _redirect(f"/texts/{text.id}", "pdf_imported", count=len(created))
 
 
+ARTICLES_PER_PAGE = 50
+
+
+def _article_page(db: Session, article) -> int:
+    """The page of its text an article is shown on."""
+    from app.models import Article
+
+    before = db.scalar(select(func.count()).select_from(Article)
+                       .where(Article.legal_text_id == article.legal_text_id, Article.order < article.order))
+    return before // ARTICLES_PER_PAGE + 1
+
+
+def article_url(db: Session, article, query: str = "") -> str:
+    extra = f"&{query}" if query else ""
+    return f"/texts/{article.legal_text_id}?page={_article_page(db, article)}{extra}#art-{article.id}"
+
+
+@router.get("/articles/{article_id}/go")
+def go_to_article(article_id: str, request: Request, db: Session = Depends(get_db)):
+    """Opens a text at the page that shows this article (cross-references, definitions, back after an edit). Other
+    query parameters, such as a flash message, are passed on."""
+    return RedirectResponse(article_url(db, corpus.get_article(db, article_id), request.url.query), status_code=303)
+
+
+@router.get("/texts/{text_id}/goto")
+def go_to_number(text_id: str, number: str = "", db: Session = Depends(get_db)):
+    """« Aller à l'article 278 »: opens the page that shows it."""
+    from app.models import Article
+    from app.services.splitter import normalize_number
+
+    article = db.scalar(select(Article).where(Article.legal_text_id == text_id,
+                                              Article.number == normalize_number(number.strip())))
+    if article is None:
+        return _redirect(f"/texts/{text_id}", "goto_missing", "error", number=number.strip()[:20])
+    return RedirectResponse(article_url(db, article), status_code=303)
+
+
 @router.get("/texts/{text_id}", response_class=HTMLResponse)
-def text_page(text_id: str, request: Request, as_of: str = "", db: Session = Depends(get_db)):
+def text_page(text_id: str, request: Request, as_of: str = "", page: int = 1, db: Session = Depends(get_db)):
+    return _text_page(text_id, request, db, as_of, page=page)
+
+
+def _text_page(text_id: str, request: Request, db: Session, as_of: str = "", page: int = 1, **extra) -> HTMLResponse:
     try:
         day = date.fromisoformat(as_of) if as_of else None
     except ValueError:
@@ -291,14 +380,34 @@ def text_page(text_id: str, request: Request, as_of: str = "", db: Session = Dep
     text = corpus.get_text(db, text_id)
     lang = pick_language(request.cookies.get("lang"), request.headers.get("accept-language"))
     ref_index = references.Index.build(corpus.list_texts(db))
+    from app.models import Article
+
+    total = db.scalar(select(func.count()).select_from(Article).where(Article.legal_text_id == text.id))
+    pages = max(1, -(-total // ARTICLES_PER_PAGE))
+    page = min(max(page, 1), pages)
+    # Only this page's articles are loaded and rendered: a code of 1,500 articles stays fast.
+    page_articles = list(db.scalars(select(Article).where(Article.legal_text_id == text.id).order_by(Article.order)
+                                    .offset((page - 1) * ARTICLES_PER_PAGE).limit(ARTICLES_PER_PAGE)))
     shown = {}
-    for article in text.articles:
+    for article in page_articles:
         explanation = next((e for e in article.explanations if e.language == lang), None)
         if explanation is not None:
             shown[article.id] = (explanation, explanations.status(explanation, article))
+    grid = playbook.load(db)["rules"]
+    rules = [{"key": r["key"], "label": r["label"]} for r in grid]
+    # Which risks each article of this text backs, so the page shows the links made in the risk grid.
+    from app.services.splitter import normalize_number
+
+    linked: dict[str, list[dict]] = {}
+    for r in grid:
+        for ref in r["articles"]:
+            if ref["reference"] == text.reference:
+                linked.setdefault(normalize_number(ref["number"]), []).append(
+                    {"key": r["key"], "label": r["label"], "confirmed": bool(r.get("confirmed_by"))})
     return _render(request, "text_detail.html", text=text, as_of=day, wording_on=wording_on,
                    ai=request.app.state.llm.name, explained=shown, linkify=references.linkify, ref_index=ref_index,
-                   defined=definitions.of_text(list(text.articles)))
+                   defined=definitions.of_text(list(text.articles)), rules=rules, linked=linked, articles=page_articles,
+                   page=page, pages=pages, total=total, first=(page - 1) * ARTICLES_PER_PAGE + 1, **extra)
 
 
 @router.post("/texts/{text_id}")
@@ -415,7 +524,7 @@ def amendment_apply(text_id: str, request: Request, changes_json: str = Form("[]
 
 
 def _back_to_article(article) -> str:
-    return f"/texts/{article.legal_text_id}"
+    return f"/articles/{article.id}/go"
 
 
 @router.post("/articles/{article_id}/explanation/generate")
@@ -454,6 +563,36 @@ def explanation_withdraw(article_id: str, lang: str = Form("fr"), db: Session = 
 def article_search(article_id: str, excluded: str = Form(""), db: Session = Depends(get_db)):
     article = corpus.set_excluded(db, article_id, excluded == "1")
     return _redirect(f"/texts/{article.legal_text_id}", "excluded_ok" if article.excluded_from_search else "included_ok")
+
+
+@router.post("/articles/{article_id}/link-to-rule")
+def article_link_to_rule(article_id: str, request: Request, key: str = Form(""), why: str = Form(""),
+                         db: Session = Depends(get_db)):
+    article = corpus.get_article(db, article_id)
+    if not key:
+        return _redirect(_back_to_article(article), "err_invalid", "error")
+    playbook.add_article(db, key, article.legal_text_id, article.number, why)
+    return _redirect(_rule_url(key), "pb_article_linked")
+
+
+@router.post("/articles/{article_id}/suggest-rules", response_class=HTMLResponse)
+def article_suggest_rules(article_id: str, request: Request, db: Session = Depends(get_db)):
+    article = corpus.get_article(db, article_id)
+    text = corpus.get_text(db, article.legal_text_id)
+    rules_data = playbook.load(db)["rules"]
+    already = {
+        r["key"] for r in rules_data
+        if any(a["reference"] == text.reference and a["number"] == article.number for a in r["articles"])
+    }
+    candidates = [{"key": r["key"], "label": r["label"], "description": r.get("description") or ""}
+                  for r in rules_data if r["key"] not in already]
+    try:
+        suggestions = assist.suggest_rules(request.app.state.llm, text.reference or text.title, article.number,
+                                           article.text, candidates)
+    except LlmUnavailable:
+        return _text_page(article.legal_text_id, request, db, page=_article_page(db, article), ai_error=True)
+    return _text_page(article.legal_text_id, request, db, page=_article_page(db, article),
+                      suggested_rules=suggestions, suggested_article_id=article.id)
 
 
 @router.post("/articles/{article_id}/versions/{version_id}/restore")
@@ -512,9 +651,6 @@ def rebuild(db: Session = Depends(get_db), embedder: Embedder = Depends(get_embe
 
 # ------------------------------------------------------------------ playbook editor
 
-def _playbook_path(request: Request):
-    return request.app.state.settings.playbook_path
-
 
 def _rule_url(key: str) -> str:
     return f"/playbook/rules/{quote(key, safe='')}"
@@ -522,7 +658,7 @@ def _rule_url(key: str) -> str:
 
 @router.get("/playbook", response_class=HTMLResponse)
 def playbook_page(request: Request, db: Session = Depends(get_db)):
-    described = playbook.describe(db, _playbook_path(request))
+    described = playbook.describe(db)
     used = {r["key"] for r in described["rules"]}
     rules = described["rules"]
     stats = {
@@ -531,20 +667,17 @@ def playbook_page(request: Request, db: Session = Depends(get_db)):
         "articles": len({(a["reference"], a["number"]) for r in rules for a in r["articles"]}),
         "laws": len({playbook.law_name(a["short"]) for r in rules for a in r["articles"]}),
         "phrases": sum(len(r["phrases"]) for r in rules),
+        "checks": sum(1 for r in rules for c in r["builtin_checks"] if c["enabled"]),
     }
     return _render(request, "playbook.html", pb=described, detected=playbook.DETECTED_KEYS,
                    free_keys=[k for k in playbook.DETECTED_KEYS if k not in used],
                    graph=playbook.link_map(rules), stats=stats)
 
 
-@router.get("/coverage", response_class=HTMLResponse)
-def coverage_page(request: Request, db: Session = Depends(get_db)):
-    return _render(request, "coverage.html", cov=coverage.report(playbook.describe(db, _playbook_path(request))["rules"]))
-
-
 @router.post("/playbook/rules")
-def create_rule(request: Request, key: str = Form(""), label: str = Form("")):
-    playbook.add_rule(key, label, _playbook_path(request))
+def create_rule(request: Request, key: str = Form(""), label: str = Form(""), description: str = Form(""),
+                db: Session = Depends(get_db)):
+    playbook.add_rule(db, key, label, description)
     return _redirect(_rule_url(key.strip().lower().replace(" ", "_")), "saved")
 
 
@@ -554,24 +687,24 @@ def rule_page(key: str, request: Request, db: Session = Depends(get_db)):
 
 
 def _rule_page(key: str, request: Request, db: Session, **extra):
-    described = playbook.describe(db, _playbook_path(request))
+    described = playbook.describe(db)
     rule = next((r for r in described["rules"] if r["key"] == key), None)
     if rule is None:
         return _redirect("/playbook")
     texts = [t for t in corpus.list_texts(db) if t.reference and t.is_verified]
-    mappings = [f for f, k in described["regulations"].items() if k == key]
-    return _render(request, "playbook_rule.html", rule=rule, texts=texts, mappings=mappings,
+    return _render(request, "playbook_rule.html", rule=rule, texts=texts,
                    detected=playbook.DETECTED_KEYS, ai=request.app.state.llm.name, **extra)
 
 
 def _risk_description(rule: dict) -> str:
     detected = playbook.DETECTED_KEYS.get(rule["key"])
-    return f"{rule['label']} ({detected[1]})" if detected else rule["label"]
+    name = f"{rule['label']} ({detected[1]})" if detected and detected[1] != rule["label"] else rule["label"]
+    return f"{name} — {rule['description']}" if rule.get("description") else name
 
 
 @router.post("/playbook/rules/{key}/suggest-articles", response_class=HTMLResponse)
 def rule_suggest_articles(key: str, request: Request, text_id: str = Form(""), db: Session = Depends(get_db)):
-    rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)
+    rule = next((r for r in playbook.describe(db)["rules"] if r["key"] == key), None)
     if rule is None:
         return _redirect("/playbook")
     text = corpus.get_text(db, text_id)
@@ -584,21 +717,20 @@ def rule_suggest_articles(key: str, request: Request, text_id: str = Form(""), d
 
 
 @router.post("/playbook/rules/{key}/examples/{kind}")
-def rule_add_example(key: str, kind: str, request: Request, text: str = Form(""), source: str = Form("lawyer")):
-    playbook.add_example(key, kind, text, source if source in ("lawyer", "model", "missed") else "lawyer",
-                         _playbook_path(request))
+def rule_add_example(key: str, kind: str, request: Request, text: str = Form(""), source: str = Form("lawyer"), db: Session = Depends(get_db)):
+    playbook.add_example(db, key, kind, text, source if source in ("lawyer", "model", "missed") else "lawyer")
     return _redirect(_rule_url(key), "saved")
 
 
 @router.post("/playbook/rules/{key}/examples/{kind}/{index}/delete")
-def rule_remove_example(key: str, kind: str, index: int, request: Request):
-    playbook.remove_example(key, kind, index, _playbook_path(request))
+def rule_remove_example(key: str, kind: str, index: int, request: Request, db: Session = Depends(get_db)):
+    playbook.remove_example(db, key, kind, index)
     return _redirect(_rule_url(key), "deleted")
 
 
 @router.post("/playbook/rules/{key}/draft-examples", response_class=HTMLResponse)
 def rule_draft_examples(key: str, request: Request, db: Session = Depends(get_db)):
-    rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)
+    rule = next((r for r in playbook.describe(db)["rules"] if r["key"] == key), None)
     if rule is None:
         return _redirect("/playbook")
     known = [e["text"] for e in rule["examples"] + rule["counter_examples"]]
@@ -609,29 +741,70 @@ def rule_draft_examples(key: str, request: Request, db: Session = Depends(get_db
     return _rule_page(key, request, db, drafted=drafts)
 
 
+@router.post("/playbook/rules/{key}/phrases-accept", response_class=HTMLResponse)
+async def rule_accept_phrase(key: str, request: Request, db: Session = Depends(get_db)):
+    """Adds one suggested phrase and shows the page again with the other suggestions still listed."""
+    form = await request.form()
+    phrase = form.get("phrase", "")
+    rest = [p for p in form.getlist("suggested") if p != phrase]
+    try:
+        playbook.add_phrase(db, key, phrase)
+        flash = {"flash": "saved"}
+    except RuleError as error:
+        flash = {"flash": f"err_{error.code}" if is_known(f"err_{error.code}") else "err_invalid", "flash_kind": "error"}
+    return _rule_page(key, request, db, suggested_phrases=rest, **flash)
+
+
+@router.post("/playbook/rules/{key}/examples-accept", response_class=HTMLResponse)
+async def rule_accept_example(key: str, request: Request, db: Session = Depends(get_db)):
+    """Adds one drafted clause and shows the page again with the other suggestions still listed."""
+    form = await request.form()
+    kind, text = form.get("kind", ""), form.get("text", "")
+    added = playbook.add_examples(db, key, [(kind, text)])
+    rest = SimpleNamespace(examples=[t for t in form.getlist("examples") if t != text],
+                           counter_examples=[t for t in form.getlist("counter_examples") if t != text])
+    flash = {"flash": "examples_added", "flash_args": {"count": added, "number": ""}} if added else {}
+    return _rule_page(key, request, db, drafted=rest, **flash)
+
+
+@router.post("/playbook/rules/{key}/checks/{check_id}")
+def rule_set_check(key: str, check_id: str, enabled: str = Form(""), severity: str = Form(""), db: Session = Depends(get_db)):
+    """Switches one built-in check of a risk on or off, and sets the severity its findings get."""
+    playbook.set_check(db, key, check_id, enabled == "1", severity)
+    return _redirect(_rule_url(key), "saved")
+
+
+@router.post("/playbook/rules/{key}/examples-bulk")
+async def rule_add_examples_bulk(key: str, request: Request, db: Session = Depends(get_db)):
+    """« Tout ajouter »: every drafted example and counter-example at once."""
+    form = await request.form()
+    items = [("examples", t) for t in form.getlist("examples")] + [("counter_examples", t) for t in form.getlist("counter_examples")]
+    added = playbook.add_examples(db, key, items)
+    return _redirect(_rule_url(key), "examples_added", count=added)
+
+
 @router.post("/playbook/rules/{key}/model-clause")
 def rule_model_clause(key: str, request: Request, fr: str = Form(""), en: str = Form(""), source: str = Form("lawyer"),
-                      approve_as: str = Form("")):
-    playbook.set_model_clause(key, fr, en, source if source in ("lawyer", "model") else "lawyer", approve_as,
-                              _playbook_path(request))
+                      approve_as: str = Form(""), db: Session = Depends(get_db)):
+    playbook.set_model_clause(db, key, fr, en, source if source in ("lawyer", "model") else "lawyer", approve_as)
     return _redirect(_rule_url(key), "model_clause_approved" if approve_as.strip() else "saved")
 
 
 @router.post("/playbook/rules/{key}/model-clause/approve")
-def rule_model_clause_approve(key: str, request: Request, approved_by: str = Form("")):
-    playbook.approve_model_clause(key, approved_by, _playbook_path(request))
+def rule_model_clause_approve(key: str, request: Request, approved_by: str = Form(""), db: Session = Depends(get_db)):
+    playbook.approve_model_clause(db, key, approved_by)
     return _redirect(_rule_url(key), "model_clause_approved")
 
 
 @router.post("/playbook/rules/{key}/model-clause/withdraw")
-def rule_model_clause_withdraw(key: str, request: Request):
-    playbook.withdraw_model_clause(key, _playbook_path(request))
+def rule_model_clause_withdraw(key: str, request: Request, db: Session = Depends(get_db)):
+    playbook.withdraw_model_clause(db, key)
     return _redirect(_rule_url(key), "unverified_ok")
 
 
 @router.post("/playbook/rules/{key}/model-clause/draft", response_class=HTMLResponse)
 def rule_model_clause_draft(key: str, request: Request, db: Session = Depends(get_db)):
-    rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)
+    rule = next((r for r in playbook.describe(db)["rules"] if r["key"] == key), None)
     if rule is None:
         return _redirect("/playbook")
     try:
@@ -644,7 +817,7 @@ def rule_model_clause_draft(key: str, request: Request, db: Session = Depends(ge
 
 @router.post("/playbook/rules/{key}/suggest-phrases", response_class=HTMLResponse)
 def rule_suggest_phrases(key: str, request: Request, db: Session = Depends(get_db)):
-    rule = next((r for r in playbook.describe(db, _playbook_path(request))["rules"] if r["key"] == key), None)
+    rule = next((r for r in playbook.describe(db)["rules"] if r["key"] == key), None)
     if rule is None:
         return _redirect("/playbook")
     try:
@@ -655,14 +828,15 @@ def rule_suggest_phrases(key: str, request: Request, db: Session = Depends(get_d
 
 
 @router.post("/playbook/rules/{key}/label")
-def rule_label(key: str, request: Request, label: str = Form("")):
-    playbook.update_label(key, label, _playbook_path(request))
+def rule_label(key: str, request: Request, label: str = Form(""), description: str = Form(""),
+               db: Session = Depends(get_db)):
+    playbook.update_label(db, key, label, description)
     return _redirect(_rule_url(key), "saved")
 
 
 @router.post("/playbook/rules/{key}/delete")
-def rule_delete(key: str, request: Request):
-    playbook.delete_rule(key, _playbook_path(request))
+def rule_delete(key: str, request: Request, db: Session = Depends(get_db)):
+    playbook.delete_rule(db, key)
     return _redirect("/playbook", "deleted")
 
 
@@ -671,37 +845,37 @@ def rule_add_article(key: str, request: Request, text_id: str = Form(""), number
                      why: str = Form(""), db: Session = Depends(get_db)):
     if not text_id or not number.strip():
         return _redirect(_rule_url(key), "err_invalid", "error")
-    playbook.add_article(db, key, text_id, number, why, _playbook_path(request))
+    playbook.add_article(db, key, text_id, number, why)
     return _redirect(_rule_url(key), "saved")
 
 
 @router.post("/playbook/rules/{key}/articles/{index}")
-def rule_update_article(key: str, index: int, request: Request, why: str = Form("")):
-    playbook.update_article(key, index, why, _playbook_path(request))
+def rule_update_article(key: str, index: int, request: Request, why: str = Form(""), db: Session = Depends(get_db)):
+    playbook.update_article(db, key, index, why)
     return _redirect(_rule_url(key), "saved")
 
 
 @router.post("/playbook/rules/{key}/phrases")
-def rule_add_phrase(key: str, request: Request, phrase: str = Form("")):
-    playbook.add_phrase(key, phrase, _playbook_path(request))
+def rule_add_phrase(key: str, request: Request, phrase: str = Form(""), db: Session = Depends(get_db)):
+    playbook.add_phrase(db, key, phrase)
     return _redirect(_rule_url(key), "saved")
 
 
 @router.post("/playbook/rules/{key}/phrases/{index}/delete")
-def rule_remove_phrase(key: str, index: int, request: Request):
-    playbook.remove_phrase(key, index, _playbook_path(request))
+def rule_remove_phrase(key: str, index: int, request: Request, db: Session = Depends(get_db)):
+    playbook.remove_phrase(db, key, index)
     return _redirect(_rule_url(key), "deleted")
 
 
 @router.post("/playbook/rules/{key}/articles/{index}/delete")
-def rule_remove_article(key: str, index: int, request: Request):
-    playbook.remove_article(key, index, _playbook_path(request))
+def rule_remove_article(key: str, index: int, request: Request, db: Session = Depends(get_db)):
+    playbook.remove_article(db, key, index)
     return _redirect(_rule_url(key), "deleted")
 
 
 @router.post("/playbook/rules/{key}/articles/{index}/move")
-def rule_move_article(key: str, index: int, request: Request, offset: int = Form(0)):
-    playbook.move_article(key, index, offset, _playbook_path(request))
+def rule_move_article(key: str, index: int, request: Request, offset: int = Form(0), db: Session = Depends(get_db)):
+    playbook.move_article(db, key, index, offset)
     return _redirect(_rule_url(key), "saved")
 
 
@@ -709,23 +883,11 @@ def rule_move_article(key: str, index: int, request: Request, offset: int = Form
 def rule_confirm(key: str, request: Request, confirmed_by: str = Form(""), db: Session = Depends(get_db)):
     if not confirmed_by.strip():
         return _redirect(_rule_url(key), "err_invalid", "error")
-    playbook.confirm(db, key, confirmed_by, _playbook_path(request))
+    playbook.confirm(db, key, confirmed_by)
     return _redirect(_rule_url(key), "rule_confirmed")
 
 
 @router.post("/playbook/rules/{key}/unconfirm")
-def rule_unconfirm(key: str, request: Request):
-    playbook.unconfirm(key, _playbook_path(request))
+def rule_unconfirm(key: str, request: Request, db: Session = Depends(get_db)):
+    playbook.unconfirm(db, key)
     return _redirect(_rule_url(key), "unverified_ok")
-
-
-@router.post("/playbook/mappings")
-def mapping_add(request: Request, fragment: str = Form(""), key: str = Form(""), back: str = Form("/playbook")):
-    playbook.set_mapping(fragment, key, _playbook_path(request))
-    return _redirect(back if back.startswith("/playbook") else "/playbook", "saved")
-
-
-@router.post("/playbook/mappings/delete")
-def mapping_delete(request: Request, fragment: str = Form(""), back: str = Form("/playbook")):
-    playbook.delete_mapping(fragment, _playbook_path(request))
-    return _redirect(back if back.startswith("/playbook") else "/playbook", "deleted")

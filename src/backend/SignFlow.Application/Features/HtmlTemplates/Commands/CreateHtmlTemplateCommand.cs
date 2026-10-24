@@ -32,7 +32,9 @@ public record CreateHtmlTemplateCommand(
     /// Request type this template carries. Requests created from it inherit this type (and its SLA) at
     /// creation time, as a snapshot — changing the type's SLA later never affects in-flight requests.
     /// </summary>
-    Guid? RequestTypeId = null) : ICommand<Guid>;
+    Guid? RequestTypeId = null,
+    /// <summary>The reusable approval workflow this template follows, if any.</summary>
+    Guid? WorkflowPresetId = null) : ICommand<Guid>;
 
 public class CreateHtmlTemplateCommandValidator : AbstractValidator<CreateHtmlTemplateCommand>
 {
@@ -78,6 +80,10 @@ public class CreateHtmlTemplateCommandHandler(
                 throw new Common.Exceptions.ValidationException("The selected request type is invalid or inactive.");
         }
 
+        if (command.WorkflowPresetId.HasValue
+            && !await db.WorkflowPresets.AnyAsync(p => p.Id == command.WorkflowPresetId.Value && p.IsActive, cancellationToken))
+            throw new Common.Exceptions.ValidationException("The selected workflow is invalid or inactive.");
+
         var template = HtmlTemplate.Create(
             command.Name,
             command.HtmlContent,
@@ -87,6 +93,7 @@ public class CreateHtmlTemplateCommandHandler(
             command.WorkflowType,
             command.HideRecipientIdentities,
             command.RequestTypeId);
+        template.SetWorkflowPreset(command.WorkflowPresetId);
 
         db.HtmlTemplates.Add(template);
         await db.SaveChangesAsync(cancellationToken);

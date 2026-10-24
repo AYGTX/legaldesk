@@ -26,7 +26,6 @@ public class LegalPlaybookService(ILegalCorpusClient corpus, ILogger<LegalPlaybo
 
     private async Task<LegalPlaybook?> LoadAsync(CancellationToken ct)
     {
-        if (!corpus.IsEnabled) return null;
         if (_playbook is not null) return _playbook;
         try
         {
@@ -41,30 +40,10 @@ public class LegalPlaybookService(ILegalCorpusClient corpus, ILogger<LegalPlaybo
 
     public async Task<ContractRiskAnalysis> AttachToRiskAsync(ContractRiskAnalysis risk, string? contractText, CancellationToken ct = default)
     {
+        // Harvey's review already applied the risk grid's wording and examples; what remains is the law and the
+        // corrected clause for each finding.
         var playbook = await LoadAsync(ct);
-        if (playbook is null) return risk;
-        if (playbook.Wording is { Count: > 0 })
-            risk = ContractRuleEngine.ApplyPlaybookWording(risk, contractText, playbook.Wording);
-        risk = await AddPossibleRisksAsync(risk, contractText, ct);
-        return AttachToRisk(risk, playbook, ContractLanguage.Detect(contractText));
-    }
-
-    /// <summary>Meaning-based leads from the corpus service; a failure there costs the leads, never the review.</summary>
-    private async Task<ContractRiskAnalysis> AddPossibleRisksAsync(ContractRiskAnalysis risk, string? contractText, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(contractText)) return risk;
-        try
-        {
-            var clauses = ContractRuleEngine.ClauseTexts(contractText);
-            if (clauses.Count == 0) return risk;
-            var result = await corpus.ClassifyAsync(clauses, ct);
-            return result.Enabled ? ContractRuleEngine.ApplyPossibleMatches(risk, contractText, result.Matches) : risk;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            logger.LogWarning(ex, "Meaning-based clause matching unavailable — review continues without possible risks");
-            return risk;
-        }
+        return playbook is null ? risk : AttachToRisk(risk, playbook, ContractLanguage.Detect(contractText));
     }
 
     public async Task<ComplianceAnalysis> AttachToComplianceAsync(

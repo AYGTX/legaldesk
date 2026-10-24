@@ -46,7 +46,7 @@ public class TemplateFieldGapsTests
     }
 
     private static CreateRequestFromHtmlTemplateCommandHandler Handler(ScenarioFixture f) => new(
-        f.Db, f.GetHandler<IWorkflowEngine>(), f.GetHandler<ICurrentUserService>(),
+        f.Db, f.GetHandler<IWorkflowEngine>(), f.GetHandler<IWorkflowPresetResolver>(), f.GetHandler<ICurrentUserService>(),
         f.GetHandler<IAuditService>(), NullLogger<CreateRequestFromHtmlTemplateCommandHandler>.Instance);
 
     private static CreateRequestFromHtmlTemplateCommand Request(Guid templateId, Dictionary<string, string> values) =>

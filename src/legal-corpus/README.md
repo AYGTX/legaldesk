@@ -16,6 +16,8 @@ UI: http://127.0.0.1:8100 · API docs: http://127.0.0.1:8100/docs
 Semantic (multilingual FR/AR/EN) search: `pip install -r requirements-semantic.txt`. Without it the service uses a
 built-in lexical embedder. Rebuild the index after switching (`POST /api/v1/index/rebuild?force=true`).
 
+Contract field detection (`POST /api/v1/forms/detect`, used by the template designer's "Detect fields" button): fields already fillable in a PDF are always found; `pip install -r requirements-forms.txt` (CommonForms) adds a vision model (FFDNet-L) for static PDFs. Check the licences in that file before commercial use. A language model only tidies labels when `CORPUS_AI_PROVIDER=local`: contracts are never sent to Groq.
+
 ## Configuration
 
 | Variable | Default |

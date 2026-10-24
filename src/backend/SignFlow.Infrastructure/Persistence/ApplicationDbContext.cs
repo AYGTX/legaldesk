@@ -35,6 +35,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<RegulatoryText> RegulatoryTexts => Set<RegulatoryText>();
     public DbSet<RegulatoryArticle> RegulatoryArticles => Set<RegulatoryArticle>();
     public DbSet<DocumentReadinessItem> DocumentReadinessItems => Set<DocumentReadinessItem>();
+    public DbSet<WorkflowPreset> WorkflowPresets => Set<WorkflowPreset>();
+    public DbSet<WorkflowPresetStep> WorkflowPresetSteps => Set<WorkflowPresetStep>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

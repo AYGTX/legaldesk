@@ -24,6 +24,9 @@ public class RejectDocumentCommandHandler(
 {
     public async Task HandleAsync(RejectDocumentCommand command, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(command.Reason))
+            throw new Common.Exceptions.ValidationException("A reason is required to decline a document.");
+
         var recipient = await db.Recipients
             .Include(r => r.Document)
             .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)

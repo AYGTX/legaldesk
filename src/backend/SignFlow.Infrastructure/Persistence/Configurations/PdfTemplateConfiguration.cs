@@ -31,6 +31,11 @@ public class PdfTemplateConfiguration : IEntityTypeConfiguration<PdfTemplate>
             .HasForeignKey(t => t.RequestTypeId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(t => t.WorkflowPreset)
+            .WithMany()
+            .HasForeignKey(t => t.WorkflowPresetId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(t => t.Fields)
             .WithOne(f => f.PdfTemplate)
             .HasForeignKey(f => f.PdfTemplateId)

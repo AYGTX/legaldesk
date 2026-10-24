@@ -19,6 +19,6 @@ public static class ReviewGateRules
     public static void Require(Recipient recipient)
     {
         if (Applies(recipient) && recipient.ReviewAcknowledgedAt is null)
-            throw new ConflictException("Read the document and its AI review, and confirm it, before you act on this request.");
+            throw new ConflictException("Read the document and its Harvey review, and confirm it, before you act on this request.");
     }
 }

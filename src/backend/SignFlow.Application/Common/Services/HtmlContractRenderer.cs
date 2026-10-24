@@ -81,6 +81,26 @@ public static class HtmlContractRenderer
     }
 
     /// <summary>
+    /// The template as one reader of every possible contract would see it, for review while the template is still being
+    /// written: no answers exist yet, so every conditional branch is kept (a clause hidden behind a condition is still a
+    /// clause to review) and each placeholder shows as «its label», which reads as a gap to fill instead of vanishing.
+    /// Signature placeholders leave no trace, as in <see cref="Render"/>. Never used to build a real contract.
+    /// </summary>
+    public static string RenderForReview(string? html, IReadOnlyDictionary<string, string> labels)
+    {
+        if (string.IsNullOrEmpty(html))
+            return string.Empty;
+
+        var result = ConditionalBlock.Replace(html, m =>
+            m.Groups[3].Success ? $"{m.Groups[2].Value}\n{m.Groups[3].Value}" : m.Groups[2].Value);
+
+        result = Placeholder.Replace(result, m =>
+            labels.TryGetValue(m.Groups[1].Value, out var label) ? $"«{WebUtility.HtmlEncode(label)}»" : string.Empty);
+
+        return StrayConditionalMarker.Replace(result, string.Empty);
+    }
+
+    /// <summary>
     /// Keeps or drops each conditional block. A malformed or unsatisfiable condition keeps the
     /// <c>{{#else}}</c> branch (or drops the block when there is none) — see <see cref="Evaluate"/>
     /// for why failing to the negative branch is the deliberate choice.
@@ -108,7 +128,7 @@ public static class HtmlContractRenderer
     /// will not parse — returns <c>false</c> rather than guessing. The verdict stays reproducible,
     /// and a clause is never included on the strength of a value nobody understood.
     /// </summary>
-    private static bool Evaluate(
+    internal static bool Evaluate(
         string condition,
         IReadOnlyDictionary<string, string> values,
         IReadOnlyDictionary<string, HtmlTemplateFieldType> types)

@@ -11,6 +11,8 @@ export interface SigningSession {
   message?: string;
   recipient: RecipientSession;
   fields: AssignedField[];
+  /** Values other participants already filled in, shown read-only over the PDF. */
+  filledFields?: FilledField[];
   isCompleted: boolean;
   isRejected: boolean;
   isExpired: boolean;
@@ -96,6 +98,22 @@ export interface AssignedField {
   groupName?: string;
   /** Client-side only: the value/image rendered after signing in this session. */
   signedValue?: string;
+}
+
+export interface FilledField {
+  id: string;
+  fieldType: string;
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
+  value?: string;
+  signerName?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  fontColor?: string;
 }
 
 export interface SignFieldRequest {

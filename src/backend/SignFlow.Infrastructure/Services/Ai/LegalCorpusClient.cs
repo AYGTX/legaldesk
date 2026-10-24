@@ -17,8 +17,6 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public bool IsEnabled => opts.Value.Enabled;
-
     public async Task<IReadOnlyList<LegalArticleContext>> SearchAsync(string query, int topK, CancellationToken ct = default)
     {
         // Only verified, published law: include_unverified stays false on purpose.
@@ -29,7 +27,7 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
     public async Task<LegalPlaybook> GetPlaybookAsync(CancellationToken ct = default)
     {
         var settings = opts.Value;
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{settings.BaseUrl.TrimEnd('/')}/api/v1/playbook");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{settings.BaseUrl.TrimEnd('/')}/api/v1/playbook?include_unconfirmed=true");
         if (!string.IsNullOrWhiteSpace(settings.ApiKey))
             request.Headers.Add("X-API-Key", settings.ApiKey);
 
@@ -69,6 +67,38 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
             .Select(m => new ClauseMatch(m.Reference, m.RuleKey, m.Label, m.Score, m.Sentence, m.Example)).ToList());
     }
 
+    public async Task<IReadOnlyList<RiskFinding>> ReviewAsync(IReadOnlyList<ClauseText> clauses, string? language, CancellationToken ct = default)
+    {
+        var body = new { clauses = clauses.Select(c => new { reference = c.Reference, text = c.Text }), language };
+        var result = await PostAsync<ReviewOut>("api/v1/review", body, ct);
+        return result.Findings.Select(f => new RiskFinding(f.ClauseType, f.Severity, f.Explanation,
+            FindingType: f.FindingType, RecommendedAction: f.RecommendedAction,
+            ContractReference: f.ContractReference, RuleKey: f.RuleKey)).ToList();
+    }
+
+    public async Task<DetectedFormFields> DetectFormFieldsAsync(Stream pdf, string fileName, CancellationToken ct = default)
+    {
+        var settings = opts.Value;
+        using var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(pdf), "file", fileName);
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{settings.BaseUrl.TrimEnd('/')}/api/v1/forms/detect")
+        {
+            Content = content
+        };
+        if (!string.IsNullOrWhiteSpace(settings.ApiKey))
+            request.Headers.Add("X-API-Key", settings.ApiKey);
+
+        // Detection runs a vision model on every page; give it more time than a search.
+        using var client = httpFactory.CreateClient(HttpClientName);
+        using var response = await client.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<DetectionOut>(Json, ct)
+                   ?? throw new InvalidOperationException("Empty response from legal corpus forms/detect.");
+        return new DetectedFormFields(body.Pages, body.Model, body.AiUsed, body.Fields
+            .Select(f => new DetectedFormField(f.FieldKey, f.Label, f.Type, f.FillRole, f.Page, f.X, f.Y, f.Width, f.Height,
+                f.IsRequired, f.AutoFillFrom, f.Options ?? [], f.Source, f.Confidence)).ToList());
+    }
+
     private async Task<T> PostAsync<T>(string path, object body, CancellationToken ct)
     {
         var settings = opts.Value;
@@ -86,6 +116,12 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
                ?? throw new InvalidOperationException($"Empty response from legal corpus {path}.");
     }
 
+    private sealed record DetectionOut(int Pages, string? Model, bool AiUsed, List<DetectedFieldOut> Fields);
+
+    private sealed record DetectedFieldOut(string FieldKey, string Label, string Type, string FillRole, int Page, float X,
+        float Y, float Width, float Height, bool IsRequired, string? AutoFillFrom, List<string>? Options, string Source,
+        string Confidence);
+
     private sealed record SearchHit(string ArticleId, string ArticleText, string Citation, double Score);
 
     private sealed record PlaybookOut(Dictionary<string, PlaybookRuleOut> Rules, Dictionary<string, string> Regulations);
@@ -99,6 +135,11 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
         Dictionary<string, string>? Explanations = null);
 
     private sealed record CitationOut(bool Found, bool IsVerified, string? Citation, string? Reason);
+
+    private sealed record ReviewOut(string Language, string? Model, List<FindingOut> Findings);
+
+    private sealed record FindingOut(string ClauseType, string Severity, string Explanation, string? RecommendedAction,
+        string? ContractReference, string? RuleKey, string? FindingType);
 
     private sealed record ClassifyOut(bool Enabled, string? Model, List<ClauseMatchOut> Matches);
 

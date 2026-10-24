@@ -1,8 +1,10 @@
+#if LEGACY_RULES
+// Tests of the keyword rules Harvey's review replaced; compiled only with LEGACY_RULES.
 using SignFlow.Application.Common.Services;
 
 namespace SignFlow.UnitTests.Application;
 
-/// <summary>Refinements prompted by the CUAD benchmark (tools/cuad-benchmark): wording written for tests, not CUAD's.</summary>
+/// <summary>Rule refinements prompted by benchmarking against real contracts: the test wording is written for the tests, not copied from any dataset.</summary>
 public class RuleRefinementTests
 {
     private static IReadOnlyList<string?> Keys(string text) =>
@@ -48,3 +50,4 @@ public class RuleRefinementTests
     public void A_fixed_term_is_not_a_renewal() =>
         Assert.DoesNotContain("auto_renewal", Keys(Header + "ARTICLE 1 - TERM This Agreement has a term of two years and expires at the end of that term without renewal."));
 }
+#endif

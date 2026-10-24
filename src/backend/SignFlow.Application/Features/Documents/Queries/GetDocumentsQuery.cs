@@ -12,7 +12,8 @@ public record GetDocumentsQuery(
     DocumentStatus? Status = null,
     string? SortBy = "createdAt",
     bool Descending = true,
-    Guid? RequestTypeId = null) : IQuery<PagedResult<DocumentSummaryDto>>;
+    Guid? RequestTypeId = null,
+    IReadOnlyList<DocumentStatus>? Statuses = null) : IQuery<PagedResult<DocumentSummaryDto>>;
 
 public record DocumentSummaryDto(
     Guid Id,
@@ -47,6 +48,12 @@ public class GetDocumentsQueryHandler(
 
         if (query.Status.HasValue)
             q = q.Where(d => d.Status == query.Status.Value);
+
+        if (query.Statuses is { Count: > 0 })
+        {
+            var statuses = query.Statuses;
+            q = q.Where(d => statuses.Contains(d.Status));
+        }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {

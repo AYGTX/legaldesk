@@ -16,8 +16,10 @@ public static class DatabaseSeeder
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole<Guid>> roleManager,
         DemoContractSeedContext? demoContracts = null,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        SeedUsersOptions? seedUsers = null)
     {
+        var userOptions = seedUsers ?? new SeedUsersOptions(true, []);
         // Roles
         string[] roles = ["Administrator", "Manager", "Employee", "ExternalSigner"];
         foreach (var roleName in roles)
@@ -26,6 +28,10 @@ public static class DatabaseSeeder
                 await roleManager.CreateAsync(new IdentityRole<Guid>(roleName));
         }
 
+        // The three built-in demo accounts share one well-known password, so a deployment that wants only its
+        // own people switches them off (Seed:DefaultUsers = false) and lists them under Seed:Users instead.
+        if (userOptions.DefaultUsers)
+        {
         // Admin user
         if (await userManager.FindByEmailAsync("admin@legaldesk.tn") is null)
         {
@@ -86,6 +92,10 @@ public static class DatabaseSeeder
                 await userManager.AddToRoleAsync(employee, "Employee");
         }
 
+        }
+
+        await SeedConfiguredUsersAsync(userManager, roleManager, userOptions.Users, logger ?? NullLogger.Instance);
+
         // Existing databases: the admin was created without a company, which left company auto-fill blank.
         var existingAdmin = await userManager.FindByEmailAsync("admin@legaldesk.tn");
         if (existingAdmin is not null && string.IsNullOrEmpty(existingAdmin.Company))
@@ -121,6 +131,42 @@ public static class DatabaseSeeder
     /// The extra services the demo-contract portfolio needs, supplied only when demo seeding is
     /// switched on so the default path takes no dependency on storage or PDF rendering.
     /// </summary>
+    /// <summary>
+    /// Who the seeded clause library and regulatory registry are attributed to: the built-in administrator when it
+    /// exists, otherwise the first administrator in the database. Without this, switching the built-in accounts
+    /// off would silently skip that reference data.
+    /// </summary>
+    private static async Task<ApplicationUser?> FindAuthorAsync(UserManager<ApplicationUser> userManager)
+        => await userManager.FindByEmailAsync("admin@legaldesk.tn")
+           ?? (await userManager.GetUsersInRoleAsync("Administrator")).OrderBy(u => u.CreatedAt).FirstOrDefault();
+
+    /// <summary>Creates the people listed under Seed:Users. Existing emails are left alone; a bad entry stops the start-up.</summary>
+    private static async Task SeedConfiguredUsersAsync(
+        UserManager<ApplicationUser> userManager, RoleManager<IdentityRole<Guid>> roleManager,
+        IReadOnlyList<SeedUser> users, ILogger logger)
+    {
+        foreach (var u in users)
+        {
+            if (string.IsNullOrWhiteSpace(u.Email) || string.IsNullOrWhiteSpace(u.Password))
+                throw new InvalidOperationException("Seed:Users entries need an Email and a Password.");
+            if (!await roleManager.RoleExistsAsync(u.Role))
+                throw new InvalidOperationException($"Seed:Users: unknown role '{u.Role}' for {u.Email}.");
+            if (await userManager.FindByEmailAsync(u.Email) is not null) continue;
+
+            var user = new ApplicationUser
+            {
+                UserName = u.Email, Email = u.Email, FirstName = u.FirstName, LastName = u.LastName,
+                Company = u.Company, Department = u.Department, EmailConfirmed = true, IsActive = true
+            };
+            var result = await userManager.CreateAsync(user, u.Password);
+            if (!result.Succeeded)
+                throw new InvalidOperationException(
+                    $"Seed:Users: could not create {u.Email}: {string.Join("; ", result.Errors.Select(e => e.Description))}");
+            await userManager.AddToRoleAsync(user, u.Role);
+            logger.LogInformation("Seeded user {Email} as {Role}", u.Email, u.Role);
+        }
+    }
+
     public record DemoContractSeedContext(IStorageService Storage, IPdfService PdfService);
 
     private static async Task BackfillDepartmentsAsync(ApplicationDbContext context)
@@ -184,7 +230,7 @@ public static class DatabaseSeeder
     /// </summary>
     private static async Task SeedClausesAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
-        var author = await userManager.FindByEmailAsync("admin@legaldesk.tn");
+        var author = await FindAuthorAsync(userManager);
         if (author is null) return;
 
         // (Title, Category, Language, RiskLevel, Body, Guidance, Approved)
@@ -202,22 +248,22 @@ public static class DatabaseSeeder
 
             ("Limitation of liability (capped)", ClauseCategory.Liability, "en", "Medium",
                 "<h3>Limitation of Liability</h3><p>Save in cases of gross negligence, wilful misconduct or bodily injury, each party's aggregate liability arising out of or in connection with this Agreement shall not exceed the total amounts paid or payable under this Agreement during the twelve (12) months preceding the event giving rise to the claim. Neither party shall be liable for any indirect or consequential loss.</p>",
-                "Preferred position: always cap liability. Never accept an uncapped liability clause without Legal sign-off — the AI review flags uncapped liability as high risk.",
+                "Preferred position: always cap liability. Never accept an uncapped liability clause without Legal sign-off — the Harvey review flags uncapped liability as high risk.",
                 true),
 
             ("Limitation de responsabilité (plafonnée)", ClauseCategory.Liability, "fr", "Medium",
                 "<h3>Limitation de responsabilité</h3><p>Sauf en cas de faute lourde, de dol ou de dommage corporel, la responsabilité globale de chaque partie au titre du présent contrat ne saurait excéder le montant total des sommes versées ou dues au titre du présent contrat au cours des douze (12) mois précédant le fait générateur. Aucune des parties ne saurait être tenue responsable des dommages indirects ou consécutifs.</p>",
-                "Position privilégiée : toujours plafonner la responsabilité. Ne jamais accepter une responsabilité illimitée sans validation du service juridique — la revue IA signale la responsabilité illimitée comme risque élevé.",
+                "Position privilégiée : toujours plafonner la responsabilité. Ne jamais accepter une responsabilité illimitée sans validation du service juridique — la revue Harvey signale la responsabilité illimitée comme risque élevé.",
                 true),
 
             ("Termination for convenience", ClauseCategory.Termination, "en", "Low",
                 "<h3>Termination</h3><p>Either party may terminate this Agreement at any time, without cause, by giving the other party sixty (60) days' prior written notice. Termination shall not affect any rights or obligations accrued prior to the effective date of termination.</p>",
-                "Always ensure a contract contains an exit route. A contract with no termination clause is flagged as high risk by the AI review.",
+                "Always ensure a contract contains an exit route. A contract with no termination clause is flagged as high risk by the Harvey review.",
                 true),
 
             ("Résiliation pour convenance", ClauseCategory.Termination, "fr", "Low",
                 "<h3>Résiliation</h3><p>Chaque partie peut résilier le présent contrat à tout moment, sans motif, moyennant un préavis écrit de soixante (60) jours adressé à l'autre partie. La résiliation est sans effet sur les droits et obligations nés antérieurement à sa date d'effet.</p>",
-                "Veiller à ce que tout contrat comporte une porte de sortie. Un contrat dépourvu de clause de résiliation est signalé comme risque élevé par la revue IA.",
+                "Veiller à ce que tout contrat comporte une porte de sortie. Un contrat dépourvu de clause de résiliation est signalé comme risque élevé par la revue Harvey.",
                 true),
 
             ("Personal data protection", ClauseCategory.DataProtection, "en", "Medium",
@@ -315,7 +361,7 @@ public static class DatabaseSeeder
     /// </summary>
     private static async Task SeedRegulatoryTextsAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
-        var author = await userManager.FindByEmailAsync("admin@legaldesk.tn");
+        var author = await FindAuthorAsync(userManager);
         if (author is null) return;
 
         var dcwi = await context.RequestTypes.FirstOrDefaultAsync(t => t.Name == "Contrat DCWI");
@@ -409,3 +455,10 @@ public static class DatabaseSeeder
         }
     }
 }
+
+/// <summary>One person to create at start-up (Seed:Users). Passwords belong in a git-ignored settings file.</summary>
+public record SeedUser(string Email, string FirstName, string LastName, string Role, string Password,
+    string? Company = null, string? Department = null);
+
+/// <param name="DefaultUsers">False switches off the three built-in demo accounts.</param>
+public record SeedUsersOptions(bool DefaultUsers, IReadOnlyList<SeedUser> Users);

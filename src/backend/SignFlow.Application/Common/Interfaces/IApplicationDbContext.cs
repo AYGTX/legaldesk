@@ -31,6 +31,8 @@ public interface IApplicationDbContext
     DbSet<RegulatoryText> RegulatoryTexts { get; }
     DbSet<RegulatoryArticle> RegulatoryArticles { get; }
     DbSet<DocumentReadinessItem> DocumentReadinessItems { get; }
+    DbSet<WorkflowPreset> WorkflowPresets { get; }
+    DbSet<WorkflowPresetStep> WorkflowPresetSteps { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
+using SignFlow.Application.Common.Interfaces;
 
 namespace SignFlow.Api.Middleware;
 
@@ -61,6 +62,18 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Title = "Concurrency Conflict",
                 Status = 409,
                 Detail = "The item was changed by someone else while you were working. Please refresh and try again."
+            }),
+            AiNotConfiguredException => (HttpStatusCode.ServiceUnavailable, new ProblemDetails
+            {
+                Title = "Harvey not configured",
+                Status = 503,
+                Detail = "Harvey is not configured on this server."
+            }),
+            AiResponseUnusableException arue => (HttpStatusCode.BadGateway, new ProblemDetails
+            {
+                Title = "Harvey response unusable",
+                Status = 502,
+                Detail = arue.Message
             }),
             InvalidOperationException ioe => (HttpStatusCode.BadRequest, new ProblemDetails
             {

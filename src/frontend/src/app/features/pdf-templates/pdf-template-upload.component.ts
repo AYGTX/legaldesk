@@ -36,6 +36,7 @@ import { formatSla } from '../../core/utils/sla';
       </div>
 
       <div class="upload-panel">
+        <div class="up-left">
         <label class="file-drop" [class.has-file]="selectedFile()">
           <input type="file" accept="application/pdf" hidden (change)="onFileSelected($event)" />
           <div class="drop-icon"><mat-icon>{{ selectedFile() ? 'picture_as_pdf' : 'cloud_upload' }}</mat-icon></div>
@@ -45,7 +46,9 @@ import { formatSla } from '../../core/utils/sla';
           </div>
           @if (selectedFile()) { <span class="file-check"><mat-icon>check_circle</mat-icon></span> }
         </label>
+        </div>
 
+        <div class="up-right">
         <div class="field-group">
           <label class="field-label">{{ 'pdfTemplates.upload.namePlaceholder' | translate }}</label>
           <input class="text-input" [(ngModel)]="uploadName" [placeholder]="'pdfTemplates.upload.namePlaceholder' | translate" />
@@ -58,11 +61,12 @@ import { formatSla } from '../../core/utils/sla';
 
         <div class="field-group">
           <label class="field-label">{{ 'pdfTemplates.upload.requestTypePlaceholder' | translate }}</label>
-          <mat-form-field appearance="outline" class="ff">
+          <mat-form-field appearance="outline" class="ff" subscriptSizing="dynamic">
             <mat-select [(ngModel)]="requestTypeId" [placeholder]="'pdfTemplates.upload.requestTypePlaceholder' | translate">
               @for (rt of requestTypes(); track rt.id) { <mat-option [value]="rt.id">{{ rt.name }} ({{ formatSla(rt.slaHours) }})</mat-option> }
             </mat-select>
           </mat-form-field>
+        </div>
         </div>
 
         <div class="upload-actions">
@@ -77,11 +81,20 @@ import { formatSla } from '../../core/utils/sla';
     </div>
   `,
   styles: [`
-    .upload-page { padding: 0; max-width: 640px; }
+    .upload-page { padding: 0; width: 100%; }
     .top-bar { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 24px; }
     .top-title { font-size: 22px; font-weight: 500; margin: 4px 0 2px; letter-spacing: -0.2px; }
     .top-sub { font-size: 13px; color: #5f6368; margin: 0 0 0 0; }
-    .upload-panel { border: 1px solid #c7d0dc; border-radius: 12px; background: #fff; padding: 28px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .upload-panel {
+      border: 1px solid #c7d0dc; border-radius: 12px; background: #fff; padding: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px 36px;
+    }
+    @media (max-width: 900px) { .upload-panel { grid-template-columns: 1fr; } }
+    .up-left { display: flex; }
+    .up-left .file-drop { flex: 1; flex-direction: column; justify-content: center; text-align: center; min-height: 300px; }
+    .up-left .drop-text { align-items: center; }
+    .up-left .file-check { margin-left: 0; }
+    .up-right { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 
     .file-drop {
       display: flex; align-items: center; gap: 14px; padding: 22px;
@@ -106,9 +119,9 @@ import { formatSla } from '../../core/utils/sla';
     .text-input { height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #c7d0dc; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; transition: border-color 0.15s, box-shadow 0.15s; }
     .text-input:focus { border-color: #0b57d0; box-shadow: 0 0 0 2px rgba(11,87,208,0.15); }
     .ff { width: 100%; }
-    .ff ::ng-deep .mat-mdc-text-field-wrapper { height: 44px; }
+    .ff ::ng-deep .mat-mdc-form-field-infix { min-height: 44px; padding-top: 10px !important; padding-bottom: 10px !important; font-size: 14px; }
 
-    .upload-actions { display: flex; justify-content: flex-end; gap: 8px; align-items: center; margin-top: 4px; padding-top: 12px; border-top: 1px solid #e8edf2; }
+    .upload-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; align-items: center; margin-top: 4px; padding-top: 12px; border-top: 1px solid #e8edf2; }
     .create-btn { background: #0b57d0 !important; color: #fff !important; border-radius: 20px !important; }
     .create-btn mat-icon { margin-right: 4px; }
   `]

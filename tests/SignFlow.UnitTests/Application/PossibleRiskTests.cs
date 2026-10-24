@@ -1,3 +1,5 @@
+#if LEGACY_RULES
+// Tests of the keyword rules Harvey's review replaced; compiled only with LEGACY_RULES.
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Services;
 
@@ -97,3 +99,4 @@ public class ModelClauseTests
         Assert.Null(LegalPlaybookService.WithModelClause(Finding("exclusivity"), Playbook, "fr").ProposedLanguage);
     }
 }
+#endif

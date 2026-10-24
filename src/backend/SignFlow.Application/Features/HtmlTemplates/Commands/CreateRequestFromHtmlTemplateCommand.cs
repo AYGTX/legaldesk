@@ -48,6 +48,7 @@ public class CreateRequestFromHtmlTemplateCommandValidator : AbstractValidator<C
 public class CreateRequestFromHtmlTemplateCommandHandler(
     IApplicationDbContext db,
     IWorkflowEngine workflowEngine,
+    IWorkflowPresetResolver presets,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<CreateRequestFromHtmlTemplateCommandHandler> logger) : ICommandHandler<CreateRequestFromHtmlTemplateCommand, Guid>
@@ -96,16 +97,50 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
             .OrderBy(f => f.Order)
             .ToList();
 
-        // Resolve one approver selection per sig field. Precedence: field-level PreAssignedApprover
-        // (locked by the template admin, always a system user) > template-wide DefaultApprover (also a
-        // system user) > caller-supplied Approvers (consumed in order, one per field that still needs a
+        // A workflow preset, when the template has one, names the signer of the first signature fields in order and
+        // may drop a step whose condition does not hold for these answers — together with that step's signature field.
+        var routing = await presets.ResolveAsync(
+            template.WorkflowPresetId, approverSigFields.Count, command.FilledValues,
+            template.Fields.ToDictionary(f => f.FieldKey, f => f.Type), cancellationToken);
+
+        var presetFor = new List<PresetAssignment?>(approverSigFields.Count);
+        if (routing is not null)
+        {
+            var kept = new List<HtmlTemplateField>();
+            for (var i = 0; i < approverSigFields.Count; i++)
+            {
+                var assignment = i < routing.Assignments.Count ? routing.Assignments[i] : null;
+                if (assignment is { Skipped: true }) continue;
+                kept.Add(approverSigFields[i]);
+                presetFor.Add(assignment);
+            }
+
+            if (kept.Count == 0)
+                throw new Common.Exceptions.ValidationException(
+                    $"Every approval step of the workflow \"{routing.PresetName}\" is skipped for these answers, so nobody would sign.");
+
+            approverSigFields = kept;
+        }
+        else
+        {
+            presetFor.AddRange(approverSigFields.Select(_ => (PresetAssignment?)null));
+        }
+
+        var workflowType = routing?.WorkflowType ?? template.WorkflowType;
+
+        // Resolve one approver selection per sig field. Precedence: the workflow preset's step > field-level
+        // PreAssignedApprover (locked by the template admin, always a system user) > template-wide DefaultApprover
+        // (also a system user) > caller-supplied Approvers (consumed in order, one per field that still needs a
         // choice — each can be a system user OR an external signer with no account).
         var supplied = command.Approvers ?? [];
         var suppliedIndex = 0;
         var selections = new List<ApproverSelection>(approverSigFields.Count);
-        foreach (var field in approverSigFields)
+        for (var fieldIndex = 0; fieldIndex < approverSigFields.Count; fieldIndex++)
         {
-            if (field.PreAssignedApproverId.HasValue)
+            var field = approverSigFields[fieldIndex];
+            if (presetFor[fieldIndex]?.Approver is { } presetApprover)
+                selections.Add(presetApprover);
+            else if (field.PreAssignedApproverId.HasValue)
                 selections.Add(new ApproverSelection(field.PreAssignedApproverId, null, null));
             else if (template.DefaultApproverId.HasValue)
                 selections.Add(new ApproverSelection(template.DefaultApproverId, null, null));
@@ -151,7 +186,7 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
             message: command.Message);
 
         document.SetHtmlSource(template.Id, filledJson, template.HtmlContent);
-        document.SetWorkflowType(template.WorkflowType);
+        document.SetWorkflowType(workflowType);
         document.SetHideRecipientIdentities(template.HideRecipientIdentities);
         document.SetCreatedBy(initiatorId.ToString());
 
@@ -167,14 +202,18 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
         // user account — external signers get a public /sign/{token} link just like system users do.
         var firstApproverEmail = string.Empty;
 
+        // Mixed stages, renumbered 1..n: a skipped step leaves a gap that nothing downstream should have to understand.
+        var stageOf = approverSigFields.Select((f, i) => presetFor[i]?.Stage ?? f.WorkflowStage).ToList();
+        var stageRank = stageOf.Distinct().Order().Select((stage, index) => (stage, rank: index + 1)).ToDictionary(x => x.stage, x => x.rank);
+
         for (var i = 0; i < resolvedApprovers.Count; i++)
         {
             var (approverName, approverEmail, approverCompany) = resolvedApprovers[i];
 
-            var order = template.WorkflowType switch
+            var order = workflowType switch
             {
                 WorkflowType.Parallel => 1,
-                WorkflowType.Mixed when i < approverSigFields.Count => approverSigFields[i].WorkflowStage,
+                WorkflowType.Mixed when i < approverSigFields.Count => stageRank[stageOf[i]],
                 _ => i + 1
             };
 
@@ -184,7 +223,8 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
                 approverEmail,
                 order,
                 ApprovalType.Signature,
-                company: approverCompany);
+                company: approverCompany,
+                roleLabel: i < presetFor.Count ? presetFor[i]?.Label : null);
             db.Recipients.Add(recipient);
 
             if (i == 0) firstApproverEmail = approverEmail;
@@ -214,7 +254,9 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
             document.Id,
             AuditAction.DocumentSent,
             "system",
-            $"Request '{title}' created from template '{template.Name}' and sent to {firstApproverEmail}",
+            $"Request '{title}' created from template '{template.Name}'"
+                + (routing is null ? "" : $" following the workflow '{routing.PresetName}'")
+                + $" and sent to {firstApproverEmail}",
             initiatorId,
             actorEmail: currentUser.UserEmail,
             cancellationToken: cancellationToken);

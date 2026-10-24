@@ -1,0 +1,6 @@
+# Optional: finds the blanks of a static contract PDF (POST /api/v1/forms/detect). Without it only fields already
+# fillable in the PDF are detected. Tested with commonforms 0.2.1 and its FFDNet-L model (weights download from
+# Hugging Face on first use, ~30 s; copy the cache to an air-gapped server).
+# LICENCES TO CHECK BEFORE COMMERCIAL USE: the FFDNet-L model card states no licence, and the YOLO runtime it needs
+# (ultralytics) is AGPL-3.0 unless you hold an Enterprise licence.
+commonforms>=0.2.1,<0.3

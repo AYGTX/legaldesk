@@ -15,6 +15,8 @@
   <a href="/texts">{{ t('back') }}</a>
 </div>
 
+{% if ai_error %}<div class="flash error">{{ t('amend_unavailable') }}</div>{% endif %}
+
 <section class="card">
   <h2>{{ t('verification') }}</h2>
   {% if text.is_verified %}
@@ -43,7 +45,7 @@
     <p class="muted">{{ t('defs_intro') }}</p>
     <dl class="defs">
     {% for d in defined %}
-      <dt><a href="#art-{{ d.article_id }}">{{ d.term }}</a> <span class="muted">· {{ t('article') }} {{ d.article_number }}</span></dt>
+      <dt><a href="/articles/{{ d.article_id }}/go">{{ d.term }}</a> <span class="muted">· {{ t('article') }} {{ d.article_number }}</span></dt>
       <dd>{{ d.definition }}</dd>
     {% endfor %}
     </dl>
@@ -53,7 +55,11 @@
 
 <section class="card">
   <div class="articles-head">
-    <h2>{{ t('articles') }} ({{ text.articles|length }})</h2>
+    <h2>{{ t('articles') }} ({{ total }})</h2>
+    <form class="goto-form" method="get" action="/texts/{{ text.id }}/goto">
+      <input name="number" required maxlength="20" placeholder="{{ t('goto_article') }}" aria-label="{{ t('goto_article') }}">
+      <button class="secondary" type="submit">→</button>
+    </form>
     <form class="asof-form" method="get" action="/texts/{{ text.id }}">
       <label for="as_of">{{ t('as_of_label') }}</label>
       <input id="as_of" name="as_of" type="date" value="{{ as_of or '' }}">
@@ -62,7 +68,17 @@
     </form>
   </div>
   {% if as_of %}<div class="notice asof-notice">{{ t('as_of_notice', day=as_of.strftime('%d/%m/%Y')) }}</div>{% endif %}
-  {% for a in text.articles %}
+  {% if pages > 1 %}{% set q = '&as_of=' ~ as_of.isoformat() if as_of else '' %}
+  <nav class="pager">
+    {% if page > 1 %}<a href="/texts/{{ text.id }}?page={{ page - 1 }}{{ q }}">‹ {{ t('pager_prev') }}</a>{% endif %}
+    <span class="muted">{{ t('pager_range', first=first, last=first + articles|length - 1, total=total) }}</span>
+    <form method="get" action="/texts/{{ text.id }}">{% if as_of %}<input type="hidden" name="as_of" value="{{ as_of.isoformat() }}">{% endif %}
+      <select name="page" onchange="this.form.submit()">{% for p in range(1, pages + 1) %}<option value="{{ p }}" {{ 'selected' if p == page }}>{{ t('pager_page', page=p, pages=pages) }}</option>{% endfor %}</select>
+    </form>
+    {% if page < pages %}<a href="/texts/{{ text.id }}?page={{ page + 1 }}{{ q }}">{{ t('pager_next') }} ›</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% for a in articles %}
   {% set w = wording_on(a, as_of) if as_of else (a.number, a.text) %}
   {% if as_of and w is none %}
     <div class="article is-future"><span class="num">{{ t('article') }} {{ a.number }}</span>
@@ -80,10 +96,7 @@
         {% if a.applies_from %}<span class="badge neutral">{{ t('in_force_since', day=a.applies_from.strftime('%d/%m/%Y')) }}</span>{% endif %}
         {% if a.excluded_from_search %}<span class="badge neutral" title="{{ t('excluded_explain') }}">{{ t('excluded_badge') }}</span>{% endif %}
         {% if a.versions %}<span class="badge version">{{ t('versions_badge', count=a.versions|length) }}</span>{% endif %}
-        <form hx-boost="true" method="post" action="/articles/{{ a.id }}/search" class="article-toggle">
-          <input type="hidden" name="excluded" value="{{ '0' if a.excluded_from_search else '1' }}">
-          <button class="ghost" type="submit" title="{{ t('excluded_explain') }}">{{ t('include_action') if a.excluded_from_search else t('exclude_action') }}</button>
-        </form>
+        {% for r in linked.get(a.number, []) %}<a class="badge risk-link" href="/playbook/rules/{{ r.key|urlencode }}" title="{{ t('linked_to_risk') }}">⚑ {{ r.label }}</a>{% endfor %}
       </div>
       <p class="body {{ rtl }}">{{ linkify(a, text, ref_index, t('ref_missing'), defined) }}</p>
       {% set ex = explained.get(a.id) %}
@@ -128,11 +141,51 @@
             </form>
           </details>
         </div>
-      {% elif ai != 'none' %}
+      {% endif %}
+
+      <details class="article-tools" {{ 'open' if suggested_article_id == a.id }}>
+        <summary>⋯ {{ t('article_actions') }}</summary>
+        <div class="tools-row">
+          <form hx-boost="true" method="post" action="/articles/{{ a.id }}/search" class="article-toggle">
+          <input type="hidden" name="excluded" value="{{ '0' if a.excluded_from_search else '1' }}">
+          <button class="ghost" type="submit" title="{{ t('excluded_explain') }}">{{ t('include_action') if a.excluded_from_search else t('exclude_action') }}</button>
+        </form>
+      {% if ai != 'none' and not explained.get(a.id) %}
         <form hx-boost="true" method="post" action="/articles/{{ a.id }}/explanation/generate" class="explain-generate">
           <input type="hidden" name="lang" value="{{ lang }}">
           <button class="ghost" type="submit">✦ {{ t('explain_action') }}</button>
         </form>
+      {% endif %}
+        </div>
+      {% if rules %}
+      <form hx-boost="true" method="post" action="/articles/{{ a.id }}/link-to-rule" class="row" style="margin:6px 0">
+        <div><label>{{ t('pb_link_to_rule') }}</label>
+          <select name="key" required>
+            <option value="" disabled selected>{{ t('pb_choose_rule') }}</option>
+            {% for r in rules %}<option value="{{ r.key }}">{{ r.label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div style="flex:2 1 220px"><label>{{ t('pb_why') }}</label><input name="why" maxlength="400"></div>
+        <button class="secondary" type="submit">{{ t('pb_link_action') }}</button>
+        {% if ai != 'none' %}
+        <button class="ghost" type="submit" formaction="/articles/{{ a.id }}/suggest-rules" formnovalidate>✦ {{ t('pb_suggest_rules') }}</button>
+        {% endif %}
+      </form>
+      {% if suggested_article_id == a.id %}
+        {% if suggested_rules %}
+        <div class="ai-panel" style="margin:0 0 6px">
+          {% for s in suggested_rules %}
+          <form hx-boost="true" class="row phrase-row" method="post" action="/articles/{{ a.id }}/link-to-rule">
+            <input type="hidden" name="key" value="{{ s.key }}"><input type="hidden" name="why" value="{{ s.why }}">
+            <div style="flex:1 1 auto"><strong>{{ s.label }}</strong>{% if s.why %}<br><span class="muted">{{ s.why }}</span>{% endif %}</div>
+            <button class="secondary" type="submit" style="flex:0 0 auto" title="{{ s.key }}">{{ t('ai_accept') }}</button>
+          </form>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted" style="margin:0 0 6px">{{ t('pb_no_suggestion') }}</p>
+        {% endif %}
+      {% endif %}
       {% endif %}
       {% if a.versions %}
       <details class="history">
@@ -170,11 +223,22 @@
           <div class="actions"><button class="danger" type="submit">{{ t('delete') }}</button></div>
         </form>
       </details>
+      </details>
     </div>
   {% endif %}
   {% else %}
     <p class="muted">{{ t('no_articles') }}</p>
   {% endfor %}
+  {% if pages > 1 %}{% set q = '&as_of=' ~ as_of.isoformat() if as_of else '' %}
+  <nav class="pager">
+    {% if page > 1 %}<a href="/texts/{{ text.id }}?page={{ page - 1 }}{{ q }}">‹ {{ t('pager_prev') }}</a>{% endif %}
+    <span class="muted">{{ t('pager_range', first=first, last=first + articles|length - 1, total=total) }}</span>
+    <form method="get" action="/texts/{{ text.id }}">{% if as_of %}<input type="hidden" name="as_of" value="{{ as_of.isoformat() }}">{% endif %}
+      <select name="page" onchange="this.form.submit()">{% for p in range(1, pages + 1) %}<option value="{{ p }}" {{ 'selected' if p == page }}>{{ t('pager_page', page=p, pages=pages) }}</option>{% endfor %}</select>
+    </form>
+    {% if page < pages %}<a href="/texts/{{ text.id }}?page={{ page + 1 }}{{ q }}">{{ t('pager_next') }} ›</a>{% endif %}
+  </nav>
+  {% endif %}
 </section>
 
 <section class="card">

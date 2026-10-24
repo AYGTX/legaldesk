@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Application.Features.Documents.Commands;
 using SignFlow.Application.Features.Recipients.Commands;
 using SignFlow.Application.Features.SignatureFields.Commands;
 using SignFlow.Application.Features.Signing.Commands;
+using SignFlow.Domain.Entities;
 using SignFlow.Infrastructure.Persistence;
 using SignFlow.Infrastructure.Services.Background;
 using SignFlow.Infrastructure.Services.Notifications;
@@ -31,6 +34,13 @@ public sealed class ScenarioFixture : IDisposable
         var dbName = Guid.NewGuid().ToString();
         services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(dbName));
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+        // Identity, so a workflow step can be resolved from a role.
+        services.AddLogging();
+        services.AddIdentityCore<ApplicationUser>(o => o.Password.RequiredLength = 6)
+            .AddRoles<IdentityRole<Guid>>()
+            .AddEntityFrameworkStores<ApplicationDbContext>();
+        services.AddScoped<IWorkflowPresetResolver, WorkflowPresetResolver>();
 
         // Real infrastructure services
         services.AddScoped<IWorkflowEngine>(sp => new WorkflowEngine(
@@ -63,6 +73,7 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<IPdfService>(),
             sp.GetRequiredService<IVirusScanService>(),
             sp.GetRequiredService<IAiService>(),
+            new LegalPlaybookService(new NullLegalCorpusClient(), NullLogger<LegalPlaybookService>.Instance),
             sp.GetRequiredService<ICurrentUserService>(),
             sp.GetRequiredService<IAuditService>(),
             NullLogger<UploadDocumentCommandHandler>.Instance));

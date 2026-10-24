@@ -54,6 +54,11 @@ import { UnifiedTemplate } from '../../core/models/template-gallery.model';
           <button type="button" class="tc-icon-btn" (click)="manage.emit(template())" [matTooltip]="'templates.manage' | translate">
             <mat-icon>tune</mat-icon>
           </button>
+          @if (template().kind === 'pdf') {
+            <button type="button" class="tc-icon-btn tc-delete" (click)="remove.emit(template())" [matTooltip]="'common.delete' | translate">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          }
         }
       </div>
     </div>
@@ -82,6 +87,7 @@ import { UnifiedTemplate } from '../../core/models/template-gallery.model';
     .tc-use-btn mat-icon { font-size: 16px; width: 16px; height: 16px; }
     .tc-icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #5f6368; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .tc-icon-btn:hover { background: #f1f3f4; }
+    .tc-delete:hover { background: #fce8e6; color: #c5221f; }
   `]
 })
 export class TemplateCardComponent {
@@ -89,4 +95,5 @@ export class TemplateCardComponent {
   readonly canManage = input(false);
   readonly use = output<UnifiedTemplate>();
   readonly manage = output<UnifiedTemplate>();
+  readonly remove = output<UnifiedTemplate>();
 }

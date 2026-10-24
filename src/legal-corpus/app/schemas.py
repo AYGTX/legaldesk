@@ -58,6 +58,27 @@ class ClassifyIn(BaseModel):
     threshold: float | None = Field(default=None, ge=0, le=1)
 
 
+class ReviewIn(BaseModel):
+    clauses: list[ClauseIn] = Field(max_length=500)
+    language: str | None = Field(default=None, pattern="^(fr|en)$")
+
+
+class FindingOut(BaseModel):
+    clause_type: str
+    severity: str
+    explanation: str
+    recommended_action: str | None = None
+    contract_reference: str | None = None
+    rule_key: str | None = None
+    finding_type: str | None = None
+
+
+class ReviewOut(BaseModel):
+    language: str
+    model: str | None
+    findings: list[FindingOut]
+
+
 class ClauseMatchOut(BaseModel):
     reference: str
     rule_key: str
@@ -183,3 +204,29 @@ class IndexStatus(BaseModel):
     total_articles: int
     indexed_articles: int
     stale_articles: int
+
+
+class DetectedFieldOut(BaseModel):
+    field_key: str
+    label: str
+    type: Literal["Text", "Date", "Number", "Checkbox", "Signature", "Dropdown", "Textarea"]
+    fill_role: Literal["Requester", "Approver", "System"]
+    page: int
+    x: float
+    y: float
+    width: float
+    height: float
+    is_required: bool
+    auto_fill_from: str | None = None
+    options: list[str] = []
+    source: Literal["pdf", "model"]
+    confidence: Literal["rule", "ai"]
+
+
+class FormDetectionOut(BaseModel):
+    """Proposed template fields for a contract PDF. Coordinates are SignFlow's: top-left, pixels at 1.5x the PDF's points."""
+    pages: int
+    model: str | None
+    ai_used: bool
+    notes: list[str] = []
+    fields: list[DetectedFieldOut]

@@ -35,12 +35,9 @@ type Step = 'pick' | 'fill' | 'done';
   template: `
     <div class="nr-page" [class.wide]="step() !== 'done'">
       <div class="page-header">
-        <a mat-icon-button routerLink="/requests" class="back-btn">
-          <mat-icon>arrow_back</mat-icon>
-        </a>
         <div class="header-text">
           <h1 class="page-title">{{ 'requests.new.pageTitle' | translate }}</h1>
-          <p class="page-sub">{{ 'requests.new.pageSub' | translate }}</p>
+          <p class="page-subtitle">{{ 'requests.new.pageSub' | translate }}</p>
         </div>
         @if (step() === 'pick' && canManageTemplates()) {
           <a mat-stroked-button routerLink="/admin/html-templates/new" class="create-template-btn">
@@ -147,9 +144,14 @@ type Step = 'pick' | 'fill' | 'done';
                     } @else {
                       {{ 'requests.new.approver' | translate }}
                     }
-                    @if (!fixedApproverNameFor(sigF)) { <span class="required">*</span> }
+                    @if (!fixedApproverNameFor(sigF) && !presetStepFor(sigF)) { <span class="required">*</span> }
                   </label>
-                  @if (fixedApproverNameFor(sigF); as fixedName) {
+                  @if (presetStepFor(sigF); as step) {
+                    <div class="approver-fixed">
+                      <span class="material-symbols-outlined">route</span>
+                      {{ 'requests.new.approverByWorkflow' | translate: { workflow: selectedTemplate()!.workflowPreset!.name, step: step.label || step.order, who: step.who } }}
+                    </div>
+                  } @else if (fixedApproverNameFor(sigF); as fixedName) {
                     <div class="approver-fixed">
                       <span class="material-symbols-outlined">person_check</span>
                       {{ 'requests.new.approverFixed' | translate: { name: fixedName } }}
@@ -183,7 +185,7 @@ type Step = 'pick' | 'fill' | 'done';
                 <span>{{ 'requests.new.previewTitle' | translate }}</span>
               </div>
               <p class="preview-hint">{{ 'requests.new.previewHint' | translate }}</p>
-              <div class="preview-content" [innerHTML]="previewHtml()"></div>
+              <div class="preview-content contract-doc" [innerHTML]="previewHtml()"></div>
             </div>
           </div>
         </div>
@@ -201,12 +203,6 @@ type Step = 'pick' | 'fill' | 'done';
     </div>
   `,
   styles: [`
-    .nr-page { max-width: 720px; margin: 0 auto; transition: max-width 0.2s ease; }
-    .nr-page.wide { max-width: 1200px; }
-    .page-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 24px; }
-    .back-btn { margin-top: -4px; }
-    .page-title { font-size: 22px; font-weight: 500; color: #1f1f1f; margin: 0 0 4px; letter-spacing: -0.2px; }
-    .page-sub { font-size: 13px; color: #5f6368; margin: 0; }
 
     .step-content { animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -263,7 +259,7 @@ type Step = 'pick' | 'fill' | 'done';
     .preview-panel-header { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid #e8edf2; background: #f8faff; font-size: 13px; font-weight: 500; color: #1f1f1f; }
     .preview-panel-header .material-symbols-outlined { font-size: 18px; color: #0b57d0; }
     .preview-hint { font-size: 12px; color: #9aa0a6; margin: 10px 18px 0; }
-    .preview-content { padding: 20px 24px 28px; font-family: 'Google Sans Text', sans-serif; font-size: 14px; line-height: 1.6; color: #1f1f1f; max-height: 70vh; overflow-y: auto; }
+    .preview-content { padding: 20px 24px 28px; max-height: 70vh; overflow-y: auto; }
     .preview-content ::ng-deep .ph-empty { background: #fff3cd; color: #7a5c00; padding: 1px 6px; border-radius: 4px; font-style: italic; }
     .preview-content ::ng-deep .ph-sig { display: inline-block; padding: 6px 12px; border: 1px dashed #0b57d0; border-radius: 6px; color: #0b57d0; font-style: italic; font-size: 12px; }
 
@@ -316,9 +312,19 @@ export class NewRequestComponent implements OnInit {
       .sort((a, b) => a.order - b.order)
   );
 
-  /** Sig fields with no fixed approver (no field-level assignment, no template-wide default) — these need a picker. */
+  /**
+   * The workflow step that decides who signs this field, when the template follows a workflow: its steps go to the
+   * approver signature fields in order. Null for fields past the last step.
+   */
+  presetStepFor(f: HtmlTemplateFieldDto) {
+    const steps = this.selectedTemplate()?.workflowPreset?.steps ?? [];
+    return steps[this.approverSigFields().indexOf(f)] ?? null;
+  }
+
+  /** Sig fields nobody has been named for (no workflow step, no field-level assignment, no template default) — these need a picker. */
   unassignedApproverSigFields = computed(() =>
-    this.approverSigFields().filter(f => !f.preAssignedApproverId && !this.selectedTemplate()?.defaultApproverId)
+    this.approverSigFields().filter(f =>
+      !this.presetStepFor(f) && !f.preAssignedApproverId && !this.selectedTemplate()?.defaultApproverId)
   );
 
   /** The approver name to display as fixed for a field, or null if the initiator must pick one. */
@@ -411,9 +417,7 @@ export class NewRequestComponent implements OnInit {
         this.filledValues = {};
         this.prefillAutoFillFields(detail.fields);
 
-        const unassignedCount = detail.fields
-          .filter(f => f.role === 'Approver' && f.type === 'Signature' && !f.preAssignedApproverId && !detail.defaultApproverId)
-          .length;
+        const unassignedCount = this.unassignedApproverSigFields().length;
         this.selectedApprovers = Array.from({ length: unassignedCount }, () => createEmptyApproverEntry());
 
         this.step.set('fill');

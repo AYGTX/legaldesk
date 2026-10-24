@@ -14,6 +14,21 @@ def test_print_suffix_variants():
     assert [a.number for a in result.articles] == ["13", "13 quinter", "13 sexis"]
 
 
+def test_amending_law_article_number_in_a_note_is_not_a_new_heading():
+    """"(Abrogé et remplacé par art. 9 du décret-loi n° 2011-117...)" can have the PDF wrap right after "par", landing
+    "art. 9" at the start of a line — a citation to the AMENDING text's own article 9, not a new heading here."""
+    raw = (
+        "Article 8.- Une indemnité est due. (Abrogé et remplacé par\n"
+        "art. 9 du décret-loi n° 2011-117 du 5 novembre 2011)\n"
+        "L'agent qui renonce à son mandat bénéficie d'une indemnité.\n"
+        "Article 9.- Deuxième disposition réelle."
+    )
+    result = split_articles(raw)
+    assert [a.number for a in result.articles] == ["8", "9"]
+    assert "L'agent qui renonce" in result.articles[0].text
+    assert "Deuxième disposition réelle" in result.articles[1].text
+
+
 def test_joins_print_wraps_and_keeps_paragraphs_and_lists():
     raw = (
         "Article 13.- Les sociétés sont tenues de désigner un\ncommissaire aux comptes.\n"

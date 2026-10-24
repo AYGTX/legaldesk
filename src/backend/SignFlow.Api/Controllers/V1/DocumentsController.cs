@@ -1,3 +1,4 @@
+using SignFlow.Application.Features.Reports.Queries;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,6 +34,14 @@ public class DocumentsController(
         var result = await dashboardHandler.HandleAsync(new GetDashboardQuery(), ct);
         return Ok(result);
     }
+
+    /// <summary>The contract schedule: every contract with its end date, notice deadline and stage, most urgent first
+    /// (administrators see all contracts, others their own)</summary>
+    [HttpGet("schedule")]
+    [ProducesResponseType(typeof(List<ContractScheduleRowDto>), 200)]
+    public async Task<ActionResult<List<ContractScheduleRowDto>>> GetSchedule(
+        [FromServices] IQueryHandler<GetContractScheduleQuery, List<ContractScheduleRowDto>> scheduleHandler, CancellationToken ct) =>
+        Ok(await scheduleHandler.HandleAsync(new GetContractScheduleQuery(), ct));
 
     /// <summary>Get SLA metrics for the current user's requests</summary>
     [HttpGet("sla-metrics")]
@@ -101,9 +110,15 @@ public class DocumentsController(
         [FromQuery] string? sortBy = "createdAt",
         [FromQuery] bool descending = true,
         [FromQuery] Guid? requestTypeId = null,
+        [FromQuery] string? statuses = null,
         CancellationToken ct = default)
     {
-        var query = new GetDocumentsQuery(pageNumber, Math.Min(pageSize, 100), search, status, sortBy, descending, requestTypeId);
+        // Comma-separated statuses ("Draft,Sent") for the multi-select filter; unknown names are ignored.
+        var statusList = (statuses ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => Enum.TryParse<DocumentStatus>(s, true, out var v) ? (DocumentStatus?)v : null)
+            .Where(v => v.HasValue).Select(v => v!.Value).ToList();
+        var query = new GetDocumentsQuery(pageNumber, Math.Min(pageSize, 100), search, status, sortBy, descending, requestTypeId, statusList);
         var result = await listHandler.HandleAsync(query, ct);
         return Ok(result);
     }
@@ -273,6 +288,73 @@ public class DocumentsController(
         return Ok(result);
     }
 
+    /// <summary>
+    /// Ask a question about the contract. The answer comes only from the contract's own text and is shown with the
+    /// excerpts that support it, each checked word for word. The client keeps the conversation and sends it back.
+    /// </summary>
+    [HttpPost("{id:guid}/ask")]
+    [ProducesResponseType(typeof(ContractChatReplyDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 422)]
+    [ProducesResponseType(typeof(ProblemDetails), 503)]
+    public async Task<ActionResult<ContractChatReplyDto>> Ask(
+        [FromRoute] Guid id,
+        [FromBody] AskContractQuestionRequest request,
+        [FromServices] ICommandHandler<AskContractQuestionCommand, ContractChatReplyDto> askHandler,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await askHandler.HandleAsync(
+                new AskContractQuestionCommand(id, request.Question, request.History ?? [], request.Language ?? "fr"), ct);
+            return Ok(result);
+        }
+        catch (AiNotConfiguredException)
+        {
+            return Problem("Harvey is not configured on this server.", statusCode: 503);
+        }
+        catch (HttpRequestException)
+        {
+            return Problem("The language model could not be reached. Please try again.", statusCode: 502);
+        }
+    }
+
+    /// <summary>The contract's key data read by the AI assistant, each value with the sentence it comes from (checked
+    /// word for word). Nothing is saved: apply the term with PATCH {id}/term.</summary>
+    [HttpPost("{id:guid}/key-terms")]
+    [ProducesResponseType(typeof(KeyTermsDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 503)]
+    public Task<ActionResult<KeyTermsDto>> ExtractKeyTerms(
+        [FromRoute] Guid id, [FromQuery] string? language,
+        [FromServices] ICommandHandler<ExtractKeyTermsCommand, KeyTermsDto> handler, CancellationToken ct) =>
+        AiCall(() => handler.HandleAsync(new ExtractKeyTermsCommand(id, language ?? "fr"), ct));
+
+    /// <summary>A short AI decision note for the contract's next deadline: renew, renegotiate or terminate.</summary>
+    [HttpPost("{id:guid}/renewal-note")]
+    [ProducesResponseType(typeof(RenewalNoteDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 503)]
+    public Task<ActionResult<RenewalNoteDto>> WriteRenewalNote(
+        [FromRoute] Guid id, [FromQuery] string? language,
+        [FromServices] ICommandHandler<WriteRenewalNoteCommand, RenewalNoteDto> handler, CancellationToken ct) =>
+        AiCall(() => handler.HandleAsync(new WriteRenewalNoteCommand(id, language ?? "fr"), ct));
+
+    private async Task<ActionResult<T>> AiCall<T>(Func<Task<T>> call)
+    {
+        try
+        {
+            return Ok(await call());
+        }
+        catch (AiNotConfiguredException)
+        {
+            return Problem("Harvey is not configured on this server.", statusCode: 503);
+        }
+        catch (HttpRequestException)
+        {
+            return Problem("The language model could not be reached. Please try again.", statusCode: 502);
+        }
+    }
+
     /// <summary>Check the contract against the published regulatory watch registry — a keyword scan, not a legal opinion</summary>
     [HttpPost("{id:guid}/compliance")]
     [ProducesResponseType(typeof(ComplianceAnalysisDto), 200)]
@@ -418,3 +500,6 @@ public record SetReadinessItemStatusRequest(ReadinessItemStatus Status, string? 
 
 /// <summary>Force lets the owner send past a "needs work" verdict after acknowledging it.</summary>
 public record SendDocumentRequest(bool Force = false);
+
+/// <summary>A question about a contract, with the conversation so far (the client keeps it).</summary>
+public record AskContractQuestionRequest(string Question, IReadOnlyList<ChatTurn>? History, string? Language);

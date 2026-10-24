@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, get_embedder, get_matcher, require_api_key
@@ -6,6 +6,8 @@ from datetime import date
 
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import (
+    ReviewIn,
+    ReviewOut,
     ClassifyIn,
     ClassifyOut,
     ClauseMatchOut,
@@ -17,6 +19,7 @@ from app.schemas import (
     CitationBatchIn,
     CitationIn,
     CitationOut,
+    FormDetectionOut,
     IndexStatus,
     LegalTextDetail,
     LegalTextIn,
@@ -127,11 +130,50 @@ def classify(body: ClassifyIn, request: Request, db: Session = Depends(get_db), 
 
     if matcher is None:
         return ClassifyOut(enabled=False, model=None, matches=[])
-    served = playbook.resolve(db, request.app.state.settings.playbook_path)["rules"]
+    served = playbook.resolve(db)["rules"]
     rules = [RuleExamples(k, r.get("label") or k, r.get("examples", []), r.get("counter_examples", []))
              for k, r in served.items()]
     matches = matcher.classify([(c.reference, c.text) for c in body.clauses], rules, body.threshold)
     return ClassifyOut(enabled=True, model=matcher.embedder.name, matches=[ClauseMatchOut(**m.__dict__) for m in matches])
+
+
+@router.post("/review", response_model=ReviewOut, tags=["retrieval"])
+def review_contract(body: ReviewIn, db: Session = Depends(get_db), matcher=Depends(get_matcher)):
+    """Harvey's contract review: the risks in the clauses LegalDesk sends, found by meaning (example clauses) and by
+    checks in code (contradictory figures, missing references, required mentions). Runs on this server; nothing is
+    sent anywhere. LegalDesk attaches the law and the corrected clause from /playbook afterwards."""
+    from app.services import review
+
+    if matcher is None:
+        raise HTTPException(status_code=503, detail="No semantic model installed: Harvey cannot review contracts.")
+    clauses = [review.Clause(c.reference, c.text) for c in body.clauses]
+    findings, lang = review.review(clauses, playbook.load(db)["rules"], matcher, body.language)
+    return ReviewOut(language=lang, model=matcher.embedder.name, findings=review.as_dicts(findings))
+
+
+MAX_PDF_BYTES = 25 * 1024 * 1024
+
+
+@router.post("/forms/detect", response_model=FormDetectionOut, tags=["forms"])
+async def detect_form_fields(request: Request, file: UploadFile = File(...)):
+    """Finds the fields of a contract PDF and proposes a type, label, fill role and auto-fill for each, ready to become
+    a SignFlow PDF template. The PDF is processed on this server; a language model only tidies labels when it runs
+    locally. Nothing is saved: a person reviews the proposal first."""
+    from starlette.concurrency import run_in_threadpool
+
+    from app.services import formdetect
+
+    data = await file.read(MAX_PDF_BYTES + 1)
+    if len(data) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=413, detail="PDF larger than 25 MB.")
+    if not data.startswith(b"%PDF"):
+        raise HTTPException(status_code=422, detail="The file is not a PDF.")
+    try:
+        detection = await run_in_threadpool(formdetect.detect, data, request.app.state.llm)
+    except Exception as error:
+        raise HTTPException(status_code=422, detail=f"The PDF could not be read: {error}") from error
+    return FormDetectionOut(pages=detection.pages, model=detection.model, ai_used=detection.ai_used,
+                            notes=detection.notes, fields=[f.__dict__ for f in detection.fields])
 
 
 @router.get("/articles/{article_id}/explanation", tags=["articles"])
@@ -183,7 +225,7 @@ def check_batch(body: CitationBatchIn, db: Session = Depends(get_db)):
 
 @router.get("/playbook", tags=["retrieval"])
 def get_playbook(request: Request, include_unconfirmed: bool = False, db: Session = Depends(get_db)):
-    return playbook.resolve(db, request.app.state.settings.playbook_path, include_unconfirmed)
+    return playbook.resolve(db, include_unconfirmed)
 
 
 @router.get("/index/status", response_model=IndexStatus, tags=["index"])

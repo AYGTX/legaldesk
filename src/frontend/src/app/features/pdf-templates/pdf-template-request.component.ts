@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ClausePickerDialogComponent } from '../clauses/clause-picker-dialog.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -108,6 +110,22 @@ import { formatSla } from '../../core/utils/sla';
               </section>
             }
 
+            <!-- The workflow this template follows decides the first approvers -->
+            @if (template()?.workflowPreset; as wp) {
+              <section class="card">
+                <h2 class="card-title">{{ 'pdfTemplates.request.workflow' | translate: { name: wp.name } }}</h2>
+                @for (st of wp.steps; track st.order) {
+                  <div class="approver-slot">
+                    <div class="slot-head">
+                      <span class="slot-num">{{ st.order }}</span>
+                      <span><strong>{{ st.label || ('admin.workflows.step' | translate) }}</strong> · {{ st.who }}</span>
+                    </div>
+                    @if (st.condition) { <p class="wf-cond">{{ 'admin.workflows.onlyWhen' | translate }} {{ st.condition }}</p> }
+                  </div>
+                }
+              </section>
+            }
+
             <!-- Approver pickers -->
             @if (approverSlots().length > 0) {
               <section class="card">
@@ -122,12 +140,28 @@ import { formatSla } from '../../core/utils/sla';
                   </div>
                 }
               </section>
-            } @else {
+            } @else if (!template()?.workflowPreset) {
               <section class="card info-card">
                 <mat-icon>info</mat-icon>
                 <span>{{ 'pdfTemplates.request.approversPreassigned' | translate }}</span>
               </section>
             }
+
+            <!-- Annex: approved library clauses carried on extra pages after the contract -->
+            <section class="card">
+              <h2 class="card-title">{{ 'pdfTemplates.annex.requestTitle' | translate }}</h2>
+              <p class="annex-hint">{{ 'pdfTemplates.annex.requestHint' | translate }}</p>
+              @for (c of template()?.annexClauses ?? []; track c.id) {
+                <div class="annex-row"><mat-icon>lock</mat-icon><span>{{ c.title }}</span><em>{{ 'pdfTemplates.annex.always' | translate }}</em></div>
+              }
+              @for (c of extraClauses(); track c.id) {
+                <div class="annex-row">
+                  <mat-icon>menu_book</mat-icon><span>{{ c.title }}</span>
+                  <button type="button" (click)="removeClause(c.id)" [attr.aria-label]="'common.delete' | translate"><mat-icon>close</mat-icon></button>
+                </div>
+              }
+              <button mat-stroked-button type="button" (click)="addClause()"><mat-icon>add</mat-icon> {{ 'pdfTemplates.annex.add' | translate }}</button>
+            </section>
 
             <!-- Options -->
             <section class="card">
@@ -214,6 +248,13 @@ import { formatSla } from '../../core/utils/sla';
     .ti:focus { border-color: #0b57d0; }
     .ff { width: 100%; }
     .approver-slot { border: 1px solid #e8edf2; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+    .annex-hint { margin: 0 0 10px; font-size: 13px; color: #5f6368; line-height: 1.5; }
+    .annex-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 8px; border: 1px solid #e0e4ea; border-radius: 8px; background: #f8faff; font-size: 14px; }
+    .annex-row span { flex: 1; min-width: 0; }
+    .annex-row em { font-size: 12px; color: #80868b; }
+    .annex-row mat-icon { font-size: 18px; width: 18px; height: 18px; color: #7627bb; }
+    .annex-row button { border: none; background: transparent; cursor: pointer; padding: 0; display: inline-flex; color: #5f6368; }
+    .wf-cond { margin: 6px 0 0 36px; font-size: 12px; color: #b06000; }
     .slot-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; font-weight: 500; }
     .slot-num { width: 22px; height: 22px; border-radius: 50%; background: #188038; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
     .submit-row { display: flex; justify-content: flex-end; }
@@ -246,11 +287,13 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
   @ViewChild('previewFrame') previewFrameRef?: ElementRef<HTMLDivElement>;
 
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly svc = inject(PdfTemplateService);
   private readonly userService = inject(UserService);
   private readonly documentSvc = inject(DocumentService);
   private readonly auth = inject(AuthService);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
   readonly formatSla = formatSla;
 
@@ -274,6 +317,20 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
 
   values: Record<string, string> = {};
   approvers: ApproverEntry[] = [];
+  /** Clauses the requester adds on top of the template's own annex. */
+  readonly extraClauses = signal<{ id: string; title: string }[]>([]);
+
+  addClause(): void {
+    this.dialog.open(ClausePickerDialogComponent, { width: '780px', maxWidth: '95vw' })
+      .afterClosed().subscribe((clause?: { id: string; title: string }) => {
+        const alreadyThere = clause && (this.extraClauses().some(c => c.id === clause.id)
+          || (this.template()?.annexClauses ?? []).some(c => c.id === clause.id));
+        if (!clause || alreadyThere) return;
+        this.extraClauses.update(list => [...list, { id: clause.id, title: clause.title }]);
+      });
+  }
+
+  removeClause(id: string): void { this.extraClauses.update(list => list.filter(c => c.id !== id)); }
   title = '';
   message = '';
   templateId = '';
@@ -291,9 +348,12 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
     const t = this.template();
     if (!t) return [];
     if (t.defaultApproverId) return [];
+    // The workflow names the signer of the first signature fields; only the rest are left to the requester.
+    const covered = t.workflowPreset?.steps.length ?? 0;
     return t.fields
-      .filter(f => f.fillRole === 'Approver' && f.type === 'Signature' && !f.preAssignedApproverId)
-      .sort((a, b) => a.order - b.order);
+      .filter(f => f.fillRole === 'Approver' && f.type === 'Signature')
+      .sort((a, b) => a.order - b.order)
+      .filter((f, i) => i >= covered && !f.preAssignedApproverId);
   });
 
   /** Labels of fields that are auto-populated (shown to the user so they know why they're already filled in). */
@@ -317,8 +377,18 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
     return String(this.values[f.fieldKey] ?? f.defaultValue ?? '');
   }
 
+  /** The workflow step that decides who signs this approver signature field, if the template follows a workflow. */
+  private workflowStepFor(f: PdfTemplateFieldDto) {
+    const t = this.template();
+    if (!t?.workflowPreset || f.type !== 'Signature' || f.fillRole !== 'Approver') return null;
+    const sigs = t.fields.filter(x => x.fillRole === 'Approver' && x.type === 'Signature').sort((a, b) => a.order - b.order);
+    return t.workflowPreset.steps[sigs.findIndex(x => x.fieldKey === f.fieldKey)] ?? null;
+  }
+
   /** Who will sign an approver field, reflecting the current picker selection so the preview stays live. */
   approverLabelFor(f: PdfTemplateFieldDto): string {
+    const step = this.workflowStepFor(f);
+    if (step) return step.who;
     if (f.preAssignedApproverName) return f.preAssignedApproverName;
     if (this.template()?.defaultApproverName) return this.template()!.defaultApproverName!;
     const idx = this.approverSlots().findIndex(s => s.fieldKey === f.fieldKey);
@@ -454,15 +524,14 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
       filledValues: Object.fromEntries(Object.entries(this.values).map(([k, v]) => [k, String(v ?? '')])),
       approvers: approverSelections.length ? approverSelections : undefined,
       title: this.title.trim() || undefined,
-      message: this.message.trim() || undefined
+      message: this.message.trim() || undefined,
+      clauseIds: this.extraClauses().length ? this.extraClauses().map(c => c.id) : undefined,
+      // Nobody is notified yet: the request opens on the review page, which sends it once it has been reviewed.
+      startImmediately: false
     }).subscribe({
       next: res => {
         this.submitting.set(false);
-        this.step.set('done');
-        this.documentSvc.getDocument(res.documentId).subscribe({
-          next: doc => this.createdRecipients.set(doc.recipients),
-          error: () => {} // non-critical: the done screen still works without the link list
-        });
+        this.router.navigate(['/review'], { queryParams: { documentId: res.documentId } });
       },
       error: (err: { error?: { detail?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);

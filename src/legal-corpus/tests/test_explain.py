@@ -92,9 +92,7 @@ def test_approved_explanations_travel_with_the_playbook(tmp_path):
     from app.main import create_app
     from tests.conftest import LAW
 
-    path = tmp_path / "playbook.json"
-    path.write_text(json.dumps({"rules": [], "regulations": {}}), encoding="utf-8")
-    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None, playbook_path=path))
+    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None, legacy_playbook_file=None, seed_risks=False))
     with TestClient(app) as c:
         c.post("/login", data={"login": "admin", "password": "admin"})
         text = c.post("/api/v1/texts", json={"title": "Données", "reference": "Loi test n° 1", "jurisdiction": "Tunisia",

@@ -1,6 +1,6 @@
 import { ReadinessVerdict } from './contract-intelligence.model';
 
-export type DocumentStatus = 'Draft' | 'Pending' | 'Sent' | 'Completed' | 'Rejected' | 'Expired' | 'Cancelled' | 'WaitingForOthers' | 'ChangesRequested';
+export type DocumentStatus = 'Draft' | 'Pending' | 'InProgress' | 'Sent' | 'Completed' | 'Rejected' | 'Expired' | 'Cancelled' | 'WaitingForOthers' | 'ChangesRequested';
 export type FieldType = 'Signature' | 'Initials' | 'Date' | 'Name' | 'Email' | 'Company' | 'Title' | 'Text' | 'MultilineText' | 'Number' | 'Checkbox' | 'Radio' | 'Dropdown' | 'Image' | 'Stamp' | 'Attachment' | 'QrCode' | 'Barcode' | 'Custom';
 export type ApprovalType = 'Signature' | 'Approval' | 'Review' | 'ViewOnly' | 'Stamp' | 'Reject';
 export type WorkflowType = 'Sequential' | 'Parallel' | 'Mixed';

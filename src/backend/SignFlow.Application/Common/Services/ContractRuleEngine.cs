@@ -5,13 +5,11 @@ using SignFlow.Application.Common.Interfaces;
 namespace SignFlow.Application.Common.Services;
 
 /// <summary>
-/// Deterministic contract review, clause by clause, in French and English. Each rule reads the clause it fires on, so
-/// severity follows what the clause actually says ("pénalité sans plafond" is not "pénalité plafonnée à 10 %"), and
-/// structural checks catch what a word scan cannot: contradictory figures, references to missing articles, parties
-/// named inconsistently, personal data handed to a foreign party. Every finding names the clause it comes from and
-/// carries the playbook key that links it to verified law.
+/// What stays of LegalDesk's own contract reading now that Harvey reviews contracts: splitting a contract into clauses,
+/// naming them ("Article 5 — Responsabilité"), and turning Harvey's findings into a scored analysis. The former keyword
+/// rules are kept below, switched off (compile with LEGACY_RULES to bring them back); Harvey's /review replaces them.
 /// </summary>
-public static class ContractRuleEngine
+public static partial class ContractRuleEngine
 {
     public const string High = "High";
     public const string Medium = "Medium";
@@ -24,6 +22,78 @@ public static class ContractRuleEngine
         public string T(string en, string french) => fr ? french : en;
     }
 
+    /// <summary>Finding type of a meaning-based lead: shown apart from certain findings, and not counted in the score.</summary>
+    public const string Possible = "Possible";
+
+    /// <summary>The clauses as the review names them ("Article 5 — Responsabilité"), for services that work clause by clause.</summary>
+    public static IReadOnlyList<ClauseText> ClauseTexts(string? text) =>
+        SplitClauses(text).Select(ToClause).Select(c => new ClauseText(c.Heading, c.Text)).ToList();
+
+    private static List<RiskFinding> Order(List<RiskFinding> findings) =>
+        findings.OrderBy(f => f.Severity switch { High => 0, Medium => 1, _ => 2 }).ToList();
+
+    private static int Score(IEnumerable<RiskFinding> findings) =>
+        Math.Min(100, findings.Where(f => f.FindingType != Possible).Sum(f => f.Severity switch { High => 20, Medium => 10, _ => 2 }));
+
+    /// <summary>Harvey's findings as an analysis: ordered by severity, scored, with a "nothing found" line when empty.</summary>
+    public static ContractRiskAnalysis FromFindings(IReadOnlyList<RiskFinding> findings, string? language)
+    {
+        var l = new Lang(language != "en");
+        var list = findings.ToList();
+        if (list.Count == 0)
+            list.Add(new RiskFinding(l.T("General", "Général"), Low,
+                l.T("Harvey found no risk in this contract.", "Harvey n'a détecté aucun point de risque dans ce contrat.")));
+        return new ContractRiskAnalysis(Score(list), Order(list), DateTime.UtcNow);
+    }
+
+    /// <summary>Harvey could not be reached: no findings, and a limitation that says why, so the empty list is never
+    /// read as "no risk".</summary>
+    public static ContractRiskAnalysis ReviewUnavailable(string? language)
+    {
+        var l = new Lang(language != "en");
+        return new ContractRiskAnalysis(0, [], DateTime.UtcNow, Limitations:
+        [
+            l.T("Harvey, LegalDesk's review agent, is unavailable: this contract has not been reviewed. Run the analysis again once Harvey is back.",
+                "Harvey, l'agent de revue de LegalDesk, est indisponible : ce contrat n'a pas été analysé. Relancez l'analyse quand Harvey sera de nouveau disponible.")
+        ], ReviewFailed: true);
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    // A heading is "ARTICLE 6 - …" / "Article 6 : …": the number is followed by a separator. A reference such as
+    // "l'Article 14 du présent Contrat" has none, so it never splits a clause.
+    private static readonly Regex InlineHeading = new(
+        @"(?<=\S)\s+(?=(?i:article|clause)\s+\d+\s*[-–—:]\s)", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Clauses of a contract whatever the text extraction did with line breaks: PDF text often arrives as one line per
+    /// page, so headings are also found mid-line.
+    /// </summary>
+    public static List<string> SplitClauses(string? text) =>
+        ContractDiffer.SplitClauses(text is null ? null : InlineHeading.Replace(text, "\n\n"));
+
+    // Case-sensitive on purpose: the title is the run of capitals ("PÉNALITÉS") before the first sentence ("Pour …").
+    private static readonly Regex Heading = new(
+        @"^\s*(?i:article|art\.|clause|section)\s*(\d+)\s*[-–—:.)]?\s*([\p{Lu}\p{N}\s'’&/,-]{2,60}?)(?=\s+\p{Lu}\p{Ll}|\s*$)",
+        RegexOptions.Compiled);
+
+    private static Clause ToClause(string text)
+    {
+        var m = Heading.Match(text);
+        if (!m.Success) return new Clause(text.Length > 50 ? text[..50] + "…" : text, text, null);
+        var title = m.Groups[2].Value.Trim();
+        var label = $"Article {m.Groups[1].Value}" + (title.Length > 0 ? $" — {Capitalize(title)}" : "");
+        return new Clause(label, text, int.Parse(m.Groups[1].Value));
+    }
+
+    private static string Capitalize(string s) =>
+        s.Length == 0 ? s : char.ToUpper(s[0], CultureInfo.InvariantCulture) + s[1..].ToLower(CultureInfo.InvariantCulture);
+}
+
+#if LEGACY_RULES
+// The keyword rules LegalDesk used before Harvey's review (kept for reference, not compiled).
+public static partial class ContractRuleEngine
+{
     public static ContractRiskAnalysis Analyze(string? text)
     {
         text ??= string.Empty;
@@ -111,13 +181,6 @@ public static class ContractRuleEngine
         return risk with { Findings = ordered, RiskScore = score };
     }
 
-    /// <summary>Finding type of a meaning-based lead: shown apart from certain findings, and not counted in the score.</summary>
-    public const string Possible = "Possible";
-
-    /// <summary>The clauses as the review names them ("Article 5 — Responsabilité"), for services that work clause by clause.</summary>
-    public static IReadOnlyList<ClauseText> ClauseTexts(string? text) =>
-        SplitClauses(text).Select(ToClause).Select(c => new ClauseText(c.Heading, c.Text)).ToList();
-
     /// <summary>
     /// Adds a "possible risk" finding for each meaning-based match on a clause where no finding already raised that
     /// rule. Possible findings are leads for a reviewer: grouped apart in the UI and left out of the risk score.
@@ -149,12 +212,6 @@ public static class ContractRuleEngine
                                 && (f.ClauseType == "General" || f.ClauseType == "Général"));
         return risk with { Findings = Order(findings), RiskScore = Score(findings) };
     }
-
-    private static List<RiskFinding> Order(List<RiskFinding> findings) =>
-        findings.OrderBy(f => f.Severity switch { High => 0, Medium => 1, _ => 2 }).ToList();
-
-    private static int Score(IEnumerable<RiskFinding> findings) =>
-        Math.Min(100, findings.Where(f => f.FindingType != Possible).Sum(f => f.Severity switch { High => 20, Medium => 10, _ => 2 }));
 
     /// <summary>Lower case, no accents, one space between words, straight apostrophes: "Prendra  en CHARGE l’intégralité" → "prendra en charge l'integralite".</summary>
     private static string Fold(string s)
@@ -799,36 +856,6 @@ public static class ContractRuleEngine
         }
     }
 
-    // ------------------------------------------------------------------ helpers
-
-    // A heading is "ARTICLE 6 - …" / "Article 6 : …": the number is followed by a separator. A reference such as
-    // "l'Article 14 du présent Contrat" has none, so it never splits a clause.
-    private static readonly Regex InlineHeading = new(
-        @"(?<=\S)\s+(?=(?i:article|clause)\s+\d+\s*[-–—:]\s)", RegexOptions.Compiled);
-
-    /// <summary>
-    /// Clauses of a contract whatever the text extraction did with line breaks: PDF text often arrives as one line per
-    /// page, so headings are also found mid-line.
-    /// </summary>
-    public static List<string> SplitClauses(string? text) =>
-        ContractDiffer.SplitClauses(text is null ? null : InlineHeading.Replace(text, "\n\n"));
-
-    // Case-sensitive on purpose: the title is the run of capitals ("PÉNALITÉS") before the first sentence ("Pour …").
-    private static readonly Regex Heading = new(
-        @"^\s*(?i:article|art\.|clause|section)\s*(\d+)\s*[-–—:.)]?\s*([\p{Lu}\p{N}\s'’&/,-]{2,60}?)(?=\s+\p{Lu}\p{Ll}|\s*$)",
-        RegexOptions.Compiled);
-
-    private static Clause ToClause(string text)
-    {
-        var m = Heading.Match(text);
-        if (!m.Success) return new Clause(text.Length > 50 ? text[..50] + "…" : text, text, null);
-        var title = m.Groups[2].Value.Trim();
-        var label = $"Article {m.Groups[1].Value}" + (title.Length > 0 ? $" — {Capitalize(title)}" : "");
-        return new Clause(label, text, int.Parse(m.Groups[1].Value));
-    }
-
-    private static string Capitalize(string s) =>
-        s.Length == 0 ? s : char.ToUpper(s[0], CultureInfo.InvariantCulture) + s[1..].ToLower(CultureInfo.InvariantCulture);
 
     private static bool Has(Clause c, params string[] terms) =>
         terms.Any(t => c.Text.Contains(t, StringComparison.OrdinalIgnoreCase));
@@ -836,3 +863,4 @@ public static class ContractRuleEngine
     private static RiskFinding Finding(Clause c, string? ruleKey, string title, string severity, string explanation, string? action) =>
         new(title, severity, explanation, RecommendedAction: action, ContractReference: c.Heading, RuleKey: ruleKey);
 }
+#endif

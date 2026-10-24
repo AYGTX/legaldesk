@@ -29,6 +29,12 @@ _TEXT_START = re.compile(
 )
 # The enacting words that follow a title whose last line has no full stop.
 _TITLE_END = re.compile(r"^(?:Au nom du peuple|Le Président|Le ministre|Le Chef du|Vu\s)", re.IGNORECASE)
+# A law "portant promulgation du code X" reproduces the code as an annex: a standalone all-caps title line ("CODE DES
+# ASSURANCES"), then the code's own numbering restarts at "Article premier" — a second text with no Loi/Décret header
+# of its own to trigger _TEXT_START, bundled inside the promulgation law's candidate. Its first few articles then
+# collide in number with the promulgation law's own short articles ("Article premier" through "Article 4 or 5"),
+# so without cutting here too, the two get imported as one text and "Article premier" exists twice.
+_CODE_ANNEX_TITLE = re.compile(r"^(CODE\s+(?:DES|DU|DE(?:\s+LA)?|D')\s*[A-ZÀ-ÞŒ][A-ZÀ-ÞŒ' -]{2,77})\s*$")
 # The citation part of a title: everything up to the date's year (and a number after it, e.g. "du 1er mars 2016").
 _REFERENCE = re.compile(r"^(.*?\b(?:19|20)\d{2})(?=[\s,.(]|$)")
 
@@ -84,7 +90,7 @@ def _title(lines: list[str]) -> str:
 
 def _candidates(text: str) -> list[Candidate]:
     lines = text.split("\n")
-    starts = [i for i, line in enumerate(lines) if _TEXT_START.match(line.strip())]
+    starts = [i for i, line in enumerate(lines) if _TEXT_START.match(line.strip()) or _CODE_ANNEX_TITLE.match(line.strip())]
     if not starts:
         starts = [0]
     elif starts[0] != 0 and "\n".join(lines[: starts[0]]).strip():
@@ -97,11 +103,14 @@ def _candidates(text: str) -> list[Candidate]:
         raw = "\n".join(lines[start:end]).strip()
         if not raw:
             continue
-        title = _title(lines[start:end]) if _TEXT_START.match(lines[start].strip()) else ""
+        first_line = lines[start].strip()
+        annex = _CODE_ANNEX_TITLE.match(first_line)
+        title = _title(lines[start:end]) if _TEXT_START.match(first_line) else (annex.group(1).capitalize() if annex else "")
         reference = _REFERENCE.match(title)
         count = len(split_articles(raw).articles)
-        # A scrap with no article and no title (the end of the previous text on the first page) is not a text.
-        if count == 0 and not title:
+        # A scrap with no articles is not an importable text: either the tail of the previous page (no title), or a
+        # table-of-contents line that happens to read like a title (e.g. "Décret n° ... du ... 161" with no body).
+        if count == 0:
             continue
         candidates.append(Candidate(
             title=title[:300],
@@ -136,3 +145,38 @@ def guess_language(text: str) -> str:
     english = sum(w in {"the", "and", "of", "shall"} for w in words)
     french = sum(w in {"le", "la", "les", "et", "des", "du"} for w in words)
     return "en" if english > french else "fr"
+
+
+ROLES = ("main", "promulgation", "amendment", "ignore")
+_PROMULGATION = re.compile(r"portant\s+promulgation|promulguant", re.IGNORECASE)
+_AMENDMENT = re.compile(r"portant\s+(?:approbation|modification|réorganisation)|modifiant|complétant|abrogeant", re.IGNORECASE)
+
+
+def guess_roles(candidates: list[Candidate]) -> list[str]:
+    """What each text of a codified edition is: the act that put the code in force, a law already written into it,
+    or the code itself (the text with the most articles). Shown to a person, who can change it."""
+    roles = []
+    for c in candidates:
+        if _PROMULGATION.search(c.title):
+            roles.append("promulgation")
+        elif _AMENDMENT.search(c.title):
+            roles.append("amendment")
+        else:
+            roles.append("other")
+    others = [i for i, r in enumerate(roles) if r == "other"]
+    main = max(others or range(len(candidates)), key=lambda i: candidates[i].article_count)
+    return ["main" if i == main else ("ignore" if r == "other" else r) for i, r in enumerate(roles)]
+
+
+def combine(candidates: list[Candidate], roles: list[str]) -> tuple[Candidate, str, str]:
+    """The text to import, with its reference taken from the promulgation act and a summary line naming the laws
+    already written into it."""
+    main = next(c for c, r in zip(candidates, roles) if r == "main")
+    promulgation = next((c for c, r in zip(candidates, roles) if r == "promulgation"), None)
+    amendments = [c.title for c, r in zip(candidates, roles) if r == "amendment"]
+    reference = main.reference or main.title
+    if promulgation is not None:
+        act = re.split(r",\s*portant", promulgation.title, maxsplit=1)[0].strip()
+        reference = f"{main.title} ({act})" if main.title else act
+    summary = ("Version consolidée, intégrant : " + " ; ".join(amendments) + ".") if amendments else ""
+    return main, reference, summary

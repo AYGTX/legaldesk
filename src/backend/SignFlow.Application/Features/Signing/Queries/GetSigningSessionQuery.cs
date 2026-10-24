@@ -33,7 +33,9 @@ public record SigningSessionDto(
     // Lets the signing UI show the paused/changes-requested state to every participant
     DocumentStatus DocumentStatus = DocumentStatus.InProgress,
     // What the participant must read before acting, and whether they already confirmed it
-    ReviewGateDto? ReviewGate = null);
+    ReviewGateDto? ReviewGate = null,
+    // Values other participants already filled in, drawn read-only over the PDF so the page is not blank
+    List<FilledFieldDto>? FilledFields = null);
 
 /// <param name="Required">The participant has a task, so they must read the document (and the review) before acting.</param>
 /// <param name="Acknowledged">They already confirmed it.</param>
@@ -67,6 +69,8 @@ public record RecipientSessionDto(Guid Id, string Name, string Email, ApprovalTy
 public record ChecklistItemSessionDto(Guid Id, string Text, int Order, bool IsChecked);
 
 public record WorkflowParticipantDto(int Order, string Name, WorkflowStepStatus Status, bool IsCurrent, bool IsMe, DateTime? SignedAt);
+/// <summary>A field another participant already completed: its text, or just who signed when the mark is a drawn signature.</summary>
+public record FilledFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, string? Value, string? SignerName, string? FontFamily, float? FontSize, string? FontColor);
 public record AssignedFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, string? Label, string? Placeholder, bool IsRequired, bool IsSigned, string? DefaultValue, string? Options, string? Tooltip, string? FontFamily, float? FontSize, string? FontColor, string? GroupName = null);
 
 public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHandler<GetSigningSessionQuery, SigningSessionDto>
@@ -201,7 +205,23 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
             renderedHtml,
             recipient.TokenExpiresAt,
             recipient.Document.Status,
-            await BuildReviewGateAsync(recipient, cancellationToken));
+            await BuildReviewGateAsync(recipient, cancellationToken),
+            await BuildFilledFieldsAsync(recipient, assignedFields.Select(f => f.Id).ToHashSet(),
+                allRecipients.ToDictionary(r => r.Id, r => r.Name), hide, cancellationToken));
+    }
+
+    private async Task<List<FilledFieldDto>> BuildFilledFieldsAsync(Domain.Entities.Recipient recipient, HashSet<Guid> mine,
+        Dictionary<Guid, string> names, bool hideIdentities, CancellationToken cancellationToken)
+    {
+        var filled = await db.SignatureFields.AsNoTracking()
+            .Where(f => f.DocumentId == recipient.DocumentId && f.IsSigned && f.SignedValue != null)
+            .ToListAsync(cancellationToken);
+        return filled
+            .Where(f => !mine.Contains(f.Id))
+            .Select(f => new FilledFieldDto(f.Id, f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height, f.Rotation, f.SignedValue,
+                !hideIdentities && f.RecipientId is Guid id && names.TryGetValue(id, out var n) ? n : null,
+                f.FontFamily, f.FontSize, f.FontColor))
+            .ToList();
     }
 
     private async Task<ReviewGateDto> BuildReviewGateAsync(Domain.Entities.Recipient recipient, CancellationToken cancellationToken)

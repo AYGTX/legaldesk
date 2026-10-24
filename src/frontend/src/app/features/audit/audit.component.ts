@@ -83,9 +83,9 @@ const ACTION_ICONS: Record<string, string> = {
             <th mat-header-cell *matHeaderCellDef>{{ 'audit.columns.user' | translate }}</th>
             <td mat-cell *matCellDef="let e">
               <div class="user-cell">
-                <div class="user-avatar">{{ initials(e.performedBy) }}</div>
+                <div class="user-avatar">{{ e.performedBy ? initials(e.performedBy) : '⚙' }}</div>
                 <div>
-                  <span class="user-name">{{ e.performedBy }}</span>
+                  <span class="user-name">{{ e.performedBy || ('audit.system' | translate) }}</span>
                   <span class="user-email">{{ e.performedByEmail }}</span>
                 </div>
               </div>
@@ -147,7 +147,7 @@ export class AuditComponent implements OnInit {
     const translated = this.translate.instant(`audit.actions.${action}`);
     return translated === `audit.actions.${action}` ? action : translated;
   }
-  initials(name: string): string { return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2); }
+  initials(name?: string | null): string { return (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2); }
 
   ngOnInit(): void {
     this.documentId = this.route.snapshot.paramMap.get('id')!;

@@ -80,11 +80,11 @@ def test_only_ticked_changes_are_applied(client, verified_text):
     assert client.get(f"/api/v1/texts/{text_id}").json()["articles"][1]["text"] != NEW_2
 
 
-def test_without_a_model_the_page_says_how_to_enable_one(client, verified_text):
+def test_without_a_model_the_page_asks_to_retry(client, verified_text):
     client.app.state.llm = NoLlm()
     page = client.post(f"/texts/{verified_text['id']}/amendments", data={"amending_text": AMENDING},
                        headers={"accept-language": "fr"}).text
-    assert "Aucun modèle de langage" in page
+    assert "pas répondu cette fois" in page
 
 
 def test_provider_switch():

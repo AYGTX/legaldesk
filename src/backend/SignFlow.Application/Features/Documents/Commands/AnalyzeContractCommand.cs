@@ -47,6 +47,13 @@ public class AnalyzeContractCommandHandler(
         var text = await textProvider.GetTextAsync(document, cancellationToken);
 
         var result = await aiService.AnalyzeContractAsync(text, document.Title, DateTime.UtcNow, cancellationToken);
+
+        // Harvey could not answer: keep the analysis already stored rather than replace it with an empty one that
+        // would read as "no risk" and carry a fresh date.
+        if (result.Risk.ReviewFailed)
+            throw new ConflictException(result.Risk.Limitations?.FirstOrDefault()
+                ?? "The contract review is unavailable; the analysis was not updated.");
+
         result = result with { Risk = await playbook.AttachToRiskAsync(result.Risk, text, cancellationToken) };
 
         document.SetAiRiskAnalysis(JsonSerializer.Serialize(result.Risk, ContractJson.Options));

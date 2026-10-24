@@ -19,6 +19,7 @@ public class HtmlTemplatesController(
     ICommandHandler<DeleteHtmlTemplateCommand> deleteHandler,
     ICommandHandler<CreateRequestFromHtmlTemplateCommand, Guid> submitHandler,
     ICommandHandler<GenerateHtmlTemplateCommand, GenerateHtmlTemplateResult> generateHandler,
+    ICommandHandler<ReviewHtmlTemplateCommand, ReviewHtmlTemplateResult> reviewHandler,
     IQueryHandler<GetHtmlTemplatesQuery, PagedResult<HtmlTemplateDto>> listHandler,
     IQueryHandler<GetHtmlTemplateByIdQuery, HtmlTemplateDetailDto> detailHandler) : ControllerBase
 {
@@ -66,7 +67,8 @@ public class HtmlTemplatesController(
                     f.PreAssignedApproverId, f.WorkflowStage, f.DefaultValue)).ToList(),
                 request.WorkflowType,
                 request.HideRecipientIdentities,
-                request.RequestTypeId), ct);
+                request.RequestTypeId,
+                request.WorkflowPresetId), ct);
         return CreatedAtAction(nameof(GetById), new { id }, new CreateHtmlTemplateResponse(id));
     }
 
@@ -91,7 +93,8 @@ public class HtmlTemplatesController(
                     f.PreAssignedApproverId, f.WorkflowStage, f.DefaultValue)).ToList(),
                 request.WorkflowType,
                 request.HideRecipientIdentities,
-                request.RequestTypeId), ct);
+                request.RequestTypeId,
+                request.WorkflowPresetId), ct);
         return NoContent();
     }
 
@@ -116,6 +119,23 @@ public class HtmlTemplatesController(
         [FromBody] GenerateHtmlTemplateRequest request, CancellationToken ct)
     {
         var result = await generateHandler.HandleAsync(new GenerateHtmlTemplateCommand(request.UserText), ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Reviews the template as written (even unsaved) with the legal review: findings, each tied to a clause.
+    /// 409 when the review could not run, rather than an empty result that reads as "no problems".
+    /// </summary>
+    [HttpPost("review")]
+    [Authorize(Roles = "Administrator,Manager")]
+    [ProducesResponseType(typeof(ReviewHtmlTemplateResult), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<ActionResult<ReviewHtmlTemplateResult>> Review(
+        [FromBody] ReviewHtmlTemplateRequest request, CancellationToken ct)
+    {
+        var result = await reviewHandler.HandleAsync(
+            new ReviewHtmlTemplateCommand(request.HtmlContent, request.Fields ?? []), ct);
         return Ok(result);
     }
 
@@ -161,7 +181,8 @@ public record CreateHtmlTemplateRequest(
     List<HtmlTemplateFieldRequest>? Fields = null,
     SignFlow.Domain.Enums.WorkflowType WorkflowType = SignFlow.Domain.Enums.WorkflowType.Sequential,
     bool HideRecipientIdentities = false,
-    Guid? RequestTypeId = null);
+    Guid? RequestTypeId = null,
+    Guid? WorkflowPresetId = null);
 
 public record UpdateHtmlTemplateRequest(
     string Name,
@@ -172,7 +193,8 @@ public record UpdateHtmlTemplateRequest(
     List<HtmlTemplateFieldRequest> Fields,
     SignFlow.Domain.Enums.WorkflowType WorkflowType = SignFlow.Domain.Enums.WorkflowType.Sequential,
     bool HideRecipientIdentities = false,
-    Guid? RequestTypeId = null);
+    Guid? RequestTypeId = null,
+    Guid? WorkflowPresetId = null);
 
 public record ApproverSelectionRequest(Guid? UserId = null, string? ExternalName = null, string? ExternalEmail = null);
 
@@ -184,4 +206,6 @@ public record SubmitFromTemplateRequest(
 
 public record CreateHtmlTemplateResponse(Guid Id);
 public record GenerateHtmlTemplateRequest(string UserText);
+
+public record ReviewHtmlTemplateRequest(string HtmlContent, List<ReviewTemplateField>? Fields);
 public record SubmitFromTemplateResponse(Guid DocumentId);
