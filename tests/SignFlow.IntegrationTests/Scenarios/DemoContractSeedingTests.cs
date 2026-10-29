@@ -62,7 +62,7 @@ public class DemoContractSeedingTests : IAsyncLifetime
     {
         var documents = await _db.Documents.Include(d => d.RequestType).ToListAsync();
 
-        Assert.Equal(9, documents.Count);
+        Assert.Equal(10, documents.Count);
 
         // All six contract families are represented, so the reporting breakdown is not one bar.
         Assert.Equal(6, documents.Select(d => d.RequestType!.Name).Distinct().Count());
@@ -218,9 +218,9 @@ public class DemoContractSeedingTests : IAsyncLifetime
             new DatabaseSeeder.DemoContractSeedContext(_storage, new PdfPigService(NullLogger<PdfPigService>.Instance)),
             NullLogger.Instance);
 
-        Assert.Equal(9, await _db.Documents.CountAsync());
-        // 9 contract PDFs + the vacation request template's base PDF.
-        Assert.Equal(10, _storage.Files.Count);
+        Assert.Equal(10, await _db.Documents.CountAsync());
+        // 10 contract PDFs (the bank contract was added on 18 October) + the vacation request template's base PDF.
+        Assert.Equal(11, _storage.Files.Count);
     }
 
     [Fact]
