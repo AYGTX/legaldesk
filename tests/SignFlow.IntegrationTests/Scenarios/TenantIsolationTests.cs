@@ -37,7 +37,7 @@ public class TenantIsolationTests : IDisposable
         using var db = ContextFor(null);
         var owned = db.Model.GetEntityTypes().Where(t => typeof(ITenantOwned).IsAssignableFrom(t.ClrType)).ToList();
 
-        Assert.Equal(28, owned.Count);
+        Assert.Equal(29, owned.Count);
         Assert.All(owned, t =>
         {
             Assert.Contains(t.GetDeclaredQueryFilters(), f => f.Key == QueryFilters.Tenant);

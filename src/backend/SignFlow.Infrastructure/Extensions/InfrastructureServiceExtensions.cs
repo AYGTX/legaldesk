@@ -136,6 +136,7 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<SlaExpirationJob>();
         services.AddScoped<ObligationReminderJob>();
         services.AddScoped<ContractTermAlertJob>();
+        services.AddScoped<OutboxDispatcherJob>();
 
         // SignalR
         services.AddSignalR(options =>
@@ -173,7 +174,9 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IAiService, LlmAiService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IStorageService, LocalStorageService>();
-        services.AddScoped<IEmailService, MailKitEmailService>();
+        // Features queue mail in the outbox; only the dispatcher job talks to SMTP (R-M4-9).
+        services.AddScoped<IEmailService, OutboxEmailService>();
+        services.AddScoped<ISmtpSender, MailKitEmailService>();
         services.AddScoped<IPdfService, PdfPigService>();
         services.AddScoped<ICacheService, RedisCacheService>();
         services.AddScoped<IAuditService, AuditService>();

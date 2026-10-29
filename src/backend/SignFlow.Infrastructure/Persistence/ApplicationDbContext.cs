@@ -18,6 +18,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     private Guid? CurrentOrganisationId => Tenant.OrganisationId;
 
     public DbSet<Organisation> Organisations => Set<Organisation>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<Recipient> Recipients => Set<Recipient>();
@@ -66,6 +67,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             o.HasIndex(x => x.Slug).IsUnique();
             o.Property(x => x.ModelMode).HasConversion<string>().HasMaxLength(20);
         });
+
+        // The dispatcher reads due messages in order.
+        builder.Entity<OutboxMessage>().HasIndex(m => new { m.SentAt, m.NextAttemptAt });
 
         // Soft delete
         builder.Entity<Document>().HasQueryFilter(QueryFilters.SoftDelete, d => !d.IsDeleted);

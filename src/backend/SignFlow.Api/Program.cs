@@ -177,6 +177,12 @@ try
         job => job.SweepAsync(CancellationToken.None),
         "*/15 * * * *");
 
+    // Outbox: send queued e-mail every minute, retrying failures (R-M4-9).
+    RecurringJob.AddOrUpdate<SignFlow.Infrastructure.Services.Email.OutboxDispatcherJob>(
+        "outbox-dispatch",
+        job => job.DispatchAsync(CancellationToken.None),
+        "* * * * *");
+
     // Recurring obligation sweep: remind owners of upcoming contract renewal/expiry dates daily.
     RecurringJob.AddOrUpdate<ObligationReminderJob>(
         "obligation-reminder-sweep",

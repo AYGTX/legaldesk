@@ -8,7 +8,14 @@ using SignFlow.Infrastructure.Extensions;
 
 namespace SignFlow.Infrastructure.Services.Email;
 
-public class MailKitEmailService(IOptions<EmailSettings> settings, ILogger<MailKitEmailService> logger) : IEmailService
+/// <summary>Talks to the SMTP server. Only the outbox dispatcher calls it; everything else queues through IEmailService.</summary>
+public interface ISmtpSender
+{
+    /// <summary>Sends now; throws when the server cannot take the message, so the dispatcher can retry.</summary>
+    Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default);
+}
+
+public class MailKitEmailService(IOptions<EmailSettings> settings, ILogger<MailKitEmailService> logger) : ISmtpSender
 {
     private readonly EmailSettings _settings = settings.Value;
 
@@ -37,9 +44,8 @@ public class MailKitEmailService(IOptions<EmailSettings> settings, ILogger<MailK
 
         email.Body = bodyBuilder.ToMessageBody();
 
-        try
+        using (var client = new SmtpClient())
         {
-            using var client = new SmtpClient();
             await client.ConnectAsync(_settings.Host, _settings.Port, _settings.UseSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTlsWhenAvailable, cancellationToken);
 
             if (!string.IsNullOrEmpty(_settings.Username))
@@ -50,20 +56,14 @@ public class MailKitEmailService(IOptions<EmailSettings> settings, ILogger<MailK
 
             logger.LogInformation("Email sent to {To} with subject {Subject}", message.To, message.Subject);
         }
-        catch (Exception ex) when (ex is System.Net.Sockets.SocketException or MailKit.Security.AuthenticationException or MailKit.CommandException or InvalidOperationException)
-        {
-            logger.LogWarning(ex, "Email to {To} could not be delivered (SMTP unavailable). Skipping.", message.To);
-        }
     }
 
-    public Task SendTemplateAsync(string to, string templateName, object model, string? subject = null, CancellationToken cancellationToken = default)
-    {
-        // Basic template rendering — in production use a proper template engine (Fluid, Scriban, etc.)
-        var body = BuildTemplateBody(templateName, model);
-        var finalSubject = subject ?? GetDefaultSubject(templateName);
-
-        return SendAsync(new EmailMessage(to, finalSubject, body), cancellationToken);
-    }
+    /// <summary>
+    /// Builds the message for a named template. Still a placeholder body (template name + model): real, bilingual
+    /// templates are rework spec R-M13-5.
+    /// </summary>
+    public static EmailMessage RenderTemplate(string to, string templateName, object model, string? subject = null) =>
+        new(to, subject ?? GetDefaultSubject(templateName), BuildTemplateBody(templateName, model));
 
     private static string BuildTemplateBody(string templateName, object model)
     {

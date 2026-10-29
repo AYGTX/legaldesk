@@ -19,12 +19,16 @@ public class ForgotPasswordCommandValidator : AbstractValidator<ForgotPasswordCo
 public class ForgotPasswordCommandHandler(
     UserManager<ApplicationUser> userManager,
     IEmailService emailService,
+    ITenantContext tenant,
     ILogger<ForgotPasswordCommandHandler> logger) : ICommandHandler<ForgotPasswordCommand>
 {
     public async Task HandleAsync(ForgotPasswordCommand command, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByEmailAsync(command.Email);
         if (user is null) return; // Don't reveal that user doesn't exist
+
+        // The request is anonymous; the queued e-mail belongs to the user's organisation.
+        using var scope = tenant.BeginScope(user.OrganisationId);
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
         user.PasswordResetToken = token;
