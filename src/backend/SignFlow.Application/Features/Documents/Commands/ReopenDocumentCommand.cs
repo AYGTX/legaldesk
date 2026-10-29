@@ -21,14 +21,15 @@ public class ReopenDocumentCommandHandler(
         if (!currentUser.IsInRole("Administrator"))
             throw new ForbiddenAccessException();
 
+        // A deleted contract stays deleted: no IgnoreQueryFilters here.
         var document = await db.Documents
-            .IgnoreQueryFilters()
             .Include(d => d.Workflow)
             .FirstOrDefaultAsync(d => d.Id == command.DocumentId, cancellationToken)
             ?? throw new NotFoundException(nameof(Document), command.DocumentId);
 
-        if (document.Status is not (DocumentStatus.Expired or DocumentStatus.Cancelled))
-            throw new ConflictException("Only expired or cancelled requests can be reopened.");
+        // Cancelled is final (ContractStateMachine); only a request that ran out of time comes back.
+        if (document.Status != DocumentStatus.Expired)
+            throw new ConflictException("Only expired requests can be reopened.");
 
         document.Reopen(command.SlaHours);
         document.Workflow?.Start();

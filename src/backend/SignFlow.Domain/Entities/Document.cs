@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using SignFlow.Domain.Enums;
+using SignFlow.Domain.Rules;
 
 namespace SignFlow.Domain.Entities;
 
@@ -159,7 +160,20 @@ public class Document : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>Moves the contract to <paramref name="status"/>; throws if <see cref="ContractStateMachine"/> forbids it.</summary>
     public void SetStatus(DocumentStatus status)
+    {
+        ContractStateMachine.EnsureCanMove(Status, status);
+        ApplyStatus(status);
+    }
+
+    /// <summary>
+    /// Stores a status without checking the move. Only for demo data and tests that need a contract already in a
+    /// given state; product code goes through <see cref="SetStatus"/>.
+    /// </summary>
+    public void SeedStatus(DocumentStatus status) => ApplyStatus(status);
+
+    private void ApplyStatus(DocumentStatus status)
     {
         Status = status;
         UpdatedAt = DateTime.UtcNow;
@@ -187,6 +201,7 @@ public class Document : BaseEntity
     /// <summary>Admin reopen: restarts the SLA clock from now and reactivates the workflow.</summary>
     public void Reopen(int? slaHours)
     {
+        ContractStateMachine.EnsureCanMove(Status, DocumentStatus.InProgress);
         var hours = slaHours ?? SlaHours;
         if (hours.HasValue)
             ExpiresAt = DateTime.UtcNow.AddHours(hours.Value);
@@ -206,6 +221,7 @@ public class Document : BaseEntity
     /// </summary>
     public void ApplyRevision(string fileName, string storagePath, long fileSizeBytes, int pageCount, string hash)
     {
+        ContractStateMachine.EnsureCanMove(Status, DocumentStatus.Draft);
         FileName = fileName;
         StoragePath = storagePath;
         FileSizeBytes = fileSizeBytes;

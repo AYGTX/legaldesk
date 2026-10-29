@@ -29,8 +29,9 @@ public class DeleteDocumentCommandHandler(
         if (document.OwnerId != currentUser.UserId && !currentUser.IsInRole("Administrator"))
             throw new ForbiddenAccessException();
 
-        if (document.Status == DocumentStatus.InProgress)
-            throw new ConflictException("Cannot delete a document that is in progress.");
+        // Only a draft can be deleted (R-M2-6): anything that went out for review or signature is evidence.
+        if (document.Status != DocumentStatus.Draft)
+            throw new ConflictException("Only a draft can be deleted.");
 
         document.SoftDelete();
         await db.SaveChangesAsync(cancellationToken);

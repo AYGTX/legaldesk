@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Domain.Exceptions;
 
 namespace SignFlow.Api.Middleware;
 
@@ -57,7 +58,14 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Status = 409,
                 Detail = ce.Message
             }),
-            DbUpdateConcurrencyException => (HttpStatusCode.Conflict, new ProblemDetails
+            InvalidStatusTransitionException iste => (HttpStatusCode.Conflict, new ProblemDetails
+            {
+                Title = "Conflict",
+                Status = 409,
+                Detail = iste.Message,
+                Extensions = { ["code"] = InvalidStatusTransitionException.Code, ["from"] = iste.From.ToString(), ["to"] = iste.To.ToString() }
+            }),
+            DbUpdateConcurrencyException =>(HttpStatusCode.Conflict, new ProblemDetails
             {
                 Title = "Concurrency Conflict",
                 Status = 409,

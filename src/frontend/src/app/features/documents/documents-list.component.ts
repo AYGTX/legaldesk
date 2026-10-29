@@ -267,10 +267,13 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
                 <button mat-menu-item (click)="download(doc)">
                   <mat-icon>download</mat-icon><span>{{ 'common.download' | translate }}</span>
                 </button>
-                <div class="menu-divider"></div>
-                <button mat-menu-item class="danger-item" (click)="confirmDelete(doc)">
-                  <mat-icon>delete_outline</mat-icon><span>{{ 'common.delete' | translate }}</span>
-                </button>
+                @if (doc.status === 'Draft') {
+                  <!-- Only a draft can be deleted (R-M2-6); the API refuses the rest. -->
+                  <div class="menu-divider"></div>
+                  <button mat-menu-item class="danger-item" (click)="confirmDelete(doc)">
+                    <mat-icon>delete_outline</mat-icon><span>{{ 'common.delete' | translate }}</span>
+                  </button>
+                }
               </mat-menu>
             </td>
           </ng-container>

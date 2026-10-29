@@ -62,7 +62,7 @@ public class TemplateRevisionTests
         await fixture.GetHandler<IWorkflowEngine>().StartAsync(document.Id);
         signature.SetSigned("signed");
         reviewer.RequestChanges("The amount is wrong, it should include VAT.");
-        document.SetStatus(DocumentStatus.ChangesRequested);
+        document.SeedStatus(DocumentStatus.ChangesRequested);
         await db.SaveChangesAsync();
 
         return new Seed(fixture, document, reviewer, signature, (FakeCurrentUserService)fixture.GetHandler<ICurrentUserService>());
@@ -188,7 +188,7 @@ public class TemplateRevisionTests
 
         // Not in a change-request state any more.
         var document = await fixture.Db.Documents.SingleAsync();
-        document.SetStatus(DocumentStatus.InProgress);
+        document.SeedStatus(DocumentStatus.InProgress);
         await fixture.Db.SaveChangesAsync();
         await Assert.ThrowsAsync<ConflictException>(() => ReviseHandler(fixture).HandleAsync(command));
     }
@@ -223,7 +223,7 @@ public class TemplateRevisionTests
 
         await fixture.GetHandler<IWorkflowEngine>().StartAsync(document.Id);
         manager.RequestChanges("Too many days");
-        document.SetStatus(DocumentStatus.ChangesRequested);
+        document.SeedStatus(DocumentStatus.ChangesRequested);
         await db.SaveChangesAsync();
 
         await ReviseHandler(fixture).HandleAsync(new ReviseFromTemplateCommand(
@@ -245,7 +245,7 @@ public class TemplateRevisionTests
 
         var document = Document.Create("Leave request", "x.pdf", "documents/x.pdf", 10, 1, OwnerId);
         document.SetPdfTemplateSource(Guid.NewGuid(), "{}");
-        document.SetStatus(DocumentStatus.ChangesRequested);
+        document.SeedStatus(DocumentStatus.ChangesRequested);
         db.Documents.Add(document);
         await db.SaveChangesAsync();
 

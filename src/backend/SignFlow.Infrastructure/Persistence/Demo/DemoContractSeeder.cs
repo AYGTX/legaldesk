@@ -136,7 +136,7 @@ internal static class DemoContractSeeder
         var sentAt = createdAt.AddHours(4);
         var completedAt = spec.CompletedDaysAgo is { } days ? today.AddDays(-days).AddHours(16) : (DateTime?)null;
 
-        document.SetStatus(spec.Status);
+        document.SeedStatus(spec.Status);
         if (spec.Status != DocumentStatus.Draft)
             Backdate(context, document, nameof(Document.SentAt), sentAt);
         if (completedAt is not null)
