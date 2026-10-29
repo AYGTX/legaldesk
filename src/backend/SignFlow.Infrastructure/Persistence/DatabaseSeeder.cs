@@ -20,6 +20,16 @@ public static class DatabaseSeeder
         SeedUsersOptions? seedUsers = null)
     {
         var userOptions = seedUsers ?? new SeedUsersOptions(true, []);
+
+        // Everything seeded belongs to the default organisation (the migration creates it on an existing database;
+        // a fresh in-memory or test database gets it here).
+        if (!await context.Organisations.AnyAsync(o => o.Id == Organisation.DefaultId))
+        {
+            context.Organisations.Add(Organisation.Create("Consultim IT", "consultim-it", Organisation.DefaultId));
+            await context.SaveChangesAsync();
+        }
+        using var tenantScope = context.Tenant.BeginScope(Organisation.DefaultId);
+
         // Roles
         string[] roles = ["Administrator", "Manager", "Employee", "ExternalSigner"];
         foreach (var roleName in roles)

@@ -2,8 +2,18 @@ using Microsoft.AspNetCore.Identity;
 
 namespace SignFlow.Domain.Entities;
 
-public class ApplicationUser : IdentityUser<Guid>
+public class ApplicationUser : IdentityUser<Guid>, ITenantOwned
 {
+    /// <summary>The one organisation this user belongs to (R-M0-2).</summary>
+    public Guid OrganisationId { get; private set; }
+
+    public void AssignOrganisation(Guid organisationId)
+    {
+        if (OrganisationId != Guid.Empty && OrganisationId != organisationId)
+            throw new InvalidOperationException("A user cannot move to another organisation.");
+        OrganisationId = organisationId;
+    }
+
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? Company { get; set; }

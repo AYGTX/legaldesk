@@ -2,7 +2,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class Notification : BaseEntity
+public class Notification : TenantEntity
 {
     public Guid? UserId { get; private set; }
     public ApplicationUser? User { get; private set; }

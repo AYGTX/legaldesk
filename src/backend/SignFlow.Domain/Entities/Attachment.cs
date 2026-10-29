@@ -1,6 +1,6 @@
 namespace SignFlow.Domain.Entities;
 
-public class Attachment : BaseEntity
+public class Attachment : TenantEntity
 {
     public Guid DocumentId { get; private set; }
     public Document Document { get; private set; } = null!;

@@ -8,7 +8,7 @@ namespace SignFlow.Domain.Entities;
 /// circuit. Items are reconciled across re-runs by <see cref="SourceKey"/>, so an owner who has
 /// already resolved or dismissed a finding does not see it come back after the next analysis.
 /// </summary>
-public class DocumentReadinessItem : BaseEntity
+public class DocumentReadinessItem : TenantEntity
 {
     public Guid DocumentId { get; private set; }
     public Document Document { get; private set; } = null!;

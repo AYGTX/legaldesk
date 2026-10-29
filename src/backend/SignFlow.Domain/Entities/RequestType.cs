@@ -4,7 +4,7 @@ namespace SignFlow.Domain.Entities;
 /// Central configuration for a category of signing request (e.g. Vacation Request, Purchase Approval).
 /// Defines the SLA (signing deadline) and presentation used when users create requests of this type.
 /// </summary>
-public class RequestType : BaseEntity
+public class RequestType : TenantEntity
 {
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }

@@ -26,6 +26,9 @@ public sealed class ScenarioFixture : IDisposable
 
     public IApplicationDbContext Db => _provider.GetRequiredService<IApplicationDbContext>();
 
+    /// <summary>The organisation this fixture's data belongs to.</summary>
+    public Guid OrganisationId { get; } = Guid.NewGuid();
+
     public ScenarioFixture(Guid ownerId, string ownerEmail = "owner@test.com")
     {
         var services = new ServiceCollection();
@@ -34,6 +37,15 @@ public sealed class ScenarioFixture : IDisposable
         var dbName = Guid.NewGuid().ToString();
         services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(dbName));
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+        // Every scenario acts for one organisation, as a signed-in request would (M0).
+        services.AddScoped<ITenantContext>(_ =>
+        {
+            var tenant = new TenantContext();
+            tenant.BeginScope(OrganisationId);
+            return tenant;
+        });
+        services.AddScoped<IPlatformQueries, PlatformQueries>();
 
         // Identity, so a workflow step can be resolved from a role.
         services.AddLogging();

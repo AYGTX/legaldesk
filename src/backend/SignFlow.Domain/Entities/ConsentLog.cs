@@ -3,7 +3,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class ConsentLog : BaseEntity
+public class ConsentLog : TenantEntity
 {
     [MaxLength(450)]
     public string UserId { get; private set; } = string.Empty;

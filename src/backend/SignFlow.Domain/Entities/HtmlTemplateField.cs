@@ -2,7 +2,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class HtmlTemplateField : BaseEntity
+public class HtmlTemplateField : TenantEntity
 {
     public Guid HtmlTemplateId { get; private set; }
     public HtmlTemplate HtmlTemplate { get; private set; } = null!;

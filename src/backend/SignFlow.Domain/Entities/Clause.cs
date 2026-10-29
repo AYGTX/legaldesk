@@ -7,7 +7,7 @@ namespace SignFlow.Domain.Entities;
 /// Drafters insert approved clauses into contract templates instead of re-writing standard
 /// language, so the organisation's negotiated positions stay consistent across contracts.
 /// </summary>
-public class Clause : BaseEntity
+public class Clause : TenantEntity
 {
     public string Title { get; private set; } = string.Empty;
     public ClauseCategory Category { get; private set; }

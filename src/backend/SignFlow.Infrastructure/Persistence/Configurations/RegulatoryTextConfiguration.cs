@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SignFlow.Domain.Entities;
@@ -39,7 +40,7 @@ public class RegulatoryTextConfiguration : IEntityTypeConfiguration<RegulatoryTe
         builder.HasIndex(r => r.Status);
         builder.HasIndex(r => r.Language);
 
-        builder.HasQueryFilter(r => !r.IsDeleted);
+        builder.HasQueryFilter(QueryFilters.SoftDelete, r => !r.IsDeleted);
     }
 }
 

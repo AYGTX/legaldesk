@@ -633,6 +633,20 @@
             registered as a policy of the same name at start-up (Program.cs), so this is plain ASP.NET authorisation.
             </summary>
         </member>
+        <member name="T:SignFlow.Api.Middleware.TenantResolutionMiddleware">
+            <summary>
+            Sets the organisation a request acts for (R-M0-4), after authentication and before any endpoint runs:
+            a signed-in user acts for their own organisation; a signing link acts for its recipient's organisation.
+            Sign-in, recovery and health checks run without one.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Middleware.TenantResolutionMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate)">
+            <summary>
+            Sets the organisation a request acts for (R-M0-4), after authentication and before any endpoint runs:
+            a signed-in user acts for their own organisation; a signing link acts for its recipient's organisation.
+            Sign-in, recovery and health checks run without one.
+            </summary>
+        </member>
         <member name="T:Program">
             <summary>
             Auto-generated public partial Program class for top-level statement apps.

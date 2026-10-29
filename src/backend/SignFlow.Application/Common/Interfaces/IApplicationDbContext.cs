@@ -5,6 +5,7 @@ namespace SignFlow.Application.Common.Interfaces;
 
 public interface IApplicationDbContext
 {
+    DbSet<Organisation> Organisations { get; }
     DbSet<Document> Documents { get; }
     DbSet<DocumentVersion> DocumentVersions { get; }
     DbSet<Recipient> Recipients { get; }

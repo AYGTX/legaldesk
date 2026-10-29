@@ -1,6 +1,6 @@
 namespace SignFlow.Domain.Entities;
 
-public class Vacation : BaseEntity
+public class Vacation : TenantEntity
 {
     public Guid UserId { get; private set; }
     public ApplicationUser User { get; private set; } = null!;

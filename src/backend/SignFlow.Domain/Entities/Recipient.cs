@@ -2,7 +2,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class Recipient : BaseEntity
+public class Recipient : TenantEntity
 {
     public Guid DocumentId { get; private set; }
     public Document Document { get; private set; } = null!;

@@ -14,6 +14,9 @@ public class TokenService(IOptions<JwtSettings> jwtSettings) : ITokenService
 {
     private readonly JwtSettings _settings = jwtSettings.Value;
 
+    /// <summary>The organisation the user belongs to (R-M0-4); read by TenantResolutionMiddleware.</summary>
+    public const string TenantClaimType = "org";
+
     public string GenerateAccessToken(ApplicationUser user, IList<string> roles)
     {
         var claims = new List<Claim>
@@ -23,6 +26,7 @@ public class TokenService(IOptions<JwtSettings> jwtSettings) : ITokenService
             new(ClaimTypes.Name, user.FullName),
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email!),
+            new(TenantClaimType, user.OrganisationId.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };

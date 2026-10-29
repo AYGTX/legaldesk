@@ -4,7 +4,7 @@ using SignFlow.Domain.Rules;
 
 namespace SignFlow.Domain.Entities;
 
-public class Document : BaseEntity
+public class Document : TenantEntity
 {
     public string Title { get; private set; } = string.Empty;
     public string? Description { get; private set; }

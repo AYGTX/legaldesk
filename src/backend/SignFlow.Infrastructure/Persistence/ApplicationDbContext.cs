@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -6,9 +7,17 @@ using SignFlow.Domain.Entities;
 
 namespace SignFlow.Infrastructure.Persistence;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantContext? tenant = null)
     : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options), IApplicationDbContext
 {
+    /// <summary>The organisation this context acts for. Without a registered one (some tests, design-time tools)
+    /// the context gets its own, unscoped until someone calls BeginScope.</summary>
+    public ITenantContext Tenant { get; } = tenant ?? new TenantContext();
+
+    // Read by the tenant filter on every query, so a scope opened after the context was built still applies.
+    private Guid? CurrentOrganisationId => Tenant.OrganisationId;
+
+    public DbSet<Organisation> Organisations => Set<Organisation>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<Recipient> Recipients => Set<Recipient>();
@@ -52,8 +61,67 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<IdentityRoleClaim<Guid>>().ToTable("RoleClaims");
         builder.Entity<IdentityUserToken<Guid>>().ToTable("UserTokens");
 
-        // Global query filters
-        builder.Entity<Document>().HasQueryFilter(d => !d.IsDeleted);
-        builder.Entity<Template>().HasQueryFilter(t => !t.IsDeleted);
+        builder.Entity<Organisation>(o =>
+        {
+            o.HasIndex(x => x.Slug).IsUnique();
+            o.Property(x => x.ModelMode).HasConversion<string>().HasMaxLength(20);
+        });
+
+        // Soft delete
+        builder.Entity<Document>().HasQueryFilter(QueryFilters.SoftDelete, d => !d.IsDeleted);
+        builder.Entity<Template>().HasQueryFilter(QueryFilters.SoftDelete, t => !t.IsDeleted);
+
+        // Tenancy (R-M0-2, R-M0-3): every owned table points at its organisation and is filtered by it.
+        var configure = typeof(ApplicationDbContext).GetMethod(nameof(ConfigureTenantOwned), BindingFlags.Instance | BindingFlags.NonPublic)!;
+        foreach (var type in builder.Model.GetEntityTypes().Select(e => e.ClrType)
+                     .Where(t => typeof(ITenantOwned).IsAssignableFrom(t) && !t.IsAbstract).ToList())
+            configure.MakeGenericMethod(type).Invoke(this, [builder]);
+    }
+
+    private void ConfigureTenantOwned<T>(ModelBuilder builder) where T : class, ITenantOwned
+    {
+        var entity = builder.Entity<T>();
+        entity.HasOne<Organisation>().WithMany().HasForeignKey(e => e.OrganisationId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasIndex(e => e.OrganisationId);
+        entity.HasQueryFilter(QueryFilters.Tenant, e => CurrentOrganisationId == null || e.OrganisationId == CurrentOrganisationId);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        StampOrganisation();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        StampOrganisation();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// New rows take the current organisation; a row of another organisation cannot be written while acting for
+    /// this one (R-M0-3). Without a scope, only rows that already carry an organisation may be written.
+    /// </summary>
+    private void StampOrganisation()
+    {
+        var current = Tenant.OrganisationId;
+        foreach (var entry in ChangeTracker.Entries<ITenantOwned>())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+                continue;
+
+            if (entry.State == EntityState.Added && entry.Entity.OrganisationId == Guid.Empty)
+            {
+                if (current is null)
+                    throw new InvalidOperationException(
+                        $"A new {entry.Entity.GetType().Name} has no organisation and no organisation is in scope.");
+                entry.Entity.AssignOrganisation(current.Value);
+            }
+            else if (current is not null && entry.Entity.OrganisationId != current)
+            {
+                throw new InvalidOperationException(
+                    $"A {entry.Entity.GetType().Name} of another organisation cannot be written from this one.");
+            }
+        }
     }
 }

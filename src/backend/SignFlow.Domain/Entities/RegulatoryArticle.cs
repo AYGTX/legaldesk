@@ -5,7 +5,7 @@ namespace SignFlow.Domain.Entities;
 /// ...", with the sentence quoted. Keeping the law at article level — instead of one summary per law — is what lets a
 /// review point at the exact provision and lets a quote be checked against the stored text.
 /// </summary>
-public class RegulatoryArticle : BaseEntity
+public class RegulatoryArticle : TenantEntity
 {
     public Guid RegulatoryTextId { get; private set; }
     public RegulatoryText RegulatoryText { get; private set; } = null!;

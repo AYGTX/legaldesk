@@ -222,6 +222,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
 
@@ -269,6 +272,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
+                    b.HasIndex("OrganisationId");
+
                     b.ToTable("Users", (string)null);
                 });
 
@@ -307,6 +312,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RecipientId")
                         .HasColumnType("uniqueidentifier");
 
@@ -323,6 +331,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("OrganisationId");
 
                     b.ToTable("Attachments");
                 });
@@ -379,6 +389,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RecipientId")
                         .HasColumnType("uniqueidentifier");
 
@@ -403,6 +416,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("Action");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("Timestamp");
 
@@ -435,6 +450,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uniqueidentifier");
 
@@ -450,6 +468,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("RecipientId", "Order");
 
@@ -491,6 +511,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RequestTypeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -527,6 +550,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("Language");
 
+                    b.HasIndex("OrganisationId");
+
                     b.HasIndex("RequestTypeId");
 
                     b.HasIndex("Status");
@@ -562,6 +587,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("IsResolved")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int?>("Page")
                         .HasColumnType("int");
 
@@ -589,6 +617,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("ParentCommentId");
 
@@ -619,6 +649,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -643,6 +676,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.ToTable("ConsentLogs");
                 });
@@ -684,6 +719,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("RequestType")
                         .HasColumnType("int");
 
@@ -706,6 +744,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.ToTable("DataSubjectRequests");
                 });
@@ -840,6 +880,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("ObligationType")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uniqueidentifier");
 
@@ -929,6 +972,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("HtmlTemplateId");
 
+                    b.HasIndex("OrganisationId");
+
                     b.HasIndex("OwnerId");
 
                     b.HasIndex("PdfTemplateId");
@@ -969,6 +1014,9 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ProposedLanguage")
                         .HasColumnType("nvarchar(max)");
@@ -1016,6 +1064,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrganisationId");
+
                     b.HasIndex("Status");
 
                     b.HasIndex("DocumentId", "SourceKey");
@@ -1053,6 +1103,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("StoragePath")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1069,6 +1122,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("OrganisationId");
 
                     b.ToTable("DocumentVersions");
                 });
@@ -1113,6 +1168,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RequestTypeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1136,6 +1194,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("DefaultApproverId");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("RequestTypeId");
 
@@ -1191,6 +1251,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("PreAssignedApproverId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1211,6 +1274,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("PreAssignedApproverId");
 
@@ -1260,6 +1325,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("Metadata")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("datetime2");
 
@@ -1290,9 +1358,71 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrganisationId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.Organisation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DefaultLanguage")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModelMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("RetentionYears")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Organisations");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.PdfTemplate", b =>
@@ -1342,6 +1472,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("PageCount")
                         .HasColumnType("int");
 
@@ -1373,6 +1506,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("DefaultApproverId");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("RequestTypeId");
 
@@ -1431,6 +1566,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Page")
                         .HasColumnType("int");
 
@@ -1463,6 +1601,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("real");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("PreAssignedApproverId");
 
@@ -1527,6 +1667,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("PrivateMessage")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -1582,6 +1725,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("Email");
 
+                    b.HasIndex("OrganisationId");
+
                     b.HasIndex("SecureToken")
                         .IsUnique();
 
@@ -1614,6 +1759,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("RegulatoryTextId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1629,6 +1777,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("RegulatoryTextId", "Number");
 
@@ -1674,6 +1824,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Reference")
                         .HasMaxLength(300)
@@ -1721,6 +1874,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("Language");
 
+                    b.HasIndex("OrganisationId");
+
                     b.HasIndex("RequestTypeId");
 
                     b.HasIndex("Status");
@@ -1763,6 +1918,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("SlaHours")
                         .HasColumnType("int");
 
@@ -1778,6 +1936,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("OrganisationId");
 
                     b.ToTable("RequestTypes");
                 });
@@ -1822,6 +1982,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<double?>("Longitude")
                         .HasColumnType("float");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1848,6 +2011,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("RecipientId");
 
@@ -1934,6 +2099,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Page")
                         .HasColumnType("int");
 
@@ -1991,6 +2159,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("DocumentId");
 
+                    b.HasIndex("OrganisationId");
+
                     b.HasIndex("RecipientId");
 
                     b.HasIndex("DocumentId", "Page");
@@ -2036,6 +2206,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2069,6 +2242,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrganisationId");
+
                     b.HasIndex("OwnerId");
 
                     b.ToTable("Templates");
@@ -2096,6 +2271,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -2109,6 +2287,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("UserId");
 
@@ -2148,6 +2328,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("RequireAllToSign")
                         .HasColumnType("bit");
 
@@ -2176,6 +2359,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("DocumentId")
                         .IsUnique();
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("Status");
 
@@ -2209,6 +2394,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -2221,6 +2409,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("OrganisationId");
 
                     b.ToTable("WorkflowPresets");
                 });
@@ -2269,6 +2459,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("RoleName")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -2288,6 +2481,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ApproverUserId");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("WorkflowPresetId", "Order");
 
@@ -2348,6 +2543,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int?>("ParallelGroupId")
                         .HasColumnType("int");
 
@@ -2376,6 +2574,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
 
                     b.HasIndex("RecipientId");
 
@@ -2437,12 +2637,27 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.ApplicationUser", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.Attachment", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.Document", "Document")
                         .WithMany()
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Document");
@@ -2454,6 +2669,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .WithMany("AuditLogs")
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "User")
@@ -2468,6 +2689,12 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.ChecklistItem", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.Recipient", "Recipient")
                         .WithMany("ChecklistItems")
                         .HasForeignKey("RecipientId")
@@ -2483,6 +2710,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("SignFlow.Domain.Entities.RequestType", "RequestType")
@@ -2503,6 +2736,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.Comment", "ParentComment")
                         .WithMany("Replies")
                         .HasForeignKey("ParentCommentId");
@@ -2518,12 +2757,36 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.ConsentLog", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.DataSubjectRequest", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.Document", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.HtmlTemplate", "HtmlTemplate")
                         .WithMany()
                         .HasForeignKey("HtmlTemplateId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "Owner")
                         .WithMany("Documents")
@@ -2557,6 +2820,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.Navigation("Document");
                 });
 
@@ -2566,6 +2835,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .WithMany("Versions")
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Document");
@@ -2583,6 +2858,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("DefaultApproverId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.HasOne("SignFlow.Domain.Entities.RequestType", "RequestType")
                         .WithMany()
@@ -2611,6 +2892,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "PreAssignedApprover")
                         .WithMany()
                         .HasForeignKey("PreAssignedApproverId")
@@ -2623,6 +2910,12 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Notification", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId");
@@ -2642,6 +2935,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("DefaultApproverId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.HasOne("SignFlow.Domain.Entities.RequestType", "RequestType")
                         .WithMany()
@@ -2664,6 +2963,12 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.PdfTemplateField", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.PdfTemplate", "PdfTemplate")
                         .WithMany("Fields")
                         .HasForeignKey("PdfTemplateId")
@@ -2688,11 +2993,23 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.Navigation("Document");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.RegulatoryArticle", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.RegulatoryText", "RegulatoryText")
                         .WithMany("Articles")
                         .HasForeignKey("RegulatoryTextId")
@@ -2710,6 +3027,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.RequestType", "RequestType")
                         .WithMany()
                         .HasForeignKey("RequestTypeId")
@@ -2720,8 +3043,23 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("RequestType");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.RequestType", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.Signature", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.Recipient", "Recipient")
                         .WithMany("Signatures")
                         .HasForeignKey("RecipientId")
@@ -2747,6 +3085,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.Recipient", "Recipient")
                         .WithMany("AssignedFields")
                         .HasForeignKey("RecipientId")
@@ -2759,6 +3103,12 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Template", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
@@ -2770,6 +3120,12 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Vacation", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -2787,7 +3143,22 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowPreset", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowPresetStep", b =>
@@ -2796,6 +3167,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("ApproverUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.HasOne("SignFlow.Domain.Entities.WorkflowPreset", "WorkflowPreset")
                         .WithMany("Steps")
@@ -2808,6 +3185,12 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.WorkflowStep", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.Recipient", "Recipient")
                         .WithMany()
                         .HasForeignKey("RecipientId")

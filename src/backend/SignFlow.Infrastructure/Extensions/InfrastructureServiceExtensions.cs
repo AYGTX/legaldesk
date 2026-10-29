@@ -39,6 +39,10 @@ public static class InfrastructureServiceExtensions
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
+        // Tenancy (M0): one tenant context per request or job, read by the DbContext's filters.
+        services.AddScoped<ITenantContext, TenantContext>();
+        services.AddScoped<IPlatformQueries, PlatformQueries>();
+
         // Identity
         services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
         {

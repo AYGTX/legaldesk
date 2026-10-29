@@ -5,7 +5,7 @@ namespace SignFlow.Domain.Entities;
 /// recipient (e.g. "Confirm figures match the contract"). The recipient must check every item
 /// off before they're allowed to approve — see the guard in ApproveSigningCommand.
 /// </summary>
-public class ChecklistItem : BaseEntity
+public class ChecklistItem : TenantEntity
 {
     public Guid RecipientId { get; private set; }
     public Recipient Recipient { get; private set; } = null!;

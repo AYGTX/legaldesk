@@ -7,7 +7,7 @@ namespace SignFlow.Domain.Entities;
 /// Published texts feed the compliance-analysis keyword scan and trigger regulatory alerts on
 /// contracts already in force when they are published.
 /// </summary>
-public class RegulatoryText : BaseEntity
+public class RegulatoryText : TenantEntity
 {
     public string Title { get; private set; } = string.Empty;
 

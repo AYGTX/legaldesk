@@ -10,7 +10,7 @@ namespace SignFlow.Domain.Entities;
 /// Steps map to the template's approver signature fields in order. A step may name a person, or a role or department
 /// that is looked up when a request is created, and may carry a condition on a field the requester fills in.
 /// </summary>
-public class WorkflowPreset : BaseEntity
+public class WorkflowPreset : TenantEntity
 {
     [MaxLength(200)]
     public string Name { get; private set; } = string.Empty;

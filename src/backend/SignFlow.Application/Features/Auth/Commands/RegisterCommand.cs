@@ -34,6 +34,7 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 public class RegisterCommandHandler(
     UserManager<ApplicationUser> userManager,
     ITokenService tokenService,
+    IPlatformQueries platform,
     ILogger<RegisterCommandHandler> logger) : ICommandHandler<RegisterCommand, LoginResult>
 {
     public async Task<LoginResult> HandleAsync(RegisterCommand command, CancellationToken cancellationToken = default)
@@ -41,6 +42,10 @@ public class RegisterCommandHandler(
         var existingUser = await userManager.FindByEmailAsync(command.Email);
         if (existingUser is not null)
             throw new ConflictException($"An account with email '{command.Email}' already exists.");
+
+        // Self-registration joins the install's only organisation; with several, people are invited (R-M1-1).
+        var organisationId = await platform.SoleOrganisationIdAsync(cancellationToken)
+            ?? throw new ForbiddenAccessException("Accounts are created by invitation. Ask your administrator.");
 
         var user = new ApplicationUser
         {
@@ -52,6 +57,7 @@ public class RegisterCommandHandler(
             Title = command.Title,
             EmailConfirmed = true
         };
+        user.AssignOrganisation(organisationId);
 
         var result = await userManager.CreateAsync(user, command.Password);
         if (!result.Succeeded)

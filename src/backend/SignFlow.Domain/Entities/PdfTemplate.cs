@@ -10,7 +10,7 @@ namespace SignFlow.Domain.Entities;
 /// stored file is never regenerated, only copied per instance so the original stays pristine.
 /// This is the PDF analogue of <see cref="HtmlTemplate"/>.
 /// </summary>
-public class PdfTemplate : BaseEntity
+public class PdfTemplate : TenantEntity
 {
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }

@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SignFlow.Domain.Entities;
@@ -33,6 +34,6 @@ public class ClauseConfiguration : IEntityTypeConfiguration<Clause>
         builder.HasIndex(c => c.Language);
         builder.HasIndex(c => c.RequestTypeId);
 
-        builder.HasQueryFilter(c => !c.IsDeleted);
+        builder.HasQueryFilter(QueryFilters.SoftDelete, c => !c.IsDeleted);
     }
 }

@@ -3,7 +3,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class DataSubjectRequest : BaseEntity
+public class DataSubjectRequest : TenantEntity
 {
     [MaxLength(256)]
     public string SubjectEmail { get; private set; } = string.Empty;

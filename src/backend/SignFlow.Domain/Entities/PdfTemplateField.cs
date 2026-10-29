@@ -9,7 +9,7 @@ namespace SignFlow.Domain.Entities;
 /// approver, workflow stage). At request-creation time each field is materialized into a real
 /// <see cref="SignatureField"/> on the instance document at these coordinates.
 /// </summary>
-public class PdfTemplateField : BaseEntity
+public class PdfTemplateField : TenantEntity
 {
     public Guid PdfTemplateId { get; private set; }
     public PdfTemplate PdfTemplate { get; private set; } = null!;

@@ -1,6 +1,6 @@
 namespace SignFlow.Domain.Entities;
 
-public class Comment : BaseEntity
+public class Comment : TenantEntity
 {
     public Guid DocumentId { get; private set; }
     public Document Document { get; private set; } = null!;

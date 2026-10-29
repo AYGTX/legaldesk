@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SignFlow.Domain.Entities;
@@ -44,7 +45,7 @@ public class HtmlTemplateConfiguration : IEntityTypeConfiguration<HtmlTemplate>
         builder.HasIndex(t => t.CreatedById);
         builder.HasIndex(t => t.RequestTypeId);
 
-        builder.HasQueryFilter(t => !t.IsDeleted);
+        builder.HasQueryFilter(QueryFilters.SoftDelete, t => !t.IsDeleted);
     }
 }
 

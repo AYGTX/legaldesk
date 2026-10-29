@@ -39,7 +39,7 @@ internal static class DemoContractSeeder
 
         // Idempotent by title: an existing demo database keeps whatever the presenter did to it.
         var alreadySeeded = await context.Documents
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([QueryFilters.SoftDelete])
             .AnyAsync(d => titles.Contains(d.Title), cancellationToken);
         if (alreadySeeded) return;
 

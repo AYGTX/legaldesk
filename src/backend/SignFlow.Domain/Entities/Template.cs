@@ -1,6 +1,6 @@
 namespace SignFlow.Domain.Entities;
 
-public class Template : BaseEntity
+public class Template : TenantEntity
 {
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }

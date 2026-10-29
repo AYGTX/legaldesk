@@ -11,10 +11,22 @@ namespace SignFlow.Infrastructure.Services.Background;
 /// </summary>
 public class ObligationReminderJob(
     IApplicationDbContext db,
+    ITenantContext tenant,
+    IPlatformQueries platform,
     INotificationService notifications,
     ILogger<ObligationReminderJob> logger)
 {
+    /// <summary>Runs the sweep once per active organisation, each inside its own tenant scope (M0).</summary>
     public async Task SweepAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var organisationId in await platform.ActiveOrganisationIdsAsync(cancellationToken))
+        {
+            using (tenant.BeginScope(organisationId))
+                await SweepOrganisationAsync(cancellationToken);
+        }
+    }
+
+    private async Task SweepOrganisationAsync(CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
 

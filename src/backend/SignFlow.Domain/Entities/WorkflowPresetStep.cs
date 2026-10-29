@@ -3,7 +3,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class WorkflowPresetStep : BaseEntity
+public class WorkflowPresetStep : TenantEntity
 {
     public Guid WorkflowPresetId { get; private set; }
     public WorkflowPreset WorkflowPreset { get; private set; } = null!;

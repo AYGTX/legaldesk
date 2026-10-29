@@ -2,7 +2,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class Signature : BaseEntity
+public class Signature : TenantEntity
 {
     public Guid SignatureFieldId { get; private set; }
     public SignatureField SignatureField { get; private set; } = null!;

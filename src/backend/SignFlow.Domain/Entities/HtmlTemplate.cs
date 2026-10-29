@@ -2,7 +2,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class HtmlTemplate : BaseEntity
+public class HtmlTemplate : TenantEntity
 {
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }

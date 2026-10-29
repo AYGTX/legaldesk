@@ -21,7 +21,7 @@ public class DeleteRequestTypeCommandHandler(
             ?? throw new NotFoundException(nameof(RequestType), command.Id);
 
         // If documents reference this type, deactivate instead of deleting to preserve history.
-        var inUse = await db.Documents.IgnoreQueryFilters().AnyAsync(d => d.RequestTypeId == command.Id, cancellationToken);
+        var inUse = await db.Documents.IgnoreQueryFilters([QueryFilters.SoftDelete]).AnyAsync(d => d.RequestTypeId == command.Id, cancellationToken);
         if (inUse)
             throw new ConflictException("This request type is in use by existing requests. Deactivate it instead of deleting.");
 

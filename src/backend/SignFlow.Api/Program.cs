@@ -164,6 +164,7 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseMiddleware<TenantResolutionMiddleware>();
 
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
     {
