@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -21,7 +22,7 @@ public class GetAuditTrailQueryHandler(
             .FirstOrDefaultAsync(d => d.Id == query.DocumentId && !d.IsDeleted, cancellationToken)
             ?? throw new NotFoundException(nameof(Document), query.DocumentId);
 
-        if (document.OwnerId != currentUser.UserId && !currentUser.IsInRole("Administrator"))
+        if (document.OwnerId != currentUser.UserId && !currentUser.Can(Permissions.ManageAllContracts))
             throw new ForbiddenAccessException();
 
         var q = db.AuditLogs.AsNoTracking()

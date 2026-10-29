@@ -1,3 +1,5 @@
+using SignFlow.Api.Filters;
+using SignFlow.Application.Common.Security;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +27,7 @@ public class RequestTypesController(
 {
     /// <summary>List all request types (administrators only)</summary>
     [HttpGet]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ManageRequestTypes)]
     [ProducesResponseType(typeof(List<RequestTypeDto>), 200)]
     public async Task<ActionResult<List<RequestTypeDto>>> GetAll(CancellationToken ct)
         => Ok(await getAllHandler.HandleAsync(new GetRequestTypesQuery(), ct));
@@ -38,7 +40,7 @@ public class RequestTypesController(
 
     /// <summary>Create a request type</summary>
     [HttpPost]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ManageRequestTypes)]
     [ProducesResponseType(typeof(CreateRequestTypeResponse), 201)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
     public async Task<ActionResult<CreateRequestTypeResponse>> Create([FromBody] CreateRequestTypeRequest request, CancellationToken ct)
@@ -50,7 +52,7 @@ public class RequestTypesController(
 
     /// <summary>Update a request type (affects future requests only)</summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ManageRequestTypes)]
     [ProducesResponseType(204)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRequestTypeRequest request, CancellationToken ct)
     {
@@ -61,7 +63,7 @@ public class RequestTypesController(
 
     /// <summary>Activate or deactivate a request type</summary>
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ManageRequestTypes)]
     [ProducesResponseType(204)]
     public async Task<IActionResult> SetStatus([FromRoute] Guid id, [FromBody] SetStatusRequest request, CancellationToken ct)
     {
@@ -71,7 +73,7 @@ public class RequestTypesController(
 
     /// <summary>Delete a request type (only if unused)</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ManageRequestTypes)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)

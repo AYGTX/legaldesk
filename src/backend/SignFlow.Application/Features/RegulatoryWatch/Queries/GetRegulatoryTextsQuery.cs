@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -40,7 +41,7 @@ public class GetRegulatoryTextsQueryHandler(
 {
     public async Task<List<RegulatoryTextDto>> HandleAsync(GetRegulatoryTextsQuery query, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.EditRegulatoryTexts))
             throw new ForbiddenAccessException();
 
         var texts = db.RegulatoryTexts.AsNoTracking()

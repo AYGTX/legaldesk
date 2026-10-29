@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -56,7 +57,7 @@ internal static class DocumentVersionAccess
 
         // Same audience as the detail page: a reviewer who was asked to approve the revision needs
         // to see what changed at least as much as the owner does.
-        var isAdmin = currentUser.IsInRole("Administrator");
+        var isAdmin = currentUser.Can(Permissions.ManageAllContracts);
         if (!isAdmin && document.OwnerId != currentUser.UserId
             && !document.Recipients.Any(r => r.Email == currentUser.UserEmail))
             throw new ForbiddenAccessException();

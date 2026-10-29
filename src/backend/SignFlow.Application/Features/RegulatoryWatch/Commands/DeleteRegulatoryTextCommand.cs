@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
@@ -16,7 +17,7 @@ public class DeleteRegulatoryTextCommandHandler(
 {
     public async Task HandleAsync(DeleteRegulatoryTextCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.PublishRegulatoryTexts))
             throw new ForbiddenAccessException();
 
         var text = await db.RegulatoryTexts.FirstOrDefaultAsync(r => r.Id == command.RegulatoryTextId, cancellationToken)

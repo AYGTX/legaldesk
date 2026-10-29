@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -108,9 +109,8 @@ public class GetReadinessQueryHandler(
             ?? throw new NotFoundException(nameof(Document), query.DocumentId);
 
         // Readers of a contract may read its review; only owners and admins can change it.
-        var isAdmin = currentUser.IsInRole("Administrator");
-        var isManager = currentUser.IsInRole("Manager");
-        if (!isAdmin && !isManager && document.OwnerId != currentUser.UserId)
+        var canReadAll = currentUser.Can(Permissions.ReadAllReviews);
+        if (!canReadAll && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
         var open = document.ReadinessItems.Where(i => i.Status == ReadinessItemStatus.Open).ToList();

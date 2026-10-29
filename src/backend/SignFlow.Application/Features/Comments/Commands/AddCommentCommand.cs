@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using System.Text.RegularExpressions;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -48,7 +49,7 @@ public class AddCommentCommandHandler(
             ?? throw new NotFoundException(nameof(Document), command.DocumentId);
 
         var userId = currentUser.UserId ?? throw new ForbiddenAccessException();
-        var isPrivileged = currentUser.IsInRole("Administrator") || document.OwnerId == userId;
+        var isPrivileged = currentUser.Can(Permissions.ManageAllContracts) || document.OwnerId == userId;
         if (!isPrivileged && !document.Recipients.Any(r => r.Email == currentUser.UserEmail))
             throw new ForbiddenAccessException();
 

@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -14,7 +15,7 @@ public class PreviewRegulatoryArticlesQueryHandler(ICurrentUserService currentUs
 {
     public Task<ArticleSplit> HandleAsync(PreviewRegulatoryArticlesQuery query, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.EditRegulatoryTexts))
             throw new ForbiddenAccessException();
 
         return Task.FromResult(LegalArticleSplitter.Split(query.RawText));
@@ -31,7 +32,7 @@ public class GetRegulatoryArticlesQueryHandler(
 {
     public async Task<List<RegulatoryArticleDto>> HandleAsync(GetRegulatoryArticlesQuery query, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.EditRegulatoryTexts))
             throw new ForbiddenAccessException();
 
         if (!await db.RegulatoryTexts.AnyAsync(r => r.Id == query.RegulatoryTextId, cancellationToken))

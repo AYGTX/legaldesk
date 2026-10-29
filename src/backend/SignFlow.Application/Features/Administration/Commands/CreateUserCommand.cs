@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,7 @@ public class CreateUserCommandHandler(
 {
     public async Task<Guid> HandleAsync(CreateUserCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ManageUsers))
             throw new ForbiddenAccessException();
 
         var existing = await userManager.FindByEmailAsync(command.Email);

@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
@@ -20,7 +21,7 @@ public class UpdateObligationCommandHandler(
             .FirstOrDefaultAsync(d => d.Id == command.DocumentId && !d.IsDeleted, cancellationToken)
             ?? throw new NotFoundException(nameof(Document), command.DocumentId);
 
-        var isAdmin = currentUser.IsInRole("Administrator");
+        var isAdmin = currentUser.Can(Permissions.ManageAllContracts);
         if (!isAdmin && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 

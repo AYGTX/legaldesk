@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
@@ -19,7 +20,7 @@ public class SetRegulatoryTextStatusCommandHandler(
     public async Task HandleAsync(SetRegulatoryTextStatusCommand command, CancellationToken cancellationToken = default)
     {
         // Publishing a regulatory change is a legal sign-off, so it stays with administrators.
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.PublishRegulatoryTexts))
             throw new ForbiddenAccessException();
 
         var text = await db.RegulatoryTexts.FirstOrDefaultAsync(r => r.Id == command.RegulatoryTextId, cancellationToken)

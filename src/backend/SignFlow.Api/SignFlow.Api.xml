@@ -621,6 +621,18 @@
         <member name="M:SignFlow.Api.Controllers.V1.WorkflowPresetsController.Delete(System.Guid,System.Threading.CancellationToken)">
             <summary>Delete a workflow no template follows</summary>
         </member>
+        <member name="T:SignFlow.Api.Filters.RequirePermissionAttribute">
+            <summary>
+            Requires a permission from <see cref="T:SignFlow.Application.Common.Security.Permissions"/>. Each permission is
+            registered as a policy of the same name at start-up (Program.cs), so this is plain ASP.NET authorisation.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Filters.RequirePermissionAttribute.#ctor(System.String)">
+            <summary>
+            Requires a permission from <see cref="T:SignFlow.Application.Common.Security.Permissions"/>. Each permission is
+            registered as a policy of the same name at start-up (Program.cs), so this is plain ASP.NET authorisation.
+            </summary>
+        </member>
         <member name="T:Program">
             <summary>
             Auto-generated public partial Program class for top-level statement apps.

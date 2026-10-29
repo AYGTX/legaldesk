@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -43,7 +44,7 @@ public class EditPdfTemplateCommandHandler(
 {
     public async Task<EditPdfTemplateResult> HandleAsync(EditPdfTemplateCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.ManageTemplates))
             throw new ForbiddenAccessException();
         var userId = currentUser.UserId ?? throw new ForbiddenAccessException();
 

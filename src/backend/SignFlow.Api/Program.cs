@@ -72,6 +72,14 @@ try
 
     builder.Services.AddOpenApi();
 
+    // One policy per permission, named after it, so [RequirePermission(Permissions.X)] is plain [Authorize(Policy)].
+    builder.Services.AddAuthorization(options =>
+    {
+        foreach (var permission in SignFlow.Application.Common.Security.Permissions.All)
+            options.AddPolicy(permission, policy => policy.RequireRole(
+                SignFlow.Application.Common.Security.Permissions.RolesFor(permission)));
+    });
+
     builder.Services.AddRateLimiter(options =>
     {
         options.AddFixedWindowLimiter("api", config =>

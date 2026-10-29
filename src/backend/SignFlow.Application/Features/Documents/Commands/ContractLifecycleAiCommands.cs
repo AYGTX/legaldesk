@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -159,7 +160,7 @@ internal static class ContractAccess
     {
         var document = await db.Documents.FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted, ct)
                        ?? throw new NotFoundException(nameof(Document), id);
-        if (!currentUser.IsInRole("Administrator") && document.OwnerId != currentUser.UserId)
+        if (!currentUser.Can(Permissions.ManageAllContracts) && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
         var text = await textProvider.GetTextAsync(document, ct);
         if (string.IsNullOrWhiteSpace(text))

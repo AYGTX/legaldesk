@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -13,7 +14,7 @@ public class DeletePdfTemplateCommandHandler(
 {
     public async Task HandleAsync(DeletePdfTemplateCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.ManageTemplates))
             throw new ForbiddenAccessException();
 
         var template = await db.PdfTemplates

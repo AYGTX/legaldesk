@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Models;
@@ -40,7 +41,7 @@ public class GetDocumentsQueryHandler(
     public async Task<PagedResult<DocumentSummaryDto>> HandleAsync(GetDocumentsQuery query, CancellationToken cancellationToken = default)
     {
         var userId = currentUser.UserId!.Value;
-        var isAdmin = currentUser.IsInRole("Administrator");
+        var isAdmin = currentUser.Can(Permissions.ManageAllContracts);
 
         var q = db.Documents.AsNoTracking()
             .Where(d => !d.IsDeleted && !d.IsTemplate)

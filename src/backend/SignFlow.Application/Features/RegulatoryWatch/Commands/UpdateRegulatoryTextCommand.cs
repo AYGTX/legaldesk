@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -45,7 +46,7 @@ public class UpdateRegulatoryTextCommandHandler(
 {
     public async Task HandleAsync(UpdateRegulatoryTextCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.EditRegulatoryTexts))
             throw new ForbiddenAccessException();
 
         var text = await db.RegulatoryTexts.FirstOrDefaultAsync(r => r.Id == command.RegulatoryTextId, cancellationToken)

@@ -1,3 +1,5 @@
+using SignFlow.Api.Filters;
+using SignFlow.Application.Common.Security;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +15,7 @@ namespace SignFlow.Api.Controllers.V1;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
-[Authorize(Roles = "Administrator,Manager")]
+[RequirePermission(Permissions.ViewReports)]
 public class ReportsController(
     IQueryHandler<GetAdminReportQuery, AdminReportDto> reportHandler,
     IQueryHandler<GetRiskMapQuery, RiskMapDto> riskMapHandler,

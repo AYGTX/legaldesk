@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -96,7 +97,7 @@ public class GetDocumentByIdQueryHandler(
             ?? throw new NotFoundException(nameof(Document), query.DocumentId);
 
         var userId = currentUser.UserId;
-        var isAdmin = currentUser.IsInRole("Administrator");
+        var isAdmin = currentUser.Can(Permissions.ManageAllContracts);
         if (!isAdmin && document.OwnerId != userId)
         {
             var isRecipient = document.Recipients.Any(r => r.Email == currentUser.UserEmail);

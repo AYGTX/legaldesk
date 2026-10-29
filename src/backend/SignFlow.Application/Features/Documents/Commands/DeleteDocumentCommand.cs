@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -26,7 +27,7 @@ public class DeleteDocumentCommandHandler(
         var document = await db.Documents.FindAsync([command.DocumentId], cancellationToken)
             ?? throw new NotFoundException(nameof(Document), command.DocumentId);
 
-        if (document.OwnerId != currentUser.UserId && !currentUser.IsInRole("Administrator"))
+        if (document.OwnerId != currentUser.UserId && !currentUser.Can(Permissions.ManageAllContracts))
             throw new ForbiddenAccessException();
 
         // Only a draft can be deleted (R-M2-6): anything that went out for review or signature is evidence.

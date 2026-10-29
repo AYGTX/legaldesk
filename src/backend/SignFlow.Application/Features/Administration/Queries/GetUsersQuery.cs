@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
@@ -17,7 +18,7 @@ public class GetUsersQueryHandler(
 {
     public async Task<PagedResult<UserDto>> HandleAsync(GetUsersQuery query, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ManageUsers))
             throw new ForbiddenAccessException();
 
         var q = userManager.Users.AsNoTracking();

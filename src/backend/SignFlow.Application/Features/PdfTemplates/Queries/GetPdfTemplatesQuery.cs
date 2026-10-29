@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Models;
@@ -33,7 +34,7 @@ public class GetPdfTemplatesQueryHandler(
     public async Task<PagedResult<PdfTemplateDto>> HandleAsync(GetPdfTemplatesQuery query, CancellationToken cancellationToken = default)
     {
         // Admins/managers manage templates; regular users list active templates to create requests from.
-        var adminView = currentUser.IsInRole("Administrator") || currentUser.IsInRole("Manager");
+        var adminView = currentUser.Can(Permissions.ManageTemplates);
 
         var q = db.PdfTemplates
             .AsNoTracking()

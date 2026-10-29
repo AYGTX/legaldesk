@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\backend\SignFlow.Application\SignFlow.Application.csproj" />
     <ProjectReference Include="..\..\src\backend\SignFlow.Infrastructure\SignFlow.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\backend\SignFlow.Api\SignFlow.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using SignFlow.Application.Common.Exceptions;
@@ -32,7 +33,7 @@ public class UpdateUserCommandHandler(
 {
     public async Task HandleAsync(UpdateUserCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ManageUsers))
             throw new ForbiddenAccessException();
 
         var user = await userManager.FindByIdAsync(command.UserId.ToString())

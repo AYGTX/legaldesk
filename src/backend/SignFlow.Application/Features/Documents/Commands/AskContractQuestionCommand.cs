@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
@@ -45,7 +46,7 @@ public class AskContractQuestionCommandHandler(
             .FirstOrDefaultAsync(d => d.Id == command.DocumentId && !d.IsDeleted, cancellationToken)
             ?? throw new NotFoundException(nameof(Document), command.DocumentId);
 
-        if (!currentUser.IsInRole("Administrator") && document.OwnerId != currentUser.UserId)
+        if (!currentUser.Can(Permissions.ManageAllContracts) && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
         // Only the last few turns, only user/assistant roles, each capped: the client is not trusted with the prompt.

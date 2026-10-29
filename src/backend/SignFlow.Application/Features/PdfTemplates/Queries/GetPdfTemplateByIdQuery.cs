@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -70,7 +71,7 @@ public class GetPdfTemplateByIdQueryHandler(
             ?? throw new NotFoundException(nameof(PdfTemplate), query.Id);
 
         // Non-admins can only view active templates (for creating requests).
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager") && !template.IsActive)
+        if (!currentUser.Can(Permissions.ManageTemplates) && !template.IsActive)
             throw new ForbiddenAccessException();
 
         return new PdfTemplateDetailDto(

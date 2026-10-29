@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,7 @@ public class DeleteUserCommandHandler(
 {
     public async Task HandleAsync(DeleteUserCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ManageUsers))
             throw new ForbiddenAccessException();
 
         if (command.UserId == currentUser.UserId)

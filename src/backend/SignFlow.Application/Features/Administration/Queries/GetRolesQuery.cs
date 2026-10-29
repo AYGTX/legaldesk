@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
@@ -13,7 +14,7 @@ public class GetRolesQueryHandler(
 {
     public async Task<List<string>> HandleAsync(GetRolesQuery query, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ManageUsers))
             throw new ForbiddenAccessException();
 
         return await roleManager.Roles

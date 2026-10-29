@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -21,7 +22,7 @@ public class ResolveCommentCommandHandler(
             ?? throw new NotFoundException(nameof(Comment), command.CommentId);
 
         var userId = currentUser.UserId ?? throw new ForbiddenAccessException();
-        var canResolve = currentUser.IsInRole("Administrator")
+        var canResolve = currentUser.Can(Permissions.ManageAllContracts)
                          || comment.Document.OwnerId == userId
                          || comment.UserId == userId;
         if (!canResolve)

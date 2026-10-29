@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
@@ -50,7 +51,7 @@ public class UpdatePdfTemplateCommandHandler(
 {
     public async Task HandleAsync(UpdatePdfTemplateCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.ManageTemplates))
             throw new ForbiddenAccessException();
 
         var template = await db.PdfTemplates

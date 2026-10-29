@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -127,7 +128,7 @@ public class CreateWorkflowPresetCommandHandler(
     public async Task<Guid> HandleAsync(CreateWorkflowPresetCommand command, CancellationToken cancellationToken = default)
     {
         // A workflow decides who approves what, so only administrators define one.
-        if (!currentUser.IsInRole("Administrator")) throw new ForbiddenAccessException();
+        if (!currentUser.Can(Permissions.ManageWorkflowPresets)) throw new ForbiddenAccessException();
 
         if (await db.WorkflowPresets.AnyAsync(p => p.Name == command.Name, cancellationToken))
             throw new ConflictException($"A workflow named \"{command.Name}\" already exists.");
@@ -152,7 +153,7 @@ public class UpdateWorkflowPresetCommandHandler(
 {
     public async Task HandleAsync(UpdateWorkflowPresetCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator")) throw new ForbiddenAccessException();
+        if (!currentUser.Can(Permissions.ManageWorkflowPresets)) throw new ForbiddenAccessException();
 
         var preset = await db.WorkflowPresets.Include(p => p.Steps)
             .FirstOrDefaultAsync(p => p.Id == command.Id, cancellationToken)
@@ -183,7 +184,7 @@ public class DeleteWorkflowPresetCommandHandler(
 {
     public async Task HandleAsync(DeleteWorkflowPresetCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator")) throw new ForbiddenAccessException();
+        if (!currentUser.Can(Permissions.ManageWorkflowPresets)) throw new ForbiddenAccessException();
 
         var preset = await db.WorkflowPresets.FirstOrDefaultAsync(p => p.Id == command.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(WorkflowPreset), command.Id);

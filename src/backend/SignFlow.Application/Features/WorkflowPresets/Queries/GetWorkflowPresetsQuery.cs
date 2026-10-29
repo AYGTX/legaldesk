@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -13,7 +14,7 @@ public class GetWorkflowPresetsQueryHandler(
 {
     public async Task<List<WorkflowPresetDto>> HandleAsync(GetWorkflowPresetsQuery query, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.ViewWorkflowPresets))
             throw new ForbiddenAccessException();
 
         var presets = await db.WorkflowPresets.AsNoTracking()

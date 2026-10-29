@@ -1,3 +1,5 @@
+using SignFlow.Api.Filters;
+using SignFlow.Application.Common.Security;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -111,7 +113,7 @@ public class RegulatoryWatchController(
 
     /// <summary>Publish or archive a regulatory text (administrators only). Publishing alerts owners of contracts in force.</summary>
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.PublishRegulatoryTexts)]
     [ProducesResponseType(204)]
     public async Task<IActionResult> SetStatus([FromRoute] Guid id, [FromBody] SetRegulatoryTextStatusRequest request, CancellationToken ct)
     {
@@ -121,7 +123,7 @@ public class RegulatoryWatchController(
 
     /// <summary>Delete a regulatory text that has never been published (administrators only)</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.PublishRegulatoryTexts)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)

@@ -1,3 +1,5 @@
+using SignFlow.Api.Filters;
+using SignFlow.Application.Common.Security;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -72,7 +74,7 @@ public class ClausesController(
 
     /// <summary>Approve or deprecate a clause (administrators only)</summary>
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ApproveClauses)]
     [ProducesResponseType(204)]
     public async Task<IActionResult> SetStatus([FromRoute] Guid id, [FromBody] SetClauseStatusRequest request, CancellationToken ct)
     {
@@ -91,7 +93,7 @@ public class ClausesController(
 
     /// <summary>Delete a clause that has never been used (administrators only)</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ApproveClauses)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)

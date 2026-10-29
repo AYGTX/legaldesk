@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -23,7 +24,7 @@ public class GetRequestTypesQueryHandler(
 {
     public async Task<List<RequestTypeDto>> HandleAsync(GetRequestTypesQuery query, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ManageRequestTypes))
             throw new ForbiddenAccessException();
 
         return await db.RequestTypes.AsNoTracking()

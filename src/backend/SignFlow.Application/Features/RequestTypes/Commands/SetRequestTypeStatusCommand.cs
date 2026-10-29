@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -13,7 +14,7 @@ public class SetRequestTypeStatusCommandHandler(
 {
     public async Task HandleAsync(SetRequestTypeStatusCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ManageRequestTypes))
             throw new ForbiddenAccessException();
 
         var type = await db.RequestTypes.FirstOrDefaultAsync(t => t.Id == command.Id, cancellationToken)

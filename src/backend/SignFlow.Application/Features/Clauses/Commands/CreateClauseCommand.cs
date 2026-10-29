@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
@@ -37,7 +38,7 @@ public class CreateClauseCommandHandler(
 {
     public async Task<Guid> HandleAsync(CreateClauseCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.EditClauses))
             throw new ForbiddenAccessException();
 
         var userId = currentUser.UserId!.Value;

@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,7 @@ public class UpdateClauseCommandHandler(
 {
     public async Task HandleAsync(UpdateClauseCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.EditClauses))
             throw new ForbiddenAccessException();
 
         var clause = await db.Clauses.FirstOrDefaultAsync(c => c.Id == command.ClauseId, cancellationToken)

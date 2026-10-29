@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -35,7 +36,7 @@ public class GetClausesQueryHandler(
 {
     public async Task<List<ClauseDto>> HandleAsync(GetClausesQuery query, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.EditClauses))
             throw new ForbiddenAccessException();
 
         var clauses = db.Clauses.AsNoTracking()

@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Services;
@@ -39,7 +40,7 @@ public class GetContractScheduleQueryHandler(IApplicationDbContext db, ICurrentU
     public async Task<List<ContractScheduleRowDto>> HandleAsync(GetContractScheduleQuery query, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var isAdmin = currentUser.IsInRole("Administrator");
+        var isAdmin = currentUser.Can(Permissions.ManageAllContracts);
         var userId = currentUser.UserId;
 
         var rows = await db.Documents.AsNoTracking()

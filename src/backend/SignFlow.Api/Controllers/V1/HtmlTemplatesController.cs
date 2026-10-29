@@ -1,3 +1,5 @@
+using SignFlow.Api.Filters;
+using SignFlow.Application.Common.Security;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -49,7 +51,7 @@ public class HtmlTemplatesController(
 
     /// <summary>Create a new HTML template (admin/manager only)</summary>
     [HttpPost]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [ProducesResponseType(typeof(CreateHtmlTemplateResponse), 201)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]
@@ -74,7 +76,7 @@ public class HtmlTemplatesController(
 
     /// <summary>Update an existing template (admin/manager only)</summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
@@ -100,7 +102,7 @@ public class HtmlTemplatesController(
 
     /// <summary>Soft-delete a template (admin/manager only)</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
@@ -112,7 +114,7 @@ public class HtmlTemplatesController(
 
     /// <summary>Generate HTML content from plain text using AI (admin/manager only)</summary>
     [HttpPost("generate")]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [ProducesResponseType(typeof(GenerateHtmlTemplateResult), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
     public async Task<ActionResult<GenerateHtmlTemplateResult>> Generate(
@@ -127,7 +129,7 @@ public class HtmlTemplatesController(
     /// 409 when the review could not run, rather than an empty result that reads as "no problems".
     /// </summary>
     [HttpPost("review")]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [ProducesResponseType(typeof(ReviewHtmlTemplateResult), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]

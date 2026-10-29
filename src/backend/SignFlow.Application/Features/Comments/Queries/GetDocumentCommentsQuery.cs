@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -20,7 +21,7 @@ public class GetDocumentCommentsQueryHandler(
             ?? throw new NotFoundException(nameof(Document), query.DocumentId);
 
         var userId = currentUser.UserId ?? throw new ForbiddenAccessException();
-        var isPrivileged = currentUser.IsInRole("Administrator") || document.OwnerId == userId;
+        var isPrivileged = currentUser.Can(Permissions.ManageAllContracts) || document.OwnerId == userId;
         if (!isPrivileged && !document.Recipients.Any(r => r.Email == currentUser.UserEmail))
             throw new ForbiddenAccessException();
 

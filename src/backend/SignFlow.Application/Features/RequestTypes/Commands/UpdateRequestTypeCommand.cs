@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -35,7 +36,7 @@ public class UpdateRequestTypeCommandHandler(
 {
     public async Task HandleAsync(UpdateRequestTypeCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ManageRequestTypes))
             throw new ForbiddenAccessException();
 
         var type = await db.RequestTypes.FirstOrDefaultAsync(t => t.Id == command.Id, cancellationToken)

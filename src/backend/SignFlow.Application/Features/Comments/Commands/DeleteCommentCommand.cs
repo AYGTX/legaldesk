@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -21,7 +22,7 @@ public class DeleteCommentCommandHandler(
             ?? throw new NotFoundException(nameof(Comment), command.CommentId);
 
         var userId = currentUser.UserId ?? throw new ForbiddenAccessException();
-        var canDelete = currentUser.IsInRole("Administrator")
+        var canDelete = currentUser.Can(Permissions.ManageAllContracts)
                         || comment.Document.OwnerId == userId
                         || comment.UserId == userId;
         if (!canDelete)

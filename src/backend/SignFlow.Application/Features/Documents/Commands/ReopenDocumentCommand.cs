@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
@@ -18,7 +19,7 @@ public class ReopenDocumentCommandHandler(
 {
     public async Task HandleAsync(ReopenDocumentCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator"))
+        if (!currentUser.Can(Permissions.ReopenContracts))
             throw new ForbiddenAccessException();
 
         // A deleted contract stays deleted: no IgnoreQueryFilters here.

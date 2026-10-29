@@ -1,3 +1,5 @@
+using SignFlow.Api.Filters;
+using SignFlow.Application.Common.Security;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,14 +27,14 @@ public class WorkflowPresetsController(
 {
     /// <summary>List workflows with their steps (administrators and managers)</summary>
     [HttpGet]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ViewWorkflowPresets)]
     [ProducesResponseType(typeof(List<WorkflowPresetDto>), 200)]
     public async Task<ActionResult<List<WorkflowPresetDto>>> GetAll([FromQuery] bool activeOnly = false, CancellationToken ct = default)
         => Ok(await listHandler.HandleAsync(new GetWorkflowPresetsQuery(activeOnly), ct));
 
     /// <summary>Create a workflow (administrators only)</summary>
     [HttpPost]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ManageWorkflowPresets)]
     [ProducesResponseType(typeof(CreateWorkflowPresetResponse), 201)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]
@@ -45,7 +47,7 @@ public class WorkflowPresetsController(
 
     /// <summary>Change a workflow. Requests already created keep their approvers; new ones follow the change.</summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ManageWorkflowPresets)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
@@ -58,7 +60,7 @@ public class WorkflowPresetsController(
 
     /// <summary>Delete a workflow no template follows</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [RequirePermission(Permissions.ManageWorkflowPresets)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)

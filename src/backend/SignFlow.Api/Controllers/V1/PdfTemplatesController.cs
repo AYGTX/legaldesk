@@ -1,3 +1,5 @@
+using SignFlow.Api.Filters;
+using SignFlow.Application.Common.Security;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -71,7 +73,7 @@ public class PdfTemplatesController(
     /// shows the proposal and the admin confirms or edits it. 503 when the legal-corpus service is not enabled.
     /// </summary>
     [HttpPost("detect-fields")]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [RequestSizeLimit(25 * 1024 * 1024)]
     [ProducesResponseType(typeof(DetectedFormFields), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 503)]
@@ -86,7 +88,7 @@ public class PdfTemplatesController(
 
     /// <summary>Upload the base PDF for a new template (admin/manager only). Fields are configured afterwards.</summary>
     [HttpPost]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [RequestSizeLimit(100 * 1024 * 1024)]
     [ProducesResponseType(typeof(CreatePdfTemplateResult), 201)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
@@ -111,7 +113,7 @@ public class PdfTemplatesController(
 
     /// <summary>Update metadata/workflow config and replace the field set (admin/manager only)</summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
@@ -138,7 +140,7 @@ public class PdfTemplatesController(
 
     /// <summary>Edit the text of a template's PDF in the browser (admin/manager only). Requests already created keep their copy.</summary>
     [HttpPost("{id:guid}/edit-pdf")]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [ProducesResponseType(typeof(EditPdfTemplateResult), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]
@@ -151,7 +153,7 @@ public class PdfTemplatesController(
 
     /// <summary>Soft-delete a template (admin/manager only)</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator,Manager")]
+    [RequirePermission(Permissions.ManageTemplates)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]

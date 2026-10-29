@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using FluentValidation;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -34,7 +35,7 @@ public class GenerateHtmlTemplateCommandHandler(
 {
     public async Task<GenerateHtmlTemplateResult> HandleAsync(GenerateHtmlTemplateCommand command, CancellationToken cancellationToken = default)
     {
-        if (!currentUser.IsInRole("Administrator") && !currentUser.IsInRole("Manager"))
+        if (!currentUser.Can(Permissions.ManageTemplates))
             throw new ForbiddenAccessException();
 
         var result = await aiService.GenerateHtmlFromTextAsync(command.UserText, cancellationToken);

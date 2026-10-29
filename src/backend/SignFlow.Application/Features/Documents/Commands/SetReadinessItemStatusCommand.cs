@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
@@ -30,7 +31,7 @@ public class SetReadinessItemStatusCommandHandler(
             .FirstOrDefaultAsync(d => d.Id == command.DocumentId && !d.IsDeleted, cancellationToken)
             ?? throw new NotFoundException(nameof(Document), command.DocumentId);
 
-        var isAdmin = currentUser.IsInRole("Administrator");
+        var isAdmin = currentUser.Can(Permissions.ManageAllContracts);
         if (!isAdmin && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
@@ -42,7 +43,7 @@ public class SetReadinessItemStatusCommandHandler(
         if (command.Status == ReadinessItemStatus.Dismissed
             && string.Equals(item.Severity, "Critical", StringComparison.OrdinalIgnoreCase))
         {
-            if (!isAdmin && !currentUser.IsInRole("Manager"))
+            if (!currentUser.Can(Permissions.AcceptCriticalRisks))
                 throw new ForbiddenAccessException("Only a manager or administrator can accept a critical finding. Fix it, or ask legal.");
 
             if (string.IsNullOrWhiteSpace(command.Note))
