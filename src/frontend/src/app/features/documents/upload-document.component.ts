@@ -242,7 +242,7 @@ export class UploadDocumentComponent implements OnInit {
     }
 
     this.documentService.upload(formData).subscribe({
-      next: result => this.router.navigate(['/documents', result.documentId, 'designer']),
+      next: result => this.router.navigate(['/contracts', result.documentId, 'designer']),
       error: err => {
         this.uploading.set(false);
         this.error.set(err.error?.detail ?? this.translate.instant('documents.upload.uploadFailed'));

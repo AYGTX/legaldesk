@@ -183,7 +183,7 @@ export class AdminComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly route = inject(ActivatedRoute);
 
-  /** Which section of the page the menu opened: `/admin?tab=users | types | settings` (users when absent). */
+  /** Which section of the page the menu opened: `/admin/users | types | settings`. */
   readonly section = signal<'users' | 'types' | 'settings'>('users');
   readonly sectionTitleKey = () => ({
     users: 'admin.tabs.users',
@@ -208,8 +208,8 @@ export class AdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.route.queryParamMap.subscribe(params => {
-      const tab = params.get('tab');
+    this.route.data.subscribe(data => {
+      const tab = data['tab'];
       this.section.set(tab === 'types' || tab === 'settings' ? tab : 'users');
     });
 

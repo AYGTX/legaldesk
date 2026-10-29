@@ -49,7 +49,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
         <!-- Header -->
         <div class="page-header">
           <div class="header-left">
-            <button mat-icon-button routerLink="/documents"><mat-icon>arrow_back</mat-icon></button>
+            <button mat-icon-button routerLink="/contracts"><mat-icon>arrow_back</mat-icon></button>
             <div>
               <h1 class="doc-title">{{ doc()!.title }}</h1>
               <div class="doc-meta">
@@ -91,7 +91,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
           <div class="header-actions">
             @if (doc()!.status === 'Draft') {
               @if (isOwner() && !doc()!.templateKind) {
-                <a mat-stroked-button [routerLink]="['/documents/new-request']" [queryParams]="{ documentId: doc()!.id }">
+                <a mat-stroked-button [routerLink]="['/contracts/new']" [queryParams]="{ documentId: doc()!.id }">
                   <mat-icon>checklist</mat-icon> {{ 'documents.detail.continueSetup' | translate }}
                 </a>
               }
@@ -100,7 +100,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                   <mat-icon>edit_note</mat-icon> {{ 'documents.detail.editText.button' | translate }}
                 </button>
               }
-              <button mat-stroked-button [routerLink]="['/documents', doc()!.id, 'designer']">
+              <button mat-stroked-button [routerLink]="['/contracts', doc()!.id, 'designer']">
                 <mat-icon>edit</mat-icon> {{ 'documents.detail.designFields' | translate }}
               </button>
               <button mat-flat-button color="primary" (click)="send()" [disabled]="sending()">
@@ -118,7 +118,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               [matTooltip]="(doc()!.finalStoragePath ? 'documents.detail.downloadSigned' : 'documents.detail.downloadOriginal') | translate">
               <mat-icon>download</mat-icon>
             </button>
-            <button mat-icon-button [routerLink]="['/documents', doc()!.id, 'audit']" [matTooltip]="'documents.detail.auditTrail' | translate">
+            <button mat-icon-button [routerLink]="['/contracts', doc()!.id, 'audit']" [matTooltip]="'documents.detail.auditTrail' | translate">
               <mat-icon>history</mat-icon>
             </button>
           </div>
@@ -716,7 +716,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
         <div class="error-state">
           <mat-icon>error_outline</mat-icon>
           <p>{{ error() }}</p>
-          <button mat-stroked-button routerLink="/documents">{{ 'documents.detail.backToDocuments' | translate }}</button>
+          <button mat-stroked-button routerLink="/contracts">{{ 'documents.detail.backToDocuments' | translate }}</button>
         </div>
       }
     </div>

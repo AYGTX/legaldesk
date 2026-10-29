@@ -39,7 +39,7 @@ import { TemplateKind, UnifiedTemplate, fromHtmlTemplate, fromPdfTemplate } from
               </a>
             }
             @if (kindFilter() !== 'html') {
-              <a mat-stroked-button routerLink="/pdf-templates/new">
+              <a mat-stroked-button routerLink="/templates/pdf/new">
                 <mat-icon>picture_as_pdf</mat-icon> {{ 'templates.createPdf' | translate }}
               </a>
             }
@@ -140,9 +140,9 @@ export class TemplatesComponent implements OnInit {
   });
 
   ngOnInit() {
-    // The menu links here with ?kind=pdf / ?kind=html, and the page is reused when only the query changes.
+    // /contracts/from-pdf-template shows only PDF templates (route data); /templates?kind=html|pdf still filters.
     this.route.queryParamMap.subscribe(params => {
-      const kind = params.get('kind');
+      const kind = this.route.snapshot.data['kind'] ?? params.get('kind');
       this.kindFilter.set(kind === 'html' || kind === 'pdf' ? kind : null);
     });
     this.load();
@@ -177,9 +177,9 @@ export class TemplatesComponent implements OnInit {
 
   useTemplate(t: UnifiedTemplate) {
     if (t.kind === 'html') {
-      this.router.navigate(['/requests/from-html-template'], { queryParams: { templateId: t.id } });
+      this.router.navigate(['/contracts/from-html-template'], { queryParams: { templateId: t.id } });
     } else {
-      this.router.navigate(['/pdf-templates', t.id, 'new']);
+      this.router.navigate(['/contracts/from-pdf-template', t.id]);
     }
   }
 
@@ -204,7 +204,7 @@ export class TemplatesComponent implements OnInit {
     if (t.kind === 'html') {
       this.router.navigate(['/admin/html-templates', t.id, 'edit']);
     } else {
-      this.router.navigate(['/pdf-templates', t.id, 'designer']);
+      this.router.navigate(['/templates/pdf', t.id, 'designer']);
     }
   }
 }

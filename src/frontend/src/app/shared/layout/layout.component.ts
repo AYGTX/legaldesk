@@ -21,7 +21,7 @@ import { environment } from '../../../environments/environment';
 /**
  * One menu entry: a link, or a group of links when `children` is set. Active state is computed from the
  * current URL (see isLeafActive) rather than by routerLinkActive, because several entries share a path and
- * differ only by query string (`/templates?kind=pdf`, `/admin?tab=users`).
+ * differ only by query string.
  */
 interface NavEntry {
   id: string;
@@ -29,11 +29,11 @@ interface NavEntry {
   icon?: string;
   path?: string;
   query?: Record<string, string>;
-  /** Query values assumed when the URL carries none, so `/admin` counts as `/admin?tab=users`. */
+  /** Query values assumed when the URL carries none, so a default can be assumed. */
   queryDefault?: Record<string, string>;
   /** The entry is not active while the URL has any of these query keys (plain /templates vs ?kind=pdf). */
   withoutQuery?: string[];
-  /** Also active on sub-paths (`/documents/:id`). */
+  /** Also active on sub-paths (`/contracts/:id`). */
   prefix?: boolean;
   /** Sub-paths that belong to a sibling entry instead. */
   exclude?: string[];
@@ -50,32 +50,32 @@ const NAV: NavEntry[] = [
   {
     id: 'contracts', labelKey: 'nav.documents', icon: 'description',
     children: [
-      { id: 'all', labelKey: 'nav.allContracts', path: '/documents', prefix: true, exclude: ['/documents/upload', '/documents/new-request'] },
-      { id: 'review', labelKey: 'nav.review', path: '/review', prefix: true },
-      { id: 'schedule', labelKey: 'nav.schedule', path: '/schedule' },
-      { id: 'upload', labelKey: 'nav.uploadFile', path: '/documents/new-request' },
-      { id: 'use-pdf', labelKey: 'nav.usePdfTemplate', path: '/templates', query: { kind: 'pdf' }, alsoPrefixes: ['/pdf-templates'] },
-      { id: 'use-html', labelKey: 'nav.useHtmlTemplate', path: '/requests/from-html-template' }
+      { id: 'all', labelKey: 'nav.allContracts', path: '/contracts', prefix: true, exclude: ['/contracts/review', '/contracts/schedule', '/contracts/new', '/contracts/upload', '/contracts/from-pdf-template', '/contracts/from-html-template'] },
+      { id: 'review', labelKey: 'nav.review', path: '/contracts/review', prefix: true },
+      { id: 'schedule', labelKey: 'nav.schedule', path: '/contracts/schedule' },
+      { id: 'upload', labelKey: 'nav.uploadFile', path: '/contracts/new', alsoPrefixes: ['/contracts/upload'] },
+      { id: 'use-pdf', labelKey: 'nav.usePdfTemplate', path: '/contracts/from-pdf-template', prefix: true },
+      { id: 'use-html', labelKey: 'nav.useHtmlTemplate', path: '/contracts/from-html-template' }
     ]
   },
-  { id: 'templates', labelKey: 'nav.templates', icon: 'article', path: '/templates', withoutQuery: ['kind'] },
+  { id: 'templates', labelKey: 'nav.templates', icon: 'article', path: '/templates', prefix: true },
   {
     id: 'insights', labelKey: 'nav.insights', icon: 'monitoring', roles: MANAGERS,
     children: [
-      { id: 'reports', labelKey: 'nav.reports', path: '/reports', prefix: true },
-      { id: 'audit', labelKey: 'nav.auditTrail', path: '/audit', prefix: true }
+      { id: 'reports', labelKey: 'nav.reports', path: '/insights/reports', prefix: true },
+      { id: 'audit', labelKey: 'nav.auditTrail', path: '/insights/audit', prefix: true }
     ]
   },
   // Capability map hidden from the menu; the page is still reachable at /capabilities.
   {
     id: 'admin', labelKey: 'nav.administration', icon: 'admin_panel_settings', roles: ['Administrator'],
     children: [
-      { id: 'users', labelKey: 'admin.tabs.users', path: '/admin', query: { tab: 'users' }, queryDefault: { tab: 'users' } },
-      { id: 'types', labelKey: 'admin.tabs.requestTypes', path: '/admin', query: { tab: 'types' } },
+      { id: 'users', labelKey: 'admin.tabs.users', path: '/admin/users' },
+      { id: 'types', labelKey: 'admin.tabs.requestTypes', path: '/admin/types' },
       { id: 'manage-templates', labelKey: 'admin.tabs.htmlTemplates', path: '/admin/html-templates', prefix: true },
       { id: 'workflows', labelKey: 'admin.tabs.workflows', path: '/admin/workflows', prefix: true },
       { id: 'clauses', labelKey: 'admin.tabs.clauses', path: '/admin/clauses', prefix: true },
-      { id: 'settings', labelKey: 'admin.tabs.systemSettings', path: '/admin', query: { tab: 'settings' } }
+      { id: 'settings', labelKey: 'admin.tabs.systemSettings', path: '/admin/settings' }
     ]
   }
 ];

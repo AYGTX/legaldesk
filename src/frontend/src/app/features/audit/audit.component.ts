@@ -47,7 +47,7 @@ const ACTION_ICONS: Record<string, string> = {
   template: `
     <div class="audit-page">
       <div class="page-header">
-        <button mat-icon-button [routerLink]="['/documents', documentId]"><mat-icon>arrow_back</mat-icon></button>
+        <button mat-icon-button [routerLink]="['/contracts', documentId]"><mat-icon>arrow_back</mat-icon></button>
         <div class="header-titles">
           <h1 class="page-title">{{ 'audit.title' | translate }}</h1>
           <p class="page-subtitle">{{ 'audit.subtitle' | translate }}</p>

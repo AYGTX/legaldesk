@@ -195,7 +195,7 @@ type Step = 'pick' | 'fill' | 'done';
       @if (step() === 'done') {
         <div class="step-content">
           <sf-request-success [recipients]="createdRecipients()">
-            <a mat-flat-button routerLink="/requests" class="submit-btn">{{ 'requests.new.viewMyRequests' | translate }}</a>
+            <a mat-flat-button routerLink="/contracts" class="submit-btn">{{ 'requests.new.viewMyRequests' | translate }}</a>
             <button mat-stroked-button (click)="startOver()">{{ 'requests.new.submitAnother' | translate }}</button>
           </sf-request-success>
         </div>

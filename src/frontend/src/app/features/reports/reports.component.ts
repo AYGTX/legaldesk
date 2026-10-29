@@ -270,7 +270,7 @@ import { AdminReport, ContractLifecycle, MonthlyVolume, RiskMap } from '../../co
                       @for (c of lc.upcoming; track c.documentId) {
                         <tr>
                           <td>
-                            <a [routerLink]="['/documents', c.documentId]">{{ c.title }}</a>
+                            <a [routerLink]="['/contracts', c.documentId]">{{ c.title }}</a>
                             @if (c.autoRenews) {
                               <mat-icon class="renew-hint" [matTooltip]="'documents.detail.contractTerm.autoRenewsHint' | translate">autorenew</mat-icon>
                             }

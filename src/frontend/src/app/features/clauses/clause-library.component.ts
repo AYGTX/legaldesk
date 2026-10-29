@@ -33,7 +33,7 @@ import { ClauseDialogComponent } from './clause-dialog.component';
     <div class="library-page">
       <div class="page-header">
         <div class="header-text">
-          <a class="back-link" routerLink="/admin"><mat-icon>arrow_back</mat-icon> {{ 'clauses.backToAdmin' | translate }}</a>
+          <a class="back-link" routerLink="/admin/users"><mat-icon>arrow_back</mat-icon> {{ 'clauses.backToAdmin' | translate }}</a>
           <h1>{{ 'clauses.title' | translate }}</h1>
           <p>{{ 'clauses.subtitle' | translate }}</p>
         </div>

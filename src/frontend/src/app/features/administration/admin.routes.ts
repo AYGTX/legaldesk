@@ -3,8 +3,16 @@ import { Routes } from '@angular/router';
 export const adminRoutes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./admin.component').then(m => m.AdminComponent)
+    pathMatch: 'full',
+    // Old /admin?tab=types address: carry the tab over to its own path.
+    redirectTo: ({ queryParams }) => (queryParams['tab'] === 'types' || queryParams['tab'] === 'settings') ? queryParams['tab'] : 'users'
   },
+  ...['users', 'types', 'settings'].map(tab => ({
+    path: tab,
+    data: { tab },
+    loadComponent: () => import('./admin.component').then(m => m.AdminComponent),
+    title: 'Administration — LegalDesk'
+  })),
   {
     path: 'html-templates',
     loadChildren: () => import('../html-templates/html-templates.routes').then(m => m.htmlTemplatesRoutes),

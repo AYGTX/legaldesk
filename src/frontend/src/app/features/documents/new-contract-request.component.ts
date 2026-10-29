@@ -129,7 +129,7 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
             @if (error()) { <div class="nc-error"><mat-icon>error_outline</mat-icon> {{ error() }}</div> }
 
             <div class="nc-actions">
-              <a mat-button routerLink="/documents">{{ 'common.cancel' | translate }}</a>
+              <a mat-button routerLink="/contracts">{{ 'common.cancel' | translate }}</a>
               <span class="spacer"></span>
               <button mat-flat-button color="primary" (click)="startUpload()" [disabled]="!canUpload() || busy()">
                 <mat-icon>auto_awesome</mat-icon>
@@ -346,7 +346,7 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
 
           <div class="nc-actions">
             <button mat-button (click)="step.set(3)"><mat-icon>arrow_back</mat-icon> {{ 'newContractRequest.back' | translate }}</button>
-            <a mat-button [routerLink]="['/documents', documentId(), 'designer']">
+            <a mat-button [routerLink]="['/contracts', documentId(), 'designer']">
               <mat-icon>draw</mat-icon> {{ 'newContractRequest.send.adjustFields' | translate }}
             </a>
             <span class="spacer"></span>
@@ -362,8 +362,8 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
             <h2>{{ 'newContractRequest.sent.title' | translate }}</h2>
             <p>{{ 'newContractRequest.sent.hint' | translate }}</p>
             <div class="nc-actions center-actions">
-              <a mat-flat-button color="primary" [routerLink]="['/documents', documentId()]">{{ 'newContractRequest.sent.open' | translate }}</a>
-              <a mat-stroked-button routerLink="/documents/new-request" (click)="reload()">{{ 'newContractRequest.sent.another' | translate }}</a>
+              <a mat-flat-button color="primary" [routerLink]="['/contracts', documentId()]">{{ 'newContractRequest.sent.open' | translate }}</a>
+              <a mat-stroked-button routerLink="/contracts/new" (click)="reload()">{{ 'newContractRequest.sent.another' | translate }}</a>
             </div>
           </div>
         }
@@ -841,7 +841,7 @@ export class NewContractRequestComponent implements OnInit {
     this.busy.set(true);
     this.documents.getDocument(id).subscribe({
       next: detail => {
-        if (detail.status !== 'Draft') { this.router.navigate(['/documents', id]); return; }
+        if (detail.status !== 'Draft') { this.router.navigate(['/contracts', id]); return; }
 
         this.documentId.set(id);
         this.doc.set(detail);
@@ -870,7 +870,7 @@ export class NewContractRequestComponent implements OnInit {
           error: () => { this.busy.set(false); this.step.set(2); }
         });
       },
-      error: () => { this.busy.set(false); this.router.navigate(['/documents']); }
+      error: () => { this.busy.set(false); this.router.navigate(['/contracts']); }
     });
   }
 }

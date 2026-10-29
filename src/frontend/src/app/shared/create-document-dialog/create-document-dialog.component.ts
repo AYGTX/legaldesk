@@ -40,7 +40,7 @@ const OPTIONS: StartOption[] = [
     color: '#188038',
     bg: '#e6f4ea',
     badgeKey: 'createDocument.badgeOneTime',
-    route: ['/documents/upload']
+    route: ['/contracts/upload']
   }
 ];
 

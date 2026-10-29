@@ -28,7 +28,7 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
  * graded before anyone is asked to sign anything: the verdict says whether it is fit to go out, and
  * the checklist says exactly what to change if it is not.
  *
- * Deliberately separate from /documents/upload, which commits straight to a signature circuit. The
+ * Deliberately separate from /contracts/upload, which commits straight to a signature circuit. The
  * document created here is an ordinary Draft, so promoting it later is just the normal flow.
  */
 @Component({
@@ -205,7 +205,7 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
                   <button mat-flat-button color="primary" class="next-btn"
                           [disabled]="r.verdict === 'Blocked'"
                           [matTooltip]="r.verdict === 'Blocked' ? ('review.next.blockedHint' | translate) : ''"
-                          [routerLink]="['/documents', documentId(), 'designer']">
+                          [routerLink]="['/contracts', documentId(), 'designer']">
                     <mat-icon>send</mat-icon> {{ 'review.next.promote' | translate }}
                   </button>
                   }
@@ -227,7 +227,7 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
                     {{ (rerunning() ? 'review.analysing.title' : 'review.next.rerun') | translate }}
                   </button>
 
-                  <a mat-button class="next-link" [routerLink]="['/documents', documentId()]">
+                  <a mat-button class="next-link" [routerLink]="['/contracts', documentId()]">
                     {{ 'review.next.openContract' | translate }}
                   </a>
 
@@ -439,7 +439,7 @@ export class ContractReviewComponent implements OnInit {
       next: () => {
         this.sending.set(false);
         this.snack.open(this.translate.instant('review.send.sent'), 'OK', { duration: 4000 });
-        this.router.navigate(['/documents', this.documentId()]);
+        this.router.navigate(['/contracts', this.documentId()]);
       },
       error: err => {
         this.sending.set(false);

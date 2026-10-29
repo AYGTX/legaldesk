@@ -1103,7 +1103,7 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   closeTab(): void {
     window.close();
     setTimeout(() => {
-      if (!window.closed) this.router.navigate(['/documents']);
+      if (!window.closed) this.router.navigate(['/contracts']);
     }, 150);
   }
 }

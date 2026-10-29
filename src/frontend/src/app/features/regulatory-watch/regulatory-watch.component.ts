@@ -41,7 +41,7 @@ import { RegulatoryArticlesDialogComponent } from './regulatory-articles-dialog.
     <div class="library-page">
       <div class="page-header">
         <div class="header-text">
-          <a class="back-link" routerLink="/admin"><mat-icon>arrow_back</mat-icon> {{ 'regulatoryWatch.backToAdmin' | translate }}</a>
+          <a class="back-link" routerLink="/admin/users"><mat-icon>arrow_back</mat-icon> {{ 'regulatoryWatch.backToAdmin' | translate }}</a>
           <h1>{{ 'regulatoryWatch.title' | translate }}</h1>
           <p>{{ 'regulatoryWatch.subtitle' | translate }}</p>
         </div>

@@ -61,7 +61,7 @@ type Filter = 'all' | 'urgent' | 'soon' | 'missing' | 'proposed';
             </thead>
             <tbody>
               @for (r of shown(); track r.documentId) {
-                <tr class="sch-row" [routerLink]="['/documents', r.documentId]">
+                <tr class="sch-row" [routerLink]="['/contracts', r.documentId]">
                   <td class="sch-title">
                     {{ r.title }}
                     @if (r.requestTypeName) { <span class="sch-type">{{ r.requestTypeName }}</span> }

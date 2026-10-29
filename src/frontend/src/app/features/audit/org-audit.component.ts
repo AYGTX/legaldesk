@@ -89,7 +89,7 @@ const ACTION_ICONS: Record<string, string> = {
           <ng-container matColumnDef="document">
             <th mat-header-cell *matHeaderCellDef>{{ 'orgAudit.columns.document' | translate }}</th>
             <td mat-cell *matCellDef="let e">
-              <a [routerLink]="['/documents', e.documentId]" class="doc-link">{{ e.documentTitle }}</a>
+              <a [routerLink]="['/contracts', e.documentId]" class="doc-link">{{ e.documentTitle }}</a>
             </td>
           </ng-container>
 

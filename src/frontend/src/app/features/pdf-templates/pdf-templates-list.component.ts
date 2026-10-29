@@ -30,7 +30,7 @@ import { AuthService } from '../../core/auth/auth.service';
           <p class="page-sub">{{ 'pdfTemplates.list.subtitle' | translate }}</p>
         </div>
         @if (canManage()) {
-          <a mat-flat-button class="create-btn" routerLink="/pdf-templates/new">
+          <a mat-flat-button class="create-btn" routerLink="/templates/pdf/new">
             <mat-icon>upload_file</mat-icon> {{ 'pdfTemplates.list.newTemplate' | translate }}
           </a>
         }
@@ -186,8 +186,8 @@ export class PdfTemplatesListComponent implements OnInit {
     });
   }
 
-  configure(t: PdfTemplateDto) { this.router.navigate(['/pdf-templates', t.id, 'designer']); }
-  startRequest(t: PdfTemplateDto) { this.router.navigate(['/pdf-templates', t.id, 'new']); }
+  configure(t: PdfTemplateDto) { this.router.navigate(['/templates/pdf', t.id, 'designer']); }
+  startRequest(t: PdfTemplateDto) { this.router.navigate(['/contracts/from-pdf-template', t.id]); }
 
   deleteTemplate(t: PdfTemplateDto) {
     this.confirmService.confirm({

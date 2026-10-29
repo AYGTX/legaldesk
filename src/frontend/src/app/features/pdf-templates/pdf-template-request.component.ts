@@ -41,7 +41,7 @@ import { formatSla } from '../../core/utils/sla';
   template: `
     <div class="req-page">
       <div class="req-header">
-        <button mat-icon-button routerLink="/pdf-templates"><mat-icon>arrow_back</mat-icon></button>
+        <button mat-icon-button routerLink="/contracts/from-pdf-template"><mat-icon>arrow_back</mat-icon></button>
         <div>
           <h1 class="req-title">{{ template()?.name ?? ('common.loading' | translate) }}</h1>
           <p class="req-sub">{{ 'pdfTemplates.request.subtitle' | translate }}</p>
@@ -58,8 +58,8 @@ import { formatSla } from '../../core/utils/sla';
 
       @if (step() === 'done') {
         <sf-request-success [recipients]="createdRecipients()">
-          <a mat-flat-button routerLink="/requests" class="submit-btn">{{ 'requests.new.viewMyRequests' | translate }}</a>
-          <a mat-stroked-button routerLink="/pdf-templates">{{ 'pdfTemplates.request.backToForms' | translate }}</a>
+          <a mat-flat-button routerLink="/contracts" class="submit-btn">{{ 'requests.new.viewMyRequests' | translate }}</a>
+          <a mat-stroked-button routerLink="/contracts/from-pdf-template">{{ 'pdfTemplates.request.backToForms' | translate }}</a>
         </sf-request-success>
       } @else if (loading()) {
         <div class="loading"><mat-spinner diameter="40"></mat-spinner></div>
@@ -531,7 +531,7 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: res => {
         this.submitting.set(false);
-        this.router.navigate(['/review'], { queryParams: { documentId: res.documentId } });
+        this.router.navigate(['/contracts/review'], { queryParams: { documentId: res.documentId } });
       },
       error: (err: { error?: { detail?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);

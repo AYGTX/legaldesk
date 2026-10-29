@@ -80,7 +80,7 @@ interface StatCard {
             <div class="panel">
               <div class="panel-header">
                 <span class="panel-title">{{ 'dashboard.activity.title' | translate }}</span>
-                <a class="panel-link" routerLink="/documents">{{
+                <a class="panel-link" routerLink="/contracts">{{
                   'dashboard.activity.viewAll' | translate
                 }}</a>
               </div>
@@ -96,7 +96,7 @@ interface StatCard {
                   <div class="activity-row" [class.no-border]="last">
                     <span class="act-dot dot-{{ dotClass(item.action) }}"></span>
                     <div class="act-body">
-                      <a [routerLink]="['/documents', item.documentId]" class="act-title">{{
+                      <a [routerLink]="['/contracts', item.documentId]" class="act-title">{{
                         item.documentTitle
                       }}</a>
                       <span class="act-action">{{ actionKey(item.action) | translate }}</span>
@@ -195,7 +195,7 @@ interface StatCard {
                       ) | translate: { count: data()!.pendingSignatures }
                     }}
                   </p>
-                  <a mat-flat-button color="primary" routerLink="/requests" class="pending-cta">
+                  <a mat-flat-button color="primary" routerLink="/contracts" class="pending-cta">
                     {{ 'dashboard.pending.viewRequests' | translate }} <mat-icon>arrow_forward</mat-icon>
                   </a>
                 </div>
@@ -214,7 +214,7 @@ interface StatCard {
                   </div>
                   <span>{{ 'createDocument.newDocument' | translate }}</span>
                 </button>
-                <a class="quick-btn" routerLink="/documents">
+                <a class="quick-btn" routerLink="/contracts">
                   <div class="quick-icon" style="background:#fce8e6;color:#ea4335">
                     <mat-icon>description</mat-icon>
                   </div>
@@ -226,7 +226,7 @@ interface StatCard {
                   </div>
                   <span>{{ 'dashboard.quickActions.templates' | translate }}</span>
                 </a>
-                <a class="quick-btn" routerLink="/audit">
+                <a class="quick-btn" routerLink="/insights/audit">
                   <div class="quick-icon" style="background:#fef7e0;color:#f29900">
                     <mat-icon>history</mat-icon>
                   </div>
@@ -286,7 +286,7 @@ export class DashboardComponent implements OnInit {
         icon: 'description',
         color: '#1a73e8',
         bgColor: '#e8f0fe',
-        route: '/documents',
+        route: '/contracts',
       },
       {
         label: this.translate.instant('dashboard.stats.completed'),
@@ -294,7 +294,7 @@ export class DashboardComponent implements OnInit {
         icon: 'check_circle',
         color: '#22c55e',
         bgColor: '#f0fdf4',
-        route: '/documents',
+        route: '/contracts',
         queryParam: { status: 'Completed' },
       },
       {
@@ -303,7 +303,7 @@ export class DashboardComponent implements OnInit {
         icon: 'schedule',
         color: '#f59e0b',
         bgColor: '#fffbeb',
-        route: '/documents',
+        route: '/contracts',
         queryParam: { status: 'Sent' },
       },
       // Attention state — only surfaces while a revision is being waited on.
@@ -313,7 +313,7 @@ export class DashboardComponent implements OnInit {
         icon: 'published_with_changes',
         color: '#d97706',
         bgColor: '#fffbeb',
-        route: '/documents',
+        route: '/contracts',
         queryParam: { status: 'ChangesRequested' },
       }] : []),
       // Lifecycle state — only surfaces while one of the user's contracts is running out.
@@ -323,7 +323,7 @@ export class DashboardComponent implements OnInit {
         icon: 'update',
         color: '#b45309',
         bgColor: '#fffbeb',
-        route: '/documents',
+        route: '/contracts',
         queryParam: { status: 'Completed' },
       }] : []),
       {
@@ -332,7 +332,7 @@ export class DashboardComponent implements OnInit {
         icon: 'edit_note',
         color: '#5f6368',
         bgColor: '#f1f3f4',
-        route: '/documents',
+        route: '/contracts',
         queryParam: { status: 'Draft' },
       },
     ] satisfies StatCard[];

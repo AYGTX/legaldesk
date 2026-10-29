@@ -15,10 +15,5 @@ export const pdfTemplatesRoutes: Routes = [
     path: ':id/designer',
     loadComponent: () => import('./pdf-template-designer.component').then(m => m.PdfTemplateDesignerComponent),
     title: 'Configure PDF Contract Template — LegalDesk'
-  },
-  {
-    path: ':id/new',
-    loadComponent: () => import('./pdf-template-request.component').then(m => m.PdfTemplateRequestComponent),
-    title: 'New Validation Request — LegalDesk'
   }
 ];

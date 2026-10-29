@@ -26,81 +26,76 @@ export const routes: Routes = [
         title: 'Dashboard — LegalDesk'
       },
       {
-        path: 'documents',
-        loadComponent: () => import('./features/documents/documents-list.component').then(m => m.DocumentsListComponent),
-        title: 'Contracts — LegalDesk'
-      },
-      {
-        path: 'requests',
-        pathMatch: 'full',
-        redirectTo: 'documents'
-      },
-      {
-        // Old address of the page below; links and bookmarks keep working (the query string is carried over).
-        path: 'requests/new',
-        pathMatch: 'full',
-        redirectTo: 'requests/from-html-template'
-      },
-      {
-        path: 'requests/from-html-template',
-        loadComponent: () => import('./features/requests/new-request.component').then(m => m.NewRequestComponent),
-        title: 'New Validation Request — LegalDesk'
-      },
-      {
-        path: 'review',
-        loadComponent: () => import('./features/review/contract-review.component').then(m => m.ContractReviewComponent),
-        title: 'Contract Review — LegalDesk'
-      },
-      {
-        path: 'documents/new-request',
-        loadComponent: () => import('./features/documents/new-contract-request.component').then(m => m.NewContractRequestComponent),
-        title: 'New Contract Request — LegalDesk'
-      },
-      {
-        path: 'documents/upload',
-        loadComponent: () => import('./features/documents/upload-document.component').then(m => m.UploadDocumentComponent),
-        title: 'Upload Contract — LegalDesk'
-      },
-      {
-        path: 'documents/:id',
-        loadComponent: () => import('./features/documents/document-detail.component').then(m => m.DocumentDetailComponent),
-        title: 'Contract Detail — LegalDesk'
-      },
-      {
-        path: 'documents/:id/designer',
-        loadComponent: () => import('./features/designer/designer.component').then(m => m.DesignerComponent),
-        title: 'Contract Preparation — LegalDesk'
-      },
-      {
-        path: 'documents/:id/audit',
-        loadComponent: () => import('./features/audit/audit.component').then(m => m.AuditComponent),
-        title: 'Traceability — LegalDesk'
-      },
-      {
-        path: 'audit',
-        loadComponent: () => import('./features/audit/org-audit.component').then(m => m.OrgAuditComponent),
-        title: 'Traceability — LegalDesk'
+        path: 'contracts',
+        title: 'Contracts — LegalDesk',
+        children: [
+          { path: '', pathMatch: 'full', loadComponent: () => import('./features/documents/documents-list.component').then(m => m.DocumentsListComponent) },
+          { path: 'review', loadComponent: () => import('./features/review/contract-review.component').then(m => m.ContractReviewComponent), title: 'Contract Review — LegalDesk' },
+          { path: 'schedule', loadComponent: () => import('./features/schedule/contract-schedule.component').then(m => m.ContractScheduleComponent), title: 'Contract schedule — LegalDesk' },
+          { path: 'new', loadComponent: () => import('./features/documents/new-contract-request.component').then(m => m.NewContractRequestComponent), title: 'New Contract Request — LegalDesk' },
+          { path: 'upload', loadComponent: () => import('./features/documents/upload-document.component').then(m => m.UploadDocumentComponent), title: 'Upload Contract — LegalDesk' },
+          {
+            path: 'from-pdf-template',
+            children: [
+              {
+                path: '', pathMatch: 'full', data: { kind: 'pdf' },
+                loadComponent: () => import('./features/templates/templates.component').then(m => m.TemplatesComponent),
+                title: 'PDF Contract Templates — LegalDesk'
+              },
+              {
+                path: ':id',
+                loadComponent: () => import('./features/pdf-templates/pdf-template-request.component').then(m => m.PdfTemplateRequestComponent),
+                title: 'New Validation Request — LegalDesk'
+              }
+            ]
+          },
+          { path: 'from-html-template', loadComponent: () => import('./features/requests/new-request.component').then(m => m.NewRequestComponent), title: 'New Validation Request — LegalDesk' },
+          { path: ':id', loadComponent: () => import('./features/documents/document-detail.component').then(m => m.DocumentDetailComponent), title: 'Contract Detail — LegalDesk' },
+          { path: ':id/designer', loadComponent: () => import('./features/designer/designer.component').then(m => m.DesignerComponent), title: 'Contract Preparation — LegalDesk' },
+          { path: ':id/audit', loadComponent: () => import('./features/audit/audit.component').then(m => m.AuditComponent), title: 'Traceability — LegalDesk' }
+        ]
       },
       {
         path: 'templates',
-        loadComponent: () => import('./features/templates/templates.component').then(m => m.TemplatesComponent),
-        title: 'Contract Templates — LegalDesk'
+        children: [
+          {
+            path: '', pathMatch: 'full',
+            loadComponent: () => import('./features/templates/templates.component').then(m => m.TemplatesComponent),
+            title: 'Contract Templates — LegalDesk'
+          },
+          {
+            path: 'pdf',
+            loadChildren: () => import('./features/pdf-templates/pdf-templates.routes').then(m => m.pdfTemplatesRoutes)
+          }
+        ]
       },
       {
-        path: 'pdf-templates',
-        loadChildren: () => import('./features/pdf-templates/pdf-templates.routes').then(m => m.pdfTemplatesRoutes),
-        title: 'PDF Contract Templates — LegalDesk'
+        path: 'insights',
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'reports' },
+          { path: 'reports', loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent), title: 'Reports — LegalDesk' },
+          { path: 'audit', loadComponent: () => import('./features/audit/org-audit.component').then(m => m.OrgAuditComponent), title: 'Traceability — LegalDesk' }
+        ]
       },
-      {
-        path: 'schedule',
-        loadComponent: () => import('./features/schedule/contract-schedule.component').then(m => m.ContractScheduleComponent),
-        title: 'Contract schedule — LegalDesk'
-      },
-      {
-        path: 'reports',
-        loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent),
-        title: 'Reports — LegalDesk'
-      },
+
+      // Old addresses (before the URLs followed the menu); links and bookmarks keep working.
+      { path: 'documents', pathMatch: 'full', redirectTo: 'contracts' },
+      { path: 'documents/new-request', redirectTo: 'contracts/new' },
+      { path: 'documents/upload', redirectTo: 'contracts/upload' },
+      { path: 'documents/:id', redirectTo: ({ params }) => `contracts/${params['id']}` },
+      { path: 'documents/:id/designer', redirectTo: ({ params }) => `contracts/${params['id']}/designer` },
+      { path: 'documents/:id/audit', redirectTo: ({ params }) => `contracts/${params['id']}/audit` },
+      { path: 'requests', pathMatch: 'full', redirectTo: 'contracts' },
+      { path: 'requests/new', redirectTo: 'contracts/from-html-template' },
+      { path: 'requests/from-html-template', redirectTo: 'contracts/from-html-template' },
+      { path: 'review', redirectTo: 'contracts/review' },
+      { path: 'reports', redirectTo: 'insights/reports' },
+      { path: 'audit', redirectTo: 'insights/audit' },
+      { path: 'pdf-templates', pathMatch: 'full', redirectTo: 'templates/pdf' },
+      { path: 'pdf-templates/new', redirectTo: 'templates/pdf/new' },
+      { path: 'pdf-templates/:id/designer', redirectTo: ({ params }) => `templates/pdf/${params['id']}/designer` },
+      { path: 'pdf-templates/:id/new', redirectTo: ({ params }) => `contracts/from-pdf-template/${params['id']}` },
+      { path: 'schedule', redirectTo: 'contracts/schedule' },
       {
         path: 'capabilities',
         loadComponent: () => import('./features/capabilities/capabilities.component').then(m => m.CapabilitiesComponent),

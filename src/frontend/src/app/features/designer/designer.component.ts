@@ -93,7 +93,7 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
         <button mat-icon-button (click)="sidebarCollapsed.update(v => !v)" [matTooltip]="'designer.toolbar.toggleSidebar' | translate">
           <mat-icon>{{ sidebarCollapsed() ? 'menu_open' : 'menu' }}</mat-icon>
         </button>
-        <button mat-icon-button [routerLink]="['/documents', documentId]" [matTooltip]="'common.back' | translate">
+        <button mat-icon-button [routerLink]="['/contracts', documentId]" [matTooltip]="'common.back' | translate">
           <mat-icon>arrow_back</mat-icon>
         </button>
         <span class="toolbar-title">{{ doc()?.title ?? ('common.loading' | translate) }}</span>
@@ -147,7 +147,7 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
             <mat-icon>save</mat-icon>
             {{ saving() ? ('designer.toolbar.saving' | translate) : ('common.save' | translate) }}
           </button>
-          <button mat-flat-button color="primary" [routerLink]="['/documents', documentId]">{{ 'designer.toolbar.done' | translate }}</button>
+          <button mat-flat-button color="primary" [routerLink]="['/contracts', documentId]">{{ 'designer.toolbar.done' | translate }}</button>
         }
       </mat-toolbar>
 

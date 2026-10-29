@@ -81,7 +81,7 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
   template: `
     <div class="dz">
       <mat-toolbar class="dz-toolbar">
-        <button mat-icon-button routerLink="/pdf-templates" [matTooltip]="'common.back' | translate"><mat-icon>arrow_back</mat-icon></button>
+        <button mat-icon-button routerLink="/templates" [matTooltip]="'common.back' | translate"><mat-icon>arrow_back</mat-icon></button>
         <input class="tpl-name-input" [(ngModel)]="name" [placeholder]="'pdfTemplates.designer.namePlaceholder' | translate" />
         <span class="flex-1"></span>
 

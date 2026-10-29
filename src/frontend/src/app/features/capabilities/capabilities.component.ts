@@ -110,16 +110,16 @@ export class CapabilitiesComponent {
   /** Mirrors the requirements brief one bullet at a time, in the order it was written. */
   readonly capabilities: Capability[] = [
     { id: 'generation',  icon: 'description',        status: 'available', route: '/templates' },
-    { id: 'aiReview',    icon: 'auto_awesome',       status: 'available', route: '/documents' },
-    { id: 'workflow',    icon: 'account_tree',       status: 'available', route: '/documents' },
-    { id: 'versioning',  icon: 'history',            status: 'available', route: '/documents' },
-    { id: 'archive',     icon: 'inventory_2',        status: 'available', route: '/audit' },
-    { id: 'obligations', icon: 'event_repeat',       status: 'available', route: '/documents' },
-    { id: 'reporting',   icon: 'monitoring',         status: 'available', route: '/reports' },
-    { id: 'execution',   icon: 'notifications_active', status: 'available', route: '/reports' },
+    { id: 'aiReview',    icon: 'auto_awesome',       status: 'available', route: '/contracts' },
+    { id: 'workflow',    icon: 'account_tree',       status: 'available', route: '/contracts' },
+    { id: 'versioning',  icon: 'history',            status: 'available', route: '/contracts' },
+    { id: 'archive',     icon: 'inventory_2',        status: 'available', route: '/insights/audit' },
+    { id: 'obligations', icon: 'event_repeat',       status: 'available', route: '/contracts' },
+    { id: 'reporting',   icon: 'monitoring',         status: 'available', route: '/insights/reports' },
+    { id: 'execution',   icon: 'notifications_active', status: 'available', route: '/insights/reports' },
     { id: 'regWatch',    icon: 'travel_explore',     status: 'available', route: '/admin/regulatory-watch' },
-    { id: 'compliance',  icon: 'policy',             status: 'available', route: '/documents' },
-    { id: 'riskMap',     icon: 'crisis_alert',       status: 'available', route: '/reports' }
+    { id: 'compliance',  icon: 'policy',             status: 'available', route: '/contracts' },
+    { id: 'riskMap',     icon: 'crisis_alert',       status: 'available', route: '/insights/reports' }
   ];
 
   countOf(status: CapabilityStatus): number {

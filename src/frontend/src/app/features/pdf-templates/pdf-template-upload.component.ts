@@ -26,7 +26,7 @@ import { formatSla } from '../../core/utils/sla';
   template: `
     <div class="upload-page">
       <div class="top-bar">
-        <a mat-icon-button routerLink="/pdf-templates" [matTooltip]="'common.back' | translate">
+        <a mat-icon-button routerLink="/templates" [matTooltip]="'common.back' | translate">
           <mat-icon>arrow_back</mat-icon>
         </a>
         <div>
@@ -70,7 +70,7 @@ import { formatSla } from '../../core/utils/sla';
         </div>
 
         <div class="upload-actions">
-          <a mat-button routerLink="/pdf-templates">{{ 'common.cancel' | translate }}</a>
+          <a mat-button routerLink="/templates">{{ 'common.cancel' | translate }}</a>
           <button mat-flat-button class="create-btn" [disabled]="!selectedFile() || !uploadName.trim() || !requestTypeId || uploading()" (click)="upload()">
             @if (uploading()) { <mat-spinner diameter="18"></mat-spinner> }
             <mat-icon>arrow_forward</mat-icon>
@@ -158,7 +158,7 @@ export class PdfTemplateUploadComponent implements OnInit {
     this.svc.create(file, this.uploadName.trim(), this.requestTypeId, this.uploadDescription.trim() || undefined).subscribe({
       next: res => {
         this.uploading.set(false);
-        this.router.navigate(['/pdf-templates', res.id, 'designer']);
+        this.router.navigate(['/templates/pdf', res.id, 'designer']);
       },
       error: err => {
         this.uploading.set(false);

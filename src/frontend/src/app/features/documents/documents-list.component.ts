@@ -186,7 +186,7 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
                   <mat-icon>picture_as_pdf</mat-icon>
                 </div>
                 <div class="doc-text">
-                  <a [routerLink]="['/documents', doc.id]" class="doc-title" (click)="$event.stopPropagation()">
+                  <a [routerLink]="['/contracts', doc.id]" class="doc-title" (click)="$event.stopPropagation()">
                     {{ doc.title }}
                   </a>
                   <span class="doc-meta">
@@ -256,11 +256,11 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #docMenu="matMenu">
-                <button mat-menu-item [routerLink]="['/documents', doc.id]">
+                <button mat-menu-item [routerLink]="['/contracts', doc.id]">
                   <mat-icon>open_in_new</mat-icon><span>{{ 'documents.list.menu.open' | translate }}</span>
                 </button>
                 @if (doc.status === 'Draft') {
-                  <button mat-menu-item [routerLink]="['/documents', doc.id, 'designer']">
+                  <button mat-menu-item [routerLink]="['/contracts', doc.id, 'designer']">
                     <mat-icon>edit</mat-icon><span>{{ 'documents.list.menu.designFields' | translate }}</span>
                   </button>
                 }
@@ -278,7 +278,7 @@ const RECEIVED_STATUS_COLORS: Record<string, string> = {
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;"
               class="doc-row"
-              [routerLink]="['/documents', row.id]"></tr>
+              [routerLink]="['/contracts', row.id]"></tr>
 
           <tr class="mat-row" *matNoDataRow>
             <td class="mat-cell" [colSpan]="displayedColumns.length">
@@ -469,7 +469,7 @@ export class DocumentsListComponent implements OnInit {
 
   /** The contract page: details, history and analysis. */
   openContract(r: ReceivedRequest): void {
-    this.router.navigate(['/documents', r.documentId]);
+    this.router.navigate(['/contracts', r.documentId]);
   }
 
   private loadReceived(): void {

@@ -123,7 +123,7 @@ export class NotificationBellComponent implements OnInit {
 
   open(n: AppNotification): void {
     this.service.markRead(n.id);
-    if (n.documentId) this.router.navigate(['/documents', n.documentId]);
+    if (n.documentId) this.router.navigate(['/contracts', n.documentId]);
   }
 
   markAllRead(): void {
