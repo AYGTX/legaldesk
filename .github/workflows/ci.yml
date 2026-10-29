@@ -26,7 +26,6 @@ jobs:
 
       - name: Test
         run: dotnet test src/backend/SignFlow.slnx --no-build -c Release --logger trx --results-directory TestResults
-        continue-on-error: true
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
@@ -34,6 +33,41 @@ jobs:
         with:
           name: test-results
           path: TestResults/**/*.trx
+
+  harvey:
+    name: Harvey Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/legal-corpus
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: src/legal-corpus/requirements*.txt
+
+      # CPU-only PyTorch keeps the install small; the meaning model (~470 MB) is cached between runs so the
+      # review regression tests run instead of skipping.
+      - name: Cache Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('src/legal-corpus/requirements-semantic.txt') }}
+
+      - name: Install
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-dev.txt -r requirements-semantic.txt -r requirements-mcp.txt
+
+      - name: Download the meaning model
+        run: python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')"
+
+      - name: Test
+        run: python -m pytest -p no:warnings
 
   frontend:
     name: Angular Build
