@@ -135,7 +135,7 @@ public class DocumentsController(
 
     /// <summary>Upload a new PDF document</summary>
     [HttpPost]
-    [RequestSizeLimit(100 * 1024 * 1024)]
+    [RequestSizeLimit(51 * 1024 * 1024)] // 50 MB file + form overhead (R-M2-1)
     [ProducesResponseType(typeof(DocumentUploadResult), 201)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]
     public async Task<ActionResult<DocumentUploadResult>> Upload([FromForm] UploadDocumentRequest request, CancellationToken ct)
@@ -161,7 +161,7 @@ public class DocumentsController(
 
     /// <summary>Upload a revised PDF after changes were requested — voids field completion and returns the document to Draft for re-send</summary>
     [HttpPost("{id:guid}/revision")]
-    [RequestSizeLimit(100 * 1024 * 1024)]
+    [RequestSizeLimit(51 * 1024 * 1024)] // 50 MB file + form overhead (R-M2-1)
     [ProducesResponseType(typeof(UploadRevisionResult), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 409)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]

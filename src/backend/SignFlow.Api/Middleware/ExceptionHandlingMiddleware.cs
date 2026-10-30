@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Exceptions;
 
 namespace SignFlow.Api.Middleware;
@@ -83,12 +84,15 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Status = 502,
                 Detail = arue.Message
             }),
-            InvalidOperationException ioe => (HttpStatusCode.BadRequest, new ProblemDetails
+            ScannerUnavailableException sue => (HttpStatusCode.ServiceUnavailable, new ProblemDetails
             {
-                Title = "Invalid Operation",
-                Status = 400,
-                Detail = ioe.Message
+                Title = "Virus scanner unavailable",
+                Status = 503,
+                Detail = sue.Message,
+                Extensions = { ["code"] = ScannerUnavailableException.Code }
             }),
+            // Security baseline: an unexpected failure's own message (paths, SQL, internals) never reaches the
+            // client; it is in the log under the trace id returned below.
             _ => (HttpStatusCode.InternalServerError, new ProblemDetails
             {
                 Title = "Internal Server Error",

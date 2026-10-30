@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SignFlow.Application.Common.Exceptions;
@@ -89,11 +90,11 @@ public class PreflightResolutionTests
 
         var handler = new UploadRevisionCommandHandler(
             fixture.Db, fixture.GetHandler<IStorageService>(), fixture.GetHandler<IPdfService>(),
-            fixture.GetHandler<IVirusScanService>(), fixture.GetHandler<ICurrentUserService>(),
+            fixture.GetHandler<PdfUploadGuard>(), fixture.GetHandler<ICurrentUserService>(),
             fixture.GetHandler<IAuditService>(), NullLogger<UploadRevisionCommandHandler>.Instance);
 
         var result = await handler.HandleAsync(new UploadRevisionCommand(
-            seed.Document.Id, new MemoryStream([1, 2, 3]), "supply-v2.pdf", 3, "application/pdf", "Liability capped"));
+            seed.Document.Id, new MemoryStream(NullPdfInspector.FakePdf), "supply-v2.pdf", NullPdfInspector.FakePdf.Length, "application/pdf", "Liability capped"));
 
         Assert.Equal(2, result.Version);
         var document = await fixture.Db.Documents.Include(d => d.Versions).SingleAsync();

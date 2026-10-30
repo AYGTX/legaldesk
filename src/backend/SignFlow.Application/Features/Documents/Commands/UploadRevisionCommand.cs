@@ -26,7 +26,7 @@ public record UploadRevisionResult(Guid DocumentId, int Version, int PageCount);
 
 public class UploadRevisionCommandValidator : AbstractValidator<UploadRevisionCommand>
 {
-    private const long MaxFileSizeBytes = 100 * 1024 * 1024; // 100 MB
+    private const long MaxFileSizeBytes = Common.Services.PdfUploadGuard.MaxBytes; // 50 MB, the same everywhere
 
     public UploadRevisionCommandValidator()
     {
@@ -35,7 +35,7 @@ public class UploadRevisionCommandValidator : AbstractValidator<UploadRevisionCo
             .Must(f => f.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             .WithMessage("Only PDF files are supported.");
         RuleFor(x => x.FileSizeBytes).GreaterThan(0).LessThanOrEqualTo(MaxFileSizeBytes)
-            .WithMessage("File size must be between 1 byte and 100 MB.");
+            .WithMessage("File size must be between 1 byte and 50 MB.");
         RuleFor(x => x.ContentType).Must(ct => ct == "application/pdf").WithMessage("Content type must be application/pdf.");
         RuleFor(x => x.ChangeNote).MaximumLength(2000);
     }
@@ -45,7 +45,7 @@ public class UploadRevisionCommandHandler(
     IApplicationDbContext db,
     IStorageService storage,
     IPdfService pdfService,
-    IVirusScanService virusScan,
+    Common.Services.PdfUploadGuard uploadGuard,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<UploadRevisionCommandHandler> logger) : ICommandHandler<UploadRevisionCommand, UploadRevisionResult>
@@ -76,13 +76,8 @@ public class UploadRevisionCommandHandler(
         if (document.PdfTemplateId.HasValue)
             throw new ConflictException("This contract was built from a template: revise its answers instead of uploading a file.");
 
-        var scanResult = await virusScan.ScanAsync(command.FileStream, command.FileName, cancellationToken);
-        if (!scanResult.IsSafe)
-            throw new InvalidOperationException($"File rejected by virus scanner: {scanResult.ThreatName}");
-
-        command.FileStream.Position = 0;
-        var pageCount = await pdfService.GetPageCountAsync(command.FileStream, cancellationToken);
-        command.FileStream.Position = 0;
+        // Size, %PDF- signature, readable, not encrypted, virus scan (R-M2-1, R-M2-2).
+        var pageCount = await uploadGuard.EnsureSafeAsync(command.FileStream, command.FileName, cancellationToken);
         var hash = await pdfService.ComputeHashAsync(command.FileStream, cancellationToken);
         command.FileStream.Position = 0;
 

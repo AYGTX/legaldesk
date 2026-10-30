@@ -1,3 +1,4 @@
+using SignFlow.IntegrationTests.Stubs;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Features.Documents.Commands;
 using SignFlow.Application.Features.Recipients.Commands;
@@ -47,7 +48,7 @@ public class SigningScenarioTests
         await SeedOwnerAsync(fixture);
 
         // ── 1. Upload document ────────────────────────────────────────────────
-        var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 }; // minimal PDF magic bytes
+        var pdfBytes = NullPdfInspector.FakePdf; // passes the %PDF- signature check
         using var pdfStream = new MemoryStream(pdfBytes);
 
         var uploadHandler = fixture.GetHandler<UploadDocumentCommandHandler>();
@@ -161,7 +162,7 @@ public class SigningScenarioTests
         using var fixture = new ScenarioFixture(OwnerId, OwnerEmail);
         await SeedOwnerAsync(fixture);
 
-        using var pdfStream = new MemoryStream(new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        using var pdfStream = new MemoryStream(NullPdfInspector.FakePdf);
         var uploadHandler = fixture.GetHandler<UploadDocumentCommandHandler>();
         var uploadResult = await uploadHandler.HandleAsync(new UploadDocumentCommand(
             pdfStream, "doc.pdf", 4, "application/pdf", "Two-party Contract"));

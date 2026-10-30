@@ -89,7 +89,7 @@ public class PdfTemplatesController(
     /// <summary>Upload the base PDF for a new template (admin/manager only). Fields are configured afterwards.</summary>
     [HttpPost]
     [RequirePermission(Permissions.ManageTemplates)]
-    [RequestSizeLimit(100 * 1024 * 1024)]
+    [RequestSizeLimit(51 * 1024 * 1024)] // 50 MB file + form overhead (R-M2-1)
     [ProducesResponseType(typeof(CreatePdfTemplateResult), 201)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]

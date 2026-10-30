@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Services;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -251,11 +252,11 @@ public class TemplateRevisionTests
 
         var handler = new UploadRevisionCommandHandler(
             fixture.Db, fixture.GetHandler<IStorageService>(), fixture.GetHandler<IPdfService>(),
-            fixture.GetHandler<IVirusScanService>(), fixture.GetHandler<ICurrentUserService>(),
+            fixture.GetHandler<PdfUploadGuard>(), fixture.GetHandler<ICurrentUserService>(),
             fixture.GetHandler<IAuditService>(), NullLogger<UploadRevisionCommandHandler>.Instance);
 
         await Assert.ThrowsAsync<ConflictException>(() => handler.HandleAsync(new UploadRevisionCommand(
-            document.Id, new MemoryStream([1]), "x.pdf", 1, "application/pdf", null)));
+            document.Id, new MemoryStream(NullPdfInspector.FakePdf), "x.pdf", NullPdfInspector.FakePdf.Length, "application/pdf", null)));
     }
 
     private static Dictionary<string, string> TemplateAnswers(string? json) =>

@@ -185,7 +185,17 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IPdfService, PdfPigService>();
         services.AddScoped<ICacheService, RedisCacheService>();
         services.AddScoped<IAuditService, AuditService>();
-        services.AddScoped<IVirusScanService, VirusScanService>();
+        // Uploads (R-M2-1, R-M2-2): ClamAV when Security:ClamAv:Host is set; without it, uploads are refused unless
+        // Security:ClamAv:Required is false (developer machines), where only the file-type check runs.
+        services.Configure<ClamAvOptions>(configuration.GetSection("Security:ClamAv"));
+        var clamAv = configuration.GetSection("Security:ClamAv").Get<ClamAvOptions>() ?? new ClamAvOptions();
+        if (!string.IsNullOrWhiteSpace(clamAv.Host))
+            services.AddScoped<IVirusScanService, ClamAvScanService>();
+        else if (clamAv.Required)
+            services.AddScoped<IVirusScanService, MissingScannerService>();
+        else
+            services.AddScoped<IVirusScanService, VirusScanService>();
+        services.AddSingleton<SignFlow.Application.Common.Services.IPdfInspector, PdfInspector>();
         services.AddScoped<IWorkflowEngine, WorkflowEngine>();
         services.AddScoped<IPdfStampService, PdfStampService>();
         services.AddScoped<IPdfTextEditService, PdfTextEditService>();

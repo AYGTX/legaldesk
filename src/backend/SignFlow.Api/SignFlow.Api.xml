@@ -642,15 +642,6 @@
         <member name="M:SignFlow.Api.Controllers.V1.AddSigningCommentRequest.#ctor(System.String,System.Nullable{System.Guid},System.Nullable{System.Int32},System.Nullable{System.Single},System.Nullable{System.Single})">
             <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
         </member>
-        <member name="T:SignFlow.Api.Controllers.V1.TemplatesController">
-            <summary>Document template endpoints</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.TemplatesController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Templates.Commands.CreateTemplateCommand,System.Guid})">
-            <summary>Document template endpoints</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.TemplatesController.Create(SignFlow.Api.Controllers.V1.CreateTemplateRequest,System.Threading.CancellationToken)">
-            <summary>Upload a new document template</summary>
-        </member>
         <member name="T:SignFlow.Api.Controllers.V1.VacationsController">
             <summary>Vacation scheduling — users on vacation cannot be added as recipients</summary>
         </member>

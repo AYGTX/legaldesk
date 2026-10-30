@@ -74,6 +74,9 @@ public sealed class ScenarioFixture : IDisposable
         services.AddSingleton<IPdfStampService, NullPdfStampService>();
         services.AddSingleton<IHtmlTemplatePdfGenerator, NullHtmlTemplatePdfGenerator>();
         services.AddSingleton<IVirusScanService, NullVirusScanService>();
+        services.AddSingleton<IPdfInspector, NullPdfInspector>();
+        services.AddScoped(sp => new PdfUploadGuard(sp.GetRequiredService<IPdfInspector>(),
+            sp.GetRequiredService<IVirusScanService>(), NullLogger<PdfUploadGuard>.Instance));
         services.AddSingleton<IAuditService, NullAuditService>();
         services.AddSingleton<IAiService, NullAiService>();
         services.AddSingleton<ICurrentUserService>(new FakeCurrentUserService(ownerId, ownerEmail));
@@ -83,7 +86,7 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<IApplicationDbContext>(),
             sp.GetRequiredService<IStorageService>(),
             sp.GetRequiredService<IPdfService>(),
-            sp.GetRequiredService<IVirusScanService>(),
+            sp.GetRequiredService<PdfUploadGuard>(),
             sp.GetRequiredService<IAiService>(),
             new LegalPlaybookService(new NullLegalCorpusClient(), NullLogger<LegalPlaybookService>.Instance),
             sp.GetRequiredService<ICurrentUserService>(),

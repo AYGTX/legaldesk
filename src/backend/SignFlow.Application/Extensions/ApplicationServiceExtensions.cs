@@ -12,7 +12,6 @@ using SignFlow.Application.Features.Checklist.Commands;
 using SignFlow.Application.Features.Signing.Commands;
 using SignFlow.Application.Features.Signing.Queries;
 using SignFlow.Application.Features.AuditTrail.Queries;
-using SignFlow.Application.Features.Templates.Commands;
 using SignFlow.Application.Features.Administration.Commands;
 using SignFlow.Application.Features.Administration.Queries;
 using SignFlow.Application.Features.Profile.Commands;
@@ -56,6 +55,7 @@ public static class ApplicationServiceExtensions
         // Auth: sessions, two-factor, invitations, recovery (rework spec M1)
         services.AddScoped<SignFlow.Application.Features.Auth.AuthSessions>();
         services.AddScoped<PasswordResetMail>();
+        services.AddScoped<SignFlow.Application.Common.Services.PdfUploadGuard>();
         services.AddScoped<ICommandHandler<LoginCommand, SignFlow.Application.Features.Auth.LoginOutcome>, LoginCommandHandler>();
         services.AddScoped<ICommandHandler<MfaLoginCommand, SignFlow.Application.Features.Auth.AuthSession>, MfaLoginCommandHandler>();
         services.AddScoped<ICommandHandler<RefreshTokenCommand, SignFlow.Application.Features.Auth.AuthSession>, RefreshTokenCommandHandler>();
@@ -135,7 +135,6 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IQueryHandler<GetOrgAuditLogQuery, PagedResult<OrgAuditLogDto>>, GetOrgAuditLogQueryHandler>();
 
         // Templates
-        services.AddScoped<ICommandHandler<CreateTemplateCommand, Guid>, CreateTemplateCommandHandler>();
 
         // Administration
         services.AddScoped<ICommandHandler<UpdateUserCommand>, UpdateUserCommandHandler>();
