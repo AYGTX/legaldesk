@@ -97,6 +97,14 @@ public class ReviewRunner(
             }
         }
 
+        // No rule in service means nothing was checked: that must never read as a clean contract.
+        if (review.RulesApplied == 0)
+        {
+            await FailAsync(document, run, ReviewRun.NoRules,
+                "No review rule is in service: a lawyer has to approve Harvey's rules before contracts can be reviewed.", cancellationToken);
+            return;
+        }
+
         Reconcile(document, review.Findings, run);
 
         var grade = ReviewGrading.Grade([.. document.ReadinessItems.Where(i => i.LastSeenRunId == run.Id)]);

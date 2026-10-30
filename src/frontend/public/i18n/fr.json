@@ -1789,7 +1789,8 @@
           "timeout": "Harvey n'a pas répondu à temps. Rien n'a été modifié ; réessayez.",
           "no_text": "Ce contrat n'a pas de texte lisible : Harvey ne peut pas le revoir. Un PDF scanné doit d'abord passer par la reconnaissance de texte.",
           "stale": "Le contrat a été révisé pendant que la revue attendait. Revoyez la nouvelle version.",
-          "intake_pending": "LegalDesk lit encore ce contrat ; sa revue démarre dès que c'est fait."
+          "intake_pending": "LegalDesk lit encore ce contrat ; sa revue démarre dès que c'est fait.",
+          "no_rules": "Aucune règle de revue n'est encore en service : un juriste doit valider les règles de Harvey avant toute revue de contrat."
         }
       },
       "fromOcr": "texte issu de l'OCR : vérifiez l'original"

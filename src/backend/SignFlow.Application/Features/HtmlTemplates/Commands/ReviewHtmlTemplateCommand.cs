@@ -84,6 +84,10 @@ public class ReviewHtmlTemplateCommandHandler(
                 "Harvey cannot be reached: the template has not been reviewed. Try again in a few minutes.");
         }
 
+        if (review.RulesApplied == 0)
+            throw new ConflictException(Domain.Entities.ReviewRun.NoRules,
+                "No review rule is in service: a lawyer has to approve Harvey's rules before templates can be reviewed.");
+
         var findings = review.Findings
             .Select(f => new TemplateFindingDto(f.RuleKey, f.RuleVersion, f.Label, f.Severity, f.Explanation,
                 f.RecommendedAction, f.ProposedLanguage, f.ClauseReference, [.. f.Quotes], [.. f.Articles]))

@@ -312,6 +312,24 @@ public class PreflightResolutionTests
     }
 
     [Fact]
+    public async Task A_grid_with_no_rule_in_service_fails_the_review_instead_of_calling_the_contract_ready()
+    {
+        var (fixture, document) = await DraftAsync();
+        using var _ = fixture;
+        fixture.Harvey.RulesInService.Clear();
+
+        var review = await fixture.ReviewAsync(document.Id);
+
+        Assert.Equal((ReviewRunStatus.Failed, ReviewRun.NoRules), (review.LatestRun!.Status, review.LatestRun.ErrorCode));
+        Assert.Equal(ReadinessVerdict.NotEvaluated, review.Verdict);
+
+        // Every rule switched off by the organisation is the same: nothing was checked.
+        fixture.Harvey.RulesInService.Add("liability");
+        await fixture.GetHandler<SetReviewSettingCommandHandler>().HandleAsync(new SetReviewSettingCommand("liability", false, null));
+        Assert.Equal(ReviewRun.NoRules, (await fixture.ReviewAsync(document.Id)).LatestRun!.ErrorCode);
+    }
+
+    [Fact]
     public async Task Asking_twice_while_a_review_runs_returns_the_same_run()
     {
         var (fixture, document) = await DraftAsync();

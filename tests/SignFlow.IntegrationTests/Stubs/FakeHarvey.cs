@@ -21,9 +21,17 @@ public sealed class FakeHarvey : ILegalCorpusClient
 
     public Task<bool> IsAvailableAsync(CancellationToken ct = default) => Task.FromResult(!Down);
 
-    public Task<LegalPlaybook> GetPlaybookAsync(CancellationToken ct = default) =>
-        Down ? throw new HttpRequestException("Harvey is down")
-             : Task.FromResult(new LegalPlaybook(Articles, new Dictionary<string, ModelClause>(), Approvals));
+    /// <summary>The rules in service; by default one, plus every rule a finding names. Empty it to test an unapproved grid.</summary>
+    public HashSet<string> RulesInService { get; } = ["default_rule"];
+
+    public Task<LegalPlaybook> GetPlaybookAsync(CancellationToken ct = default)
+    {
+        if (Down) throw new HttpRequestException("Harvey is down");
+        var rules = RulesInService.Concat(Findings.Select(f => f.RuleKey).OfType<string>()).Concat(Articles.Keys)
+            .Distinct()
+            .ToDictionary(k => k, k => Articles.TryGetValue(k, out var a) ? a : (IReadOnlyList<PlaybookArticle>)[]);
+        return Task.FromResult(new LegalPlaybook(rules, new Dictionary<string, ModelClause>(), Approvals));
+    }
 
     public async Task<HarveyReview> ReviewAsync(IReadOnlyList<ClauseText> clauses, string? language, IReadOnlyCollection<string> disabledRules,
         IReadOnlyDictionary<string, string> severityOverrides, CancellationToken ct = default)

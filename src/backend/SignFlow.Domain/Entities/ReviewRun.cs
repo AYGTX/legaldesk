@@ -13,6 +13,8 @@ public class ReviewRun : TenantEntity
     public const string TimedOut = "review.timeout";
     public const string NoText = "review.no_text";
     public const string Stale = "review.stale";
+    /// <summary>No rule is in service (none approved yet, or all switched off): nothing was checked.</summary>
+    public const string NoRules = "review.no_rules";
 
     public Guid DocumentId { get; private set; }
     public int VersionNumber { get; private set; }

@@ -37,7 +37,8 @@ public record ContractFinding(
 }
 
 /// <param name="GridVersion">Harvey's fingerprint of the rule versions used.</param>
-public record ContractReview(string Language, string? GridVersion, IReadOnlyList<ContractFinding> Findings);
+/// <param name="RulesApplied">Rules in service minus those the organisation switched off. Zero means nothing was checked.</param>
+public record ContractReview(string Language, string? GridVersion, IReadOnlyList<ContractFinding> Findings, int RulesApplied);
 
 public interface IContractReviewService
 {
@@ -74,7 +75,8 @@ public class ContractReviewService(ILegalCorpusClient harvey) : IContractReviewS
         var review = await harvey.ReviewAsync(ClauseSplitter.ClauseTexts(text), language, disabledRules, severityOverrides, ct);
         var playbook = await harvey.GetPlaybookAsync(ct);
 
-        return new ContractReview(review.Language, review.GridVersion, Group(review.Findings, playbook, review.Language));
+        var applied = playbook.Rules.Keys.Count(k => !disabledRules.Contains(k));
+        return new ContractReview(review.Language, review.GridVersion, Group(review.Findings, playbook, review.Language), applied);
     }
 
     /// <summary>
