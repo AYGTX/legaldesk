@@ -1,7 +1,7 @@
+from tests.conftest import LAW, make_settings, sign_in
 import sqlite3
 
 from app.db import make_session_factory
-from tests.conftest import LAW
 
 
 def _article(text, number):
@@ -20,7 +20,7 @@ def test_excluded_article_leaves_search_but_stays_verified_and_quotable(client, 
 
     assert not any(c.endswith("art. 2") for c in _search(client, "dignité humaine vie privée"))
     text = client.get(f"/api/v1/texts/{verified_text['id']}").json()
-    assert text["verified_by"] == "Me Ben Ali" and _article(text, "2")["excluded_from_search"] is True
+    assert text["verified_by"] == "Me Test" and _article(text, "2")["excluded_from_search"] is True
     check = client.post("/api/v1/citations/check", json={"article_id": article["id"], "quote": "respecter la dignité humaine et la vie privée"}).json()
     assert check["found"] and check["is_verified"]
 
@@ -70,7 +70,7 @@ def test_restoring_a_version_from_the_text_page(client, verified_text):
     assert "flash=restored_ok" in response.headers["location"]
     assert client.get(f"/api/v1/articles/{article['id']}").json()["text"] == article["text"]
     versions = client.get(f"/api/v1/articles/{article['id']}/versions").json()
-    assert versions[0]["text"] == "Nouvelle rédaction de l'article deux." and versions[0]["replaced_by"] == "admin"
+    assert versions[0]["text"] == "Nouvelle rédaction de l'article deux." and versions[0]["replaced_by"] == "Me Test"
     page = client.get(f"/texts/{verified_text['id']}", headers={"accept-language": "fr"}).text
     assert "Rédactions antérieures (2)" in page
 
@@ -127,10 +127,10 @@ def test_session_key_is_kept_across_restarts(tmp_path):
     from app.config import Settings
     from app.main import create_app
 
-    settings = Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None,
-                        session_secret_file=tmp_path / ".session_secret")
+    # A file database: the session names an account, which must still exist after the restart.
+    settings = make_settings(database_url=f"sqlite:///{tmp_path / 'harvey.db'}", session_secret_file=tmp_path / ".session_secret")
     with TestClient(create_app(settings)) as first:
-        first.post("/login", data={"login": "admin", "password": "admin"})
+        sign_in(first)
         cookie = first.cookies.get("harvey_session")
     with TestClient(create_app(settings)) as second:
         second.cookies.set("harvey_session", cookie)

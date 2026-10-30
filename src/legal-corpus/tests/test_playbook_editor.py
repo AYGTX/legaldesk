@@ -1,3 +1,4 @@
+from tests.conftest import LAW, sign_in, make_settings
 import json
 
 import pytest
@@ -5,14 +6,13 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
-from tests.conftest import LAW
 
 
 @pytest.fixture
 def setup(tmp_path):
-    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None, legacy_playbook_file=None, seed_risks=False))
+    app = create_app(make_settings(api_key=None, legacy_playbook_file=None, seed_risks=False))
     with TestClient(app) as c:
-        c.post("/login", data={"login": "admin", "password": "admin"})
+        sign_in(c)
         text = c.post("/api/v1/texts", json={
             "title": "Données", "reference": "Loi test n° 1", "jurisdiction": "Tunisia",
             "category": "DataProtection", "source_url": "https://example.org/1"}).json()
@@ -22,7 +22,7 @@ def setup(tmp_path):
 
 def _verify(c, text_id):
     c.post(f"/api/v1/texts/{text_id}/status", json={"status": "Published"})
-    c.post(f"/api/v1/texts/{text_id}/verify", json={"verified_by": "H. Aymen"})
+    c.post(f"/api/v1/texts/{text_id}/verify", json={})
 
 
 def _pb(app):
@@ -39,12 +39,12 @@ def test_build_and_confirm_a_rule(setup):
     c.post("/playbook/rules/personal_data/articles", data={"text_id": text_id, "number": "2 bis", "why": "Sécurité"})
     c.post("/playbook/rules/personal_data/articles", data={"text_id": text_id, "number": "1", "why": "Droit"})
     c.post("/playbook/rules/personal_data/articles/1/move", data={"offset": "-1"})
-    r = c.post("/playbook/rules/personal_data/confirm", data={"confirmed_by": "H. Aymen"}, follow_redirects=False)
+    r = c.post("/playbook/rules/personal_data/confirm", data={}, follow_redirects=False)
     assert "flash=rule_confirmed" in r.headers["location"]
 
     rule = _pb(path)["rules"][0]
     assert [a["number"] for a in rule["articles"]] == ["1", "2 bis"]
-    assert rule["confirmed_by"] == "H. Aymen" and rule["confirmed_at"]
+    assert rule["confirmed_by"] == "Me Test" and rule["confirmed_at"]
 
     served = c.get("/api/v1/playbook").json()["rules"]["personal_data"]["articles"]
     assert [a["citation"] for a in served] == ["Loi test n° 1, art. 1", "Loi test n° 1, art. 2 bis"]
@@ -53,17 +53,23 @@ def test_build_and_confirm_a_rule(setup):
     assert "Loi test n° 1, art. 2 bis" in page
 
 
-def test_any_edit_withdraws_the_confirmation(setup):
+def test_an_edit_needs_a_new_approval_while_the_approved_version_stays_in_service(setup):
     c, path, text_id = setup
     _verify(c, text_id)
     c.post("/playbook/rules", data={"key": "liability", "label": "Resp."})
     c.post("/playbook/rules/liability/articles", data={"text_id": text_id, "number": "1", "why": "x"})
-    c.post("/playbook/rules/liability/confirm", data={"confirmed_by": "H. Aymen"})
+    c.post("/playbook/rules/liability/confirm", data={})
 
     c.post("/playbook/rules/liability/articles/0", data={"why": "reworded"})
 
+    # The working copy lost its approval; reviews keep version 1, as approved, until a lawyer approves the change.
     assert _pb(path)["rules"][0]["confirmed_by"] is None
-    assert c.get("/api/v1/playbook").json()["rules"] == {}
+    served = c.get("/api/v1/playbook").json()["rules"]["liability"]
+    assert served["version"] == 1 and served["articles"][0]["why"] == "x"
+
+    c.post("/playbook/rules/liability/confirm", data={})
+    served = c.get("/api/v1/playbook").json()["rules"]["liability"]
+    assert served["version"] == 2 and served["articles"][0]["why"] == "reworded"
 
 
 def test_cannot_confirm_a_rule_on_unverified_law(setup):
@@ -71,7 +77,7 @@ def test_cannot_confirm_a_rule_on_unverified_law(setup):
     c.post("/playbook/rules", data={"key": "penalty", "label": "Pénalité"})
     c.post("/playbook/rules/penalty/articles", data={"text_id": text_id, "number": "1", "why": "x"})
 
-    r = c.post("/playbook/rules/penalty/confirm", data={"confirmed_by": "H. Aymen"},
+    r = c.post("/playbook/rules/penalty/confirm", data={},
                headers={"referer": "http://testserver/playbook/rules/penalty"}, follow_redirects=False)
 
     assert "flash=err_unverified_article" in r.headers["location"]
@@ -108,19 +114,20 @@ def test_phrases_are_served_only_once_the_rule_is_confirmed_again(setup):
     _verify(c, text_id)
     c.post("/playbook/rules", data={"key": "indemnification", "label": "Indemnisation"})
     c.post("/playbook/rules/indemnification/articles", data={"text_id": text_id, "number": "1", "why": "x"})
-    c.post("/playbook/rules/indemnification/confirm", data={"confirmed_by": "H. Aymen"})
+    c.post("/playbook/rules/indemnification/confirm", data={})
 
     c.post("/playbook/rules/indemnification/phrases", data={"phrase": "  prendra en charge   l'intégralité des conséquences "})
     assert _pb(path)["rules"][0]["phrases"] == ["prendra en charge l'intégralité des conséquences"]
-    assert c.get("/api/v1/playbook").json()["rules"] == {}
+    assert c.get("/api/v1/playbook").json()["rules"]["indemnification"]["phrases"] == []  # version 1 has none
 
-    c.post("/playbook/rules/indemnification/confirm", data={"confirmed_by": "H. Aymen"})
+    c.post("/playbook/rules/indemnification/confirm", data={})
     served = c.get("/api/v1/playbook").json()["rules"]["indemnification"]
     assert served["phrases"] == ["prendra en charge l'intégralité des conséquences"] and served["label"] == "Indemnisation"
     assert "Formulations à rechercher" in c.get("/playbook/rules/indemnification", headers={"accept-language": "fr"}).text
 
     c.post("/playbook/rules/indemnification/phrases/0/delete")
     assert _pb(path)["rules"][0]["phrases"] == [] and _pb(path)["rules"][0]["confirmed_by"] is None
+    assert c.get("/api/v1/playbook").json()["rules"]["indemnification"]["version"] == 2  # still the approved one
 
 
 def test_rejects_short_and_duplicate_phrases(setup):
@@ -139,19 +146,19 @@ def test_model_clause_is_approved_on_its_own_and_served_once_approved(setup):
     _verify(c, text_id)
     c.post("/playbook/rules", data={"key": "liability", "label": "Responsabilité"})
     c.post("/playbook/rules/liability/articles", data={"text_id": text_id, "number": "1", "why": "x"})
-    c.post("/playbook/rules/liability/confirm", data={"confirmed_by": "H. Aymen"})
+    c.post("/playbook/rules/liability/confirm", data={})
     clause = "La responsabilité de chaque partie est limitée au montant des sommes versées au cours des douze derniers mois."
 
     c.post("/playbook/rules/liability/model-clause", data={"fr": clause, "en": ""})
     assert c.get("/api/v1/playbook").json()["rules"]["liability"]["model_clause"] is None
-    assert _pb(path)["rules"][0]["confirmed_by"] == "H. Aymen"  # the risk keeps its approval
+    assert _pb(path)["rules"][0]["confirmed_by"] == "Me Test"  # the risk keeps its approval
 
-    c.post("/playbook/rules/liability/model-clause/approve", data={"approved_by": "Me Trabelsi"})
+    c.post("/playbook/rules/liability/model-clause/approve", data={})
     assert c.get("/api/v1/playbook").json()["rules"]["liability"]["model_clause"] == {"fr": clause, "en": None}
 
     c.post("/playbook/rules/liability/model-clause", data={"fr": clause + " Sauf faute lourde ou dol.", "en": ""})
     assert c.get("/api/v1/playbook").json()["rules"]["liability"]["model_clause"] is None
-    assert _pb(path)["rules"][0]["confirmed_by"] == "H. Aymen"
+    assert _pb(path)["rules"][0]["confirmed_by"] == "Me Test"
 
 
 def test_model_clause_drafted_by_the_model_is_only_a_proposal(setup):

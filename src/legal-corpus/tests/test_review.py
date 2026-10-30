@@ -1,10 +1,15 @@
+from tests.conftest import serve
 from app.services import review
 from app.services.matching import ExampleMatcher
 from tests.test_matching import FakeEmbedder
 
 
+# Every rule that owns a built-in check, approved (version 1): checks only run for rules in service.
+IN_SERVICE = [{"key": k, "version": 1} for k in sorted({i.rule_key for i in review.CHECK_INFO.values()})]
+
+
 def _keys(clauses, grid=None, matcher=None):
-    findings, _ = review.review([review.Clause(r, t) for r, t in clauses], grid or [], matcher)
+    findings, _ = review.review([review.Clause(r, t) for r, t in clauses], grid or IN_SERVICE, matcher)
     return [(f.rule_key, f.contract_reference) for f in findings], findings
 
 
@@ -58,6 +63,7 @@ def test_review_endpoint_needs_a_semantic_model(client):
 
 
 def test_review_endpoint(client):
+    serve(client, "termination", "force_majeure")
     client.app.state.matcher = ExampleMatcher(FakeEmbedder(), threshold=0.6)
     response = client.post("/api/v1/review", json={"clauses": [
         {"reference": "Article 1 — Objet", "text": "Le présent contrat a pour objet la fourniture de services par le Prestataire."}]})

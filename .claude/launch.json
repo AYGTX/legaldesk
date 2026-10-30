@@ -19,7 +19,8 @@
       "runtimeArgs": [
         "-m",
         "uvicorn",
-        "app.main:app",
+        "app.main:create_app",
+        "--factory",
         "--app-dir",
         "src/legal-corpus",
         "--host",

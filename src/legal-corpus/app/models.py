@@ -39,6 +39,59 @@ class TextStatus(str, enum.Enum):
     Archived = "Archived"
 
 
+class Role(str, enum.Enum):
+    """What a Harvey account may do (R-M11-1). Reader: look. Editor: import and edit, never approve. Lawyer: also
+    verify texts and approve risks, model clauses and explanations, which the legal claims of LegalDesk rest on."""
+    Reader = "Reader"
+    Editor = "Editor"
+    Lawyer = "Lawyer"
+
+
+class Severity(str, enum.Enum):
+    """Order matters: Critical blocks a contract in LegalDesk (R-M11-4)."""
+    Critical = "Critical"
+    High = "High"
+    Medium = "Medium"
+    Low = "Low"
+
+
+class HarveyUser(Base):
+    """A person who signs in to Harvey. Approvals record this account, never a typed name (R-M11-2)."""
+
+    __tablename__ = "harvey_users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_id)
+    email: Mapped[str] = mapped_column(String(256), unique=True)
+    name: Mapped[str] = mapped_column(String(200))
+    role: Mapped[Role] = mapped_column(Enum(Role, native_enum=False), default=Role.Reader)
+    # Manages accounts; independent of the role (an administrator who is not a lawyer cannot approve).
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Bar membership or firm, shown beside every approval this person gives.
+    bar_reference: Mapped[str | None] = mapped_column(String(200))
+    password_hash: Mapped[str] = mapped_column(String(300))
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    totp_secret: Mapped[str | None] = mapped_column(String(64))
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    failed_logins: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def can_edit(self) -> bool:
+        return self.active and self.role in (Role.Editor, Role.Lawyer)
+
+    @property
+    def can_approve(self) -> bool:
+        return self.active and self.role == Role.Lawyer
+
+    @property
+    def signature(self) -> str:
+        """How an approval is shown: "Me Leila Ben Ali (Barreau de Tunis)"."""
+        return f"{self.name} ({self.bar_reference})" if self.bar_reference else self.name
+
+
 class LegalText(Base):
     __tablename__ = "legal_texts"
 
@@ -53,8 +106,10 @@ class LegalText(Base):
     status: Mapped[TextStatus] = mapped_column(Enum(TextStatus, native_enum=False), default=TextStatus.Draft)
     effective_date: Mapped[date | None] = mapped_column(Date)
     source_url: Mapped[str | None] = mapped_column(String(1000))
-    # Set only when a person checked every stored article against the official source. Anything else is a note.
+    # Set only when a lawyer checked every stored article against the official source. verified_by is the display
+    # name kept for history; verified_by_user_id is the account (R-M11-2).
     verified_by: Mapped[str | None] = mapped_column(String(200))
+    verified_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("harvey_users.id"))
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
@@ -69,6 +124,7 @@ class LegalText(Base):
 
     def clear_verification(self) -> None:
         self.verified_by = None
+        self.verified_by_user_id = None
         self.verified_at = None
 
 
@@ -135,6 +191,7 @@ class ArticleExplanation(Base):
     model: Mapped[str | None] = mapped_column(String(100))
     written_by: Mapped[str | None] = mapped_column(String(200))
     approved_by: Mapped[str | None] = mapped_column(String(200))
+    approved_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("harvey_users.id"))
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
 
@@ -169,8 +226,13 @@ class PlaybookRule(Base):
     model_clause: Mapped[dict | None] = mapped_column(JSON)
     # Harvey's own example clauses were copied in once; never again, so a clause someone removed stays removed.
     catalog_seeded: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Built-in checks of this risk: {check id: {"enabled": bool, "severity": High|Medium|Low}}; absent = default.
+    # Built-in checks of this risk: {check id: {"enabled": bool, "severity": Critical|High|Medium|Low}}; absent = default.
     checks: Mapped[dict | None] = mapped_column(JSON)
+    # Severity of a finding by meaning or phrase for this risk; null keeps the catalogue's (R-M11-4).
+    severity: Mapped[str | None] = mapped_column(String(10))
+    # Who last changed the working copy: the four-eyes rule keeps them from approving it (R-M11-2).
+    edited_by_user_id: Mapped[str | None] = mapped_column(String(36))
+    edited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     articles: Mapped[list["PlaybookRuleArticle"]] = relationship(
         back_populates="rule", cascade="all, delete-orphan", order_by="PlaybookRuleArticle.position")
@@ -187,3 +249,23 @@ class PlaybookRuleArticle(Base):
     why: Mapped[str | None] = mapped_column(Text)
 
     rule: Mapped[PlaybookRule] = relationship(back_populates="articles")
+
+
+class RuleVersion(Base):
+    """An approved, frozen state of one risk (R-M11-3). The grid page edits a working copy; approving it adds a version
+    here, and reviews use each risk's latest version, so a finding always names the exact rule it came from."""
+
+    __tablename__ = "rule_versions"
+    __table_args__ = (UniqueConstraint("rule_key", "version"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    rule_key: Mapped[str] = mapped_column(String(80), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    # The rule as served: label, description, severity, articles, phrases, examples, checks, approved model clause.
+    payload: Mapped[dict] = mapped_column(JSON)
+    approved_by_user_id: Mapped[str] = mapped_column(ForeignKey("harvey_users.id"))
+    approved_by_name: Mapped[str] = mapped_column(String(300))
+    approved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    edited_by_user_id: Mapped[str | None] = mapped_column(String(36))
+    # Set when a lawyer withdraws the rule from reviews; a withdrawn rule is not served until approved again.
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

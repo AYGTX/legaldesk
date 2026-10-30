@@ -55,16 +55,15 @@ def generate(db: Session, llm: LlmProvider, article: Article, language: str, by:
     explanation.text_hash = wording_hash(article.text)
     explanation.model = llm.name
     explanation.written_by = by
-    explanation.approved_by = None
-    explanation.approved_at = None
+    _clear_approval(explanation)
     db.add(explanation)
     db.commit()
     return explanation
 
 
 def save(db: Session, article: Article, language: str, summary: str, in_practice: str, by: str | None,
-         approve_as: str | None = None) -> ArticleExplanation:
-    """A person's own wording (written or corrected), optionally approved in the same step."""
+         approver=None) -> ArticleExplanation:
+    """A person's own wording (written or corrected), optionally approved in the same step by a lawyer's account."""
     _check_language(language)
     summary = " ".join(summary.split())
     if len(summary) < 20:
@@ -77,26 +76,21 @@ def save(db: Session, article: Article, language: str, summary: str, in_practice
     explanation.text_hash = wording_hash(article.text)
     if changed:
         explanation.written_by = by
-        explanation.approved_by = None
-        explanation.approved_at = None
-    if approve_as and approve_as.strip():
-        explanation.approved_by = approve_as.strip()
-        explanation.approved_at = datetime.now(timezone.utc)
+        _clear_approval(explanation)
+    if approver is not None:
+        _approve(explanation, approver)
     db.add(explanation)
     db.commit()
     return explanation
 
 
-def approve(db: Session, article: Article, language: str, approved_by: str) -> ArticleExplanation:
+def approve(db: Session, article: Article, language: str, approver) -> ArticleExplanation:
     explanation = get(db, article.id, language)
     if explanation is None:
         raise RuleError("no_explanation", "There is no explanation to approve.")
     if status(explanation, article) == OUT_OF_DATE:
         raise RuleError("explanation_out_of_date", "The article changed since this explanation was written; review it first.")
-    if not approved_by.strip():
-        raise RuleError("invalid", "Name the person approving.")
-    explanation.approved_by = approved_by.strip()
-    explanation.approved_at = datetime.now(timezone.utc)
+    _approve(explanation, approver)
     db.commit()
     return explanation
 
@@ -104,6 +98,18 @@ def approve(db: Session, article: Article, language: str, approved_by: str) -> A
 def withdraw(db: Session, article: Article, language: str) -> None:
     explanation = get(db, article.id, language)
     if explanation is not None:
-        explanation.approved_by = None
-        explanation.approved_at = None
+        _clear_approval(explanation)
         db.commit()
+
+
+def _approve(explanation: ArticleExplanation, approver) -> None:
+    """Records the lawyer's account, not a typed name (R-M11-2)."""
+    explanation.approved_by = approver.signature
+    explanation.approved_by_user_id = approver.id
+    explanation.approved_at = datetime.now(timezone.utc)
+
+
+def _clear_approval(explanation: ArticleExplanation) -> None:
+    explanation.approved_by = None
+    explanation.approved_by_user_id = None
+    explanation.approved_at = None

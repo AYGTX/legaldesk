@@ -18,7 +18,7 @@ def test_full_ui_flow(client):
 
     client.post(f"{path}/verify", data={"verified_by": "Me Trabelsi"})
     client.post(f"{path}/status", data={"status": "Published"})
-    assert "Vérifié par Me Trabelsi" in client.get(path, headers={"accept-language": "fr"}).text
+    assert "Vérifié par Me Test" in client.get(path, headers={"accept-language": "fr"}).text
 
     results = client.get("/search", params={"q": "sécurité des données"}).text
     assert "Loi 66-27, art. 2 bis" in results
@@ -64,4 +64,4 @@ def test_source_can_be_given_when_verifying(client):
 
     client.post(f"{path}/verify", data={"verified_by": "Me", "source_url": "https://www.jort.gov.tn/loi"})
     text = client.get(f"/api/v1/texts/{path.split('/')[-1]}").json()
-    assert text["source_url"] == "https://www.jort.gov.tn/loi" and text["verified_by"] == "Me"
+    assert text["source_url"] == "https://www.jort.gov.tn/loi" and text["verified_by"] == "Me Test" and text["verified_by_user_id"]

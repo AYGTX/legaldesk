@@ -4,12 +4,23 @@ from app.services import playbook
 from tests.conftest import LAW, make_text
 
 
-def _write(db, confirmed_by):
-    playbook.save(db, {
-        "rules": [{"key": "personal_data", "label": "Données", "confirmed_by": confirmed_by,
-                   "articles": [{"reference": "Loi test n° 1", "number": "2 bis", "why": "Sécurité"},
-                                {"reference": "Loi test n° 1", "number": "99", "why": "Absent"}]}],
-    })
+RULE = {"key": "personal_data", "label": "Données",
+        "articles": [{"reference": "Loi test n° 1", "number": "2 bis", "why": "Sécurité"},
+                     {"reference": "Loi test n° 1", "number": "99", "why": "Absent"}]}
+
+
+def _write(db, approved: bool):
+    """The rule in the working copy and, when approved, as version 1 (written directly: approve() would refuse the
+    missing article 99, which is what this test is about)."""
+    from app.models import RuleVersion
+    from tests.conftest import make_lawyer
+
+    playbook.save(db, {"rules": [dict(RULE)]})
+    if approved:
+        lawyer = make_lawyer(db)
+        db.add(RuleVersion(rule_key="personal_data", version=1, payload={k: v for k, v in RULE.items() if k != "key"},
+                           approved_by_user_id=lawyer.id, approved_by_name=lawyer.signature))
+        db.commit()
     return db
 
 
@@ -19,9 +30,10 @@ def _db(client):
 
 def test_serves_only_confirmed_rules_with_verified_article_text(client, verified_text, tmp_path):
     db = _db(client)
-    assert playbook.resolve(_write(db, None))["rules"] == {}
+    assert playbook.resolve(_write(db, approved=False))["rules"] == {}
 
-    result = playbook.resolve(_write(db, "H. Aymen"))
+    result = playbook.resolve(_write(db, approved=True))
+    assert result["rules"]["personal_data"]["version"] == 1
     articles = result["rules"]["personal_data"]["articles"]
     assert [a["citation"] for a in articles] == ["Loi test n° 1, art. 2 bis"]
     assert articles[0]["text"].startswith("Le responsable du traitement")
@@ -33,7 +45,7 @@ def test_unverified_law_is_not_served(client, tmp_path):
     text = make_text(client)
     client.post(f"/api/v1/texts/{text['id']}/articles/import", json={"raw_text": LAW})
 
-    result = playbook.resolve(_write(_db(client), "H. Aymen"))
+    result = playbook.resolve(_write(_db(client), approved=True))
     assert result["rules"]["personal_data"]["articles"] == []
 
 

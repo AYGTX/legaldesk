@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from sqlalchemy.orm import Session
 
+from app.auth import require_lawyer
 from app.deps import get_db, get_embedder, get_matcher, require_api_key
 from datetime import date
 
@@ -87,12 +88,15 @@ def set_status(text_id: str, body: StatusIn, db: Session = Depends(get_db)):
 
 
 @router.post("/texts/{text_id}/verify", response_model=LegalTextOut, tags=["verification"])
-def verify(text_id: str, body: VerifyIn, db: Session = Depends(get_db)):
-    return corpus.verify(db, text_id, body.verified_by)
+def verify(text_id: str, body: VerifyIn, request: Request, db: Session = Depends(get_db)):
+    """Signs the text off as the signed-in lawyer (R-M11-2); an API key alone cannot verify law. Any name in the body
+    is ignored."""
+    return corpus.verify(db, text_id, require_lawyer(request))
 
 
 @router.delete("/texts/{text_id}/verify", response_model=LegalTextOut, tags=["verification"])
-def unverify(text_id: str, db: Session = Depends(get_db)):
+def unverify(text_id: str, request: Request, db: Session = Depends(get_db)):
+    require_lawyer(request)
     return corpus.unverify(db, text_id)
 
 
@@ -147,8 +151,17 @@ def review_contract(body: ReviewIn, db: Session = Depends(get_db), matcher=Depen
     if matcher is None:
         raise HTTPException(status_code=503, detail="No semantic model installed: Harvey cannot review contracts.")
     clauses = [review.Clause(c.reference, c.text) for c in body.clauses]
-    findings, lang = review.review(clauses, playbook.load(db)["rules"], matcher, body.language)
-    return ReviewOut(language=lang, model=matcher.embedder.name, findings=review.as_dicts(findings))
+    # Approved rule versions only (R-M11-5), minus what the organisation switched off, with its severities.
+    rules = [r for r in playbook.served(db) if r["key"] not in set(body.disabled_rules)]
+    for rule in rules:
+        override = body.severity_overrides.get(rule["key"])
+        if override in review.SEVERITIES:
+            rule["severity"] = override
+            rule["checks"] = {cid: {**setting, "severity": override} for cid, setting in (rule.get("checks") or {}).items()} \
+                or {cid: {"enabled": True, "severity": override} for cid in review.checks_of(rule["key"])}
+    findings, lang = review.review(clauses, rules, matcher, body.language)
+    return ReviewOut(language=lang, model=matcher.embedder.name, grid_version=playbook.grid_version(rules),
+                     findings=review.as_dicts(findings))
 
 
 MAX_PDF_BYTES = 25 * 1024 * 1024

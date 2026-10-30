@@ -8,8 +8,12 @@ search and citation checking. Retrieval approach adapted from Legal-Clause-Analy
 ```bash
 python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt
-.venv/Scripts/python -m uvicorn app.main:app --host 127.0.0.1 --port 8100
+.venv/Scripts/python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8100
 ```
+
+Harvey refuses to start without `CORPUS_API_KEY` (24+ characters), in the environment or in the git-ignored
+`data/.env`; give LegalDesk the same value as `LegalCorpus:ApiKey`. The database is migrated at start-up (Alembic,
+`app/migrations`); an older database keeps its data and is upgraded.
 
 UI: http://127.0.0.1:8100 · API docs: http://127.0.0.1:8100/docs
 
@@ -25,14 +29,27 @@ Contract field detection (`POST /api/v1/forms/detect`, used by the template desi
 | `CORPUS_DATABASE_URL` | `sqlite:///data/corpus.db` |
 | `CORPUS_EMBEDDER` | `auto` (`semantic`, `hashing`) |
 | `CORPUS_EMBEDDING_MODEL` | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
-| `CORPUS_API_KEY` | unset: `/api/v1` is open. Set it and send `X-API-Key`. |
+| `CORPUS_API_KEY` | required. Every `/api/v1` call sends it as `X-API-Key`. |
+| `CORPUS_ADMIN_EMAIL`, `CORPUS_ADMIN_USER`, `CORPUS_ADMIN_PASSWORD` | the first administrator, created on the first start only. The default password `admin` must be changed at first sign-in. |
+| `CORPUS_SESSION_SECRET` | signs the session cookie; generated into `data/.session_secret` when unset. |
+| `CORPUS_REQUIRE_TOTP` | `true`: lawyers sign in with an authenticator code. |
+| `CORPUS_FOUR_EYES` | `true`: whoever last edited a risk cannot approve it. |
+| `CORPUS_AI_PROVIDER` | `none` (`groq`, `local`): drafting help on law text only. |
 
-The UI has no login: bind to `127.0.0.1` only.
+## Accounts
+
+Each person signs in with their own account (Accounts page, administrators only). **Readers** look; **editors**
+import and edit law and risks; **lawyers** also verify texts and approve risks, model clauses and explanations. Every
+approval records the lawyer's account, never a typed name.
 
 ## Rules
 
-- A text is law only once someone **verifies** it (needs articles and an official source URL). Editing an article,
+- A text is law only once a lawyer **verifies** it (needs articles and an official source URL). Editing an article,
   the reference or the source clears the sign-off.
+- The risk grid is a working copy. Approving a risk freezes it as a numbered version; reviews and LegalDesk use each
+  risk's latest approved version only, and every finding names it (`rule_version`). Editing a risk does not change
+  reviews until a lawyer approves the change. Severities are Critical, High, Medium and Low; Critical blocks a
+  contract in LegalDesk.
 - `/search` returns only verified, published texts unless `include_unverified` is set; results carry `is_verified`.
 - `/citations/check` confirms a quote is word for word in the article (typography tolerated, `...` for elisions,
   min 15 characters).

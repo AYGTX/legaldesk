@@ -1,3 +1,4 @@
+from tests.conftest import LAW, sign_in, make_settings
 import html
 import json
 from dataclasses import dataclass, field
@@ -8,7 +9,6 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
-from tests.conftest import LAW
 
 
 @dataclass
@@ -49,9 +49,9 @@ def _pb(app):
 
 @pytest.fixture
 def rule_client(tmp_path):
-    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None, legacy_playbook_file=None, seed_risks=False))
+    app = create_app(make_settings(api_key=None, legacy_playbook_file=None, seed_risks=False))
     with TestClient(app) as c:
-        c.post("/login", data={"login": "admin", "password": "admin"})
+        sign_in(c)
         text = c.post("/api/v1/texts", json={"title": "Données", "reference": "Loi test n° 1", "jurisdiction": "Tunisia",
                                              "category": "DataProtection", "source_url": "https://example.org/1"}).json()
         c.post(f"/api/v1/texts/{text['id']}/articles/import", json={"raw_text": LAW})

@@ -7,10 +7,11 @@ from fastapi.staticfiles import StaticFiles
 
 from app import api, ui
 from app.services import playbook
-from app.auth import LoginRequired
+from app.auth import AccountSetupRequired, LoginRequired
 from app.services.llm import make_provider
-from app.config import BASE_DIR, Settings, load_settings
+from app.config import BASE_DIR, Settings, check_service_settings, load_settings
 from app.db import make_session_factory
+from app.services import accounts
 from app.services.corpus import NotFoundError, RuleError
 
 
@@ -31,7 +32,11 @@ def _stored_secret(path) -> str:
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    settings = settings or load_settings()
+    """Run with `uvicorn app.main:create_app --factory`. Settings passed in (tests) are taken as they are; settings
+    read from the environment must pass check_service_settings."""
+    if settings is None:
+        settings = load_settings()
+        check_service_settings(settings)
     app = FastAPI(
         title="Harvey — verified legal reference",
         version="0.1.0",
@@ -43,6 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         playbook.bootstrap(db, settings.legacy_playbook_file, settings.seed_risks)
         if settings.seed_risks:
             playbook.seed_examples(db)
+        accounts.bootstrap_admin(db, settings)
     app.state.embedder = None
     app.state.session_secret = settings.session_secret or _stored_secret(settings.session_secret_file)
     app.state.llm = make_provider(settings)
@@ -63,6 +69,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def login_required(request: Request, exc: LoginRequired):
         return RedirectResponse(f"/login?next={quote(exc.next_path)}", status_code=303)
 
+    @app.exception_handler(AccountSetupRequired)
+    async def account_setup_required(request: Request, exc: AccountSetupRequired):
+        return RedirectResponse("/account", status_code=303)
+
     @app.exception_handler(NotFoundError)
     async def not_found(request: Request, exc: NotFoundError):
         if _is_api(request):
@@ -80,6 +90,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     return app
-
-
-app = create_app()

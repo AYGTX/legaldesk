@@ -1,3 +1,4 @@
+from tests.conftest import LAW, sign_in, make_settings
 import json
 
 import numpy as np
@@ -7,7 +8,6 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import create_app
 from app.services.matching import ExampleMatcher, RuleExamples, sentences
-from tests.conftest import LAW
 
 # Each axis stands for one meaning; a text points along the axes of the words it contains.
 AXES = {
@@ -83,10 +83,10 @@ def test_example_vectors_are_embedded_once():
 
 @pytest.fixture
 def api(tmp_path):
-    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None,
+    app = create_app(make_settings(api_key=None,
                               legacy_playbook_file=None, seed_risks=False, match_threshold=0.6))
     with TestClient(app) as c:
-        c.post("/login", data={"login": "admin", "password": "admin"})
+        sign_in(c)
         text = c.post("/api/v1/texts", json={"title": "Données", "reference": "Loi test n° 1", "jurisdiction": "Tunisia",
                                              "category": "DataProtection", "source_url": "https://example.org/1"}).json()
         c.post(f"/api/v1/texts/{text['id']}/articles/import", json={"raw_text": LAW})
@@ -105,7 +105,7 @@ def test_classify_uses_confirmed_rules_only(api):
 
     assert api.post("/api/v1/classify", json=body).json()["matches"] == []
 
-    api.post("/playbook/rules/indemnification/confirm", data={"confirmed_by": "H. Aymen"})
+    api.post("/playbook/rules/indemnification/confirm", data={})
     result = api.post("/api/v1/classify", json=body).json()
     assert result["enabled"] and result["model"] == "fake-axes"
     assert [m["rule_key"] for m in result["matches"]] == ["indemnification"]
@@ -119,11 +119,14 @@ def test_classify_reports_disabled_without_a_semantic_model(api, monkeypatch):
     assert result == {"enabled": False, "model": None, "matches": []}
 
 
-def test_editing_examples_withdraws_confirmation_and_rejects_bad_input(api):
-    api.post("/playbook/rules/indemnification/confirm", data={"confirmed_by": "H. Aymen"})
+def test_editing_examples_needs_a_new_approval_and_rejects_bad_input(api):
+    api.post("/playbook/rules/indemnification/confirm", data={})
     api.post("/playbook/rules/indemnification/examples/counter_examples",
              data={"text": "La garantie est plafonnée au montant annuel du contrat signé."})
-    assert api.get("/api/v1/playbook").json()["rules"] == {}
+    # The new counter-example waits for an approval; version 1, as approved, stays in service.
+    served = api.get("/api/v1/playbook").json()["rules"]["indemnification"]
+    assert served["version"] == 1
+    assert "La garantie est plafonnée au montant annuel du contrat signé." not in served["counter_examples"]
     r = api.post("/playbook/rules/indemnification/examples/examples", data={"text": "trop court"},
                  headers={"referer": "http://testserver/playbook/rules/indemnification"}, follow_redirects=False)
     assert "flash=err_example_length" in r.headers["location"]

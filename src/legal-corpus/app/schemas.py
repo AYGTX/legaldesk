@@ -61,6 +61,9 @@ class ClassifyIn(BaseModel):
 class ReviewIn(BaseModel):
     clauses: list[ClauseIn] = Field(max_length=500)
     language: str | None = Field(default=None, pattern="^(fr|en)$")
+    # The organisation's choices about the grid (rework spec R-M0-7): rules it switched off, severities it changed.
+    disabled_rules: list[str] = Field(default_factory=list, max_length=200)
+    severity_overrides: dict[str, str] = Field(default_factory=dict)
 
 
 class FindingOut(BaseModel):
@@ -71,11 +74,19 @@ class FindingOut(BaseModel):
     contract_reference: str | None = None
     rule_key: str | None = None
     finding_type: str | None = None
+    # Where the finding comes from (R-M11-5): the approved rule version, how it was detected, how close the match
+    # was (meaning only) and the contract's words that raised it.
+    rule_version: int | None = None
+    detection: str | None = None
+    confidence: float | None = None
+    quote: str | None = None
 
 
 class ReviewOut(BaseModel):
     language: str
     model: str | None
+    # Fingerprint of the rule versions used: the same contract text and grid version give the same findings.
+    grid_version: str | None = None
     findings: list[FindingOut]
 
 
@@ -125,6 +136,8 @@ class LegalTextOut(BaseModel):
     effective_date: date | None
     source_url: str | None
     verified_by: str | None
+    # The lawyer's account that verified the text; null for a verification made before accounts existed.
+    verified_by_user_id: str | None = None
     verified_at: datetime | None
     is_verified: bool
     created_at: datetime
@@ -141,7 +154,8 @@ class BulkArticlesIn(BaseModel):
 
 
 class VerifyIn(BaseModel):
-    verified_by: str = Field(min_length=1, max_length=200)
+    # Ignored: the verifier is the signed-in lawyer's account (R-M11-2). Kept so older clients still validate.
+    verified_by: str | None = None
 
 
 class StatusIn(BaseModel):

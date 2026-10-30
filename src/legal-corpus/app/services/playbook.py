@@ -1,6 +1,9 @@
-"""The risk grid (« Grille des risques »): which verified articles back each risk the rules scan detects. Stored in
-Harvey's database (tables playbook_rules and playbook_rule_articles); a rule is served only once someone has confirmed
-it, and any edit to a rule clears that confirmation — the same principle as verifying a law."""
+"""The risk grid (« Grille des risques »): which verified articles back each risk the rules scan detects.
+
+Two layers (rework spec R-M11-3). playbook_rules is the working copy people edit; any edit clears its approval and
+records who made it. Approving a rule, by a lawyer's account, freezes it as a numbered version in rule_versions.
+Reviews and LegalDesk use each rule's latest approved version only, so an edit never changes a review until a lawyer
+approves it, and every finding names the exact version it came from."""
 
 import json
 import re
@@ -8,10 +11,10 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Article, LegalText, PlaybookRule, PlaybookRuleArticle
+from app.models import Article, LegalText, PlaybookRule, PlaybookRuleArticle, RuleVersion, Severity
 from app.services.citations import citation_label
 from app.services.corpus import RuleError
 from app.services.splitter import normalize_number
@@ -92,7 +95,9 @@ def load(db: Session) -> dict:
         rule = {"key": row.key, "label": row.label, "description": row.description,
                 "articles": [{"reference": a.reference, "number": a.number, "why": a.why} for a in row.articles],
                 "confirmed_by": row.confirmed_by, "confirmed_at": row.confirmed_at,
-                "catalog_seeded": bool(row.catalog_seeded), "checks": dict(row.checks or {})}
+                "catalog_seeded": bool(row.catalog_seeded), "checks": dict(row.checks or {}),
+                "severity": row.severity, "edited_by_user_id": row.edited_by_user_id,
+                "edited_at": row.edited_at.isoformat() if row.edited_at else None}
         for name in ("phrases", "examples", "counter_examples"):
             rule[name] = list(getattr(row, name) or [])
         if row.model_clause:
@@ -115,6 +120,10 @@ def save(db: Session, data: dict) -> None:
         row.description = rule.get("description")
         row.catalog_seeded = bool(rule.get("catalog_seeded"))
         row.checks = dict(rule.get("checks") or {}) or None
+        row.severity = rule.get("severity")
+        row.edited_by_user_id = rule.get("edited_by_user_id")
+        edited_at = rule.get("edited_at")
+        row.edited_at = datetime.fromisoformat(edited_at) if isinstance(edited_at, str) else edited_at
         row.confirmed_by, row.confirmed_at = rule.get("confirmed_by"), rule.get("confirmed_at")
         row.phrases = list(rule.get("phrases", []))
         row.examples = list(rule.get("examples", []))
@@ -128,10 +137,32 @@ def save(db: Session, data: dict) -> None:
     db.commit()
 
 
+# What a rule says, as opposed to who approved or last edited it. A change to any of these needs a new approval.
+# The model clause is approved on its own and is not part of a rule's version.
+_CONTENT = ("label", "description", "severity", "articles", "phrases", "examples", "counter_examples", "checks")
+
+
+def _content(rule: dict) -> dict:
+    return {k: rule.get(k) for k in _CONTENT}
+
+
+def _fingerprint(rule: dict) -> str:
+    return json.dumps(_content(rule), sort_keys=True, default=str)
+
+
 def _edit(db: Session, change):
+    """Applies a change to the working copy. Every rule whose content changed loses its approval and records who
+    changed it, so that person cannot approve it (four-eyes)."""
     with _lock:
         data = load(db)
+        before = {r["key"]: _fingerprint(r) for r in data["rules"]}
         result = change(data)
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        for rule in data["rules"]:
+            if before.get(rule["key"]) != _fingerprint(rule):
+                _unconfirm(rule)
+                rule["edited_by_user_id"] = db.info.get("editor_id")
+                rule["edited_at"] = now
         save(db, data)
         return result
 
@@ -143,12 +174,28 @@ def set_check(db: Session, key: str, check_id: str, enabled: bool, severity: str
     info = review.CHECK_INFO.get(check_id)
     if info is None or info.rule_key != key:
         raise RuleError("invalid", "Unknown check for this risk.")
-    severity = severity if severity in ("High", "Medium", "Low") else info.severity
+    severity = severity if severity in _SEVERITIES else info.severity
 
     def change(data):
         rule = _rule(data, key)
         checks = rule.setdefault("checks", {})
         checks[check_id] = {"enabled": enabled, "severity": severity}
+
+    _edit(db, change)
+
+
+_SEVERITIES = tuple(s.value for s in Severity)
+
+
+def set_severity(db: Session, key: str, severity: str) -> None:
+    """Severity of this risk's findings by meaning or phrase (R-M11-4). Critical blocks a contract in LegalDesk, so it
+    is for clauses a lawyer would never let out (illegal, or missing a mention the law requires). Empty keeps the
+    catalogue's default."""
+    if severity and severity not in _SEVERITIES:
+        raise RuleError("invalid", "Unknown severity.")
+
+    def change(data):
+        _rule(data, key)["severity"] = severity or None
 
     _edit(db, change)
 
@@ -384,7 +431,9 @@ def move_article(db: Session, key: str, index: int, offset: int) -> None:
     _edit(db, change)
 
 
-def confirm(db: Session, key: str, confirmed_by: str) -> None:
+def approve(db: Session, key: str, approver, four_eyes: bool = True) -> RuleVersion:
+    """A lawyer's account approves the working copy: it becomes the rule's next version, served from now on
+    (R-M11-2, R-M11-3). Under the four-eyes rule, whoever last edited the rule cannot approve it."""
     rule = _rule(load(db), key)
     if not rule["articles"]:
         raise RuleError("no_articles", "A rule without articles has nothing to confirm.")
@@ -393,16 +442,73 @@ def confirm(db: Session, key: str, confirmed_by: str) -> None:
         if article is None or not article.legal_text.is_verified:
             raise RuleError("unverified_article",
                             f"{ref['reference']}, art. {ref['number']} is not verified law: verify its text first.")
+    if four_eyes and rule.get("edited_by_user_id") and rule["edited_by_user_id"] == approver.id:
+        raise RuleError("four_eyes", "You made the last change to this rule: another lawyer must approve it.")
 
-    def change(data):
-        r = _rule(data, key)
-        r["confirmed_by"] = confirmed_by.strip()
-        r["confirmed_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with _lock:
+        number = (db.scalar(select(func.max(RuleVersion.version)).where(RuleVersion.rule_key == key)) or 0) + 1
+        version = RuleVersion(rule_key=key, version=number, payload=_content(rule), approved_by_user_id=approver.id,
+                              approved_by_name=approver.signature, edited_by_user_id=rule.get("edited_by_user_id"))
+        db.add(version)
+        row = db.get(PlaybookRule, key)
+        row.confirmed_by = approver.signature
+        row.confirmed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        db.commit()
+    return version
 
-    _edit(db, change)
+
+def confirm(db: Session, key: str, approver, four_eyes: bool = True) -> RuleVersion:
+    """Older name of approve."""
+    return approve(db, key, approver, four_eyes)
 
 
-def set_model_clause(db: Session, key: str, fr: str, en: str, source: str = "lawyer", approve_as: str = "") -> None:
+def withdraw(db: Session, key: str) -> None:
+    """Takes the rule out of reviews: its latest version is marked withdrawn and the working copy loses its approval.
+    It comes back only with a new approval."""
+    _rule(load(db), key)
+    with _lock:
+        latest = _latest_version(db, key)
+        if latest is not None and latest.withdrawn_at is None:
+            latest.withdrawn_at = datetime.now(timezone.utc)
+        row = db.get(PlaybookRule, key)
+        row.confirmed_by, row.confirmed_at = None, None
+        db.commit()
+
+
+def _latest_version(db: Session, key: str) -> RuleVersion | None:
+    return db.scalar(select(RuleVersion).where(RuleVersion.rule_key == key).order_by(RuleVersion.version.desc()).limit(1))
+
+
+def served(db: Session) -> list[dict]:
+    """The rules reviews use: each rule's latest approved version, unless withdrawn, in grid order. Each dict is the
+    frozen content plus key, version, approver and date."""
+    order = {r.key: (r.position, r.key) for r in db.scalars(select(PlaybookRule))}
+    latest: dict[str, RuleVersion] = {}
+    for version in db.scalars(select(RuleVersion).order_by(RuleVersion.rule_key, RuleVersion.version)):
+        latest[version.rule_key] = version
+    rules = []
+    for key, version in latest.items():
+        if version.withdrawn_at is not None or key not in order:
+            continue
+        rules.append({**version.payload, "key": key, "version": version.version,
+                      "approved_by": version.approved_by_name, "approved_at": version.approved_at.isoformat()})
+    rules.sort(key=lambda r: order[r["key"]])
+    return rules
+
+
+def grid_version(rules: list[dict]) -> str:
+    """A short fingerprint of which rule versions a review used, stored by LegalDesk with each review run."""
+    import hashlib
+
+    fingerprint = ";".join(f"{r['key']}:{r.get('version', 0)}" for r in sorted(rules, key=lambda r: r["key"]))
+    return hashlib.sha256(fingerprint.encode()).hexdigest()[:12]
+
+
+def versions_of(db: Session, key: str) -> list[RuleVersion]:
+    return list(db.scalars(select(RuleVersion).where(RuleVersion.rule_key == key).order_by(RuleVersion.version.desc())))
+
+
+def set_model_clause(db: Session, key: str, fr: str, en: str, source: str = "lawyer", approver=None) -> None:
     """The corrected wording LegalDesk proposes when this risk is found. Approved on its own: changing it withdraws
     its approval, never the risk's."""
     fr, en = " ".join(fr.split()), " ".join(en.split())
@@ -416,26 +522,28 @@ def set_model_clause(db: Session, key: str, fr: str, en: str, source: str = "law
         clause = {"fr": fr, "en": en or None, "source": source if changed else current.get("source", source),
                   "approved_by": None if changed else current.get("approved_by"),
                   "approved_at": None if changed else current.get("approved_at")}
-        if approve_as.strip():
-            clause["approved_by"] = approve_as.strip()
-            clause["approved_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        if approver is not None:
+            _approve_clause(clause, approver)
         rule["model_clause"] = clause
 
     _edit(db, change)
 
 
-def approve_model_clause(db: Session, key: str, approved_by: str) -> None:
-    if not approved_by.strip():
-        raise RuleError("invalid", "Name the person approving.")
-
+def approve_model_clause(db: Session, key: str, approver) -> None:
     def change(data):
         clause = _rule(data, key).get("model_clause")
         if not clause:
             raise RuleError("no_model_clause", "There is no model clause to approve.")
-        clause["approved_by"] = approved_by.strip()
-        clause["approved_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        _approve_clause(clause, approver)
 
     _edit(db, change)
+
+
+def _approve_clause(clause: dict, approver) -> None:
+    """Records the lawyer's account, not a typed name (R-M11-2)."""
+    clause["approved_by"] = approver.signature
+    clause["approved_by_user_id"] = approver.id
+    clause["approved_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def withdraw_model_clause(db: Session, key: str) -> None:
@@ -443,13 +551,15 @@ def withdraw_model_clause(db: Session, key: str) -> None:
         clause = _rule(data, key).get("model_clause")
         if clause:
             clause["approved_by"] = None
+            clause["approved_by_user_id"] = None
             clause["approved_at"] = None
 
     _edit(db, change)
 
 
 def unconfirm(db: Session, key: str) -> None:
-    _edit(db, lambda data: _unconfirm(_rule(data, key)))
+    """Older name of withdraw."""
+    withdraw(db, key)
 
 
 _SHORT_CODES = {
@@ -471,8 +581,10 @@ def short_citation(reference: str, number: str) -> str:
 
 
 def describe(db: Session) -> dict:
-    """Every rule, confirmed or not, with each article resolved for display."""
+    """Every rule of the working copy, with each article resolved for display and what reviews use today: the served
+    version, who approved it and when, and whether the working copy has changed since."""
     data = load(db)
+    in_service = {r["key"]: r for r in served(db)}
     rules = []
     for rule in data["rules"]:
         articles = []
@@ -492,6 +604,8 @@ def describe(db: Session) -> dict:
                       "examples": rule.get("examples", []), "counter_examples": rule.get("counter_examples", []),
                       "detected": rule["key"] in DETECTED_KEYS,
                       "builtin_checks": _checks_view(rule),
+                      "served": in_service.get(rule["key"]),
+                      "changed_since_approval": rule["key"] in in_service and not rule.get("confirmed_by"),
                       "ready": bool(articles) and all(a["verified"] for a in articles)})
     return {"rules": rules}
 
@@ -509,13 +623,14 @@ def _checks_view(rule: dict) -> list[dict]:
 
 
 def resolve(db: Session, include_unconfirmed: bool = False) -> dict:
-    playbook = load(db)
+    """What LegalDesk grounds findings in: each served rule's articles (verified law only) and its approved model
+    clause. include_unconfirmed previews the working copy instead; LegalDesk never asks for it (R-M11-5)."""
+    working = {r["key"]: r for r in load(db).get("rules", [])}
+    source = list(working.values()) if include_unconfirmed else served(db)
     rules = {}
     unresolved = []
 
-    for rule in playbook.get("rules", []):
-        if not rule.get("confirmed_by") and not include_unconfirmed:
-            continue
+    for rule in source:
         articles = []
         for ref in rule.get("articles", []):
             article = find_article(db, ref["reference"], ref["number"])
@@ -534,11 +649,16 @@ def resolve(db: Session, include_unconfirmed: bool = False) -> dict:
                 # Lawyer-approved plain-language explanations for this wording, by language.
                 "explanations": {lang: e.summary for lang, e in approved.items() if e is not None},
             })
-        rules[rule["key"]] = {"label": rule.get("label"), "confirmed_by": rule.get("confirmed_by"), "articles": articles,
+        # The model clause is approved on its own (not part of a version): taken from the working copy.
+        clause = (working.get(rule["key"]) or {}).get("model_clause")
+        rules[rule["key"]] = {"label": rule.get("label"), "version": rule.get("version"),
+                              "approved_by": rule.get("approved_by") or rule.get("confirmed_by"),
+                              "confirmed_by": rule.get("approved_by") or rule.get("confirmed_by"),
+                              "severity": rule.get("severity"), "articles": articles,
                               "phrases": rule.get("phrases", []),
                               # Served only once a lawyer approved it.
-                              "model_clause": ({"fr": rule["model_clause"]["fr"], "en": rule["model_clause"].get("en")}
-                                               if rule.get("model_clause") and (include_unconfirmed or rule["model_clause"].get("approved_by"))
+                              "model_clause": ({"fr": clause["fr"], "en": clause.get("en")}
+                                               if clause and (include_unconfirmed or clause.get("approved_by"))
                                                else None),
                               "examples": [e["text"] for e in rule.get("examples", [])],
                               "counter_examples": [e["text"] for e in rule.get("counter_examples", [])]}

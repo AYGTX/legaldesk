@@ -27,7 +27,8 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
     public async Task<LegalPlaybook> GetPlaybookAsync(CancellationToken ct = default)
     {
         var settings = opts.Value;
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{settings.BaseUrl.TrimEnd('/')}/api/v1/playbook?include_unconfirmed=true");
+        // Approved rule versions only: articles and model clauses a lawyer has not approved never reach a contract (E1).
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{settings.BaseUrl.TrimEnd('/')}/api/v1/playbook");
         if (!string.IsNullOrWhiteSpace(settings.ApiKey))
             request.Headers.Add("X-API-Key", settings.ApiKey);
 
@@ -73,7 +74,8 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
         var result = await PostAsync<ReviewOut>("api/v1/review", body, ct);
         return result.Findings.Select(f => new RiskFinding(f.ClauseType, f.Severity, f.Explanation,
             FindingType: f.FindingType, RecommendedAction: f.RecommendedAction,
-            ContractReference: f.ContractReference, RuleKey: f.RuleKey)).ToList();
+            ContractReference: f.ContractReference, RuleKey: f.RuleKey,
+            RuleVersion: f.RuleVersion, Detection: f.Detection, Confidence: f.Confidence, Quote: f.Quote)).ToList();
     }
 
     public async Task<DetectedFormFields> DetectFormFieldsAsync(Stream pdf, string fileName, CancellationToken ct = default)
@@ -139,7 +141,8 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
     private sealed record ReviewOut(string Language, string? Model, List<FindingOut> Findings);
 
     private sealed record FindingOut(string ClauseType, string Severity, string Explanation, string? RecommendedAction,
-        string? ContractReference, string? RuleKey, string? FindingType);
+        string? ContractReference, string? RuleKey, string? FindingType, int? RuleVersion = null, string? Detection = null,
+        double? Confidence = null, string? Quote = null);
 
     private sealed record ClassifyOut(bool Enabled, string? Model, List<ClauseMatchOut> Matches);
 

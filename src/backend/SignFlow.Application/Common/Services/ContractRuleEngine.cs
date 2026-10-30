@@ -11,6 +11,8 @@ namespace SignFlow.Application.Common.Services;
 /// </summary>
 public static partial class ContractRuleEngine
 {
+    /// <summary>A finding a lawyer marked blocking in Harvey's grid (R-M11-4): the contract cannot go out with it.</summary>
+    public const string Critical = "Critical";
     public const string High = "High";
     public const string Medium = "Medium";
     public const string Low = "Low";
@@ -30,10 +32,10 @@ public static partial class ContractRuleEngine
         SplitClauses(text).Select(ToClause).Select(c => new ClauseText(c.Heading, c.Text)).ToList();
 
     private static List<RiskFinding> Order(List<RiskFinding> findings) =>
-        findings.OrderBy(f => f.Severity switch { High => 0, Medium => 1, _ => 2 }).ToList();
+        findings.OrderBy(f => f.Severity switch { Critical => 0, High => 1, Medium => 2, _ => 3 }).ToList();
 
     private static int Score(IEnumerable<RiskFinding> findings) =>
-        Math.Min(100, findings.Where(f => f.FindingType != Possible).Sum(f => f.Severity switch { High => 20, Medium => 10, _ => 2 }));
+        Math.Min(100, findings.Where(f => f.FindingType != Possible).Sum(f => f.Severity switch { Critical => 40, High => 20, Medium => 10, _ => 2 }));
 
     /// <summary>Harvey's findings as an analysis: ordered by severity, scored, with a "nothing found" line when empty.</summary>
     public static ContractRiskAnalysis FromFindings(IReadOnlyList<RiskFinding> findings, string? language)

@@ -124,7 +124,13 @@ public record RiskFinding(
     string? RecommendedAction = null,
     string? ProposedLanguage = null,
     string? ContractReference = null,
-    string? RuleKey = null);
+    string? RuleKey = null,
+    // Harvey's origin of the finding (rework spec R-M11-5): approved rule version, CodeCheck / MeaningMatch / Phrase,
+    // similarity of a meaning match, and the contract's words that raised it.
+    int? RuleVersion = null,
+    string? Detection = null,
+    double? Confidence = null,
+    string? Quote = null);
 
 /// <summary>What the analyser could determine about the contract itself. Null where the text does not say.</summary>
 public record ContractProfile(

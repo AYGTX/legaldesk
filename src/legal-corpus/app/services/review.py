@@ -17,7 +17,11 @@ from dataclasses import asdict, dataclass
 from app.services.matching import ExampleMatcher, RuleExamples
 from app.services.risk_catalog import CATALOG, STANDARD_CLAUSES
 
-HIGH, MEDIUM, LOW = "High", "Medium", "Low"
+CRITICAL, HIGH, MEDIUM, LOW = "Critical", "High", "Medium", "Low"
+SEVERITIES = (CRITICAL, HIGH, MEDIUM, LOW)
+
+# How a finding was found (R-M11-5): a check written in code, a match by meaning with an example clause, or a phrase.
+CHECK, MEANING, PHRASE = "CodeCheck", "MeaningMatch", "Phrase"
 POSSIBLE = "Possible"
 
 
@@ -38,6 +42,10 @@ class Finding:
     rule_key: str | None = None
     finding_type: str | None = None
     check: str | None = None  # the built-in check that raised it; None for a finding by meaning or phrase
+    rule_version: int | None = None
+    detection: str | None = None  # CHECK, MEANING or PHRASE
+    confidence: float | None = None  # similarity of the closest example, for a match by meaning
+    quote: str | None = None  # the contract's own words that raised the finding
 
 
 class _L:
@@ -378,21 +386,27 @@ def checks_of(rule_key: str) -> list[str]:
 
 
 def _run_checks(text, clauses, l, grid_rules) -> list[Finding]:
-    """The built-in checks, each tagged with its id, then switched off or re-graded as the risk grid says."""
+    """The built-in checks of the rules in service, each tagged with its id, then switched off or re-graded as the
+    approved rule says. A check whose rule has no approved version does not run (R-M11-5)."""
     settings = {}
     for rule in grid_rules:
         settings.update(rule.get("checks") or {})
+    in_service = {r["key"]: r for r in grid_rules}
     out: list[Finding] = []
     for function in CHECKS:
         found: list[Finding] = []
         function(text, clauses, l, found)
         for f in found:
             f.check = _check_id(function, f)
+            rule = in_service.get(CHECK_INFO[f.check].rule_key if f.check in CHECK_INFO else f.rule_key)
+            if rule is None:
+                continue
             setting = settings.get(f.check) or {}
             if setting.get("enabled", True) is False:
                 continue
-            if setting.get("severity") in (HIGH, MEDIUM, LOW):
+            if setting.get("severity") in SEVERITIES:
                 f.severity = setting["severity"]
+            f.rule_version, f.detection = rule.get("version"), CHECK
             out.append(f)
     return out
 
@@ -432,7 +446,7 @@ CODE_ONLY = {"contradiction"}
 
 
 def meaning_rules(grid_rules: list[dict]) -> list[RuleExamples]:
-    """The examples and counter-examples of each risk in the risk grid (confirmed or not)."""
+    """The examples and counter-examples of each risk in service (its approved version)."""
     by_key = {r["key"]: r for r in grid_rules}
     rules = []
     for key in sorted((set(CATALOG) | set(by_key)) - CODE_ONLY):
@@ -454,21 +468,26 @@ def _meaning_findings(clauses, grid_rules, matcher, l, threshold):
         return []
     matches = matcher.classify([(c.reference, c.text) for c in clauses], meaning_rules(grid_rules), threshold, within=WITHIN)
     by_ref = {c.reference: c for c in clauses}
-    labels = {r["key"]: r.get("label") for r in grid_rules}
+    rules = {r["key"]: r for r in grid_rules}
     out = []
     for m in matches:
-        entry, clause = CATALOG.get(m.rule_key), by_ref[m.reference]
-        title = (l.t(*entry.label) if entry else None) or labels.get(m.rule_key) or m.rule_key
+        entry, clause, rule = CATALOG.get(m.rule_key), by_ref[m.reference], rules.get(m.rule_key, {})
+        title = (l.t(*entry.label) if entry else None) or rule.get("label") or m.rule_key
         if entry is None:  # a risk created in the grid only: a lead, worded generically
-            out.append(Finding(title, MEDIUM,
-                               l.t(f"This sentence reads like an example of this risk in the risk grid: “{m.sentence}”",
-                                   f"Cette phrase ressemble à un exemple de ce risque dans la grille des risques : « {m.sentence} »"),
-                               l.t(f"Check the clause against the “{title}” risk.", f"Vérifier la clause au regard du risque « {title} »."),
-                               m.reference, m.rule_key))
-            continue
-        finding = Finding(title, entry.severity, l.t(*entry.explanation), l.t(*entry.action) if entry.action else None,
-                          m.reference, m.rule_key)
-        out.append(_refine(finding, clause, l))
+            finding = Finding(title, MEDIUM,
+                              l.t(f"This sentence reads like an example of this risk in the risk grid: “{m.sentence}”",
+                                  f"Cette phrase ressemble à un exemple de ce risque dans la grille des risques : « {m.sentence} »"),
+                              l.t(f"Check the clause against the “{title}” risk.", f"Vérifier la clause au regard du risque « {title} »."),
+                              m.reference, m.rule_key)
+        else:
+            finding = _refine(Finding(title, entry.severity, l.t(*entry.explanation),
+                                      l.t(*entry.action) if entry.action else None, m.reference, m.rule_key), clause, l)
+        # The lawyer's severity for the risk outranks the catalogue's, except a capped penalty refined to Low.
+        if rule.get("severity") in SEVERITIES and finding.severity != LOW:
+            finding.severity = rule["severity"]
+        finding.rule_version, finding.detection = rule.get("version"), MEANING
+        finding.confidence, finding.quote = round(float(m.score), 4), m.sentence
+        out.append(finding)
     return out
 
 
@@ -484,11 +503,13 @@ def _phrase_findings(clauses, grid_rules, l, existing):
                     continue
                 if folded in fold(c.text):
                     label = rule.get("label") or rule["key"]
-                    out.append(_f(c, rule["key"], label, MEDIUM,
-                                  l.t(f"The risk grid flags the wording “{phrase.strip()}” for this risk.",
-                                      f"La grille des risques signale la formulation « {phrase.strip()} » pour ce risque."),
-                                  l.t(f"Check this clause against the “{label}” risk.",
-                                      f"Vérifier cette clause au regard du risque « {label} ».")))
+                    finding = _f(c, rule["key"], label, rule.get("severity") if rule.get("severity") in SEVERITIES else MEDIUM,
+                                 l.t(f"The risk grid flags the wording “{phrase.strip()}” for this risk.",
+                                     f"La grille des risques signale la formulation « {phrase.strip()} » pour ce risque."),
+                                 l.t(f"Check this clause against the “{label}” risk.",
+                                     f"Vérifier cette clause au regard du risque « {label} »."))
+                    finding.rule_version, finding.detection, finding.quote = rule.get("version"), PHRASE, phrase.strip()
+                    out.append(finding)
     return out
 
 
@@ -506,8 +527,8 @@ def review(clauses: list[Clause], grid_rules: list[dict], matcher: ExampleMatche
         if not any(x.rule_key == f.rule_key and x.contract_reference == f.contract_reference for x in findings):
             findings.append(f)
     findings += _phrase_findings(clauses, grid_rules, l, findings)
-    order = {HIGH: 0, MEDIUM: 1, LOW: 2}
-    findings.sort(key=lambda f: order.get(f.severity, 3))
+    order = {CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3}
+    findings.sort(key=lambda f: order.get(f.severity, 4))
     return findings, lang
 
 

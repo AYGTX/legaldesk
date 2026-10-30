@@ -29,15 +29,32 @@ def _config() -> Config:
 
 
 def upgrade(engine: Engine) -> None:
-    with engine.begin() as connection:
-        tables = set(inspect(connection).get_table_names())
-        config = _config()
-        config.attributes["connection"] = connection
-        if "alembic_version" not in tables and "legal_texts" in tables:
-            _create_missing_baseline_tables(connection, tables)
-            _add_pre_migration_columns(connection)
-            command.stamp(config, BASELINE)
-        command.upgrade(config, "head")
+    sqlite = engine.dialect.name == "sqlite"
+    with engine.connect() as connection:
+        if sqlite:
+            # SQLite cannot alter a table in place: batch mode copies it and drops the old one. With foreign keys on,
+            # that drop cascades (dropping legal_texts deleted every article). Off for the migration, checked after.
+            # The pragma only takes effect outside a transaction, hence before begin().
+            connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+            connection.commit()  # SQLAlchemy auto-began; the driver ran the pragma outside any SQLite transaction
+        try:
+            with connection.begin():
+                tables = set(inspect(connection).get_table_names())
+                config = _config()
+                config.attributes["connection"] = connection
+                if "alembic_version" not in tables and "legal_texts" in tables:
+                    _create_missing_baseline_tables(connection, tables)
+                    _add_pre_migration_columns(connection)
+                    command.stamp(config, BASELINE)
+                command.upgrade(config, "head")
+                if sqlite:
+                    broken = connection.exec_driver_sql("PRAGMA foreign_key_check").fetchall()
+                    if broken:
+                        raise RuntimeError(f"Migration left rows pointing at nothing: {broken[:5]}")
+        finally:
+            if sqlite:
+                connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+                connection.commit()
 
 
 # The tables of the baseline revision. A database from before article versions or the risk grid may lack some of them;

@@ -15,9 +15,9 @@ from app import auth
 from app.config import BASE_DIR
 from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
-from app.models import Category, Jurisdiction, TextStatus, wording_on
+from app.models import Category, HarveyUser, Jurisdiction, Role, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import amendments, assist, corpus, definitions, explanations, pdf, playbook, references
+from app.services import accounts, amendments, assist, corpus, definitions, explanations, pdf, playbook, references
 from app.services.corpus import RuleError
 from app.services.llm import LlmUnavailable
 from app.services.citations import check_citation
@@ -30,7 +30,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
 
 def same_origin(request: Request) -> None:
-    """The UI has no login, so refuse form posts that a page on another site could make the browser send."""
+    """Refuse form posts that a page on another site could make a signed-in browser send."""
     if request.method != "POST":
         return
     origin = request.headers.get("origin") or request.headers.get("referer")
@@ -59,6 +59,8 @@ def _render(request: Request, template: str, **context) -> HTMLResponse:
             "categories": list(Category),
             "statuses": list(TextStatus),
             "user": getattr(request.state, "user", None),
+            # The signed-in account: templates show approve buttons only to a lawyer, account admin only to an admin.
+            "account": getattr(request.state, "account", None),
             **context,
         },
     )
@@ -107,20 +109,53 @@ def _safe_next(path: str) -> str:
     return path if path.startswith("/") and not path.startswith("//") and not path.startswith("/\\") else "/"
 
 
+def _lawyer(request: Request) -> HarveyUser:
+    """The signed-in lawyer, for an approval (R-M11-2); anyone else gets the page back with an explanation."""
+    user = getattr(request.state, "account", None)
+    if user is None or not user.can_approve:
+        raise RuleError("not_lawyer", "Only a lawyer's account can approve.")
+    return user
+
+
+def _session_cookie(response, request: Request, user: HarveyUser, stage: str) -> None:
+    lifetime = auth.LIFETIME_SECONDS if stage == auth.STAGE_FULL else auth.PENDING_SECONDS
+    response.set_cookie(auth.COOKIE, auth.make_session(request.app.state.session_secret, user.id, stage),
+                        max_age=lifetime, httponly=True, samesite="lax", secure=request.url.scheme == "https")
+
+
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, next: str = "/"):
     if auth.current_user(request):
         return RedirectResponse(_safe_next(next), status_code=303)
-    return _render(request, "login.html", next=_safe_next(next), error=False)
+    step = "code" if auth.pending_user(request) else "password"
+    return _render(request, "login.html", next=_safe_next(next), error=False, step=step)
 
 
 @router.post("/login", response_class=HTMLResponse)
-def login(request: Request, login: str = Form(""), password: str = Form(""), next: str = Form("/")):
-    if not auth.check_credentials(request.app.state.settings, login, password):
-        return _render(request, "login.html", next=_safe_next(next), error=True, login=login)
+def login(request: Request, login: str = Form(""), password: str = Form(""), next: str = Form("/"),
+          db: Session = Depends(get_db)):
+    user = accounts.authenticate(db, login, password)
+    if user is None:
+        return _render(request, "login.html", next=_safe_next(next), error=True, login=login, step="password")
+    if user.totp_enabled:
+        response = _render(request, "login.html", next=_safe_next(next), error=False, step="code")
+        _session_cookie(response, request, user, auth.STAGE_PASSWORD)
+        return response
     response = RedirectResponse(_safe_next(next), status_code=303)
-    response.set_cookie(auth.COOKIE, auth.make_session(request.app.state.session_secret, request.app.state.settings.admin_user),
-                        max_age=auth.LIFETIME_SECONDS, httponly=True, samesite="lax")
+    _session_cookie(response, request, user, auth.STAGE_FULL)
+    return response
+
+
+@router.post("/login/code", response_class=HTMLResponse)
+def login_code(request: Request, code: str = Form(""), next: str = Form("/"), db: Session = Depends(get_db)):
+    pending = auth.pending_user(request)
+    if pending is None:
+        return RedirectResponse("/login", status_code=303)
+    user = db.get(HarveyUser, pending.id)
+    if not accounts.verify_totp(user.totp_secret, code):
+        return _render(request, "login.html", next=_safe_next(next), error=True, step="code")
+    response = RedirectResponse(_safe_next(next), status_code=303)
+    _session_cookie(response, request, user, auth.STAGE_FULL)
     return response
 
 
@@ -129,6 +164,71 @@ def logout():
     response = RedirectResponse("/login", status_code=303)
     response.delete_cookie(auth.COOKIE)
     return response
+
+
+# ------------------------------------------------------------------ own account
+
+@router.get("/account", response_class=HTMLResponse)
+def account_page(request: Request, db: Session = Depends(get_db)):
+    user = db.get(HarveyUser, request.state.account.id)
+    return _render(request, "account.html", me=user, totp_uri=accounts.totp_uri(user) if user.totp_secret and not user.totp_enabled else None,
+                    must_totp=request.app.state.settings.require_totp and user.can_approve and not user.totp_enabled)
+
+
+@router.post("/account/password")
+def account_password(request: Request, current: str = Form(""), new: str = Form(""), confirm: str = Form(""),
+                     db: Session = Depends(get_db)):
+    if new != confirm:
+        return _redirect("/account", "err_password_mismatch", "error")
+    accounts.change_password(db, db.get(HarveyUser, request.state.account.id), current, new)
+    return _redirect("/account", "password_changed")
+
+
+@router.post("/account/totp/start")
+def account_totp_start(request: Request, db: Session = Depends(get_db)):
+    accounts.start_totp(db, db.get(HarveyUser, request.state.account.id))
+    return _redirect("/account")
+
+
+@router.post("/account/totp/confirm")
+def account_totp_confirm(request: Request, code: str = Form(""), db: Session = Depends(get_db)):
+    accounts.confirm_totp(db, db.get(HarveyUser, request.state.account.id), code)
+    return _redirect("/", "totp_enabled")
+
+
+# ------------------------------------------------------------------ accounts (administrators)
+
+@router.get("/users", response_class=HTMLResponse)
+def users_page(request: Request, db: Session = Depends(get_db)):
+    auth.require_admin(request)
+    users = list(db.scalars(select(HarveyUser).order_by(HarveyUser.name)))
+    return _render(request, "users.html", users=users, roles=list(Role))
+
+
+@router.post("/users")
+def users_create(request: Request, email: str = Form(""), name: str = Form(""), role: str = Form("Reader"),
+                 bar_reference: str = Form(""), password: str = Form(""), is_admin: str = Form(""),
+                 db: Session = Depends(get_db)):
+    auth.require_admin(request)
+    accounts.create(db, email, name, Role(role) if role in Role.__members__ else Role.Reader, password,
+                    is_admin=bool(is_admin), bar_reference=bar_reference, must_change_password=True)
+    return _redirect("/users", "user_created")
+
+
+@router.post("/users/{user_id}")
+def users_update(user_id: str, request: Request, role: str = Form("Reader"), bar_reference: str = Form(""),
+                 is_admin: str = Form(""), active: str = Form(""), db: Session = Depends(get_db)):
+    actor = auth.require_admin(request)
+    accounts.update(db, actor, user_id, role=Role(role) if role in Role.__members__ else Role.Reader,
+                    is_admin=bool(is_admin), active=bool(active), bar_reference=bar_reference)
+    return _redirect("/users", "saved")
+
+
+@router.post("/users/{user_id}/reset")
+def users_reset(user_id: str, request: Request, password: str = Form(""), db: Session = Depends(get_db)):
+    auth.require_admin(request)
+    accounts.reset(db, user_id, password)
+    return _redirect("/users", "user_reset")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -436,15 +536,14 @@ def set_status(text_id: str, status: str = Form(...), db: Session = Depends(get_
 
 
 @router.post("/texts/{text_id}/verify")
-def verify(text_id: str, verified_by: str = Form(""), source_url: str = Form(""), db: Session = Depends(get_db)):
-    if not verified_by.strip():
-        return _redirect(f"/texts/{text_id}", "err_invalid", "error")
-    corpus.verify(db, text_id, verified_by, source_url)
+def verify(text_id: str, request: Request, source_url: str = Form(""), db: Session = Depends(get_db)):
+    corpus.verify(db, text_id, _lawyer(request), source_url)
     return _redirect(f"/texts/{text_id}", "verified_ok")
 
 
 @router.post("/texts/{text_id}/unverify")
-def unverify(text_id: str, db: Session = Depends(get_db)):
+def unverify(text_id: str, request: Request, db: Session = Depends(get_db)):
+    _lawyer(request)
     corpus.unverify(db, text_id)
     return _redirect(f"/texts/{text_id}", "unverified_ok")
 
@@ -539,21 +638,23 @@ def explanation_generate(article_id: str, request: Request, lang: str = Form("fr
 
 @router.post("/articles/{article_id}/explanation")
 def explanation_save(article_id: str, request: Request, lang: str = Form("fr"), summary: str = Form(""),
-                     in_practice: str = Form(""), approve_as: str = Form(""), db: Session = Depends(get_db)):
+                     in_practice: str = Form(""), approve: str = Form(""), db: Session = Depends(get_db)):
     article = corpus.get_article(db, article_id)
-    saved = explanations.save(db, article, lang, summary, in_practice, getattr(request.state, "user", None), approve_as)
+    approver = _lawyer(request) if approve else None
+    saved = explanations.save(db, article, lang, summary, in_practice, getattr(request.state, "user", None), approver)
     return _redirect(_back_to_article(article), "explanation_approved" if saved.approved_by else "saved")
 
 
 @router.post("/articles/{article_id}/explanation/approve")
-def explanation_approve(article_id: str, lang: str = Form("fr"), approved_by: str = Form(""), db: Session = Depends(get_db)):
+def explanation_approve(article_id: str, request: Request, lang: str = Form("fr"), db: Session = Depends(get_db)):
     article = corpus.get_article(db, article_id)
-    explanations.approve(db, article, lang, approved_by)
+    explanations.approve(db, article, lang, _lawyer(request))
     return _redirect(_back_to_article(article), "explanation_approved")
 
 
 @router.post("/articles/{article_id}/explanation/withdraw")
-def explanation_withdraw(article_id: str, lang: str = Form("fr"), db: Session = Depends(get_db)):
+def explanation_withdraw(article_id: str, request: Request, lang: str = Form("fr"), db: Session = Depends(get_db)):
+    _lawyer(request)
     article = corpus.get_article(db, article_id)
     explanations.withdraw(db, article, lang)
     return _redirect(_back_to_article(article), "unverified_ok")
@@ -692,8 +793,14 @@ def _rule_page(key: str, request: Request, db: Session, **extra):
     if rule is None:
         return _redirect("/playbook")
     texts = [t for t in corpus.list_texts(db) if t.reference and t.is_verified]
+    account = getattr(request.state, "account", None)
+    editor = db.get(HarveyUser, rule["edited_by_user_id"]) if rule.get("edited_by_user_id") else None
+    # Four-eyes (R-M11-2): the last editor of the working copy cannot approve it.
+    own_edit = bool(request.app.state.settings.four_eyes and account and editor and editor.id == account.id)
     return _render(request, "playbook_rule.html", rule=rule, texts=texts,
-                   detected=playbook.DETECTED_KEYS, ai=request.app.state.llm.name, **extra)
+                   detected=playbook.DETECTED_KEYS, ai=request.app.state.llm.name,
+                   versions=playbook.versions_of(db, key), editor=editor, own_edit=own_edit,
+                   severities=["Critical", "High", "Medium", "Low"], **extra)
 
 
 def _risk_description(rule: dict) -> str:
@@ -785,19 +892,21 @@ async def rule_add_examples_bulk(key: str, request: Request, db: Session = Depen
 
 @router.post("/playbook/rules/{key}/model-clause")
 def rule_model_clause(key: str, request: Request, fr: str = Form(""), en: str = Form(""), source: str = Form("lawyer"),
-                      approve_as: str = Form(""), db: Session = Depends(get_db)):
-    playbook.set_model_clause(db, key, fr, en, source if source in ("lawyer", "model") else "lawyer", approve_as)
-    return _redirect(_rule_url(key), "model_clause_approved" if approve_as.strip() else "saved")
+                      approve: str = Form(""), db: Session = Depends(get_db)):
+    approver = _lawyer(request) if approve else None
+    playbook.set_model_clause(db, key, fr, en, source if source in ("lawyer", "model") else "lawyer", approver)
+    return _redirect(_rule_url(key), "model_clause_approved" if approver else "saved")
 
 
 @router.post("/playbook/rules/{key}/model-clause/approve")
-def rule_model_clause_approve(key: str, request: Request, approved_by: str = Form(""), db: Session = Depends(get_db)):
-    playbook.approve_model_clause(db, key, approved_by)
+def rule_model_clause_approve(key: str, request: Request, db: Session = Depends(get_db)):
+    playbook.approve_model_clause(db, key, _lawyer(request))
     return _redirect(_rule_url(key), "model_clause_approved")
 
 
 @router.post("/playbook/rules/{key}/model-clause/withdraw")
 def rule_model_clause_withdraw(key: str, request: Request, db: Session = Depends(get_db)):
+    _lawyer(request)
     playbook.withdraw_model_clause(db, key)
     return _redirect(_rule_url(key), "unverified_ok")
 
@@ -879,15 +988,20 @@ def rule_move_article(key: str, index: int, request: Request, offset: int = Form
     return _redirect(_rule_url(key), "saved")
 
 
+@router.post("/playbook/rules/{key}/severity")
+def rule_severity(key: str, request: Request, severity: str = Form(""), db: Session = Depends(get_db)):
+    playbook.set_severity(db, key, severity)
+    return _redirect(_rule_url(key), "saved")
+
+
 @router.post("/playbook/rules/{key}/confirm")
-def rule_confirm(key: str, request: Request, confirmed_by: str = Form(""), db: Session = Depends(get_db)):
-    if not confirmed_by.strip():
-        return _redirect(_rule_url(key), "err_invalid", "error")
-    playbook.confirm(db, key, confirmed_by)
+def rule_confirm(key: str, request: Request, db: Session = Depends(get_db)):
+    playbook.approve(db, key, _lawyer(request), request.app.state.settings.four_eyes)
     return _redirect(_rule_url(key), "rule_confirmed")
 
 
 @router.post("/playbook/rules/{key}/unconfirm")
 def rule_unconfirm(key: str, request: Request, db: Session = Depends(get_db)):
-    playbook.unconfirm(db, key)
+    _lawyer(request)
+    playbook.withdraw(db, key)
     return _redirect(_rule_url(key), "unverified_ok")

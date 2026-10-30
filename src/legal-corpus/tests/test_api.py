@@ -1,8 +1,8 @@
+from tests.conftest import LAW, make_text, make_settings
 from app.config import Settings
 from app.main import create_app
 from fastapi.testclient import TestClient
 
-from tests.conftest import LAW, make_text
 
 
 def test_create_and_import(client):
@@ -110,7 +110,7 @@ def test_citation_in_unverified_text_is_flagged(client):
 
 
 def test_api_key_is_enforced_when_configured():
-    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key="s3cret"))
+    app = create_app(make_settings(api_key="s3cret"))
     with TestClient(app) as c:
         assert c.get("/api/v1/texts").status_code == 401
         assert c.get("/api/v1/texts", headers={"X-API-Key": "s3cret"}).status_code == 200

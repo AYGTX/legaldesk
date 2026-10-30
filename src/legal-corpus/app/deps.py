@@ -12,7 +12,11 @@ _embedder_lock = threading.Lock()
 
 
 def get_db(request: Request) -> Iterator[Session]:
-    yield from session_scope(request.app.state.session_factory)
+    for session in session_scope(request.app.state.session_factory):
+        # Who is editing, read by the risk grid to record each rule's last editor (four-eyes rule, R-M11-2).
+        account = getattr(request.state, "account", None)
+        session.info["editor_id"] = account.id if account is not None else None
+        yield session
 
 
 def get_embedder(request: Request) -> Embedder:

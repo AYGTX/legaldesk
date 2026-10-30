@@ -94,8 +94,9 @@ def set_status(db: Session, text_id: str, status: TextStatus) -> LegalText:
     return text
 
 
-def verify(db: Session, text_id: str, verified_by: str, source_url: str | None = None) -> LegalText:
-    """Signs the text off. A source given here (when the text has none yet) is saved in the same step."""
+def verify(db: Session, text_id: str, approver, source_url: str | None = None) -> LegalText:
+    """A lawyer's account signs the text off (R-M11-2). A source given here (when the text has none yet) is saved in
+    the same step."""
     text = get_text(db, text_id)
     source_url = (source_url or "").strip()
     if source_url and not text.source_url:
@@ -106,7 +107,8 @@ def verify(db: Session, text_id: str, verified_by: str, source_url: str | None =
         raise RuleError("no_articles", "A text without articles has nothing to verify.")
     if not text.source_url:
         raise RuleError("no_source", "Add the official source before verifying: the sign-off is checked against it.")
-    text.verified_by = verified_by.strip()
+    text.verified_by = approver.signature
+    text.verified_by_user_id = approver.id
     text.verified_at = datetime.now(timezone.utc)
     db.commit()
     return text

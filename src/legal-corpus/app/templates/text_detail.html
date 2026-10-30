@@ -32,8 +32,11 @@
       <div style="flex:2 1 320px"><label for="verify_source">{{ t('source_url') }} *</label>
         <input id="verify_source" name="source_url" type="url" required maxlength="1000" placeholder="https://"></div>
       {% endif %}
-      <div><label for="verified_by">{{ t('your_name') }}</label><input id="verified_by" name="verified_by" required maxlength="200"></div>
-      <button type="submit">{{ t('verify') }}</button>
+      {% if account and account.can_approve %}
+      <button type="submit">{{ t('verify_as', who=account.signature) }}</button>
+      {% else %}
+      <p class="muted">{{ t('verify_lawyers_only') }}</p>
+      {% endif %}
     </form>
   {% endif %}
 </section>
@@ -113,13 +116,12 @@
           {% if e.in_practice %}<p><strong>{{ t('explain_practice') }}</strong> {{ e.in_practice }}</p>{% endif %}
           <p class="explain-note">{{ t('explain_note_model', model=e.model) if e.model else t('explain_note_person') }}</p>
           <div class="explain-actions">
-            {% if st == 'draft' %}
+            {% if st == 'draft' and account and account.can_approve %}
             <form hx-boost="true" class="row" method="post" action="/articles/{{ a.id }}/explanation/approve">
               <input type="hidden" name="lang" value="{{ lang }}">
-              <div><input name="approved_by" required maxlength="200" placeholder="{{ t('your_name') }}"></div>
-              <button type="submit">{{ t('explain_approve') }}</button>
+              <button type="submit">{{ t('approve_as_me', who=account.signature) }}</button>
             </form>
-            {% elif st == 'approved' %}
+            {% elif st == 'approved' and account and account.can_approve %}
             <form hx-boost="true" method="post" action="/articles/{{ a.id }}/explanation/withdraw"><input type="hidden" name="lang" value="{{ lang }}">
               <button class="secondary" type="submit">{{ t('unverify') }}</button></form>
             {% endif %}
@@ -135,7 +137,9 @@
               <label>{{ t('explain_title') }}</label><textarea name="summary" required minlength="20" rows="4">{{ e.summary }}</textarea>
               <label>{{ t('explain_practice') }}</label><input name="in_practice" maxlength="400" value="{{ e.in_practice or '' }}">
               <div class="row" style="margin-top:8px">
-                <div><input name="approve_as" maxlength="200" placeholder="{{ t('explain_approve_as') }}"></div>
+                {% if account and account.can_approve %}
+                <label class="check-toggle"><input type="checkbox" name="approve" value="1"> {{ t('approve_as_me', who=account.signature) }}</label>
+                {% endif %}
                 <button type="submit">{{ t('save') }}</button>
               </div>
             </form>

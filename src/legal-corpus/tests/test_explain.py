@@ -1,3 +1,4 @@
+from tests.conftest import sign_in, make_settings
 import json
 from dataclasses import dataclass, field
 
@@ -40,10 +41,10 @@ def test_draft_is_stored_seen_by_lawyers_only_until_approved(client, verified_te
     assert "Brouillon IA" in page and "vie privée" in page
     assert client.get(f"/api/v1/articles/{article['id']}/explanation").status_code == 404
 
-    client.post(f"/articles/{article['id']}/explanation/approve", data={"lang": "fr", "approved_by": "Me Trabelsi"})
+    client.post(f"/articles/{article['id']}/explanation/approve", data={"lang": "fr"})
     served = client.get(f"/api/v1/articles/{article['id']}/explanation").json()
-    assert served["approved_by"] == "Me Trabelsi" and served["model"] == "fake" and "dignité" in served["summary"]
-    assert "Validée par Me Trabelsi" in _page(client, text_id)
+    assert served["approved_by"] == "Me Test" and served["model"] == "fake" and "dignité" in served["summary"]
+    assert "Validée par Me Test" in _page(client, text_id)
     # Stored: no further model call to show it again.
     assert len(fake.calls) == 1
 
@@ -52,13 +53,13 @@ def test_a_changed_article_puts_its_explanation_out_of_date(client, verified_tex
     client.app.state.llm = FakeLlm(DRAFT)
     article = _article(verified_text, "2")
     client.post(f"/articles/{article['id']}/explanation/generate", data={"lang": "fr"})
-    client.post(f"/articles/{article['id']}/explanation/approve", data={"lang": "fr", "approved_by": "Me"})
+    client.post(f"/articles/{article['id']}/explanation/approve", data={"lang": "fr"})
 
     client.put(f"/api/v1/articles/{article['id']}", json={"number": "2", "text": "Nouvelle rédaction de l'article deux sur les données."})
 
     assert client.get(f"/api/v1/articles/{article['id']}/explanation").status_code == 404
     assert "Le texte a changé" in _page(client, verified_text["id"])
-    r = client.post(f"/articles/{article['id']}/explanation/approve", data={"lang": "fr", "approved_by": "Me"},
+    r = client.post(f"/articles/{article['id']}/explanation/approve", data={"lang": "fr"},
                     headers={"referer": f"http://testserver/texts/{verified_text['id']}"}, follow_redirects=False)
     assert "flash=err_explanation_out_of_date" in r.headers["location"]
 
@@ -68,9 +69,9 @@ def test_a_lawyer_can_correct_and_approve_in_one_step(client, verified_text):
     article = _article(verified_text, "2")
     client.post(f"/articles/{article['id']}/explanation", data={
         "lang": "fr", "summary": "Toute personne a droit au respect de sa vie privée quand ses données sont traitées.",
-        "in_practice": "", "approve_as": "H. Aymen"})
+        "in_practice": "", "approve": "1"})
     served = client.get(f"/api/v1/articles/{article['id']}/explanation", params={"lang": "fr"}).json()
-    assert served["approved_by"] == "H. Aymen" and served["model"] is None
+    assert served["approved_by"] == "Me Test" and served["model"] is None
     # Editing the approved text withdraws the approval.
     client.post(f"/articles/{article['id']}/explanation", data={
         "lang": "fr", "summary": "Une autre formulation de l'explication, plus courte mais complète.", "in_practice": ""})
@@ -92,9 +93,9 @@ def test_approved_explanations_travel_with_the_playbook(tmp_path):
     from app.main import create_app
     from tests.conftest import LAW
 
-    app = create_app(Settings(database_url="sqlite://", embedder="hashing", embedding_model="", api_key=None, legacy_playbook_file=None, seed_risks=False))
+    app = create_app(make_settings(api_key=None, legacy_playbook_file=None, seed_risks=False))
     with TestClient(app) as c:
-        c.post("/login", data={"login": "admin", "password": "admin"})
+        sign_in(c)
         text = c.post("/api/v1/texts", json={"title": "Données", "reference": "Loi test n° 1", "jurisdiction": "Tunisia",
                                              "category": "DataProtection", "source_url": "https://example.org/1"}).json()
         c.post(f"/api/v1/texts/{text['id']}/articles/import", json={"raw_text": LAW})
@@ -102,10 +103,10 @@ def test_approved_explanations_travel_with_the_playbook(tmp_path):
         c.post(f"/api/v1/texts/{text['id']}/verify", json={"verified_by": "Me"})
         c.post("/playbook/rules", data={"key": "personal_data", "label": "Données"})
         c.post("/playbook/rules/personal_data/articles", data={"text_id": text["id"], "number": "2", "why": "x"})
-        c.post("/playbook/rules/personal_data/confirm", data={"confirmed_by": "Me"})
+        c.post("/playbook/rules/personal_data/confirm", data={})
         article = _article(c.get(f"/api/v1/texts/{text['id']}").json(), "2")
         c.post(f"/articles/{article['id']}/explanation", data={
-            "lang": "fr", "summary": "Vos données doivent être traitées avec respect pour votre vie privée.", "approve_as": "Me"})
+            "lang": "fr", "summary": "Vos données doivent être traitées avec respect pour votre vie privée.", "approve": "1"})
 
         served = c.get("/api/v1/playbook").json()["rules"]["personal_data"]["articles"][0]
         assert served["explanations"] == {"fr": "Vos données doivent être traitées avec respect pour votre vie privée."}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_users') }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ t('nav_users') }}</h1></div>
+<p class="muted">{{ t('users_intro') }}</p>
+
+<section class="card">
+  {% for u in users %}
+  <form class="row user-row" method="post" action="/users/{{ u.id }}">
+    <div style="flex:2 1 220px"><strong>{{ u.name }}</strong><br><span class="muted">{{ u.email }}</span>
+      {% if u.totp_enabled %} · <span class="badge ok">{{ t('account_totp_on') }}</span>{% endif %}
+      {% if not u.active %} · <span class="badge warn">{{ t('users_inactive') }}</span>{% endif %}</div>
+    <div><label>{{ t('users_role') }}</label>
+      <select name="role">{% for r in roles %}<option value="{{ r.value }}" {{ 'selected' if u.role == r }}>{{ t('role_' ~ r.value) }}</option>{% endfor %}</select></div>
+    <div style="flex:2 1 200px"><label>{{ t('users_bar') }}</label><input name="bar_reference" maxlength="200" value="{{ u.bar_reference or '' }}"></div>
+    <label class="check-toggle"><input type="checkbox" name="is_admin" value="1" {{ 'checked' if u.is_admin }}> {{ t('role_admin') }}</label>
+    <label class="check-toggle"><input type="checkbox" name="active" value="1" {{ 'checked' if u.active }}> {{ t('users_active') }}</label>
+    <button type="submit">{{ t('save') }}</button>
+  </form>
+  <details style="margin:0 0 12px">
+    <summary>{{ t('users_reset') }}</summary>
+    <form class="row" method="post" action="/users/{{ u.id }}/reset">
+      <div><label>{{ t('users_temporary') }}</label><input name="password" type="password" minlength="10" required autocomplete="new-password"></div>
+      <button class="secondary" type="submit">{{ t('users_reset') }}</button>
+    </form>
+  </details>
+  {% endfor %}
+</section>
+
+<section class="card">
+  <h2>{{ t('users_new') }}</h2>
+  <form method="post" action="/users">
+    <div class="row">
+      <div><label for="u_name">{{ t('users_name') }}</label><input id="u_name" name="name" required maxlength="200"></div>
+      <div><label for="u_email">{{ t('login_email') }}</label><input id="u_email" name="email" type="email" required maxlength="256"></div>
+    </div>
+    <div class="row">
+      <div><label for="u_role">{{ t('users_role') }}</label>
+        <select id="u_role" name="role">{% for r in roles %}<option value="{{ r.value }}">{{ t('role_' ~ r.value) }}</option>{% endfor %}</select></div>
+      <div><label for="u_bar">{{ t('users_bar') }}</label><input id="u_bar" name="bar_reference" maxlength="200"></div>
+    </div>
+    <label for="u_pw">{{ t('users_temporary') }}</label>
+    <input id="u_pw" name="password" type="password" minlength="10" required autocomplete="new-password">
+    <p class="muted">{{ t('users_temporary_help') }}</p>
+    <label class="check-toggle"><input type="checkbox" name="is_admin" value="1"> {{ t('role_admin') }}</label>
+    <div class="actions"><button type="submit">{{ t('users_create') }}</button></div>
+  </form>
+</section>
+{% endblock %}

@@ -5,7 +5,7 @@ from app.db import make_session_factory
 from app.models import TextStatus
 from app.schemas import ArticleIn, LegalTextIn
 from app.services import corpus
-from tests.conftest import LAW
+from tests.conftest import LAW, make_lawyer
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def db_factory(monkeypatch):
         corpus.import_articles(db, verified.id, LAW, replace=False)
         db.expire_all()
         corpus.set_status(db, verified.id, TextStatus.Published)
-        corpus.verify(db, verified.id, "Me")
+        corpus.verify(db, verified.id, make_lawyer(db))
         draft = corpus.create_text(db, LegalTextIn(title="Brouillon", reference="Loi test n° 2", jurisdiction="Tunisia",
                                                    category="Other"))
         corpus.add_article(db, draft.id, ArticleIn(number="1", text="Texte non vérifié sur la dignité humaine et la vie privée."))
@@ -62,6 +62,6 @@ def test_find_definition_reads_verified_law_only(db_factory):
         text = next(t for t in db.query(mcp_server.LegalText).all() if t.reference == "Loi test n° 1")
         corpus.add_article(db, text.id, ArticleIn(number="9", text="Au sens de la présente loi, on entend par responsable "
                                                   "du traitement toute personne qui détermine les finalités du traitement."))
-        corpus.verify(db, text.id, "Me")
+        corpus.verify(db, text.id, make_lawyer(db))
     [found] = mcp_server.find_definition("responsable du traitement")
     assert found["citation"] == "Loi test n° 1, art. 9" and found["definition"].startswith("toute personne")

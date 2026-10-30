@@ -7,6 +7,22 @@ namespace SignFlow.UnitTests.Application;
 public class HarveyReviewTests
 {
     [Fact]
+    public void A_critical_finding_comes_first_weighs_most_and_keeps_its_origin()
+    {
+        var analysis = ContractRuleEngine.FromFindings(
+        [
+            new RiskFinding("Responsabilité", ContractRuleEngine.High, "y", RuleKey: "liability"),
+            new RiskFinding("Clause illicite", ContractRuleEngine.Critical, "z", RuleKey: "resale_price",
+                RuleVersion: 3, Detection: "MeaningMatch", Confidence: 0.81, Quote: "prix de revente imposé"),
+        ], "fr");
+
+        var first = analysis.Findings[0];
+        Assert.Equal(ContractRuleEngine.Critical, first.Severity);
+        Assert.Equal((3, "MeaningMatch", "prix de revente imposé"), (first.RuleVersion, first.Detection, first.Quote));
+        Assert.Equal(60, analysis.RiskScore);
+    }
+
+    [Fact]
     public void Findings_are_ordered_by_severity_and_scored()
     {
         var analysis = ContractRuleEngine.FromFindings(

@@ -14,6 +14,61 @@
   <a href="/playbook">{{ t('pb_back') }}</a>
 </div>
 
+<section class="card" id="approval">
+  <h2>{{ t('pb_approval_title') }}</h2>
+  {% if rule.served %}
+    <p><span class="badge ok">{{ t('pb_in_service', version=rule.served.version) }}</span>
+      {{ t('pb_approved_by_on', who=rule.served.approved_by, date=rule.served.approved_at[:10]) }}</p>
+    {% if rule.changed_since_approval %}<div class="notice">{{ t('pb_changed_since') }}</div>{% endif %}
+  {% else %}
+    <div class="notice">{{ t('pb_not_in_service') }}</div>
+  {% endif %}
+  {% if editor %}<p class="muted">{{ t('pb_last_edit', who=editor.name, date=(rule.edited_at or '')[:10]) }}</p>{% endif %}
+
+  <form hx-boost="true" class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/severity">
+    <label for="rule_severity">{{ t('pb_rule_severity') }}</label>
+    <select id="rule_severity" name="severity" onchange="this.form.requestSubmit()">
+      <option value="" {{ 'selected' if not rule.severity }}>{{ t('pb_severity_default') }}</option>
+      {% for sv in severities %}<option value="{{ sv }}" {{ 'selected' if rule.severity == sv }}>{{ t('sev_' ~ sv) }}</option>{% endfor %}
+    </select>
+  </form>
+  <p class="muted">{{ t('pb_severity_help') }}</p>
+
+  {% if account and account.can_approve %}
+    {% if not rule.confirmed_by %}
+      {% if own_edit %}
+        <div class="notice">{{ t('pb_four_eyes') }}</div>
+      {% elif not rule.ready %}
+        <div class="notice">{{ t('pb_not_ready') }}</div>
+      {% else %}
+        <p class="muted">{{ t('pb_confirm_explain') }}</p>
+        <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/confirm">
+          <button type="submit">{{ t('pb_approve_as', who=account.signature) }}</button>
+        </form>
+      {% endif %}
+    {% endif %}
+    {% if rule.served %}
+      <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/unconfirm" style="margin-top:8px"
+            onsubmit='return confirm({{ t("pb_withdraw_confirm")|tojson }})'>
+        <button class="secondary" type="submit">{{ t('pb_withdraw') }}</button>
+      </form>
+    {% endif %}
+  {% else %}
+    <p class="muted">{{ t('pb_lawyers_only') }}</p>
+  {% endif %}
+
+  {% if versions %}
+  <details style="margin-top:12px">
+    <summary>{{ t('pb_versions', count=versions|length) }}</summary>
+    <ul class="plain">
+      {% for v in versions %}
+      <li>v{{ v.version }} · {{ v.approved_by_name }} · {{ v.approved_at.strftime('%Y-%m-%d %H:%M') }}{% if v.withdrawn_at %} · <span class="badge warn">{{ t('pb_withdrawn') }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</section>
+
 <section class="card">
   <h2>{{ t('pb_detection') }}</h2>
   {% if rule.examples or not rule.builtin_checks %}
@@ -28,7 +83,7 @@
     <label class="check-toggle"><input type="checkbox" name="enabled" value="1" {{ 'checked' if c.enabled }} onchange="this.form.requestSubmit()">
       <span class="{{ '' if c.enabled else 'muted' }}">{{ c.label[1] if lang == 'fr' else c.label[0] }}</span></label>
     <select name="severity" onchange="this.form.requestSubmit()" aria-label="{{ t('pb_severity') }}">
-      {% for sv in ['High', 'Medium', 'Low'] %}<option value="{{ sv }}" {{ 'selected' if c.severity == sv }}>{{ t('sev_' ~ sv) }}</option>{% endfor %}
+      {% for sv in severities %}<option value="{{ sv }}" {{ 'selected' if c.severity == sv }}>{{ t('sev_' ~ sv) }}</option>{% endfor %}
     </select>
   </form>
   {% endfor %}
@@ -87,17 +142,18 @@
     <label for="mc_en">{{ t('mc_en') }}</label>
     <textarea id="mc_en" name="en" rows="3">{{ shown.en or '' }}</textarea>
     <div class="row" style="margin-top:8px">
-      <div><input name="approve_as" maxlength="200" placeholder="{{ t('mc_approve_as') }}"></div>
+      {% if account and account.can_approve %}
+      <label class="check-toggle"><input type="checkbox" name="approve" value="1"> {{ t('approve_as_me', who=account.signature) }}</label>
+      {% endif %}
       <button type="submit">{{ t('save') }}</button>
     </div>
   </form>
   <div class="actions">
-    {% if mc.fr and not mc.approved_by and drafted_clause is not defined %}
+    {% if mc.fr and not mc.approved_by and drafted_clause is not defined and account and account.can_approve %}
     <form hx-boost="true" class="row" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/model-clause/approve">
-      <div><input name="approved_by" required maxlength="200" placeholder="{{ t('your_name') }}"></div>
-      <button type="submit">{{ t('mc_approve') }}</button>
+      <button type="submit">{{ t('approve_as_me', who=account.signature) }}</button>
     </form>
-    {% elif mc.approved_by %}
+    {% elif mc.approved_by and account and account.can_approve %}
     <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/model-clause/withdraw">
       <button class="secondary" type="submit">{{ t('unverify') }}</button></form>
     {% endif %}

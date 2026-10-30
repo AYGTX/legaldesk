@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ t('account_title') }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ t('account_title') }}</h1></div>
+
+<section class="card">
+  <p><strong>{{ me.name }}</strong> · {{ me.email }} · {{ t('role_' ~ me.role.value) }}{% if me.is_admin %} · {{ t('role_admin') }}{% endif %}</p>
+  {% if me.bar_reference %}<p class="muted">{{ me.bar_reference }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ t('account_password') }}</h2>
+  {% if me.must_change_password %}<div class="notice">{{ t('account_must_change') }}</div>{% endif %}
+  <form method="post" action="/account/password">
+    <label for="current">{{ t('account_current') }}</label>
+    <input id="current" name="current" type="password" autocomplete="current-password" required>
+    <label for="new">{{ t('account_new') }}</label>
+    <input id="new" name="new" type="password" autocomplete="new-password" minlength="10" required>
+    <p class="muted">{{ t('account_rules') }}</p>
+    <label for="confirm">{{ t('account_confirm') }}</label>
+    <input id="confirm" name="confirm" type="password" autocomplete="new-password" minlength="10" required>
+    <div class="actions"><button type="submit">{{ t('save') }}</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>{{ t('account_totp') }}</h2>
+  {% if me.totp_enabled %}
+    <p><span class="badge ok">{{ t('account_totp_on') }}</span></p>
+  {% else %}
+    {% if must_totp %}<div class="notice">{{ t('account_totp_required') }}</div>{% endif %}
+    {% if totp_uri %}
+      <ol>
+        <li>{{ t('account_totp_step1') }}</li>
+        <li>{{ t('account_totp_key') }} <code>{{ me.totp_secret }}</code></li>
+        <li>{{ t('account_totp_step2') }}</li>
+      </ol>
+      <p class="muted"><a href="{{ totp_uri }}">{{ t('account_totp_link') }}</a></p>
+      <form class="row" method="post" action="/account/totp/confirm">
+        <div><label for="code">{{ t('login_code') }}</label>
+          <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></div>
+        <button type="submit">{{ t('account_totp_confirm') }}</button>
+      </form>
+    {% elif not me.must_change_password %}
+      <form method="post" action="/account/totp/start"><button type="submit">{{ t('account_totp_start') }}</button></form>
+    {% else %}
+      <p class="muted">{{ t('account_password_first') }}</p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

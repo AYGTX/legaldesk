@@ -33,6 +33,10 @@ class Settings:
     # Meaning-based clause matching (needs sentence-transformers; off without it).
     match_threshold: float = 0.60
     match_margin: float = 0.03
+    # Lawyers must sign in with an authenticator code (R-M11-1). Tests turn it off.
+    require_totp: bool = True
+    # Whoever last edited a rule cannot approve it (R-M11-2). A practice with a single lawyer may turn it off.
+    four_eyes: bool = True
 
 
 ENV_FILE = BASE_DIR / "data" / ".env"
@@ -67,11 +71,25 @@ def load_settings() -> Settings:
         admin_password=os.getenv("CORPUS_ADMIN_PASSWORD", "admin"),
         session_secret=os.getenv("CORPUS_SESSION_SECRET") or None,
         session_secret_file=BASE_DIR / "data" / ".session_secret",
-        ai_provider=os.getenv("CORPUS_AI_PROVIDER", "groq"),
+        # Off unless asked for (rework spec R-M11-13): the model only drafts from law text, for a lawyer to approve.
+        ai_provider=os.getenv("CORPUS_AI_PROVIDER", "none"),
         groq_api_key=os.getenv("CORPUS_GROQ_API_KEY") or None,
         groq_model=os.getenv("CORPUS_GROQ_MODEL", "openai/gpt-oss-120b"),
         local_llm_url=os.getenv("CORPUS_LOCAL_LLM_URL", "http://localhost:11434"),
         local_llm_model=os.getenv("CORPUS_LOCAL_LLM_MODEL", "qwen2.5:7b"),
         match_threshold=float(os.getenv("CORPUS_MATCH_THRESHOLD", "0.60")),
         match_margin=float(os.getenv("CORPUS_MATCH_MARGIN", "0.03")),
+        require_totp=os.getenv("CORPUS_REQUIRE_TOTP", "true").lower() != "false",
+        four_eyes=os.getenv("CORPUS_FOUR_EYES", "true").lower() != "false",
     )
+
+
+MIN_API_KEY = 24
+
+
+def check_service_settings(settings: Settings) -> None:
+    """What the running service needs before it starts (R-M11-9): every API caller must present a key."""
+    if not settings.api_key or len(settings.api_key) < MIN_API_KEY:
+        raise RuntimeError(
+            f"CORPUS_API_KEY is missing or shorter than {MIN_API_KEY} characters. Harvey refuses to start with an open "
+            "API: set it in the environment or in data/.env, and give LegalDesk the same value (LegalCorpus:ApiKey).")

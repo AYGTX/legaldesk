@@ -22,7 +22,7 @@
     </span>
     {% if user %}
     <form class="logout" method="post" action="/logout">
-      <span class="who" title="{{ user }}">{{ icon('user', 16) }} {{ user }}</span>
+      <a class="who" href="/account" title="{{ t('account_title') }}">{{ icon('user', 16) }} {{ user }}{% if account %} · {{ t('role_' ~ account.role.value) }}{% endif %}</a>
       <button class="ghost" type="submit" title="{{ t('logout') }}">{{ icon('logout', 16) }}<span>{{ t('logout') }}</span></button>
     </form>
     {% endif %}
@@ -43,6 +43,9 @@
       <a href="{{ href }}" class="{{ 'active' if active }}">{{ icon(name) }}<span>{{ t(label) }}</span></a>
       {% endfor %}
       <hr>
+      {% if account and account.is_admin %}
+      <a href="/users" class="{{ 'active' if path.startswith('/users') }}">{{ icon('user') }}<span>{{ t('nav_users') }}</span></a>
+      {% endif %}
       <a href="/docs">{{ icon('api') }}<span>{{ t('nav_api') }}</span></a>
     </nav>
   </aside>
