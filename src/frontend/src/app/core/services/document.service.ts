@@ -6,8 +6,7 @@ import { ApiService } from './api.service';
 import {
   DocumentDetail, DocumentSummary, DashboardData,
   FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto,
-  ContractAnalysisResponse, ComplianceAnalysisResponse,
-  Readiness, ReadinessItemStatus, ContractTermUpdate, VersionComparison, PdfTextEdit, TemplateRevisionForm
+  Review, ReviewRun, ReviewItemStatus, ReviewRuleSetting, RiskSeverity, ContractTermUpdate, VersionComparison, PdfTextEdit, TemplateRevisionForm
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -43,9 +42,9 @@ export class DocumentService {
     return this.api.upload('/v1/documents', formData);
   }
 
-  /** `force` acknowledges a "needs work" pre-flight verdict; a blocked contract is never forceable. */
-  send(id: string, force = false): Observable<void> {
-    return this.api.post<void>(`/v1/documents/${id}/send`, { force });
+  /** `reason` is required to send with open high-risk findings (kept in the audit trail); a blocked contract is never sent. */
+  send(id: string, reason?: string): Observable<void> {
+    return this.api.post<void>(`/v1/documents/${id}/send`, { reason: reason ?? null });
   }
 
   /** Owner response to a change request: swaps in a revised PDF and returns the document to Draft. */
@@ -148,36 +147,32 @@ export class DocumentService {
     return this.api.get<AiSummaryDto>(`/v1/documents/${id}/summary`);
   }
 
-  /** Runs the full model-backed legal review — takes tens of seconds, so this is user-triggered. */
-  analyzeContract(id: string): Observable<ContractAnalysisResponse> {
-    return this.api.post<ContractAnalysisResponse>(`/v1/documents/${id}/analyze`, {});
-  }
-
   /** One turn of "ask the contract": answered from the contract's text only, with verified excerpts. */
   askContract(id: string, request: AskContractRequest): Observable<AskContractReply> {
     return this.api.post<AskContractReply>(`/v1/documents/${id}/ask`, request);
   }
 
-  /** Checks the contract against the published regulatory watch registry — user-triggered. */
-  analyzeCompliance(id: string): Observable<ComplianceAnalysisResponse> {
-    return this.api.post<ComplianceAnalysisResponse>(`/v1/documents/${id}/compliance`, {});
+  /** Starts Harvey's review of the current version in the background; the result arrives over SignalR. */
+  startReview(id: string): Observable<ReviewRun> {
+    return this.api.post<ReviewRun>(`/v1/documents/${id}/reviews`, {});
   }
 
-  /**
-   * Pre-flight review: runs the legal review and the regulatory check, then grades whether the
-   * contract is fit to send. Slow — it is the full model review plus the compliance scan.
-   */
-  evaluateReadiness(id: string): Observable<Readiness> {
-    return this.api.post<Readiness>(`/v1/documents/${id}/readiness`, {});
+  /** The contract's review: latest run, verdict, scores and findings. Runs nothing. */
+  getReview(id: string): Observable<Review> {
+    return this.api.get<Review>(`/v1/documents/${id}/reviews/latest`);
   }
 
-  /** Reads the stored verdict and to-do list without re-running any analysis. */
-  getReadiness(id: string): Observable<Readiness> {
-    return this.api.get<Readiness>(`/v1/documents/${id}/readiness`);
+  /** Accept a finding or mark it not applicable (both with a reason), or reopen it. The API re-grades the contract. */
+  decideReviewItem(id: string, itemId: string, status: ReviewItemStatus, reason?: string): Observable<Review> {
+    return this.api.patch<Review>(`/v1/documents/${id}/review-items/${itemId}`, { status, reason: reason ?? null });
   }
 
-  /** Ticks a to-do off or dismisses it; the API re-grades and returns the new verdict. */
-  setReadinessItemStatus(id: string, itemId: string, status: ReadinessItemStatus, note?: string): Observable<Readiness> {
-    return this.api.patch<Readiness>(`/v1/documents/${id}/readiness/items/${itemId}`, { status, note });
+  /** Administrators: Harvey's rules in service and the organisation's setting for each. */
+  getReviewSettings(): Observable<ReviewRuleSetting[]> {
+    return this.api.get<ReviewRuleSetting[]>('/v1/review-settings');
+  }
+
+  setReviewSetting(ruleKey: string, enabled: boolean, severityOverride: RiskSeverity | null): Observable<void> {
+    return this.api.put<void>(`/v1/review-settings/${encodeURIComponent(ruleKey)}`, { enabled, severityOverride });
   }
 }

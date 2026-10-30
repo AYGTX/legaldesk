@@ -75,6 +75,7 @@ const NAV: NavEntry[] = [
       { id: 'manage-templates', labelKey: 'admin.tabs.htmlTemplates', path: '/admin/html-templates', prefix: true },
       { id: 'workflows', labelKey: 'admin.tabs.workflows', path: '/admin/workflows', prefix: true },
       { id: 'clauses', labelKey: 'admin.tabs.clauses', path: '/admin/clauses', prefix: true },
+      { id: 'review-rules', labelKey: 'admin.tabs.reviewRules', path: '/admin/review-rules' },
       { id: 'settings', labelKey: 'admin.tabs.systemSettings', path: '/admin/settings' }
     ]
   }

@@ -11,14 +11,14 @@ import { DocumentService } from '../../core/services/document.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ClauseDialogComponent, ClauseDialogData } from '../../features/clauses/clause-dialog.component';
 import {
-  ClauseCategory, Readiness, ReadinessItem, ReadinessItemStatus, RISK_SEVERITY_ORDER
+  ClauseCategory, Review, ReviewItem, ReviewItemStatus, RISK_SEVERITY_ORDER
 } from '../../core/models';
 
-/** Best-effort mapping from a free-text finding title to the clause library's category. */
+/** Best-effort mapping from a finding title to the clause library's category. */
 const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
   [/confiden/i, 'Confidentiality'],
-  [/liab/i, 'Liability'],
-  [/terminat/i, 'Termination'],
+  [/liab|responsabilit/i, 'Liability'],
+  [/terminat|résiliation/i, 'Termination'],
   [/data protect|privacy|gdpr|donn[ée]es/i, 'DataProtection'],
   [/intellectual property|\bip\b|copyright|trademark|propri[ée]t[ée]/i, 'IntellectualProperty'],
   [/payment|invoic|pricing|fee|paiement/i, 'Payment'],
@@ -29,10 +29,12 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
   [/non-?compete|exclusiv|concurrence/i, 'NonCompete']
 ];
 
+type Decision = 'Accepted' | 'NotApplicable';
+
 /**
- * The actionable half of the pre-flight review: every adjustment the contract needs, each one
- * resolvable or dismissable in place. Ticking an item off re-grades the contract server-side, and
- * the new verdict comes straight back — which is why this emits the whole Readiness, not just an id.
+ * Harvey's findings on the contract (rework spec M8), each with where it comes from: the rule and its version, the
+ * lawyer who approved it, how it was found, the contract's own words and the law. The owner fixes the text, accepts a
+ * risk or marks a false positive, each with a reason; the API re-grades and the new review comes straight back.
  */
 @Component({
   selector: 'sf-readiness-checklist',
@@ -46,28 +48,28 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
       @if (items().length === 0) {
         <div class="empty">
           <mat-icon>task_alt</mat-icon>
-          <p>{{ 'shared.readiness.checklist.empty' | translate }}</p>
+          <p>{{ 'shared.review.empty' | translate }}</p>
         </div>
       } @else {
         <div class="checklist-header">
           <h3 class="checklist-title">
-            {{ 'shared.readiness.checklist.title' | translate }}
+            {{ 'shared.review.title' | translate }}
             <span class="count-chip">{{ openItems().length }}</span>
           </h3>
           <span class="header-actions">
-          <button mat-button class="toggle-handled" (click)="accordion()?.openAll()">
-            <mat-icon>unfold_more</mat-icon> {{ 'shared.readiness.checklist.expandAll' | translate }}
-          </button>
-          <button mat-button class="toggle-handled" (click)="accordion()?.closeAll()">
-            <mat-icon>unfold_less</mat-icon> {{ 'shared.readiness.checklist.collapseAll' | translate }}
-          </button>
-          @if (handledItems().length > 0) {
-            <button mat-button class="toggle-handled" (click)="showHandled.set(!showHandled())">
-              <mat-icon>{{ showHandled() ? 'visibility_off' : 'visibility' }}</mat-icon>
-              {{ (showHandled() ? 'shared.readiness.checklist.hideHandled' : 'shared.readiness.checklist.showHandled')
-                  | translate: { count: handledItems().length } }}
+            <button mat-button class="toggle-handled" (click)="accordion()?.openAll()">
+              <mat-icon>unfold_more</mat-icon> {{ 'shared.readiness.checklist.expandAll' | translate }}
             </button>
-          }
+            <button mat-button class="toggle-handled" (click)="accordion()?.closeAll()">
+              <mat-icon>unfold_less</mat-icon> {{ 'shared.readiness.checklist.collapseAll' | translate }}
+            </button>
+            @if (handledItems().length > 0) {
+              <button mat-button class="toggle-handled" (click)="showHandled.set(!showHandled())">
+                <mat-icon>{{ showHandled() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                {{ (showHandled() ? 'shared.readiness.checklist.hideHandled' : 'shared.readiness.checklist.showHandled')
+                    | translate: { count: handledItems().length } }}
+              </button>
+            }
           </span>
         </div>
 
@@ -80,24 +82,51 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
                   <mat-icon class="status-icon" [ngClass]="'st-' + item.status.toLowerCase()">
                     {{ statusIcon(item.status) }}
                   </mat-icon>
-                  <span class="item-name" [class.struck]="item.status !== 'Open'">{{ item.title }}</span>
+                  <span class="item-name">{{ item.title }}</span>
                   <span class="severity-chip" [ngClass]="'sev-' + item.severity.toLowerCase()">
                     {{ ('documents.detail.severity' + item.severity) | translate }}
                   </span>
-                  <span class="category-chip">
-                    {{ ('shared.readiness.category.' + item.category) | translate }}
-                  </span>
+                  @if (item.clauseReference) {
+                    <span class="category-chip">{{ item.clauseReference }}</span>
+                  }
+                  @if (item.status !== 'Open') {
+                    <span class="state-chip">{{ ('shared.review.status.' + item.status) | translate }}</span>
+                  }
                 </mat-panel-title>
               </mat-expansion-panel-header>
 
               <p class="item-detail">{{ item.detail }}</p>
 
-              @if (item.whyItMatters) {
+              @if (item.quotes.length > 0) {
+                <div class="item-block">
+                  <span class="item-block-label">{{ 'shared.review.quotes' | translate }}</span>
+                  @for (q of item.quotes; track $index) {
+                    <blockquote class="quote">« {{ q }} »</blockquote>
+                  }
+                </div>
+              }
+
+              @if (item.articles.length > 0) {
+                <div class="item-block">
+                  <span class="item-block-label">{{ 'shared.review.law' | translate }}</span>
+                  @for (a of item.articles; track a.articleId) {
+                    <div class="article">
+                      <strong>{{ a.citation }}</strong>
+                      <p class="article-quote">« {{ a.quote }} »</p>
+                      @if (a.why) { <p class="article-why">→ {{ a.why }}</p> }
+                      @if (a.explanation) {
+                        <p class="article-plain"><em>{{ 'shared.review.inPlainWords' | translate }}</em> {{ a.explanation }}</p>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else if (item.whyItMatters) {
                 <div class="item-block">
                   <span class="item-block-label">{{ 'documents.detail.analysis.whyItMatters' | translate }}</span>
                   <p class="pre-line">{{ item.whyItMatters }}</p>
                 </div>
               }
+
               @if (item.recommendedAction) {
                 <div class="item-block">
                   <span class="item-block-label">{{ 'documents.detail.analysis.recommendedAction' | translate }}</span>
@@ -106,7 +135,7 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
               }
               @if (item.proposedLanguage) {
                 <div class="item-block">
-                  <span class="item-block-label">{{ 'documents.detail.analysis.proposedLanguage' | translate }}</span>
+                  <span class="item-block-label">{{ 'shared.review.modelClause' | translate }}</span>
                   <pre class="proposed-language">{{ item.proposedLanguage }}</pre>
                   <div class="inline-actions">
                     <button mat-stroked-button (click)="copyLanguage(item.proposedLanguage!)">
@@ -119,53 +148,64 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
                 </div>
               }
 
-              @if (referenceOf(item); as ref) {
-                <p class="item-reference">{{ 'documents.detail.analysis.reference' | translate }} : {{ ref }}</p>
+              <!-- Where the finding comes from (R-M8-11). -->
+              <p class="origin">
+                <mat-icon class="origin-icon">gavel</mat-icon>
+                @if (item.ruleVersion != null) {
+                  {{ 'shared.review.origin.rule' | translate: { version: item.ruleVersion } }}
+                }
+                @if (item.ruleApprovedBy) {
+                  · {{ 'shared.review.origin.approved' | translate: { by: item.ruleApprovedBy, date: (item.ruleApprovedAt | date: 'mediumDate') } }}
+                }
+                @if (item.detectionKind) {
+                  · {{ ('shared.review.detection.' + item.detectionKind) | translate }}
+                }
+                @if (item.confidence != null) {
+                  · {{ 'shared.review.origin.confidence' | translate: { value: (item.confidence * 100 | number: '1.0-0') } }}
+                }
+              </p>
+
+              @if (item.status === 'Fixed') {
+                <p class="decision">{{ 'shared.review.fixedIn' | translate: { version: item.fixedInVersion } }}</p>
+              } @else if (item.status !== 'Open') {
+                <p class="decision">
+                  {{ ('shared.review.status.' + item.status) | translate }}
+                  @if (item.decidedBy) { — {{ item.decidedBy }} }
+                  @if (item.decidedAt) { , {{ item.decidedAt | date: 'medium' }} }
+                  @if (item.reason) { : « {{ item.reason }} » }
+                </p>
               }
 
-              @if (item.status !== 'Open' && item.resolutionNote) {
-                <p class="resolution-note">{{ item.resolutionNote }}</p>
-              }
-
-              @if (!readonly()) {
+              @if (!readonly() && item.status !== 'Fixed') {
                 <div class="item-actions">
                   @if (item.status === 'Open') {
-                    <button mat-flat-button color="primary" [disabled]="busyId() !== null"
-                            (click)="setStatus(item, 'Resolved')">
-                      <mat-icon>check</mat-icon> {{ 'shared.readiness.checklist.markResolved' | translate }}
+                    <button mat-stroked-button [disabled]="busyId() !== null || !canDecide(item)"
+                            (click)="startDecision(item, 'Accepted')"
+                            [matTooltip]="(canDecide(item) ? 'shared.review.acceptHint' : 'shared.review.criticalRole') | translate">
+                      <mat-icon>handshake</mat-icon> {{ 'shared.review.accept' | translate }}
                     </button>
-                    @if (item.severity === 'Critical') {
-                      <!-- Accepting a critical finding is a legal call: a manager, with a reason that goes on record. -->
-                      <button mat-stroked-button [disabled]="busyId() !== null || !canAcceptCritical()"
-                              (click)="startAccept(item)"
-                              [matTooltip]="(canAcceptCritical() ? 'shared.readiness.checklist.acceptHint' : 'shared.readiness.checklist.acceptRole') | translate">
-                        <mat-icon>gavel</mat-icon> {{ 'shared.readiness.checklist.accept' | translate }}
-                      </button>
-                    } @else {
-                      <button mat-stroked-button [disabled]="busyId() !== null"
-                              (click)="setStatus(item, 'Dismissed')"
-                              [matTooltip]="'shared.readiness.checklist.dismissHint' | translate">
-                        <mat-icon>block</mat-icon> {{ 'shared.readiness.checklist.dismiss' | translate }}
-                      </button>
-                    }
+                    <button mat-stroked-button [disabled]="busyId() !== null || !canDecide(item)"
+                            (click)="startDecision(item, 'NotApplicable')"
+                            [matTooltip]="(canDecide(item) ? 'shared.review.notApplicableHint' : 'shared.review.criticalRole') | translate">
+                      <mat-icon>block</mat-icon> {{ 'shared.review.notApplicable' | translate }}
+                    </button>
                   } @else {
-                    <button mat-stroked-button [disabled]="busyId() !== null"
-                            (click)="setStatus(item, 'Open')">
+                    <button mat-stroked-button [disabled]="busyId() !== null" (click)="decide(item, 'Open')">
                       <mat-icon>undo</mat-icon> {{ 'shared.readiness.checklist.reopen' | translate }}
                     </button>
                   }
                 </div>
-                @if (acceptingId() === item.id) {
+                @if (deciding()?.id === item.id) {
                   <div class="accept-box">
-                    <label>{{ 'shared.readiness.checklist.acceptReason' | translate }}</label>
-                    <textarea rows="2" [value]="acceptReason()" (input)="acceptReason.set($any($event.target).value)"></textarea>
+                    <label>{{ (deciding()!.decision === 'Accepted' ? 'shared.review.acceptReason' : 'shared.review.notApplicableReason') | translate }}</label>
+                    <textarea rows="2" maxlength="1000" [value]="reason()" (input)="reason.set($any($event.target).value)"></textarea>
                     <div class="inline-actions">
                       <button mat-flat-button color="primary"
-                              [disabled]="busyId() !== null || acceptReason().trim().length === 0"
-                              (click)="confirmAccept(item)">
-                        {{ 'shared.readiness.checklist.acceptConfirm' | translate }}
+                              [disabled]="busyId() !== null || reason().trim().length === 0"
+                              (click)="decide(item, deciding()!.decision, reason().trim())">
+                        {{ 'shared.review.confirm' | translate }}
                       </button>
-                      <button mat-button (click)="acceptingId.set(null)">{{ 'common.cancel' | translate }}</button>
+                      <button mat-button (click)="deciding.set(null)">{{ 'common.cancel' | translate }}</button>
                     </div>
                   </div>
                 }
@@ -174,10 +214,22 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
           }
         </mat-accordion>
       }
+
+      @if (fixedItems().length > 0) {
+        <details class="fixed">
+          <summary>{{ 'shared.review.fixedTitle' | translate: { count: fixedItems().length } }}</summary>
+          <ul>
+            @for (f of fixedItems(); track f.id) {
+              <li>{{ f.title }} @if (f.clauseReference) { · {{ f.clauseReference }} }
+                — {{ 'shared.review.fixedIn' | translate: { version: f.fixedInVersion } }}</li>
+            }
+          </ul>
+        </details>
+      }
     </div>
   `,
   styles: [`
-    .checklist-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .checklist-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
     .checklist-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 600; color: var(--g-text); }
     .count-chip { font-size: 11.5px; font-weight: 700; background: var(--g-blue-container); color: var(--g-blue); border-radius: 20px; padding: 1px 9px; }
     .toggle-handled { font-size: 12.5px; }
@@ -187,21 +239,20 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
     .empty mat-icon { font-size: 30px; width: 30px; height: 30px; color: #1e6b2e; }
     .empty p { margin: 0; font-size: 13px; }
 
-    .item-panel.handled { opacity: 0.62; }
+    .item-panel.handled { opacity: 0.7; }
     .item-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    /* Let long finding titles wrap instead of being clipped by the fixed-height header. */
     .item-panel ::ng-deep .mat-expansion-panel-header { height: auto; min-height: 48px; padding-top: 10px; padding-bottom: 10px; }
     .item-panel ::ng-deep .mat-content { overflow: visible; }
-    .item-name { flex: 1 1 260px; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+    .item-name { flex: 1 1 220px; min-width: 0; white-space: normal; overflow-wrap: anywhere; font-size: 13.5px; font-weight: 600; color: var(--g-text); }
     .status-icon { font-size: 19px; width: 19px; height: 19px; flex-shrink: 0; }
     .st-open { color: var(--g-text-muted); }
-    .st-resolved { color: #1e6b2e; }
-    .st-dismissed { color: var(--g-text-muted); }
-    .item-name { font-size: 13.5px; font-weight: 600; color: var(--g-text); }
-    .item-name.struck { text-decoration: line-through; }
+    .st-accepted { color: #b06000; }
+    .st-notapplicable { color: var(--g-text-muted); }
+    .st-fixed { color: #1e6b2e; }
 
-    .severity-chip, .category-chip { font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 1px 7px; text-transform: uppercase; letter-spacing: 0.03em; }
-    .category-chip { font-weight: 500; background: var(--g-surface-variant); color: var(--g-text-3); text-transform: none; letter-spacing: 0; }
+    .severity-chip, .category-chip, .state-chip { font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 1px 7px; }
+    .severity-chip { text-transform: uppercase; letter-spacing: 0.03em; }
+    .category-chip, .state-chip { font-weight: 500; background: var(--g-surface-variant); color: var(--g-text-3); }
     .sev-critical { background: #7f1d1d; color: #fff; }
     .sev-high { background: #fee2e2; color: #991b1b; }
     .sev-medium { background: #fef3c7; color: #92400e; }
@@ -209,27 +260,37 @@ const CATEGORY_KEYWORDS: [RegExp, ClauseCategory][] = [
 
     .item-detail { margin: 0 0 10px; font-size: 13px; color: var(--g-text-3); line-height: 1.55; }
     .item-block { margin-bottom: 10px; }
-    .item-block-label { display: block; font-size: 11px; font-weight: 700; color: var(--g-text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+    .item-block-label { display: block; font-size: 11px; font-weight: 700; color: var(--g-text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
     .item-block p { margin: 0; font-size: 13px; color: var(--g-text-2); line-height: 1.55; }
+    .quote { margin: 0 0 6px; padding: 6px 10px; border-left: 3px solid var(--g-border); background: var(--g-surface-variant); font-size: 13px; color: var(--g-text-2); }
+    .article { margin-bottom: 8px; font-size: 13px; }
+    .article .article-quote { font-style: italic; }
+    .article .article-why, .article .article-plain { color: var(--g-text-3); }
     .proposed-language { white-space: pre-wrap; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px; background: var(--g-surface-variant); border: 1px solid var(--g-border-light); border-radius: 6px; padding: 10px; margin: 0 0 8px; line-height: 1.5; }
+    .origin { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11.5px; color: var(--g-text-muted); margin: 0 0 8px; }
+    .origin-icon { font-size: 14px; width: 14px; height: 14px; }
+    .decision { font-size: 12px; font-style: italic; color: var(--g-text-muted); margin: 0 0 8px; }
     .inline-actions, .item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .item-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--g-border-light); }
     .accept-box { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #fef7e0; display: flex; flex-direction: column; gap: 6px; }
     .accept-box label { font-size: 12px; font-weight: 500; color: #b06000; }
     .accept-box textarea { width: 100%; box-sizing: border-box; border: 1px solid #e8c36a; border-radius: 6px; padding: 8px; font: inherit; font-size: 13px; }
-    .item-reference { font-size: 11.5px; color: var(--g-text-muted); margin: 0 0 8px; }
-    .resolution-note { font-size: 12px; font-style: italic; color: var(--g-text-muted); margin: 0 0 8px; }
+    .fixed { margin-top: 14px; font-size: 12.5px; color: var(--g-text-3); }
+    .fixed summary { cursor: pointer; font-weight: 600; }
+    .fixed ul { margin: 6px 0 0; padding-left: 18px; }
     .pre-line { white-space: pre-line; }
+    :host-context(html.dark) .accept-box { background: rgba(255, 196, 0, 0.08); }
   `]
 })
 export class ReadinessChecklistComponent {
   readonly documentId = input.required<string>();
-  readonly items = input<ReadinessItem[]>([]);
-  /** Viewers who do not own the contract see the list but cannot change it. */
+  readonly items = input<ReviewItem[]>([]);
+  readonly fixedItems = input<ReviewItem[]>([]);
+  /** Viewers who do not own the contract, and contracts already sent, show the list without actions. */
   readonly readonly = input(false);
 
-  /** Emits the re-graded readiness returned by the API, so the parent can refresh its verdict. */
-  readonly changed = output<Readiness>();
+  /** Emits the re-graded review returned by the API, so the parent can refresh its verdict. */
+  readonly changed = output<Review>();
 
   private readonly documentService = inject(DocumentService);
   private readonly dialog = inject(MatDialog);
@@ -237,14 +298,14 @@ export class ReadinessChecklistComponent {
   private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
 
-  /** Only a manager or administrator may accept a critical finding; the API enforces the same rule. */
-  readonly canAcceptCritical = computed(() => {
+  /** Accepting a critical finding, or calling it not applicable, is a manager's call; the API enforces the same rule. */
+  private readonly isManager = computed(() => {
     const roles = this.auth.user()?.roles ?? [];
     return roles.includes('Administrator') || roles.includes('Manager');
   });
-  readonly acceptingId = signal<string | null>(null);
-  readonly acceptReason = signal('');
 
+  readonly deciding = signal<{ id: string; decision: Decision } | null>(null);
+  readonly reason = signal('');
   readonly busyId = signal<string | null>(null);
   readonly accordion = viewChild(MatAccordion);
   readonly showHandled = signal(false);
@@ -254,49 +315,43 @@ export class ReadinessChecklistComponent {
   readonly visibleItems = computed(() =>
     this.showHandled() ? this.sorted(this.items()) : this.sorted(this.openItems()));
 
-  private sorted(items: ReadinessItem[]): ReadinessItem[] {
+  private sorted(items: ReviewItem[]): ReviewItem[] {
     return [...items].sort((a, b) => {
       if (a.status !== b.status) return a.status === 'Open' ? -1 : 1;
       return RISK_SEVERITY_ORDER.indexOf(a.severity) - RISK_SEVERITY_ORDER.indexOf(b.severity);
     });
   }
 
-  /** Critical and high findings open by default — the reader should not have to hunt for them. */
-  isSevere(item: ReadinessItem): boolean {
+  /** Critical and high findings open by default: the reader should not have to hunt for them. */
+  isSevere(item: ReviewItem): boolean {
     return item.severity === 'Critical' || item.severity === 'High';
   }
 
-  /** Where in the contract a risk sits: the evaluator keys risk items as "risk:clause|reference". */
-  referenceOf(item: ReadinessItem): string | null {
-    if (item.category !== 'Risk') return null;
-    const bar = item.sourceKey.indexOf('|');
-    return bar >= 0 ? item.sourceKey.slice(bar + 1) : null;
+  canDecide(item: ReviewItem): boolean {
+    return item.severity !== 'Critical' || this.isManager();
   }
 
-  statusIcon(status: ReadinessItemStatus): string {
+  statusIcon(status: ReviewItemStatus): string {
     switch (status) {
-      case 'Resolved': return 'check_circle';
-      case 'Dismissed': return 'remove_circle_outline';
+      case 'Fixed': return 'check_circle';
+      case 'Accepted': return 'handshake';
+      case 'NotApplicable': return 'remove_circle_outline';
       default: return 'radio_button_unchecked';
     }
   }
 
-  startAccept(item: ReadinessItem): void {
-    this.acceptReason.set('');
-    this.acceptingId.set(item.id);
+  startDecision(item: ReviewItem, decision: Decision): void {
+    this.reason.set('');
+    this.deciding.set({ id: item.id, decision });
   }
 
-  confirmAccept(item: ReadinessItem): void {
-    this.setStatus(item, 'Dismissed', this.acceptReason().trim());
-  }
-
-  setStatus(item: ReadinessItem, status: ReadinessItemStatus, note?: string): void {
+  decide(item: ReviewItem, status: ReviewItemStatus, reason?: string): void {
     this.busyId.set(item.id);
-    this.documentService.setReadinessItemStatus(this.documentId(), item.id, status, note).subscribe({
-      next: readiness => {
+    this.documentService.decideReviewItem(this.documentId(), item.id, status, reason).subscribe({
+      next: review => {
         this.busyId.set(null);
-        this.acceptingId.set(null);
-        this.changed.emit(readiness);
+        this.deciding.set(null);
+        this.changed.emit(review);
       },
       error: () => {
         this.busyId.set(null);
@@ -312,7 +367,7 @@ export class ReadinessChecklistComponent {
     );
   }
 
-  addToLibrary(item: ReadinessItem): void {
+  addToLibrary(item: ReviewItem): void {
     const dialogRef = this.dialog.open(ClauseDialogComponent, {
       width: '640px',
       data: {

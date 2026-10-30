@@ -6,8 +6,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { ReadinessVerdict } from '../../core/models';
 
 /**
- * The headline answer to "is this contract fit to send?" — a verdict badge, a readiness score and
- * the risk/compliance sub-scores behind it.
+ * The headline answer to "is this contract fit to send?": a verdict badge, the readiness score (open findings) and
+ * the risk score (every current finding), both computed from Harvey's findings.
  *
  * Two shapes from one component: the full hero used on the contract review page, and a `compact`
  * band that sits above the fold on the document detail page. The verdict sentence is assembled from
@@ -36,15 +36,9 @@ import { ReadinessVerdict } from '../../core/models';
             <span class="score-label">{{ 'shared.readiness.scoreLabel' | translate }}</span>
           </div>
           @if (riskScore() != null) {
-            <div class="score-tile">
+            <div class="score-tile" [matTooltip]="'shared.readiness.riskHint' | translate">
               <span class="score-value">{{ riskScore() }}</span>
               <span class="score-label">{{ 'shared.readiness.riskLabel' | translate }}</span>
-            </div>
-          }
-          @if (complianceScore() != null) {
-            <div class="score-tile">
-              <span class="score-value">{{ complianceScore() }}</span>
-              <span class="score-label">{{ 'shared.readiness.complianceLabel' | translate }}</span>
             </div>
           }
         </div>
@@ -98,7 +92,6 @@ export class ReadinessVerdictComponent {
   readonly verdict = input<ReadinessVerdict>('NotEvaluated');
   readonly score = input<number | null | undefined>(null);
   readonly riskScore = input<number | null | undefined>(null);
-  readonly complianceScore = input<number | null | undefined>(null);
   readonly openCount = input(0);
   readonly criticalCount = input(0);
   readonly highCount = input(0);

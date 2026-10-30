@@ -23,7 +23,7 @@ import { WorkflowPresetDto } from '../../core/models/workflow-preset.models';
 import { UserService } from '../../core/services/user.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
 import { HtmlTemplateFieldInput, HtmlFieldType, HtmlFieldRole, TemplateReviewResult } from '../../core/models/html-template.models';
-import { RiskFinding } from '../../core/models/contract-intelligence.model';
+import { TemplateFinding } from '../../core/models/html-template.models';
 import { WorkflowType } from '../../core/models/document.models';
 import { UserDto, RequestType } from '../../core/models';
 import { formatSla } from '../../core/utils/sla';
@@ -898,7 +898,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
   }
 
   /** Drops a finding's proposed wording into the text as its own paragraph, as one undoable step. */
-  insertProposed(finding: RiskFinding): void {
+  insertProposed(finding: TemplateFinding): void {
     if (!finding.proposedLanguage) return;
     const escaped = finding.proposedLanguage.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     this.history.record(() => { this.insertAtCursor(`\n<p>${escaped}</p>\n`); this.bump(); });

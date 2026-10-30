@@ -18,10 +18,10 @@ import { DocumentService } from '../../core/services/document.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { HubService } from '../../core/services/hub.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { DocumentDetail, WorkflowParticipant, AiSummaryDto, Readiness } from '../../core/models';
+import { DocumentDetail, WorkflowParticipant, AiSummaryDto, Review } from '../../core/models';
+import { ReviewService } from '../../core/services/review.service';
 import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
-import { ContractAnalysisPanelComponent } from './contract-analysis-panel.component';
 import { ContractChatPanelComponent } from './contract-chat-panel.component';
 import { ContractTermPanelComponent } from './contract-term-panel.component';
 import { ContractLifecycleAiPanelComponent } from './contract-lifecycle-ai-panel.component';
@@ -38,7 +38,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
     MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatStepperModule, MatChipsModule, MatDividerModule, MatTooltipModule, MatDialogModule,
     MatTabsModule, MatSnackBarModule, CommentsPanelComponent,
-    ContractAnalysisPanelComponent, ContractChatPanelComponent, ContractTermPanelComponent, ContractLifecycleAiPanelComponent,
+    ContractChatPanelComponent, ContractTermPanelComponent, ContractLifecycleAiPanelComponent,
     ReadinessChecklistComponent, TranslatePipe
   ],
   template: `
@@ -178,9 +178,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               }
             </div>
             @if (riskScore() !== null) {
-              <!-- The risk score rates the text Harvey read; closing checklist points does not re-score it, a new review does. -->
+              <!-- The risk score rates the text Harvey read; deciding on findings does not re-score it, a new version does. -->
               <p class="rail-score-note">
-                {{ 'documents.detail.rail.riskAnalysed' | translate: { date: (doc()!.aiRiskAnalysisGeneratedAt | date:'dd/MM/yyyy') } }}
+                {{ 'documents.detail.rail.riskAnalysed' | translate: { date: (doc()!.readinessEvaluatedAt | date:'dd/MM/yyyy') } }}
                 @if ((readiness()?.handledCount ?? 0) > 0) {
                   <span class="rail-score-hint">{{ 'documents.detail.rail.riskStale' | translate: { count: readiness()!.handledCount } }}</span>
                 }
@@ -353,14 +353,6 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 }
               </mat-card-content>
             </mat-card>
-            <!-- What Harvey read the contract as (type, parties, law…). Its findings are the checklist below: one list, not two. -->
-            @if (doc()!.aiRiskAnalysisJson) {
-              <sf-contract-analysis-panel [wide]="true" [canRun]="false" [profileOnly]="true"
-                [documentId]="doc()!.id"
-                [riskAnalysisJson]="doc()!.aiRiskAnalysisJson"
-                [generatedAt]="doc()!.aiRiskAnalysisGeneratedAt">
-              </sf-contract-analysis-panel>
-            }
               @if (readiness(); as r) {
                 <mat-card class="readiness-card" id="readiness-checklist">
                   <mat-card-content>
@@ -368,7 +360,8 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     <sf-readiness-checklist
                       [documentId]="doc()!.id"
                       [items]="r.items"
-                      [readonly]="!canReview()"
+                      [fixedItems]="r.fixedItems"
+                      [readonly]="!canReview() || doc()!.status !== 'Draft'"
                       (changed)="onReadinessChanged($event)">
                     </sf-readiness-checklist>
                   </mat-card-content>
@@ -744,22 +737,12 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
 
   /** 0 = Summary, 1 = Review, 2 = Harvey, 3 = Signing and follow-up. */
   readonly tabIndex = signal(0);
-  readonly readiness = signal<Readiness | null>(null);
+  readonly readiness = signal<Review | null>(null);
   readonly reviewing = signal(false);
+  private readonly reviews = inject(ReviewService);
 
-  /** The stored analyses hold the sub-scores; parse them once rather than on every render. */
-  readonly riskScore = computed(() => this.scoreFrom(this.doc()?.aiRiskAnalysisJson, 'riskScore'));
-  readonly complianceScore = computed(() => this.scoreFrom(this.doc()?.aiComplianceAnalysisJson, 'complianceScore'));
-
-  private scoreFrom(json: string | undefined, key: 'riskScore' | 'complianceScore'): number | null {
-    if (!json) return null;
-    try {
-      const value = (JSON.parse(json) as Record<string, unknown>)[key];
-      return typeof value === 'number' ? value : null;
-    } catch {
-      return null;
-    }
-  }
+  /** Computed by the API from Harvey's current findings. */
+  readonly riskScore = computed(() => this.doc()?.riskScore ?? null);
 
   /** Fields someone actually signs; text, date and other filled-in fields are not part of the signing progress. */
   readonly signingFields = () => this.doc()?.fields.filter(f => ['Signature', 'Initials', 'Stamp'].includes(f.fieldType)) ?? [];
@@ -1149,39 +1132,53 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** The to-do items are a separate read — the detail payload only carries the headline verdict. */
+  /** The findings are a separate read: the detail payload only carries the headline verdict. A review still running
+   *  (started at upload, or in another tab) is followed until it ends. */
   private loadReadiness(): void {
-    this.documentService.getReadiness(this.documentId).subscribe({
-      next: r => this.readiness.set(r),
+    this.documentService.getReview(this.documentId).subscribe({
+      next: r => {
+        this.readiness.set(r);
+        const run = r.latestRun;
+        if (run && (run.status === 'Queued' || run.status === 'Running') && !this.reviewing()) {
+          this.reviewing.set(true);
+          this.reviews.waitFor(this.documentId, run.id).subscribe({
+            next: () => { this.reviewing.set(false); this.load(); },
+            error: (err: Error) => { this.reviewing.set(false); this.snack.open(err.message, 'OK', { duration: 6000 }); this.load(); }
+          });
+        }
+      },
       error: () => this.readiness.set(null)
     });
   }
 
-  onReadinessChanged(readiness: Readiness): void {
-    this.readiness.set(readiness);
+  onReadinessChanged(review: Review): void {
+    this.readiness.set(review);
     // The verdict on the band comes off the document, which the API just re-graded.
     const doc = this.doc();
     if (doc) {
-      this.doc.set({ ...doc, readinessVerdict: readiness.verdict, readinessScore: readiness.score });
+      this.doc.set({
+        ...doc, readinessVerdict: review.verdict,
+        readinessScore: review.readinessScore ?? undefined, riskScore: review.riskScore ?? undefined
+      });
     }
   }
 
-  /** Full pre-flight review: the model legal review plus the regulatory check, then a re-grade. */
+  /** Harvey's review of the current version, in the background; the page follows it to the end. */
   runReview(): void {
     // The first review lands on the summary; a re-run leaves the reader on the tab they were looking at.
     const first = this.doc()?.readinessVerdict === 'NotEvaluated';
     this.reviewing.set(true);
-    this.documentService.evaluateReadiness(this.documentId).subscribe({
+    this.reviews.run(this.documentId).subscribe({
       next: r => {
         this.reviewing.set(false);
         this.readiness.set(r);
         if (first) this.tabIndex.set(0);
-        // Reload for the refreshed risk/compliance JSON the panels below render from.
         this.load();
       },
-      error: err => {
+      error: (err: Error) => {
         this.reviewing.set(false);
-        this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.readiness.failed'), 'OK', { duration: 5000 });
+        this.snack.open(err.message, 'OK', { duration: 6000 });
+        this.load();
       }
     });
   }
@@ -1200,39 +1197,22 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
       message: this.translate.instant('documents.detail.confirmSend')
     }).subscribe(ok => {
       if (!ok) return;
-      this.doSend(false);
+      this.doSend();
     });
   }
 
   /**
-   * The API refuses to send a contract the pre-flight review flagged. A "needs work" verdict is an
-   * acknowledgeable warning (re-sent with force); a "blocked" one is not — it points the owner at
-   * the Intelligence tab instead.
+   * Through the review gate: refused when this version is not reviewed or has an open critical finding (the reader is
+   * taken to the findings); with open high-risk findings the reader gives a reason, kept in the audit trail.
    */
-  private doSend(force: boolean): void {
+  private doSend(): void {
     this.sending.set(true);
-    this.documentService.send(this.documentId, force).subscribe({
-      next: () => { this.sending.set(false); this.load(); },
-      error: err => {
+    this.reviews.send(this.documentId).subscribe({
+      next: sent => { this.sending.set(false); if (sent) this.load(); },
+      error: (err: Error & { code?: string | null }) => {
         this.sending.set(false);
-        const errors = err.error?.errors as Record<string, string[]> | undefined;
-
-        if (errors?.['readinessWarning']) {
-          const open = this.readiness()?.openCount ?? 0;
-          this.confirmService.confirm({
-            message: this.translate.instant('documents.detail.readiness.sendAnyway', { count: open }),
-            confirmLabel: this.translate.instant('documents.detail.readiness.sendAnywayConfirm')
-          }).subscribe(ok => { if (ok) this.doSend(true); });
-          return;
-        }
-
-        if (errors?.['readiness']) {
-          this.tabIndex.set(0);
-          this.snack.open(this.translate.instant('documents.detail.readiness.sendBlocked'), 'OK', { duration: 6000 });
-          return;
-        }
-
-        this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.sendFailed'), 'OK', { duration: 4000 });
+        if (err.code === 'readiness' || err.code === 'readinessRequired') this.showChecklist();
+        this.snack.open(err.message, 'OK', { duration: 6000 });
       }
     });
   }

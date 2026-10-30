@@ -132,12 +132,12 @@
         "Blocked": "Blocked",
         "NotEvaluated": "Not reviewed"
       },
-      "acknowledge": "I know {{count}} finding(s) are still open and I want to send the contract anyway.",
       "blocked": "Critical findings are still open. Fix them, or ask a manager to accept them, before sending.",
       "adjustFields": "Adjust signature boxes",
       "button": "Send for approval",
       "sending": "Sending…",
-      "failed": "Could not send the contract."
+      "failed": "Could not send the contract.",
+      "reasonLabel": "{{count}} finding(s) are still open, some of them high. Why send the contract now? (kept in the audit trail)"
     },
     "sent": {
       "title": "Sent for approval",
@@ -187,7 +187,8 @@
       "htmlTemplates": "Contract Templates",
       "clauses": "Clause Library",
       "regulatoryWatch": "Regulatory Watch",
-      "systemSettings": "System Settings"
+      "systemSettings": "System Settings",
+      "reviewRules": "Review rules"
     },
     "htmlTemplates": {
       "title": "Contract Templates",
@@ -353,6 +354,19 @@
       "revoke": "Withdraw",
       "failed": "The invitation could not be withdrawn.",
       "sent": "Invitation sent"
+    },
+    "reviewRules": {
+      "title": "Review rules",
+      "intro": "Harvey reviews your contracts with the rules your lawyers approved. Here you choose which of them apply to this organisation, and at which severity. A change applies to the next review of each contract; findings already made keep their severity.",
+      "none": "No rule is in service in Harvey yet: a lawyer has to approve the rules first.",
+      "rule": "Rule",
+      "version": "Version in service",
+      "enabled": "Used",
+      "severity": "Severity",
+      "ruleOwn": "As the rule says",
+      "notInService": "no longer in service",
+      "saved": "Saved. It applies to the next review.",
+      "saveFailed": "Could not save. Please try again."
     }
   },
   "auth": {
@@ -1687,9 +1701,8 @@
     },
     "readiness": {
       "scoreLabel": "Readiness",
-      "scoreHint": "Overall fitness to enter a validation circuit, from the drafting quality and the regulatory coverage.",
+      "scoreHint": "Readiness: 100 minus 25 per open critical finding, 10 per high, 3 per medium and 1 per low.",
       "riskLabel": "Risk",
-      "complianceLabel": "Compliance",
       "verdict": {
         "NotEvaluated": "Not reviewed yet",
         "Ready": "Ready to send",
@@ -1726,6 +1739,57 @@
         "expandAll": "Expand all",
         "collapseAll": "Collapse all",
         "updateFailed": "Could not update this item. Please try again."
+      },
+      "riskHint": "Risk: the same points for every finding of this version, handled or not. It changes only when the text does."
+    },
+    "review": {
+      "title": "Harvey's findings",
+      "empty": "Harvey found no risk in this version of the contract.",
+      "status": {
+        "Open": "Open",
+        "Fixed": "Fixed",
+        "Accepted": "Risk accepted",
+        "NotApplicable": "Not applicable"
+      },
+      "quotes": "In the contract",
+      "law": "The law",
+      "inPlainWords": "In plain words:",
+      "modelClause": "Wording approved by the lawyers",
+      "origin": {
+        "rule": "Rule version {{version}}",
+        "approved": "approved by {{by}} on {{date}}",
+        "confidence": "likeness {{value}} %"
+      },
+      "detection": {
+        "CodeCheck": "found by a check",
+        "MeaningMatch": "found by meaning",
+        "Phrase": "found by a lawyer's wording"
+      },
+      "fixedIn": "No longer found in version {{version}}",
+      "fixedTitle": "Fixed in later versions ({{count}})",
+      "accept": "Accept the risk",
+      "acceptHint": "The contract goes out with this risk, on purpose. Your reason is kept in the audit trail.",
+      "notApplicable": "Not applicable",
+      "notApplicableHint": "Harvey was wrong about this clause. Your reason is sent to the lawyers who keep the rules.",
+      "criticalRole": "A critical finding is decided by a manager or an administrator. Fix the clause, or ask legal.",
+      "acceptReason": "Why is it acceptable to send the contract with this risk?",
+      "notApplicableReason": "Why does this finding not apply to this contract?",
+      "confirm": "Confirm",
+      "send": {
+        "reasonTitle": "High risks are still open",
+        "reasonMessage": "Harvey found high risks in this contract that nobody has fixed or accepted. You can still send it: say why. Your reason is kept in the audit trail.",
+        "reasonLabel": "Reason for sending now",
+        "reasonConfirm": "Send with this reason",
+        "blocked": "This contract has open critical findings. Fix them, or have a manager accept them, before sending.",
+        "required": "Run Harvey's review of this version before sending it."
+      },
+      "errors": {
+        "review": {
+          "unavailable": "Harvey cannot be reached, so the contract was not reviewed. Nothing was changed; try again in a few minutes.",
+          "timeout": "Harvey did not answer in time. Nothing was changed; try again.",
+          "no_text": "This contract has no readable text, so Harvey cannot review it. A scanned PDF needs text recognition first.",
+          "stale": "The contract was revised while the review waited. Review the new version."
+        }
       }
     }
   },
@@ -1775,8 +1839,8 @@
     },
     "riskMap": {
       "title": "Legal risk map",
-      "hint": "Aggregated from each contract's stored risk analysis — a rules-based keyword scan, not a legal opinion. No new analysis runs here.",
-      "empty": "No contract has a risk analysis yet.",
+      "hint": "Harvey's current findings on every reviewed contract, from its last review. Nothing is reviewed here.",
+      "empty": "No contract has been reviewed by Harvey yet.",
       "analyzed": "Contracts analyzed",
       "avgScore": "Avg. risk score",
       "bySeverity": "Findings by severity",
@@ -1810,12 +1874,12 @@
       },
       "readiness": "Readiness",
       "risk": "Risk",
-      "compliance": "Compliance",
       "openCount": "{{count}} open ({{critical}} critical)",
       "noFindings": "The review found nothing to flag.",
       "status": {
-        "Resolved": "Fixed",
-        "Dismissed": "Accepted"
+        "Fixed": "Fixed",
+        "Accepted": "Risk accepted",
+        "NotApplicable": "Not applicable"
       },
       "showAll": "Show all {{count}} findings",
       "showFewer": "Show fewer",
@@ -2471,8 +2535,8 @@
         "desc": "Reusable HTML and PDF contract templates with dynamic parameters, fields auto-filled per contract type, and Harvey generation from a plain-text brief. A shared clause library of approved bilingual wording — with categories, versioning and a draft/approved lifecycle — is insertable straight into a template. Any wording can be made conditional: it appears only when a field the template already collects satisfies a comparison you choose. Those conditions are deterministic tests over that one field — not a rules engine, and no AND/OR or nesting — and they are evaluated by the same renderer for the signing screen and the signed PDF, so both always agree."
       },
       "aiReview": {
-        "title": "Harvey-assisted contract review",
-        "desc": "Every uploaded contract gets an instant rules-based scan and a pre-signature summary. From the contract page, a full legal-model review can be run on demand: it identifies the contract, flags missing, weak or contradictory clauses with severity and proposed wording, and extracts the next renewal or expiry date — falling back to the rules-based scan if the model is unavailable. A dedicated Contract Review desk runs that review automatically on upload and turns it into a readiness verdict with a tick-off list of adjustments; the verdict itself is a deterministic rule set over those findings — not a legal opinion — and sending a contract with unresolved critical findings is blocked."
+        "title": "Contract review by Harvey",
+        "desc": "Harvey reviews every contract with the rules your lawyers approved, clause by clause, in the background. Each finding names its rule and version, the lawyer who approved it, how it was found, the contract's own words and the verified law, with the approved model clause. The verdict and the scores are fixed arithmetic over those findings, never a model's opinion. A contract is not sent before its current version is reviewed; an open critical finding blocks it, and an open high one needs the sender's reason, kept in the audit trail."
       },
       "workflow": {
         "title": "Digitalised validation workflow",
@@ -2502,13 +2566,9 @@
         "title": "Integrated regulatory watch",
         "desc": "A legal-team-curated registry of Tunisian, European and sector-specific texts — data protection, consumer, telecom, commercial — each publishable with an effective date and an optional contract-family scope. Curation and publication are legal-team actions today, not an automated crawler of external sources."
       },
-      "compliance": {
-        "title": "Harvey compliance analysis",
-        "desc": "On demand from the contract page, a full legal-model review confronts the contract with every published regulatory text and returns, for each one, whether it is addressed, a gap or unclear — with the reasoning, the consequence, and the clause wording that would close the gap. It judges substance rather than the presence of keywords, and grades each gap so the review desk can rank it. If the model is unavailable the check degrades to the keyword scan and says so on the panel. It remains an analysis, not a legal opinion."
-      },
       "riskMap": {
         "title": "Regulatory alerts and risk mapping",
-        "desc": "Publishing a regulatory text immediately notifies the owners of in-force contracts it applies to, and the reporting page aggregates every contract's risk analysis into a portfolio-level map — severity distribution, most frequent risk clauses, and exposure by contract family."
+        "desc": "Publishing a regulatory text notifies the owners of in-force contracts it applies to, and the reporting page aggregates Harvey's current findings on every reviewed contract into a portfolio map: severity distribution, most frequent risks, and exposure by contract family."
       }
     }
   },

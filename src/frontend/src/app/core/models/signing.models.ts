@@ -46,7 +46,6 @@ export interface AiReview {
   verdict: ReviewVerdictName;
   score?: number | null;
   riskScore?: number | null;
-  complianceScore?: number | null;
   openCount: number;
   criticalCount: number;
   handledCount: number;
@@ -59,8 +58,9 @@ export interface AiReviewItem {
   detail: string;
   whyItMatters?: string;
   recommendedAction?: string;
-  status: 'Open' | 'Resolved' | 'Dismissed';
-  resolutionNote?: string;
+  status: 'Open' | 'Fixed' | 'Accepted' | 'NotApplicable';
+  reason?: string;
+  clauseReference?: string;
 }
 
 export interface RecipientSession {

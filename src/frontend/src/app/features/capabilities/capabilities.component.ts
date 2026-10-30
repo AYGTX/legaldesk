@@ -118,7 +118,6 @@ export class CapabilitiesComponent {
     { id: 'reporting',   icon: 'monitoring',         status: 'available', route: '/insights/reports' },
     { id: 'execution',   icon: 'notifications_active', status: 'available', route: '/insights/reports' },
     { id: 'regWatch',    icon: 'travel_explore',     status: 'available', route: '/admin/regulatory-watch' },
-    { id: 'compliance',  icon: 'policy',             status: 'available', route: '/contracts' },
     { id: 'riskMap',     icon: 'crisis_alert',       status: 'available', route: '/insights/reports' }
   ];
 

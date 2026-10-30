@@ -55,13 +55,10 @@ export interface DocumentDetail {
   requestTypeColor?: string;
   aiSummary?: string;
   aiSummaryGeneratedAt?: string;
-  aiRiskAnalysisJson?: string;
-  aiRiskAnalysisGeneratedAt?: string;
-  aiComplianceAnalysisJson?: string;
-  aiComplianceAnalysisGeneratedAt?: string;
-  /** Pre-flight verdict, carried on the detail payload so the intelligence band renders immediately. */
+  /** Review verdict and scores of the current version, carried on the detail payload so the band renders at once. */
   readinessVerdict: ReadinessVerdict;
   readinessScore?: number;
+  riskScore?: number;
   readinessEvaluatedAt?: string;
   obligationDueDate?: string;
   obligationType?: string;

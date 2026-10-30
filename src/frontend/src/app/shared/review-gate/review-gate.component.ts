@@ -39,7 +39,6 @@ import { ReviewGate } from '../../core/models';
             <span class="rg-verdict v-{{ r.verdict }}">{{ ('signing.gate.verdict.' + r.verdict) | translate }}</span>
             @if (r.score !== null && r.score !== undefined) { <span class="rg-chip">{{ 'signing.gate.readiness' | translate }} {{ r.score }}</span> }
             @if (r.riskScore !== null && r.riskScore !== undefined) { <span class="rg-chip">{{ 'signing.gate.risk' | translate }} {{ r.riskScore }}</span> }
-            @if (r.complianceScore !== null && r.complianceScore !== undefined) { <span class="rg-chip">{{ 'signing.gate.compliance' | translate }} {{ r.complianceScore }}</span> }
             <span class="rg-count">{{ 'signing.gate.openCount' | translate: { count: r.openCount, critical: r.criticalCount } }}</span>
           </div>
 
@@ -52,12 +51,13 @@ import { ReviewGate } from '../../core/models';
                 <div class="rg-item-top">
                   <span class="rg-sev sev-{{ item.severity }}">{{ item.severity }}</span>
                   <strong>{{ item.title }}</strong>
+                  @if (item.clauseReference) { <span class="rg-status">{{ item.clauseReference }}</span> }
                   @if (item.status !== 'Open') {
                     <span class="rg-status">{{ ('signing.gate.status.' + item.status) | translate }}</span>
                   }
                 </div>
                 <p>{{ item.detail }}</p>
-                @if (item.status !== 'Open' && item.resolutionNote) { <p class="rg-reason">“{{ item.resolutionNote }}”</p> }
+                @if (item.status !== 'Open' && item.reason) { <p class="rg-reason">“{{ item.reason }}”</p> }
               </li>
             }
           </ul>

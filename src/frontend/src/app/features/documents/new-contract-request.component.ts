@@ -14,10 +14,11 @@ import { RequestTypeService } from '../../core/services/request-type.service';
 import { UserService } from '../../core/services/user.service';
 import { formatSla } from '../../core/utils/sla';
 import {
-  ApprovalType, DocumentDetail, FieldDto, Readiness, RecipientInputDto, RequestType, UserDto, WorkflowType
+  ApprovalType, DocumentDetail, FieldDto, Review, RecipientInputDto, RequestType, UserDto, WorkflowType
 } from '../../core/models';
 import { RequestStepperComponent } from '../../shared/request-stepper/request-stepper.component';
 import { ReadinessVerdictComponent } from '../../shared/readiness-verdict/readiness-verdict.component';
+import { ReviewService } from '../../core/services/review.service';
 import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
 import { StageLanesComponent } from '../../shared/stage-lanes/stage-lanes.component';
 import { normalizeStages } from '../../shared/stage-lanes/stage-lanes.util';
@@ -165,15 +166,15 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
         @case (2) {
           @if (readiness(); as r) {
             <sf-readiness-verdict
-              [verdict]="r.verdict" [score]="r.score"
-              [riskScore]="r.riskScore" [complianceScore]="r.complianceScore"
+              [verdict]="r.verdict" [score]="r.readinessScore"
+              [riskScore]="r.riskScore"
               [openCount]="r.openCount" [criticalCount]="r.criticalCount"
               [highCount]="r.highCount" [handledCount]="r.handledCount">
             </sf-readiness-verdict>
 
             <div class="resolve-layout">
               <div class="nc-card">
-                <sf-readiness-checklist [documentId]="documentId()!" [items]="r.items" (changed)="readiness.set($event)">
+                <sf-readiness-checklist [documentId]="documentId()!" [items]="r.items" [fixedItems]="r.fixedItems" (changed)="readiness.set($event)">
                 </sf-readiness-checklist>
               </div>
 
@@ -336,9 +337,10 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
             @if (readiness()?.verdict === 'Blocked') {
               <div class="nc-error"><mat-icon>block</mat-icon> {{ 'newContractRequest.send.blocked' | translate }}</div>
             } @else if (readiness()?.verdict === 'NeedsWork') {
-              <label class="ack">
-                <input type="checkbox" [(ngModel)]="acknowledged" />
-                {{ 'newContractRequest.send.acknowledge' | translate: { count: readiness()!.openCount } }}
+              <!-- Sending with open high-risk findings takes a reason, kept in the audit trail (R-M8-8). -->
+              <label class="ack ack-reason">
+                {{ 'newContractRequest.send.reasonLabel' | translate: { count: readiness()!.openCount } }}
+                <textarea rows="2" maxlength="1000" [(ngModel)]="sendReason"></textarea>
               </label>
             }
             @if (error()) { <div class="nc-error"><mat-icon>error_outline</mat-icon> {{ error() }}</div> }
@@ -435,7 +437,8 @@ export class NewContractRequestComponent implements OnInit {
   readonly step = signal<Step>(0);
   readonly documentId = signal<string | null>(null);
   readonly doc = signal<DocumentDetail | null>(null);
-  readonly readiness = signal<Readiness | null>(null);
+  readonly readiness = signal<Review | null>(null);
+  private readonly reviews = inject(ReviewService);
   readonly review = signal<ReviewState>('idle');
   readonly requestTypes = signal<RequestType[]>([]);
   readonly users = signal<UserDto[]>([]);
@@ -476,7 +479,8 @@ export class NewContractRequestComponent implements OnInit {
   requestTypeId: string | null = null;
   workflowType: WorkflowType = 'Sequential';
   participants: Participant[] = [{ ...this.blankParticipant(), approvalType: 'Review' }];
-  acknowledged = false;
+  /** Why the contract goes out with open high-risk findings; required in that case. */
+  sendReason = '';
 
   readonly stepLabels = computed(() => {
     this.step();   // re-read the language-dependent labels whenever the step changes
@@ -489,7 +493,8 @@ export class NewContractRequestComponent implements OnInit {
   readonly selectedType = computed(() => this.requestTypes().find(t => t.name === this.doc()?.requestTypeName) ?? null);
   readonly canSend = () => {
     const verdict = this.readiness()?.verdict;
-    return verdict !== 'Blocked' && (verdict !== 'NeedsWork' || this.acknowledged);
+    return !!verdict && verdict !== 'Blocked' && verdict !== 'NotEvaluated'
+      && (verdict !== 'NeedsWork' || this.sendReason.trim().length > 0);
   };
 
   ngOnInit(): void {
@@ -511,7 +516,7 @@ export class NewContractRequestComponent implements OnInit {
     this.title = '';
     this.requestTypeId = null;
     this.participants = [this.blankParticipant()];
-    this.acknowledged = false;
+    this.sendReason = '';
     this.error.set(null);
   }
 
@@ -583,18 +588,19 @@ export class NewContractRequestComponent implements OnInit {
     this.review.set('running');
     if (fromResolve) { this.busy.set(true); this.step.set(1); }
 
-    this.documents.evaluateReadiness(id).subscribe({
-      next: readiness => {
-        this.readiness.set(readiness);
+    // Harvey reviews in the background; the page waits for the result.
+    this.reviews.run(id).subscribe({
+      next: review => {
+        this.readiness.set(review);
         this.review.set('done');
         this.busy.set(false);
         // Land on the findings — unless the user has already moved on to choosing people.
         if (this.step() === 1) this.step.set(2);
       },
-      error: err => {
+      error: (err: Error) => {
         this.busy.set(false);
         this.review.set('failed');
-        this.error.set(err.error?.detail ?? null);
+        this.error.set(err.message);
       }
     });
   }
@@ -803,7 +809,7 @@ export class NewContractRequestComponent implements OnInit {
 
   private finishParticipants(id: string): void {
     // The verdict the sender sees on the last step is the stored one, including anything settled in the meantime.
-    this.documents.getReadiness(id).subscribe({
+    this.documents.getReview(id).subscribe({
       next: r => { this.readiness.set(r); this.busy.set(false); this.step.set(4); },
       error: () => { this.busy.set(false); this.step.set(4); }
     });
@@ -822,8 +828,8 @@ export class NewContractRequestComponent implements OnInit {
 
     this.sending.set(true);
     this.error.set(null);
-    // A "needs work" verdict is acknowledged by the tick box above; the API wants that acknowledgement as `force`.
-    this.documents.send(id, this.readiness()?.verdict === 'NeedsWork').subscribe({
+    // With open high-risk findings the API wants the sender's reason; it goes in the audit trail.
+    this.documents.send(id, this.readiness()?.verdict === 'NeedsWork' ? this.sendReason.trim() : undefined).subscribe({
       next: () => { this.sending.set(false); this.step.set(5); },
       error: err => {
         this.sending.set(false);
@@ -860,7 +866,7 @@ export class NewContractRequestComponent implements OnInit {
           if (this.workflowType === 'Mixed') this.normalizeStages();
         }
 
-        this.documents.getReadiness(id).subscribe({
+        this.documents.getReview(id).subscribe({
           next: readiness => {
             this.readiness.set(readiness);
             this.busy.set(false);

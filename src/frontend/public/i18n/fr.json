@@ -132,12 +132,12 @@
         "Blocked": "Bloqué",
         "NotEvaluated": "Non analysé"
       },
-      "acknowledge": "Je sais que {{count}} constat(s) restent ouverts et je veux envoyer le contrat quand même.",
       "blocked": "Des constats critiques sont encore ouverts. Corrigez-les, ou demandez à un manager de les accepter, avant l'envoi.",
       "adjustFields": "Ajuster les zones de signature",
       "button": "Envoyer pour approbation",
       "sending": "Envoi…",
-      "failed": "Impossible d'envoyer le contrat."
+      "failed": "Impossible d'envoyer le contrat.",
+      "reasonLabel": "{{count}} constat(s) restent ouverts, dont des risques élevés. Pourquoi envoyer le contrat maintenant ? (conservé dans la piste d'audit)"
     },
     "sent": {
       "title": "Envoyé pour approbation",
@@ -187,7 +187,8 @@
       "htmlTemplates": "Modèles de contrats",
       "clauses": "Bibliothèque de clauses",
       "regulatoryWatch": "Veille réglementaire",
-      "systemSettings": "Paramètres système"
+      "systemSettings": "Paramètres système",
+      "reviewRules": "Règles de revue"
     },
     "htmlTemplates": {
       "title": "Modèles de contrats",
@@ -353,6 +354,19 @@
       "revoke": "Retirer",
       "failed": "L'invitation n'a pas pu être retirée.",
       "sent": "Invitation envoyée"
+    },
+    "reviewRules": {
+      "title": "Règles de revue",
+      "intro": "Harvey revoit vos contrats avec les règles validées par vos juristes. Choisissez ici celles qui s'appliquent à cette organisation, et à quelle gravité. Un changement vaut pour la prochaine revue de chaque contrat ; les constats déjà faits gardent leur gravité.",
+      "none": "Aucune règle n'est encore en service dans Harvey : un juriste doit d'abord valider les règles.",
+      "rule": "Règle",
+      "version": "Version en service",
+      "enabled": "Utilisée",
+      "severity": "Gravité",
+      "ruleOwn": "Celle de la règle",
+      "notInService": "plus en service",
+      "saved": "Enregistré. Cela vaut pour la prochaine revue.",
+      "saveFailed": "Enregistrement impossible. Réessayez."
     }
   },
   "auth": {
@@ -1687,9 +1701,8 @@
     },
     "readiness": {
       "scoreLabel": "Aptitude",
-      "scoreHint": "Aptitude globale à entrer dans un circuit de validation, d’après la qualité de rédaction et la couverture réglementaire.",
+      "scoreHint": "Aptitude : 100 moins 25 par constat critique ouvert, 10 par élevé, 3 par moyen et 1 par faible.",
       "riskLabel": "Risque",
-      "complianceLabel": "Conformité",
       "verdict": {
         "NotEvaluated": "Pas encore analysé",
         "Ready": "Prêt à envoyer",
@@ -1726,6 +1739,57 @@
         "expandAll": "Tout développer",
         "collapseAll": "Tout réduire",
         "updateFailed": "Impossible de mettre à jour ce point. Veuillez réessayer."
+      },
+      "riskHint": "Risque : les mêmes points pour chaque constat de cette version, traité ou non. Il ne change qu'avec le texte."
+    },
+    "review": {
+      "title": "Constats de Harvey",
+      "empty": "Harvey n'a relevé aucun risque dans cette version du contrat.",
+      "status": {
+        "Open": "Ouvert",
+        "Fixed": "Corrigé",
+        "Accepted": "Risque accepté",
+        "NotApplicable": "Non applicable"
+      },
+      "quotes": "Dans le contrat",
+      "law": "Le texte de loi",
+      "inPlainWords": "En termes simples :",
+      "modelClause": "Rédaction validée par les juristes",
+      "origin": {
+        "rule": "Règle version {{version}}",
+        "approved": "validée par {{by}} le {{date}}",
+        "confidence": "proximité {{value}} %"
+      },
+      "detection": {
+        "CodeCheck": "relevé par un contrôle",
+        "MeaningMatch": "relevé par le sens",
+        "Phrase": "relevé par une formulation d'un juriste"
+      },
+      "fixedIn": "N'est plus relevé dans la version {{version}}",
+      "fixedTitle": "Corrigés dans les versions suivantes ({{count}})",
+      "accept": "Accepter le risque",
+      "acceptHint": "Le contrat part avec ce risque, en connaissance de cause. Votre motif est conservé dans la piste d'audit.",
+      "notApplicable": "Non applicable",
+      "notApplicableHint": "Harvey s'est trompé sur cette clause. Votre motif est transmis aux juristes qui tiennent les règles.",
+      "criticalRole": "Un constat critique est tranché par un manager ou un administrateur. Corrigez la clause, ou demandez au juridique.",
+      "acceptReason": "Pourquoi peut-on envoyer le contrat avec ce risque ?",
+      "notApplicableReason": "Pourquoi ce constat ne s'applique-t-il pas à ce contrat ?",
+      "confirm": "Confirmer",
+      "send": {
+        "reasonTitle": "Des risques élevés restent ouverts",
+        "reasonMessage": "Harvey a relevé dans ce contrat des risques élevés que personne n'a corrigés ni acceptés. Vous pouvez quand même l'envoyer : indiquez pourquoi. Votre motif est conservé dans la piste d'audit.",
+        "reasonLabel": "Motif de l'envoi maintenant",
+        "reasonConfirm": "Envoyer avec ce motif",
+        "blocked": "Ce contrat a des constats critiques ouverts. Corrigez-les, ou faites-les accepter par un manager, avant l'envoi.",
+        "required": "Lancez la revue de Harvey sur cette version avant de l'envoyer."
+      },
+      "errors": {
+        "review": {
+          "unavailable": "Harvey est injoignable : le contrat n'a pas été revu. Rien n'a été modifié ; réessayez dans quelques minutes.",
+          "timeout": "Harvey n'a pas répondu à temps. Rien n'a été modifié ; réessayez.",
+          "no_text": "Ce contrat n'a pas de texte lisible : Harvey ne peut pas le revoir. Un PDF scanné doit d'abord passer par la reconnaissance de texte.",
+          "stale": "Le contrat a été révisé pendant que la revue attendait. Revoyez la nouvelle version."
+        }
       }
     }
   },
@@ -1775,8 +1839,8 @@
     },
     "riskMap": {
       "title": "Cartographie des risques juridiques",
-      "hint": "Agrégée à partir de l'analyse de risque déjà enregistrée pour chaque contrat — une analyse par mots-clés, pas un avis juridique. Aucune nouvelle analyse n'est exécutée ici.",
-      "empty": "Aucun contrat n'a encore d'analyse de risque.",
+      "hint": "Les constats actuels de Harvey sur chaque contrat revu, issus de sa dernière revue. Aucune revue n'est lancée ici.",
+      "empty": "Aucun contrat n'a encore été revu par Harvey.",
       "analyzed": "Contrats analysés",
       "avgScore": "Score de risque moy.",
       "bySeverity": "Constats par sévérité",
@@ -1810,12 +1874,12 @@
       },
       "readiness": "Préparation",
       "risk": "Risque",
-      "compliance": "Conformité",
       "openCount": "{{count}} ouvert(s) dont {{critical}} critique(s)",
       "noFindings": "La revue n'a rien relevé.",
       "status": {
-        "Resolved": "Corrigé",
-        "Dismissed": "Accepté"
+        "Fixed": "Corrigé",
+        "Accepted": "Risque accepté",
+        "NotApplicable": "Non applicable"
       },
       "showAll": "Afficher les {{count}} constats",
       "showFewer": "Afficher moins",
@@ -2471,8 +2535,8 @@
         "desc": "Modèles de contrats HTML et PDF réutilisables, paramétrage dynamique des champs, pré-remplissage selon le type de contrat et génération assistée par Harvey à partir d’un simple texte. Une bibliothèque de clauses partagée — rédactions bilingues validées, catégorisées, versionnées, avec cycle brouillon/validée — s’insère directement dans un modèle. Toute rédaction peut devenir conditionnelle : elle n’apparaît que si un champ déjà collecté par le modèle satisfait la comparaison choisie. Ces conditions sont des tests déterministes portant sur ce seul champ — ni moteur de règles, ni ET/OU, ni imbrication — et elles sont évaluées par le même moteur de rendu pour l’écran de signature et le PDF signé, qui concordent donc toujours."
       },
       "aiReview": {
-        "title": "Revue contractuelle assistée par Harvey",
-        "desc": "Chaque contrat déposé bénéficie d’une analyse instantanée par moteur de règles et d’une synthèse pré-signature. Depuis la fiche du contrat, une revue juridique complète par Harvey peut être lancée à la demande : elle identifie le contrat, signale les clauses manquantes, faibles ou contradictoires avec leur gravité et une formulation proposée, et extrait la prochaine échéance de renouvellement ou d’expiration — avec repli sur l’analyse par règles si le modèle est indisponible. Un espace Revue de contrat dédié lance cette revue automatiquement au dépôt et la traduit en verdict d’aptitude assorti d’une liste d’ajustements à cocher ; le verdict lui-même repose sur un jeu de règles déterministe appliqué à ces constats — il ne constitue pas un avis juridique — et l’envoi d’un contrat comportant des points critiques non traités est bloqué."
+        "title": "Revue de contrat par Harvey",
+        "desc": "Harvey revoit chaque contrat avec les règles validées par vos juristes, clause par clause, en arrière-plan. Chaque constat indique sa règle et sa version, le juriste qui l'a validée, la façon dont il a été relevé, les mots du contrat et le texte de loi vérifié, avec la clause type validée. Le verdict et les scores sont un calcul fixe sur ces constats, jamais l'avis d'un modèle. Un contrat ne part pas avant la revue de sa version actuelle ; un constat critique ouvert le bloque, et un constat élevé ouvert demande le motif de l'expéditeur, conservé dans la piste d'audit."
       },
       "workflow": {
         "title": "Workflow de validation digitalisé",
@@ -2502,13 +2566,9 @@
         "title": "Veille réglementaire intégrée",
         "desc": "Un référentiel de textes tunisiens, européens et sectoriels curé par l’équipe juridique — protection des données, consommation, télécommunications, droit commercial — chacun publiable avec une date d’effet et un périmètre optionnel par famille de contrat. La curation et la publication sont aujourd’hui des actions de l’équipe juridique, pas une veille automatisée de sources externes."
       },
-      "compliance": {
-        "title": "Analyse de conformité par Harvey",
-        "desc": "À la demande depuis la fiche contrat, une revue complète par le modèle juridique confronte le contrat à chaque texte réglementaire publié et indique, pour chacun, s’il est couvert, s’il constitue un écart ou s’il reste incertain — avec le raisonnement, la conséquence et la rédaction de clause qui comblerait l’écart. L’appréciation porte sur le fond et non sur la présence de mots-clés, et chaque écart est gradué pour que l’espace de revue puisse le hiérarchiser. Si le modèle est indisponible, le contrôle bascule sur l’analyse par mots-clés et l’indique dans le panneau. Cela reste une analyse, pas un avis juridique."
-      },
       "riskMap": {
         "title": "Alertes réglementaires et cartographie des risques",
-        "desc": "La publication d’un texte réglementaire notifie immédiatement les propriétaires des contrats en vigueur qu’il concerne, et la page de reporting agrège l’analyse de risque de chaque contrat en une cartographie de portefeuille — répartition par sévérité, clauses à risque les plus fréquentes et exposition par famille de contrat."
+        "desc": "La publication d'un texte réglementaire notifie les propriétaires des contrats en vigueur qu'il concerne, et la page de reporting agrège les constats actuels de Harvey sur chaque contrat revu en une cartographie de portefeuille : répartition par gravité, risques les plus fréquents et exposition par famille de contrat."
       }
     }
   },

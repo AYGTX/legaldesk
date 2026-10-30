@@ -1,109 +1,6 @@
 export type RiskSeverity = 'Critical' | 'High' | 'Medium' | 'Low';
 
-export type RiskFindingType =
-  | 'MissingClause'
-  | 'WeakClause'
-  | 'Ambiguity'
-  | 'Contradiction'
-  | 'Imbalance'
-  // A meaning-based lead from the playbook's example clauses: to be checked by a reviewer, not a certain finding.
-  | 'Possible';
-
-export interface RiskFinding {
-  clauseType: string;
-  severity: RiskSeverity;
-  explanation: string;
-  // Only the full legal review fills these in — the rules-based scan at upload time, and any
-  // analysis stored before the review existed, leave them undefined.
-  findingType?: RiskFindingType;
-  whyItMatters?: string;
-  recommendedAction?: string;
-  proposedLanguage?: string;
-  contractReference?: string;
-}
-
-/** What the analysis could determine about the contract itself. Fields are absent where the text does not say. */
-export interface ContractProfile {
-  contractType?: string;
-  parties?: string;
-  purpose?: string;
-  jurisdiction?: string;
-  governingLaw?: string;
-  term?: string;
-}
-
-export interface ContractRiskAnalysis {
-  riskScore: number;
-  findings: RiskFinding[];
-  analyzedAt: string;
-  profile?: ContractProfile;
-  /** What the analysis could not establish — shown to the reader rather than guessed at. */
-  limitations?: string[];
-}
-
-/** Response of POST /documents/{id}/analyze. */
-export interface ContractAnalysisResponse {
-  riskAnalysisJson: string;
-  generatedAt: string;
-  obligationDueDate?: string;
-  obligationType?: string;
-  obligationRationale?: string;
-  obligationConfirmed: boolean;
-}
-
 export const RISK_SEVERITY_ORDER: RiskSeverity[] = ['Critical', 'High', 'Medium', 'Low'];
-
-export type ComplianceStatus = 'Addressed' | 'Gap' | 'Unclear';
-
-export interface ComplianceFinding {
-  regulationId: string;
-  regulationTitle: string;
-  status: ComplianceStatus;
-  explanation: string;
-  // Only the full model review fills these in — the keyword scan it falls back to, and any
-  // analysis stored before the review existed, leave them undefined. Severity is set on gaps only.
-  severity?: RiskSeverity;
-  whyItMatters?: string;
-  recommendedAction?: string;
-  proposedLanguage?: string;
-  contractReference?: string;
-  // The article of law the finding rests on, as cited by the review and checked against the legal corpus.
-  legalArticleId?: string;
-  legalCitation?: string;
-  legalQuote?: string;
-  citationStatus?: CitationStatus;
-}
-
-/** Verified: quote found word for word in a verified article. Unverified: found, but not confirmed as law. Rejected: not in the article. */
-export type CitationStatus = 'Verified' | 'Unverified' | 'Rejected' | 'Pending';
-
-export interface LegalArticleRef {
-  articleId: string;
-  citation: string;
-  text: string;
-  score: number;
-}
-
-/** A contract clause and the verified articles of law the corpus search matched it to — no AI involved. */
-export interface ClauseLawMatch {
-  clause: string;
-  articles: LegalArticleRef[];
-}
-
-export interface ComplianceAnalysis {
-  complianceScore: number;
-  findings: ComplianceFinding[];
-  analyzedAt: string;
-  /** What the review could not establish — shown to the reader rather than guessed at. */
-  limitations?: string[];
-  relevantLaw?: ClauseLawMatch[];
-}
-
-/** Response of POST /documents/{id}/compliance. */
-export interface ComplianceAnalysisResponse {
-  complianceAnalysisJson: string;
-  generatedAt: string;
-}
 
 // ── Contract term ───────────────────────────────────────────────────────────────
 
@@ -122,43 +19,95 @@ export interface ContractTermUpdate {
   noticePeriodDays: number | null;
 }
 
-// ── Pre-flight readiness ────────────────────────────────────────────────────────
+// ── Pre-flight review (M8) ───────────────────────────────────────────────────────
 
 export type ReadinessVerdict = 'NotEvaluated' | 'Ready' | 'NeedsWork' | 'Blocked';
-export type ReadinessItemCategory = 'Risk' | 'Compliance' | 'Obligation' | 'Structure';
-export type ReadinessItemStatus = 'Open' | 'Resolved' | 'Dismissed';
 
-/** One adjustment the pre-flight review says the contract needs. */
-export interface ReadinessItem {
+/** Open; Fixed (a review of a newer version no longer finds it); Accepted (risk taken, with a reason);
+ *  NotApplicable (false positive, with a reason, reported to Harvey). */
+export type ReviewItemStatus = 'Open' | 'Fixed' | 'Accepted' | 'NotApplicable';
+
+export type ReviewRunStatus = 'Queued' | 'Running' | 'Completed' | 'Failed';
+
+/** CodeCheck: a check in code; MeaningMatch: close in meaning to the rule's examples; Phrase: a lawyer's wording. */
+export type DetectionKind = 'CodeCheck' | 'MeaningMatch' | 'Phrase';
+
+/** A verified article a rule links, quoted word for word. */
+export interface ReviewArticle {
+  articleId: string;
+  citation: string;
+  quote: string;
+  why?: string | null;
+  /** A lawyer-approved plain-language reading: shown after the quote, never instead of it. */
+  explanation?: string | null;
+}
+
+/** One risk Harvey found in one clause, with where it comes from. */
+export interface ReviewItem {
   id: string;
-  category: ReadinessItemCategory;
+  ruleKey?: string | null;
+  ruleVersion?: number | null;
+  ruleApprovedBy?: string | null;
+  ruleApprovedAt?: string | null;
   severity: RiskSeverity;
-  sourceKey: string;
   title: string;
   detail: string;
-  whyItMatters?: string;
-  recommendedAction?: string;
-  proposedLanguage?: string;
-  status: ReadinessItemStatus;
-  resolutionNote?: string;
-  resolvedAt?: string;
+  clauseReference?: string | null;
+  quotes: string[];
+  detectionKind?: DetectionKind | null;
+  confidence?: number | null;
+  articles: ReviewArticle[];
+  /** Items from before the review rework: the law as text. */
+  whyItMatters?: string | null;
+  recommendedAction?: string | null;
+  proposedLanguage?: string | null;
+  status: ReviewItemStatus;
+  reason?: string | null;
+  decidedBy?: string | null;
+  decidedAt?: string | null;
+  firstFoundInVersion?: number | null;
+  fixedInVersion?: number | null;
+}
+
+export interface ReviewRun {
+  id: string;
+  versionNumber: number;
+  status: ReviewRunStatus;
+  queuedAt: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  asOfDate: string;
+  gridVersion?: string | null;
+  findingCount: number;
+  /** review.unavailable, review.timeout, review.no_text, review.stale */
+  errorCode?: string | null;
 }
 
 /**
- * The pre-flight state of a contract. The API returns counts rather than a prose verdict so the
- * sentence is built here, in the reader's language.
+ * The review of a contract's current version. Counts rather than prose: the sentence is built here, in the reader's
+ * language. Items are the current findings; fixedItems are the ones earlier revisions fixed.
  */
-export interface Readiness {
+export interface Review {
   documentId: string;
+  documentVersion: number;
   verdict: ReadinessVerdict;
-  score?: number;
-  evaluatedAt?: string;
+  readinessScore?: number | null;
+  riskScore?: number | null;
+  evaluatedAt?: string | null;
   openCount: number;
   criticalCount: number;
   highCount: number;
   handledCount: number;
-  /** Only populated by a fresh evaluation, not by the stored-state GET. */
-  riskScore?: number;
-  complianceScore?: number;
-  items: ReadinessItem[];
+  latestRun?: ReviewRun | null;
+  items: ReviewItem[];
+  fixedItems: ReviewItem[];
+}
+
+/** A Harvey rule in service and the organisation's setting for it. */
+export interface ReviewRuleSetting {
+  ruleKey: string;
+  version?: number | null;
+  approvedBy?: string | null;
+  enabled: boolean;
+  severityOverride?: RiskSeverity | null;
 }

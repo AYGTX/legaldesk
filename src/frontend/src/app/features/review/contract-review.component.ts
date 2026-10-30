@@ -15,7 +15,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
-import { Readiness, ReadinessItem, RequestType } from '../../core/models';
+import { Review, ReviewItem, RequestType } from '../../core/models';
+import { ReviewService } from '../../core/services/review.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { PdfEditorRecommendation, PdfTextEditorDialogComponent, PdfTextEditorDialogData } from '../documents/pdf-text-editor-dialog.component';
 import { ReadinessVerdictComponent } from '../../shared/readiness-verdict/readiness-verdict.component';
@@ -166,8 +167,8 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
         @case ('verdict') {
           @if (readiness(); as r) {
             <sf-readiness-verdict
-              [verdict]="r.verdict" [score]="r.score"
-              [riskScore]="r.riskScore" [complianceScore]="r.complianceScore"
+              [verdict]="r.verdict" [score]="r.readinessScore"
+              [riskScore]="r.riskScore"
               [openCount]="r.openCount" [criticalCount]="r.criticalCount"
               [highCount]="r.highCount" [handledCount]="r.handledCount">
             </sf-readiness-verdict>
@@ -185,6 +186,7 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
                   <sf-readiness-checklist
                     [documentId]="documentId()!"
                     [items]="r.items"
+                    [fixedItems]="r.fixedItems"
                     (changed)="readiness.set($event)">
                   </sf-readiness-checklist>
                 </mat-card-content>
@@ -198,7 +200,7 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
                     <button mat-flat-button color="primary" class="next-btn"
                             [disabled]="r.verdict === 'Blocked' || sending()"
                             [matTooltip]="r.verdict === 'Blocked' ? ('review.next.blockedHint' | translate) : ''"
-                            (click)="send(false)">
+                            (click)="send()">
                       <mat-icon>send</mat-icon> {{ (sending() ? 'review.send.sending' : 'review.send.button') | translate }}
                     </button>
                   } @else {
@@ -253,7 +255,7 @@ export class ContractReviewComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly confirmService = inject(ConfirmService);
+  private readonly reviews = inject(ReviewService);
 
   /** The request came from a template and is a draft nobody has been told about: this page reviews it, then sends it. */
   readonly sendMode = signal(false);
@@ -265,7 +267,7 @@ export class ContractReviewComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly requestTypes = signal<RequestType[]>([]);
   readonly documentId = signal<string | null>(null);
-  readonly readiness = signal<Readiness | null>(null);
+  readonly readiness = signal<Review | null>(null);
   readonly rerunning = signal(false);
   readonly uploadingRevision = signal(false);
   readonly analysingStep = signal('review.analysing.uploading');
@@ -335,7 +337,7 @@ export class ContractReviewComponent implements OnInit {
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   }
 
-  /** Upload, then immediately evaluate — the point of this page is that nobody has to press "analyse". */
+  /** Upload, then immediately review: the point of this page is that nobody has to press "analyse". */
   startReview(): void {
     if (!this.selectedFile() || this.form.invalid) return;
     this.stage.set('analysing');
@@ -359,15 +361,24 @@ export class ContractReviewComponent implements OnInit {
     });
   }
 
+  /** Harvey reviews in the background; the page waits for the run's result. */
   private evaluate(): void {
-    this.documentService.evaluateReadiness(this.documentId()!).subscribe({
-      next: readiness => {
-        this.readiness.set(readiness);
+    this.reviews.run(this.documentId()!).subscribe({
+      next: review => {
+        this.readiness.set(review);
         this.rerunning.set(false);
         this.stage.set('verdict');
       },
-      // The contract is uploaded either way — land on the verdict screen so it is not orphaned.
-      error: err => this.failTo(this.documentId() ? 'verdict' : 'drop', err)
+      // The contract is uploaded either way: show what is known (the last review, if any) so it is not orphaned.
+      error: (err: Error) => {
+        this.rerunning.set(false);
+        this.documentService.getReview(this.documentId()!).subscribe({
+          next: review => this.readiness.set(review),
+          error: () => {}
+        });
+        this.stage.set(this.documentId() ? 'verdict' : 'drop');
+        this.error.set(err.message);
+      }
     });
   }
 
@@ -406,12 +417,13 @@ export class ContractReviewComponent implements OnInit {
    * Opens the click-to-edit view of the contract with the open findings beside it. A save creates a new version
    * of the contract, so the review is run again against it.
    */
-  editText(items: ReadinessItem[]): void {
+  editText(items: ReviewItem[]): void {
     const recommendations: PdfEditorRecommendation[] = items
       .filter(i => i.status === 'Open')
       .map(i => ({
-        id: i.id, severity: i.severity, title: i.title, detail: i.detail,
-        whyItMatters: i.whyItMatters, recommendedAction: i.recommendedAction, proposedLanguage: i.proposedLanguage
+        id: i.id, severity: i.severity, title: i.clauseReference ? `${i.title} · ${i.clauseReference}` : i.title, detail: i.detail,
+        whyItMatters: i.articles.length ? i.articles.map(a => `${a.citation} : « ${a.quote} »`).join('\n') : i.whyItMatters ?? undefined,
+        recommendedAction: i.recommendedAction ?? undefined, proposedLanguage: i.proposedLanguage ?? undefined
       }));
     this.dialog.open(PdfTextEditorDialogComponent, {
       data: {
@@ -428,39 +440,23 @@ export class ContractReviewComponent implements OnInit {
   }
 
   /**
-   * Starts the circuit. The API refuses a request with critical findings (never forceable) and asks for a
-   * confirmation when only high-severity ones remain.
+   * Starts the circuit through the review gate: refused when not reviewed or blocked, and with open high-risk findings
+   * the reader gives a reason that is kept in the audit trail.
    */
-  send(force: boolean): void {
+  send(): void {
     if (!this.documentId()) return;
     this.sending.set(true);
     this.error.set(null);
-    this.documentService.send(this.documentId()!, force).subscribe({
-      next: () => {
+    this.reviews.send(this.documentId()!).subscribe({
+      next: sent => {
         this.sending.set(false);
+        if (!sent) return;
         this.snack.open(this.translate.instant('review.send.sent'), 'OK', { duration: 4000 });
         this.router.navigate(['/contracts', this.documentId()]);
       },
-      error: err => {
+      error: (err: Error) => {
         this.sending.set(false);
-        const errors = err.error?.errors as Record<string, string[]> | undefined;
-
-        if (errors?.['readinessWarning']) {
-          this.confirmService.confirm({
-            message: this.translate.instant('documents.detail.readiness.sendAnyway', { count: this.readiness()?.openCount ?? 0 }),
-            confirmLabel: this.translate.instant('documents.detail.readiness.sendAnywayConfirm')
-          }).subscribe(ok => { if (ok) this.send(true); });
-          return;
-        }
-        if (errors?.['readiness']) {
-          this.snack.open(this.translate.instant('documents.detail.readiness.sendBlocked'), 'OK', { duration: 6000 });
-          return;
-        }
-        if (errors?.['readinessRequired']) {
-          this.rerun();
-          return;
-        }
-        this.error.set(err.error?.detail ?? this.translate.instant('documents.detail.sendFailed'));
+        this.error.set(err.message);
       }
     });
   }

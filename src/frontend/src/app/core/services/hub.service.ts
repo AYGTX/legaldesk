@@ -12,6 +12,15 @@ export interface DocumentProgressEvent {
   isCompleted: boolean;
 }
 
+/** A Harvey review run started or ended (server event "review-progress"). */
+export interface ReviewProgressEvent {
+  documentId: string;
+  runId: string;
+  status: 'Queued' | 'Running' | 'Completed' | 'Failed';
+  errorCode?: string | null;
+  verdict: string;
+}
+
 export interface PresenceViewer {
   userId: string;
   name: string;
@@ -36,6 +45,8 @@ export class HubService {
    * token signers never connect, so they don't appear).
    */
   readonly presence = signal<{ documentId: string; viewers: PresenceViewer[] } | null>(null);
+  /** The last review run event: pages showing that contract's review reload it. */
+  readonly lastReviewProgress = signal<ReviewProgressEvent | null>(null);
 
   async connect(): Promise<void> {
     if (this.connection?.state === signalR.HubConnectionState.Connected) return;
@@ -58,6 +69,10 @@ export class HubService {
 
     this.connection.on('comments-changed', (event: { documentId: string }) => {
       this.lastCommentsChange.set({ documentId: event.documentId, at: Date.now() });
+    });
+
+    this.connection.on('review-progress', (event: ReviewProgressEvent) => {
+      this.lastReviewProgress.set(event);
     });
 
     this.connection.on('presence-changed', (event: { documentId: string; viewers: PresenceViewer[] }) => {

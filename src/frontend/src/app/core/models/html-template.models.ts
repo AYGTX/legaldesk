@@ -1,6 +1,6 @@
 import { TemplatePreset } from './workflow-preset.models';
 import { WorkflowType } from './document.models';
-import { RiskFinding } from './contract-intelligence.model';
+import { ReviewArticle, RiskSeverity } from './contract-intelligence.model';
 
 export type HtmlFieldType = 'Text' | 'Textarea' | 'Date' | 'Number' | 'Checkbox' | 'Signature' | 'Dropdown';
 export type HtmlFieldRole = 'Initiator' | 'Approver';
@@ -132,6 +132,21 @@ export interface GeneratedHtmlTemplate {
 /** The legal review of a template as written: what a reviewer would flag in the contract it can produce. */
 export interface TemplateReviewResult {
   riskScore: number;
-  findings: RiskFinding[];
+  findings: TemplateFinding[];
   limitations: string[];
+  gridVersion?: string | null;
+}
+
+/** One risk Harvey found in the template, with the rule and the clause. */
+export interface TemplateFinding {
+  ruleKey: string;
+  ruleVersion?: number | null;
+  clauseType: string;
+  severity: RiskSeverity;
+  explanation: string;
+  recommendedAction?: string | null;
+  proposedLanguage?: string | null;
+  contractReference?: string | null;
+  quotes: string[];
+  articles: ReviewArticle[];
 }
