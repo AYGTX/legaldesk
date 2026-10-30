@@ -31,4 +31,7 @@ public interface IPlatformQueries
     /// <summary>The only active organisation, or null when there are none or several. Used by the public forms
     /// that have no organisation in their address yet (self-registration, data requests).</summary>
     Task<Guid?> SoleOrganisationIdAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Whether any user of any organisation has this e-mail: people sign in by e-mail alone.</summary>
+    Task<bool> EmailInUseAsync(string email, CancellationToken cancellationToken = default);
 }

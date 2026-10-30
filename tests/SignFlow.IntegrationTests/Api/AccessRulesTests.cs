@@ -33,11 +33,21 @@ public class AccessRulesTests
             .Select(m => $"{m.DeclaringType!.Name}.{m.Name}")
             .ToList();
 
-        // Public by design: sign-in and recovery, and the signing link (the token is the credential).
-        string[] publicControllers = [nameof(AuthController), nameof(SigningController)];
-        undeclared.RemoveAll(name => publicControllers.Any(c => name.StartsWith(c + ".")));
-
         Assert.Empty(undeclared);
+    }
+
+    [Fact]
+    public void Public_endpoints_are_rate_limited()
+    {
+        // Anonymous endpoints are where guessing happens: sign-in, recovery, signing links (security baseline).
+        var unlimited = Actions()
+            .Where(m => m.IsDefined(typeof(IAllowAnonymous), true) || m.DeclaringType!.IsDefined(typeof(IAllowAnonymous), true))
+            .Where(m => !m.DeclaringType!.IsDefined(typeof(Microsoft.AspNetCore.RateLimiting.EnableRateLimitingAttribute), true)
+                        && !m.IsDefined(typeof(Microsoft.AspNetCore.RateLimiting.EnableRateLimitingAttribute), true))
+            .Select(m => $"{m.DeclaringType!.Name}.{m.Name}")
+            .ToList();
+
+        Assert.Empty(unlimited);
     }
 
     [Fact]

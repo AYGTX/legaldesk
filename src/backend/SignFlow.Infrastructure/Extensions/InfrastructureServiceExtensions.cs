@@ -50,13 +50,17 @@ public static class InfrastructureServiceExtensions
             options.Password.RequireLowercase = true;
             options.Password.RequireUppercase = true;
             options.Password.RequireNonAlphanumeric = true;
-            options.Password.RequiredLength = 8;
+            options.Password.RequiredLength = 10;
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.User.RequireUniqueEmail = true;
         })
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
+
+        // Password reset links (and other Identity data-protection tokens) work for 60 minutes (R-M1-6).
+        services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromMinutes(60));
+        services.Configure<SignFlow.Application.Common.Models.SecurityOptions>(configuration.GetSection("Security"));
 
         // Settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));

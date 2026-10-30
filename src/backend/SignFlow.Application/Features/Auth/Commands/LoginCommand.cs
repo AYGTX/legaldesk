@@ -1,67 +1,66 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Domain.Entities;
 
 namespace SignFlow.Application.Features.Auth.Commands;
 
-public record LoginCommand(string Email, string Password, bool RememberMe = false) : ICommand<LoginResult>;
-
-public record LoginResult(string AccessToken, string RefreshToken, DateTime ExpiresAt, UserInfo User);
-
-public record UserInfo(Guid Id, string Email, string FirstName, string LastName, string FullName, IList<string> Roles, string? AvatarUrl, bool MfaEnabled, string? Department, string? Company = null);
+public record LoginCommand(string Email, string Password, ClientInfo Client) : ICommand<LoginOutcome>;
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>
 {
     public LoginCommandValidator()
     {
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
-        RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
+        RuleFor(x => x.Password).NotEmpty().MaximumLength(256);
     }
 }
 
+/// <summary>
+/// Password sign-in (R-M1-5). Unknown e-mail, wrong password, deactivated and locked accounts all get the same
+/// answer, after the same password-hash work, so the response tells an attacker nothing about who has an account.
+/// </summary>
 public class LoginCommandHandler(
     UserManager<ApplicationUser> userManager,
-    ITokenService tokenService,
-    ILogger<LoginCommandHandler> logger) : ICommandHandler<LoginCommand, LoginResult>
+    AuthSessions sessions,
+    ITokenService tokens,
+    ILogger<LoginCommandHandler> logger) : ICommandHandler<LoginCommand, LoginOutcome>
 {
-    public async Task<LoginResult> HandleAsync(LoginCommand command, CancellationToken cancellationToken = default)
+    public const string InvalidCredentials = "Invalid email or password.";
+
+    // Verifying against this hash costs what a real check costs, so an unknown e-mail answers as slowly as a known one.
+    private static readonly Lazy<string> DummyHash =
+        new(() => new PasswordHasher<ApplicationUser>().HashPassword(new ApplicationUser(), Guid.NewGuid().ToString()));
+
+    public async Task<LoginOutcome> HandleAsync(LoginCommand command, CancellationToken cancellationToken = default)
     {
-        var user = await userManager.FindByEmailAsync(command.Email)
-            ?? throw new UnauthorizedAccessException("Invalid email or password.");
-
-        if (!user.IsActive)
-            throw new ForbiddenAccessException("Account is deactivated.");
-
-        var passwordValid = await userManager.CheckPasswordAsync(user, command.Password);
-        if (!passwordValid)
+        var user = await userManager.FindByEmailAsync(command.Email);
+        if (user is null)
         {
-            await userManager.AccessFailedAsync(user);
-            throw new UnauthorizedAccessException("Invalid email or password.");
+            userManager.PasswordHasher.VerifyHashedPassword(new ApplicationUser(), DummyHash.Value, command.Password);
+            logger.LogInformation("Sign-in refused: unknown e-mail");
+            throw new UnauthorizedAccessException(InvalidCredentials);
         }
 
-        if (await userManager.IsLockedOutAsync(user))
-            throw new ForbiddenAccessException("Account is temporarily locked. Please try again later.");
+        var locked = await userManager.IsLockedOutAsync(user);
+        var passwordOk = await userManager.CheckPasswordAsync(user, command.Password);
+
+        if (locked || !user.IsActive || !passwordOk)
+        {
+            if (!locked && !passwordOk)
+                await userManager.AccessFailedAsync(user);
+            logger.LogInformation("Sign-in refused for user {UserId}: {Reason}", user.Id,
+                locked ? "locked" : !user.IsActive ? "deactivated" : "wrong password");
+            throw new UnauthorizedAccessException(InvalidCredentials);
+        }
 
         await userManager.ResetAccessFailedCountAsync(user);
 
-        var roles = await userManager.GetRolesAsync(user);
-        var accessToken = tokenService.GenerateAccessToken(user, roles);
-        var refreshToken = tokenService.GenerateRefreshToken();
+        if (user.TwoFactorEnabled)
+            return LoginOutcome.NeedsMfa(tokens.GenerateMfaChallenge(user));
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(command.RememberMe ? 30 : 7);
-        user.LastLoginAt = DateTime.UtcNow;
-        await userManager.UpdateAsync(user);
-
-        logger.LogInformation("User {Email} logged in successfully", command.Email);
-
-        return new LoginResult(
-            accessToken,
-            refreshToken,
-            DateTime.UtcNow.AddMinutes(60),
-            new UserInfo(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, roles, user.AvatarUrl, user.MfaEnabled, user.Department, user.Company));
+        logger.LogInformation("User {UserId} signed in", user.Id);
+        return LoginOutcome.Signed(await sessions.StartAsync(user, command.Client, cancellationToken));
     }
 }

@@ -47,7 +47,7 @@ public class GetMyProfileQueryHandler(
             user.Title,
             user.AvatarUrl,
             user.SignatureUrl,
-            user.MfaEnabled,
+            user.TwoFactorEnabled,
             user.CreatedAt,
             user.LastLoginAt,
             roles.ToList());

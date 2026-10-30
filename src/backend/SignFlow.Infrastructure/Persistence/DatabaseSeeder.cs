@@ -31,7 +31,7 @@ public static class DatabaseSeeder
         using var tenantScope = context.Tenant.BeginScope(Organisation.DefaultId);
 
         // Roles
-        string[] roles = ["Administrator", "Manager", "Employee", "ExternalSigner"];
+        string[] roles = ["Administrator", "Manager", "Employee"];
         foreach (var roleName in roles)
         {
             if (!await roleManager.RoleExistsAsync(roleName))

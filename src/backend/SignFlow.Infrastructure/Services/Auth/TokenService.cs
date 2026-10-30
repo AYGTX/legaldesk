@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -17,7 +16,18 @@ public class TokenService(IOptions<JwtSettings> jwtSettings) : ITokenService
     /// <summary>The organisation the user belongs to (R-M0-4); read by TenantResolutionMiddleware.</summary>
     public const string TenantClaimType = "org";
 
-    public string GenerateAccessToken(ApplicationUser user, IList<string> roles)
+    /// <summary>Present (value "required") while an Administrator or Manager still has to set up two-factor
+    /// sign-in; MfaSetupGateMiddleware then lets the token reach only the setup endpoints.</summary>
+    public const string MfaSetupClaimType = "mfa_setup";
+
+    private static readonly TimeSpan MfaChallengeLifetime = TimeSpan.FromMinutes(5);
+
+    // A challenge is signed with the same key but for another audience, so it can never pass as an access token.
+    private string MfaAudience => _settings.Audience + "/mfa-challenge";
+
+    public TimeSpan AccessTokenLifetime => TimeSpan.FromMinutes(_settings.ExpirationMinutes);
+
+    public string GenerateAccessToken(ApplicationUser user, IList<string> roles, bool mfaSetupRequired = false)
     {
         var claims = new List<Claim>
         {
@@ -30,75 +40,57 @@ public class TokenService(IOptions<JwtSettings> jwtSettings) : ITokenService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
-
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        if (mfaSetupRequired)
+            claims.Add(new Claim(MfaSetupClaimType, "required"));
 
+        return Write(claims, _settings.Audience, AccessTokenLifetime);
+    }
+
+    public string GenerateMfaChallenge(ApplicationUser user) =>
+        Write([new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString())], MfaAudience, MfaChallengeLifetime);
+
+    public Guid? ValidateMfaChallenge(string challenge)
+    {
+        var principal = Validate(challenge, MfaAudience);
+        var subject = principal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal?.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return Guid.TryParse(subject, out var id) ? id : null;
+    }
+
+    public bool ValidateToken(string token) => Validate(token, _settings.Audience) is not null;
+
+    private string Write(IEnumerable<Claim> claims, string audience, TimeSpan lifetime)
+    {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,
-            audience: _settings.Audience,
+            audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_settings.ExpirationMinutes),
-            signingCredentials: creds);
-
+            expires: DateTime.UtcNow.Add(lifetime),
+            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public string GenerateRefreshToken()
+    private ClaimsPrincipal? Validate(string token, string audience)
     {
-        var bytes = new byte[64];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(bytes);
-        return Convert.ToBase64String(bytes);
-    }
-
-    public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
-    {
-        var validationParams = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret)),
-            ValidateIssuer = true,
-            ValidIssuer = _settings.Issuer,
-            ValidateAudience = true,
-            ValidAudience = _settings.Audience,
-            ValidateLifetime = false
-        };
-
-        var handler = new JwtSecurityTokenHandler();
-            var principal = handler.ValidateToken(token, validationParams, out var securityToken);
-
-        if (securityToken is not JwtSecurityToken jwtToken ||
-            !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.OrdinalIgnoreCase))
-            throw new SecurityTokenException("Invalid token.");
-
-        return principal;
-    }
-
-    public bool ValidateToken(string token)
-    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
         try
         {
-            var validationParams = new TokenValidationParameters
+            return new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret)),
                 ValidateIssuer = true,
                 ValidIssuer = _settings.Issuer,
                 ValidateAudience = true,
-                ValidAudience = _settings.Audience,
+                ValidAudience = audience,
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
-            };
-
-            new JwtSecurityTokenHandler().ValidateToken(token, validationParams, out _);
-            return true;
+            }, out _);
         }
-        catch
+        catch (Exception ex) when (ex is SecurityTokenException or ArgumentException)
         {
-            return false;
+            return null;
         }
     }
 }

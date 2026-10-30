@@ -27,6 +27,7 @@ public class ChangePasswordCommandValidator : AbstractValidator<ChangePasswordCo
 public class ChangePasswordCommandHandler(
     UserManager<ApplicationUser> userManager,
     ICurrentUserService currentUser,
+    SignFlow.Application.Features.Auth.AuthSessions sessions,
     ILogger<ChangePasswordCommandHandler> logger) : ICommandHandler<ChangePasswordCommand>
 {
     public async Task HandleAsync(ChangePasswordCommand command, CancellationToken cancellationToken = default)
@@ -40,6 +41,8 @@ public class ChangePasswordCommandHandler(
         if (!result.Succeeded)
             throw new Common.Exceptions.ValidationException(result.Errors.Select(e => new FluentValidation.Results.ValidationFailure("", e.Description)));
 
+        // Every device signs in again with the new password, this one included (R-M1-6).
+        await sessions.EndAllAsync(user.Id, "password-change", cancellationToken);
         logger.LogInformation("User {UserId} changed their password", userId);
     }
 }

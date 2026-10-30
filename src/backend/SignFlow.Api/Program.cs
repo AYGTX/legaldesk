@@ -1,3 +1,4 @@
+using SignFlow.Api;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Hangfire;
@@ -80,25 +81,24 @@ try
                 SignFlow.Application.Common.Security.Permissions.RolesFor(permission)));
     });
 
-    builder.Services.AddRateLimiter(options =>
+    builder.Services.AddLegalDeskRateLimits();
+
+    // Behind a reverse proxy the client's address arrives in X-Forwarded-For. Only proxies listed under
+    // Security:KnownProxies are believed, so a client cannot forge its own IP in the signature evidence.
+    builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
     {
-        options.AddFixedWindowLimiter("api", config =>
-        {
-            config.Window = TimeSpan.FromMinutes(1);
-            config.PermitLimit = 120;
-            config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            config.QueueLimit = 10;
-        });
-        options.AddFixedWindowLimiter("auth", config =>
-        {
-            config.Window = TimeSpan.FromMinutes(15);
-            config.PermitLimit = 10;
-        });
-        options.OnRejected = async (context, ct) =>
-        {
-            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", ct);
-        };
+        options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+                                   | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+        foreach (var proxy in builder.Configuration.GetSection("Security:KnownProxies").Get<string[]>() ?? [])
+            if (System.Net.IPAddress.TryParse(proxy, out var address))
+                options.KnownProxies.Add(address);
+    });
+    builder.Services.AddHsts(options =>
+    {
+        options.MaxAge = TimeSpan.FromDays(365);
+        options.IncludeSubDomains = true;
     });
 
     builder.Services.AddCors(options =>
@@ -128,8 +128,14 @@ try
 
     var app = builder.Build();
 
+    app.UseForwardedHeaders();
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseMiddleware<RequestContextMiddleware>();
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHsts();
+        app.UseHttpsRedirection();
+    }
 
     app.UseSerilogRequestLogging(options =>
     {
@@ -149,7 +155,6 @@ try
         });
     }
 
-    app.UseRateLimiter();
     app.UseCors("AllowFrontend");
 
     // Serve uploaded avatars publicly (only the avatars subfolder — PDFs/signatures stay private)
@@ -164,6 +169,9 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+    // After authentication, so the global limit is per user, not per shared office IP.
+    app.UseRateLimiter();
+    app.UseMiddleware<MfaSetupGateMiddleware>();
     app.UseMiddleware<TenantResolutionMiddleware>();
 
     app.UseHangfireDashboard("/hangfire", new DashboardOptions

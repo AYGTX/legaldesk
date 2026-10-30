@@ -20,6 +20,7 @@ public class TenantResolutionMiddlewareTests
         public Task<IReadOnlyList<Guid>> ActiveOrganisationIdsAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Guid>>([]);
         public Task<Guid?> SoleOrganisationIdAsync(CancellationToken ct = default) => Task.FromResult<Guid?>(null);
+        public Task<bool> EmailInUseAsync(string email, CancellationToken ct = default) => Task.FromResult(false);
     }
 
     private static async Task<Guid?> SeenDuringRequest(HttpContext http, IPlatformQueries platform, TenantContext tenant)

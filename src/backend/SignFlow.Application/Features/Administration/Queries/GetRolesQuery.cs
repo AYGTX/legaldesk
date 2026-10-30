@@ -17,10 +17,10 @@ public class GetRolesQueryHandler(
         if (!currentUser.Can(Permissions.ManageUsers))
             throw new ForbiddenAccessException();
 
-        return await roleManager.Roles
-            .Where(r => r.Name != null)
-            .Select(r => r.Name!)
-            .OrderBy(n => n)
-            .ToListAsync(cancellationToken);
+        // The three roles of the permission table (R-M1-7); ExternalSigner is gone: signers are recipients, not users.
+        var existing = await roleManager.Roles.Where(r => r.Name != null).Select(r => r.Name!).ToListAsync(cancellationToken);
+        return SignFlow.Application.Features.Auth.Commands.InviteUserCommandValidator.InvitableRoles
+            .Where(existing.Contains)
+            .ToList();
     }
 }

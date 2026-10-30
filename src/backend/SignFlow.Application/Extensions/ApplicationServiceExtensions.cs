@@ -53,9 +53,22 @@ public static class ApplicationServiceExtensions
         services.AddValidatorsFromAssemblyContaining<LoginCommandValidator>();
 
         // Auth command handlers
-        services.AddScoped<ICommandHandler<LoginCommand, LoginResult>, LoginCommandHandler>();
-        services.AddScoped<ICommandHandler<RegisterCommand, LoginResult>, RegisterCommandHandler>();
-        services.AddScoped<ICommandHandler<RefreshTokenCommand, LoginResult>, RefreshTokenCommandHandler>();
+        // Auth: sessions, two-factor, invitations, recovery (rework spec M1)
+        services.AddScoped<SignFlow.Application.Features.Auth.AuthSessions>();
+        services.AddScoped<PasswordResetMail>();
+        services.AddScoped<ICommandHandler<LoginCommand, SignFlow.Application.Features.Auth.LoginOutcome>, LoginCommandHandler>();
+        services.AddScoped<ICommandHandler<MfaLoginCommand, SignFlow.Application.Features.Auth.AuthSession>, MfaLoginCommandHandler>();
+        services.AddScoped<ICommandHandler<RefreshTokenCommand, SignFlow.Application.Features.Auth.AuthSession>, RefreshTokenCommandHandler>();
+        services.AddScoped<ICommandHandler<LogoutCommand>, LogoutCommandHandler>();
+        services.AddScoped<ICommandHandler<AcceptInvitationCommand, SignFlow.Application.Features.Auth.AuthSession>, AcceptInvitationCommandHandler>();
+        services.AddScoped<ICommandHandler<InviteUserCommand, InvitationDto>, InviteUserCommandHandler>();
+        services.AddScoped<ICommandHandler<RevokeInvitationCommand>, RevokeInvitationCommandHandler>();
+        services.AddScoped<IQueryHandler<GetInvitationsQuery, List<InvitationDto>>, GetInvitationsQueryHandler>();
+        services.AddScoped<ICommandHandler<BeginMfaSetupCommand, MfaSetupDto>, BeginMfaSetupCommandHandler>();
+        services.AddScoped<ICommandHandler<ConfirmMfaSetupCommand, IReadOnlyList<string>>, ConfirmMfaSetupCommandHandler>();
+        services.AddScoped<ICommandHandler<DisableMfaCommand>, DisableMfaCommandHandler>();
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Profile.GetMySessionsQuery, List<SignFlow.Application.Features.Profile.SessionDto>>, SignFlow.Application.Features.Profile.GetMySessionsQueryHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Profile.EndMySessionCommand>, SignFlow.Application.Features.Profile.EndMySessionCommandHandler>();
         services.AddScoped<ICommandHandler<ForgotPasswordCommand>, ForgotPasswordCommandHandler>();
         services.AddScoped<ICommandHandler<ResetPasswordCommand>, ResetPasswordCommandHandler>();
 
@@ -126,8 +139,6 @@ public static class ApplicationServiceExtensions
 
         // Administration
         services.AddScoped<ICommandHandler<UpdateUserCommand>, UpdateUserCommandHandler>();
-        services.AddScoped<ICommandHandler<CreateUserCommand, Guid>, CreateUserCommandHandler>();
-        services.AddScoped<ICommandHandler<DeleteUserCommand>, DeleteUserCommandHandler>();
         services.AddScoped<ICommandHandler<ResetUserPasswordCommand>, ResetUserPasswordCommandHandler>();
         services.AddScoped<IQueryHandler<GetUsersQuery, PagedResult<UserDto>>, GetUsersQueryHandler>();
         services.AddScoped<IQueryHandler<GetRolesQuery, List<string>>, GetRolesQueryHandler>();

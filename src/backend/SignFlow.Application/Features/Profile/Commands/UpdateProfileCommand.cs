@@ -51,7 +51,7 @@ public class UpdateProfileCommandHandler(
 
         return new ProfileDto(
             user.Id, user.Email!, user.FirstName, user.LastName, user.FullName,
-            user.Company, user.Department, user.Title, user.AvatarUrl, user.SignatureUrl, user.MfaEnabled,
+            user.Company, user.Department, user.Title, user.AvatarUrl, user.SignatureUrl, user.TwoFactorEnabled,
             user.CreatedAt, user.LastLoginAt, roles.ToList());
     }
 }

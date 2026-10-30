@@ -1,5 +1,7 @@
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Features.Checklist.Commands;
 using SignFlow.Application.Features.Comments;
@@ -11,10 +13,12 @@ using SignFlow.Application.Features.Signing.Queries;
 
 namespace SignFlow.Api.Controllers.V1;
 
-/// <summary>External signing endpoints — no authentication required</summary>
+/// <summary>External signing endpoints: the link's token is the credential, so no sign-in</summary>
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/sign")]
 [ApiController]
+[AllowAnonymous]
+[EnableRateLimiting(RateLimits.Signing)]
 public class SigningController(
     IQueryHandler<GetSigningSessionQuery, SigningSessionDto> sessionHandler,
     ICommandHandler<SignFieldCommand, SignFieldResult> signHandler,

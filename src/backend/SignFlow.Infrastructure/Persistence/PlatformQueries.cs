@@ -29,4 +29,11 @@ public sealed class PlatformQueries(ApplicationDbContext db) : IPlatformQueries
         var ids = await db.Organisations.Where(o => o.IsActive).Select(o => o.Id).Take(2).ToListAsync(cancellationToken);
         return ids.Count == 1 ? ids[0] : null;
     }
+
+    public Task<bool> EmailInUseAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var normalised = email.Trim().ToUpperInvariant();
+        return db.Users.IgnoreQueryFilters([QueryFilters.Tenant])
+            .AnyAsync(u => u.NormalizedEmail == normalised, cancellationToken);
+    }
 }

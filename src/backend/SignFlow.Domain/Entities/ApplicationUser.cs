@@ -22,15 +22,14 @@ public class ApplicationUser : IdentityUser<Guid>, ITenantOwned
     public string? AvatarUrl { get; set; }
     public string? SignatureUrl { get; set; }
     public string? InitialsUrl { get; set; }
-    public bool MfaEnabled { get; set; }
-    public string? MfaSecret { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
-    public string? RefreshToken { get; set; }
-    public DateTime? RefreshTokenExpiryTime { get; set; }
-    public string? PasswordResetToken { get; set; }
-    public DateTime? PasswordResetTokenExpiry { get; set; }
+
+    /// <summary>Preferred language for e-mails and notifications (fr or en).</summary>
+    public string PreferredLanguage { get; set; } = "fr";
+
+    // Two-factor sign-in uses Identity's TwoFactorEnabled and authenticator key; sessions live in UserSession.
 
     public string FullName => $"{FirstName} {LastName}".Trim();
 

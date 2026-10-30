@@ -37,6 +37,7 @@ public class GdprController(
     /// <summary>Submit a Data Subject Access Request (Art. 15-21 GDPR)</summary>
     [HttpPost("dsar")]
     [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(RateLimits.Auth)]
     [ProducesResponseType(typeof(DsarSubmittedResponse), 201)]
     public async Task<IActionResult> SubmitDsar([FromBody] SubmitDsarRequest request, CancellationToken ct)
     {

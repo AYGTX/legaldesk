@@ -7,6 +7,8 @@ public interface IApplicationDbContext
 {
     DbSet<Organisation> Organisations { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
+    DbSet<UserSession> UserSessions { get; }
+    DbSet<UserInvitation> UserInvitations { get; }
     DbSet<Document> Documents { get; }
     DbSet<DocumentVersion> DocumentVersions { get; }
     DbSet<Recipient> Recipients { get; }

@@ -5,28 +5,37 @@
     </assembly>
     <members>
         <member name="T:SignFlow.Api.Controllers.V1.AdminController">
-            <summary>Administration endpoints</summary>
+            <summary>Administration endpoints: people join by invitation and leave by deactivation (R-M1-1)</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AdminController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.UpdateUserCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.CreateUserCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.DeleteUserCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.ResetUserPasswordCommand},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Administration.Queries.GetUsersQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.Administration.Queries.UserDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Administration.Queries.GetRolesQuery,System.Collections.Generic.List{System.String}})">
-            <summary>Administration endpoints</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.UpdateUserCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.Commands.ResetUserPasswordCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.InviteUserCommand,SignFlow.Application.Features.Auth.Commands.InvitationDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.RevokeInvitationCommand},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Auth.Commands.GetInvitationsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Auth.Commands.InvitationDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Administration.Queries.GetUsersQuery,SignFlow.Application.Common.Models.PagedResult{SignFlow.Application.Features.Administration.Queries.UserDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Administration.Queries.GetRolesQuery,System.Collections.Generic.List{System.String}})">
+            <summary>Administration endpoints: people join by invitation and leave by deactivation (R-M1-1)</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.AdminController.GetUsers(System.Int32,System.Int32,System.String,System.Threading.CancellationToken)">
             <summary>List all users</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.AdminController.GetRoles(System.Threading.CancellationToken)">
-            <summary>List all available roles</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AdminController.CreateUser(SignFlow.Api.Controllers.V1.CreateUserRequest,System.Threading.CancellationToken)">
-            <summary>Create a new user</summary>
+            <summary>List the roles a user can be given</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.AdminController.UpdateUser(System.Guid,SignFlow.Api.Controllers.V1.UpdateUserRequest,System.Threading.CancellationToken)">
-            <summary>Update user details and roles</summary>
+            <summary>Update user details, roles and active state (deactivating signs the user out everywhere)</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AdminController.ResetPassword(System.Guid,SignFlow.Api.Controllers.V1.AdminResetPasswordRequest,System.Threading.CancellationToken)">
-            <summary>Reset a user's password</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.ResetPassword(System.Guid,System.Threading.CancellationToken)">
+            <summary>Sign the user out everywhere and e-mail them a reset link; nobody else learns the new password</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AdminController.DeleteUser(System.Guid,System.Threading.CancellationToken)">
-            <summary>Delete a user</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.GetInvitations(System.Threading.CancellationToken)">
+            <summary>Invitations of the organisation, newest first</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.Invite(SignFlow.Application.Features.Auth.Commands.InviteUserCommand,System.Threading.CancellationToken)">
+            <summary>Invite someone by e-mail; the link works once, for 72 hours</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AdminController.RevokeInvitation(System.Guid,System.Threading.CancellationToken)">
+            <summary>Withdraw an invitation that has not been accepted</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.UpdateUserRequest">
+            <summary>New details for a user</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.UpdateUserRequest.#ctor(System.String,System.String,System.String,System.String,System.String,System.Boolean,System.Collections.Generic.List{System.String})">
+            <summary>New details for a user</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.AuditController">
             <summary>Audit trail endpoints</summary>
@@ -41,25 +50,61 @@
             <summary>Export the full audit trail for a document as a CSV file</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.AuthController">
-            <summary>Authentication endpoints</summary>
+            <summary>
+            Sign-in and sessions (R-M1-4). The access token is returned in the body and kept in memory by the web app; the
+            refresh token travels only in an HttpOnly, Secure, SameSite=Strict cookie that scripts cannot read.
+            </summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AuthController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.LoginCommand,SignFlow.Application.Features.Auth.Commands.LoginResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.RegisterCommand,SignFlow.Application.Features.Auth.Commands.LoginResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.RefreshTokenCommand,SignFlow.Application.Features.Auth.Commands.LoginResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.ForgotPasswordCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.ResetPasswordCommand})">
-            <summary>Authentication endpoints</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.LoginCommand,SignFlow.Application.Features.Auth.LoginOutcome},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.MfaLoginCommand,SignFlow.Application.Features.Auth.AuthSession},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.RefreshTokenCommand,SignFlow.Application.Features.Auth.AuthSession},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.LogoutCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.AcceptInvitationCommand,SignFlow.Application.Features.Auth.AuthSession},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.ForgotPasswordCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.ResetPasswordCommand})">
+            <summary>
+            Sign-in and sessions (R-M1-4). The access token is returned in the body and kept in memory by the web app; the
+            refresh token travels only in an HttpOnly, Secure, SameSite=Strict cookie that scripts cannot read.
+            </summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Login(SignFlow.Application.Features.Auth.Commands.LoginCommand,System.Threading.CancellationToken)">
-            <summary>Login with email and password</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Login(SignFlow.Api.Controllers.V1.LoginRequest,System.Threading.CancellationToken)">
+            <summary>Sign in with e-mail and password; answers with a session, or with a two-factor challenge</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Register(SignFlow.Application.Features.Auth.Commands.RegisterCommand,System.Threading.CancellationToken)">
-            <summary>Register a new account</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Mfa(SignFlow.Api.Controllers.V1.MfaRequest,System.Threading.CancellationToken)">
+            <summary>Second step: the challenge from login plus a code from the authenticator app or a recovery code</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Refresh(SignFlow.Application.Features.Auth.Commands.RefreshTokenCommand,System.Threading.CancellationToken)">
-            <summary>Refresh access token using refresh token</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Refresh(System.Threading.CancellationToken)">
+            <summary>A new access token from the session cookie; the cookie itself is rotated</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.Logout(System.Threading.CancellationToken)">
+            <summary>End this device's session</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AuthController.AcceptInvitation(SignFlow.Api.Controllers.V1.AcceptInvitationRequest,System.Threading.CancellationToken)">
+            <summary>Accept an invitation: set a password and sign in</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.AuthController.ForgotPassword(SignFlow.Application.Features.Auth.Commands.ForgotPasswordCommand,System.Threading.CancellationToken)">
-            <summary>Request a password reset email</summary>
+            <summary>Request a password reset e-mail (same answer whether or not the address has an account)</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.AuthController.ResetPassword(SignFlow.Application.Features.Auth.Commands.ResetPasswordCommand,System.Threading.CancellationToken)">
-            <summary>Reset password using token</summary>
+            <summary>Set a new password with the link's token; every session of the account ends</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.LoginRequest">
+            <summary>E-mail and password</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.LoginRequest.#ctor(System.String,System.String)">
+            <summary>E-mail and password</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.MfaRequest">
+            <summary>Challenge from the login answer and a TOTP or recovery code</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.MfaRequest.#ctor(System.String,System.String)">
+            <summary>Challenge from the login answer and a TOTP or recovery code</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.AcceptInvitationRequest">
+            <summary>Invitation token from the e-mailed link and the new password</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AcceptInvitationRequest.#ctor(System.String,System.String)">
+            <summary>Invitation token from the e-mailed link and the new password</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.SignInResponse">
+            <summary>Either a session (access token, its expiry, the user) or a two-factor challenge to answer</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SignInResponse.#ctor(System.String,System.Nullable{System.DateTime},SignFlow.Application.Features.Auth.UserInfo,System.Boolean,System.String)">
+            <summary>Either a session (access token, its expiry, the user) or a two-factor challenge to answer</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.ClausesController">
             <summary>
@@ -373,8 +418,23 @@
         <member name="T:SignFlow.Api.Controllers.V1.ProfileController">
             <summary>Self-service profile endpoints for the currently authenticated user</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Profile.Queries.GetMyProfileQuery,SignFlow.Application.Features.Profile.Queries.ProfileDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.UpdateProfileCommand,SignFlow.Application.Features.Profile.Queries.ProfileDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.ChangePasswordCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.UpdateAvatarCommand,System.String})">
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Profile.Queries.GetMyProfileQuery,SignFlow.Application.Features.Profile.Queries.ProfileDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.UpdateProfileCommand,SignFlow.Application.Features.Profile.Queries.ProfileDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.ChangePasswordCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.Commands.UpdateAvatarCommand,System.String},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.BeginMfaSetupCommand,SignFlow.Application.Features.Auth.Commands.MfaSetupDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.ConfirmMfaSetupCommand,System.Collections.Generic.IReadOnlyList{System.String}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Auth.Commands.DisableMfaCommand},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Profile.GetMySessionsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Profile.SessionDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Profile.EndMySessionCommand})">
             <summary>Self-service profile endpoints for the currently authenticated user</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.BeginMfaSetup(System.Threading.CancellationToken)">
+            <summary>Start two-factor setup: a new authenticator key and the otpauth:// address for the QR code</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.ConfirmMfa(SignFlow.Api.Controllers.V1.MfaCodeRequest,System.Threading.CancellationToken)">
+            <summary>Confirm with a code from the app; returns 10 recovery codes, shown only this once. Other sessions end.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.DisableMfa(SignFlow.Api.Controllers.V1.MfaCodeRequest,System.Threading.CancellationToken)">
+            <summary>Turn two-factor off (refused for roles that require it)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.GetSessions(System.Threading.CancellationToken)">
+            <summary>My open sessions, most recently used first</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ProfileController.EndSession(System.Guid,System.Threading.CancellationToken)">
+            <summary>End one of my sessions</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ProfileController.GetMyProfile(System.Threading.CancellationToken)">
             <summary>Get the current user's profile</summary>
@@ -387,6 +447,18 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ProfileController.UploadAvatar(SignFlow.Api.Controllers.V1.UploadAvatarRequest,System.Threading.CancellationToken)">
             <summary>Upload a new avatar image</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.MfaCodeRequest">
+            <summary>A code from the authenticator app</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.MfaCodeRequest.#ctor(System.String)">
+            <summary>A code from the authenticator app</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.RecoveryCodesResponse">
+            <summary>Recovery codes, each usable once</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RecoveryCodesResponse.#ctor(System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Recovery codes, each usable once</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.RecipientsController">
             <summary>Recipient management endpoints</summary>
@@ -526,10 +598,10 @@
             <summary>Delete a request type (only if unused)</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.SigningController">
-            <summary>External signing endpoints — no authentication required</summary>
+            <summary>External signing endpoints: the link's token is the credential, so no sign-in</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Signing.Queries.GetSigningSessionQuery,SignFlow.Application.Features.Signing.Queries.SigningSessionDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.SignFieldCommand,SignFlow.Application.Features.Signing.Commands.SignFieldResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.ApproveSigningCommand,SignFlow.Application.Features.Signing.Commands.ApproveSigningResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.RejectDocumentCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.AcknowledgeReviewCommand},SignFlow.Application.Common.Interfaces.IStorageService)">
-            <summary>External signing endpoints — no authentication required</summary>
+            <summary>External signing endpoints: the link's token is the credential, so no sign-in</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetSession(System.String,System.Threading.CancellationToken)">
             <summary>Get the signing session for a recipient</summary>
@@ -633,6 +705,20 @@
             registered as a policy of the same name at start-up (Program.cs), so this is plain ASP.NET authorisation.
             </summary>
         </member>
+        <member name="T:SignFlow.Api.Middleware.MfaSetupGateMiddleware">
+            <summary>
+            R-M1-3: an Administrator or Manager without two-factor sign-in gets a token marked mfa_setup=required, and with it
+            reaches only their profile, the two-factor setup and sign-out. Everything else answers 403 code mfa.setupRequired,
+            which sends the web app to the setup screen.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Middleware.MfaSetupGateMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate)">
+            <summary>
+            R-M1-3: an Administrator or Manager without two-factor sign-in gets a token marked mfa_setup=required, and with it
+            reaches only their profile, the two-factor setup and sign-out. Everything else answers 403 code mfa.setupRequired,
+            which sends the web app to the setup screen.
+            </summary>
+        </member>
         <member name="T:SignFlow.Api.Middleware.TenantResolutionMiddleware">
             <summary>
             Sets the organisation a request acts for (R-M0-4), after authentication and before any endpoint runs:
@@ -645,6 +731,12 @@
             Sets the organisation a request acts for (R-M0-4), after authentication and before any endpoint runs:
             a signed-in user acts for their own organisation; a signing link acts for its recipient's organisation.
             Sign-in, recovery and health checks run without one.
+            </summary>
+        </member>
+        <member name="T:SignFlow.Api.RateLimits">
+            <summary>
+            Request limits, partitioned per caller (security baseline): sign-in per client IP, signing links per token,
+            everything else per signed-in user (or IP when anonymous). A refused request gets 429 with Retry-After.
             </summary>
         </member>
         <member name="T:Program">

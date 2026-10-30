@@ -19,6 +19,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<Organisation> Organisations => Set<Organisation>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<UserInvitation> UserInvitations => Set<UserInvitation>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<Recipient> Recipients => Set<Recipient>();
@@ -67,6 +69,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             o.HasIndex(x => x.Slug).IsUnique();
             o.Property(x => x.ModelMode).HasConversion<string>().HasMaxLength(20);
         });
+
+        // Sessions and invitations are found by the hash of the token someone presents.
+        builder.Entity<UserSession>(e =>
+        {
+            e.HasIndex(x => x.TokenHash).IsUnique();
+            e.HasIndex(x => x.PreviousTokenHash);
+            e.HasIndex(x => x.UserId);
+        });
+        builder.Entity<UserInvitation>().HasIndex(x => x.TokenHash).IsUnique();
+        builder.Entity<ApplicationUser>().Property(u => u.PreferredLanguage).HasMaxLength(5);
 
         // The dispatcher reads due messages in order.
         builder.Entity<OutboxMessage>().HasIndex(m => new { m.SentAt, m.NextAttemptAt });
