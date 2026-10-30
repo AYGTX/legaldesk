@@ -48,6 +48,35 @@ services:
       timeout: 5s
       retries: 3
 
+  # ClamAV: every uploaded PDF is scanned before it is stored (R-M2-2)
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: legaldesk-clamav
+    volumes:
+      - clamav-data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s   # the first start downloads the signature database
+
+  # Harvey: verified law, risk grid and contract review (M11). The meaning model is baked into the image.
+  harvey:
+    build:
+      context: ./src/legal-corpus
+      dockerfile: Dockerfile
+    container_name: legaldesk-harvey
+    environment:
+      CORPUS_API_KEY: "${HARVEY_API_KEY:?Set HARVEY_API_KEY in .env}"
+      CORPUS_ADMIN_PASSWORD: "${HARVEY_ADMIN_PASSWORD:?Set HARVEY_ADMIN_PASSWORD in .env}"
+      CORPUS_SESSION_SECRET: "${HARVEY_SESSION_SECRET:?Set HARVEY_SESSION_SECRET in .env}"
+      CORPUS_AI_PROVIDER: "none"
+    ports:
+      - "8100:8100"
+    volumes:
+      - harvey-data:/srv/harvey/data
+
   # .NET API
   api:
     build:
@@ -69,8 +98,15 @@ services:
       Email__UseSsl: "false"
       Email__Username: ""
       Email__Password: ""
-      Email__FromEmail: "noreply@signflow.app"
-      Email__FromName: "SignFlow"
+      Email__FromEmail: "noreply@legaldesk.tn"
+      Email__FromName: "LegalDesk"
+      LegalCorpus__BaseUrl: "http://harvey:8100"
+      LegalCorpus__ApiKey: "${HARVEY_API_KEY:?Set HARVEY_API_KEY in .env}"
+      Security__PublicUrl: "http://localhost:4200"
+      Security__ClamAv__Host: "clamav"
+      Security__ClamAv__Required: "true"
+      # The web container's nginx forwards the client IP; only this network is believed (signature evidence).
+      Security__KnownNetworks__0: "172.28.0.0/16"
     ports:
       - "5000:5000"
     volumes:
@@ -80,6 +116,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      clamav:
+        condition: service_healthy
+      harvey:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
       interval: 15s
@@ -103,3 +143,11 @@ volumes:
   sqlserver-data:
   redis-data:
   uploads-data:
+  clamav-data:
+  harvey-data:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

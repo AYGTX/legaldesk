@@ -94,6 +94,10 @@ try
         foreach (var proxy in builder.Configuration.GetSection("Security:KnownProxies").Get<string[]>() ?? [])
             if (System.Net.IPAddress.TryParse(proxy, out var address))
                 options.KnownProxies.Add(address);
+        // A container network (CIDR), when the proxy's own address is not fixed: docker-compose sets 172.28.0.0/16.
+        foreach (var network in builder.Configuration.GetSection("Security:KnownNetworks").Get<string[]>() ?? [])
+            if (System.Net.IPNetwork.TryParse(network, out var range))
+                options.KnownIPNetworks.Add(range);
     });
     builder.Services.AddHsts(options =>
     {
