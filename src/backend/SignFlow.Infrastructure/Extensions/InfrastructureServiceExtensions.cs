@@ -175,6 +175,10 @@ public static class InfrastructureServiceExtensions
         services.Configure<SignFlow.Application.Features.Reviews.ReviewOptions>(configuration.GetSection("Review"));
         services.AddScoped<IReviewQueue, SignFlow.Infrastructure.Services.Background.HangfireReviewQueue>();
 
+        // Text recognition for scanned contracts (R-M2-4): Tesseract and pdftoppm when installed, else none.
+        services.Configure<SignFlow.Infrastructure.Services.Pdf.OcrSettings>(configuration.GetSection("Ocr"));
+        services.AddSingleton<IOcrService, SignFlow.Infrastructure.Services.Pdf.TesseractOcrService>();
+
         // Application services
         services.AddScoped<IAiService, LlmAiService>();
         services.AddScoped<ITokenService, TokenService>();

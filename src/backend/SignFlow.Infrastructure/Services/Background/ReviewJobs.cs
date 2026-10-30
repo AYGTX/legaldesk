@@ -12,6 +12,21 @@ public class HangfireReviewQueue(IBackgroundJobClient jobs) : IReviewQueue
 
     public void EnqueueFeedback(Guid itemId, Guid organisationId) =>
         jobs.Enqueue<ReviewFeedbackJob>(j => j.SendAsync(itemId, organisationId, CancellationToken.None));
+
+    public void EnqueueIntake(Guid documentId, Guid organisationId, bool suggest) =>
+        jobs.Enqueue<ContractIntakeJob>(j => j.RunAsync(documentId, organisationId, suggest, CancellationToken.None));
+}
+
+/// <summary>Reads a new contract file and reviews it (R-M2-3). Not retried: a failed review is shown and started again by
+/// the owner, and the intake flag lapses so a review can start.</summary>
+public class ContractIntakeJob(ITenantContext tenant, SignFlow.Application.Features.Documents.Commands.IContractIntake intake)
+{
+    [AutomaticRetry(Attempts = 0)]
+    public async Task RunAsync(Guid documentId, Guid organisationId, bool suggest, CancellationToken cancellationToken)
+    {
+        using (tenant.BeginScope(organisationId))
+            await intake.RunAsync(documentId, suggest, cancellationToken);
+    }
 }
 
 /// <summary>

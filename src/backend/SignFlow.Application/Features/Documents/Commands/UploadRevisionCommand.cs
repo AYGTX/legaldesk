@@ -46,6 +46,7 @@ public class UploadRevisionCommandHandler(
     IStorageService storage,
     IPdfService pdfService,
     Common.Services.PdfUploadGuard uploadGuard,
+    IReviewQueue queue,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<UploadRevisionCommandHandler> logger) : ICommandHandler<UploadRevisionCommand, UploadRevisionResult>
@@ -114,8 +115,10 @@ public class UploadRevisionCommandHandler(
 
         var oldVersion = document.Version;
         document.ApplyRevision(command.FileName, storagePath, command.FileSizeBytes, pageCount, hash);
+        document.MarkIntakePending();
 
         await db.SaveChangesAsync(cancellationToken);
+        queue.EnqueueIntake(document.Id, document.OrganisationId, suggest: false);
 
         if (voidedFields.Count > 0)
         {

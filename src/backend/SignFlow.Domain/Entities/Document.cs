@@ -49,6 +49,14 @@ public class Document : TenantEntity
     /// <summary>The last completed review of the current version; its findings are the contract's current findings.</summary>
     public Guid? LastReviewRunId { get; private set; }
 
+    // Intake (R-M2-3, R-M2-4): the text is read in the background after an upload or a new file. A PDF without a text
+    // layer goes through text recognition; that text is kept here, so every review reads the same words.
+    public ContractTextSource TextSource { get; private set; } = ContractTextSource.Embedded;
+    public string? OcrText { get; private set; }
+
+    /// <summary>The background reading of a new file has not finished: a review would read nothing yet.</summary>
+    public bool IntakePending { get; private set; }
+
     // Obligation tracking (renewal/expiry date), AI-suggested at upload time and owner-confirmable
     public DateTime? ObligationDueDate { get; private set; }
     public string? ObligationType { get; private set; }
@@ -228,6 +236,9 @@ public class Document : TenantEntity
         // The cached summary/risk analysis describe the previous file's content
         AiSummary = null;
         AiSummaryGeneratedAt = null;
+        // The text of the previous file is gone with it; the new file is read again by the intake job.
+        TextSource = ContractTextSource.Embedded;
+        OcrText = null;
         // The review described the previous file: sending is refused until this version is reviewed (R-M7-6).
         // The findings are kept: the next review marks the ones it no longer finds as Fixed in this version.
         ClearReview();
@@ -296,6 +307,22 @@ public class Document : TenantEntity
         ReadinessScore = readinessScore;
         RiskScore = riskScore;
         ReadinessEvaluatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>A new file was stored: its text is read in the background before any review.</summary>
+    public void MarkIntakePending()
+    {
+        IntakePending = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>The intake job read the file: from its text layer, by text recognition, or not at all.</summary>
+    public void CompleteIntake(ContractTextSource source, string? ocrText)
+    {
+        TextSource = source;
+        OcrText = source == ContractTextSource.Ocr ? ocrText : null;
+        IntakePending = false;
         UpdatedAt = DateTime.UtcNow;
     }
 

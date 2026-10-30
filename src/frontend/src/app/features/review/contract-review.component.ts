@@ -186,7 +186,7 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
                   <sf-readiness-checklist
                     [documentId]="documentId()!"
                     [items]="r.items"
-                    [fixedItems]="r.fixedItems"
+                    [fixedItems]="r.fixedItems" [fromOcr]="r.textSource === 'Ocr'"
                     (changed)="readiness.set($event)">
                   </sf-readiness-checklist>
                 </mat-card-content>

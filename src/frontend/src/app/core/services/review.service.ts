@@ -31,11 +31,33 @@ export class ReviewService {
   /** A little over the server's 120 s limit, so the server's own "timed out" is what the reader sees. */
   private static readonly WaitMs = 150_000;
 
-  /** Starts a review and emits the review once its run has finished; a failed run errors with a worded ReviewError. */
+  /**
+   * Starts a review and emits the review once its run has finished; a failed run errors with a worded ReviewError.
+   * A file still being read (text recognition included) is reviewed by that reading's own run: that one is awaited.
+   */
   run(documentId: string): Observable<Review> {
     return this.documents.startReview(documentId).pipe(
-      catchError(err => throwError(() => this.toError(err))),
-      switchMap(run => this.waitFor(documentId, run.id))
+      switchMap(run => this.waitFor(documentId, run.id)),
+      catchError(err => err?.error?.code === 'review.intake_pending'
+        ? this.waitForIntake(documentId)
+        : throwError(() => err instanceof ReviewError ? err : this.toError(err)))
+    );
+  }
+
+  /** Emits the review of the current version once the intake has read the file and its review has finished. */
+  waitForIntake(documentId: string): Observable<Review> {
+    return merge(of(0), this.pushes$.pipe(filter(e => e?.documentId === documentId)), interval(3000)).pipe(
+      switchMap(() => this.documents.getReview(documentId)),
+      filter(r => !r.intakePending && r.latestRun?.versionNumber === r.documentVersion
+        && (r.latestRun.status === 'Completed' || r.latestRun.status === 'Failed')),
+      take(1),
+      // Reading a long scan takes longer than a review.
+      timeout(ReviewService.WaitMs * 3),
+      catchError(err => throwError(() => err instanceof ReviewError ? err : this.toError(err, 'review.timeout'))),
+      map(r => {
+        if (r.latestRun!.status === 'Failed') throw this.errorFor(r.latestRun!.errorCode ?? 'review.unavailable');
+        return r;
+      })
     );
   }
 

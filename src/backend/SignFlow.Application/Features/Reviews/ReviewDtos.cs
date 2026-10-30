@@ -53,7 +53,8 @@ public record ReviewItemDto(
 /// <summary>
 /// The review of a contract's current version: the latest run (whatever its outcome), the verdict and scores of the
 /// last completed run, the current findings, and the findings fixed by earlier revisions. Counts rather than prose, so
-/// the page words it in the reader's language.
+/// the page words it in the reader's language. TextSource says whether the words reviewed came from text recognition
+/// (R-M2-4); IntakePending, that a new file is still being read.
 /// </summary>
 public record ReviewDto(
     Guid DocumentId,
@@ -68,7 +69,9 @@ public record ReviewDto(
     int HandledCount,
     ReviewRunDto? LatestRun,
     List<ReviewItemDto> Items,
-    List<ReviewItemDto> FixedItems);
+    List<ReviewItemDto> FixedItems,
+    ContractTextSource TextSource,
+    bool IntakePending);
 
 /// <summary>Builds <see cref="ReviewDto"/> for the query and for the commands that answer with the updated review.</summary>
 public static class ReviewView
@@ -123,7 +126,9 @@ public static class ReviewView
             [.. fixedItems
                 .OrderByDescending(i => i.FixedInVersion)
                 .ThenBy(i => ReviewGrading.Rank(i.Severity))
-                .Select(i => Map(i, names))]);
+                .Select(i => Map(i, names))],
+            document.TextSource,
+            document.IntakePending);
     }
 
     public static ReviewItemDto Map(DocumentReadinessItem i, IReadOnlyDictionary<Guid, string> names) => new(

@@ -360,7 +360,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     <sf-readiness-checklist
                       [documentId]="doc()!.id"
                       [items]="r.items"
-                      [fixedItems]="r.fixedItems"
+                      [fixedItems]="r.fixedItems" [fromOcr]="r.textSource === 'Ocr'"
                       [readonly]="!canReview() || doc()!.status !== 'Draft'"
                       (changed)="onReadinessChanged($event)">
                     </sf-readiness-checklist>
@@ -1139,9 +1139,10 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
       next: r => {
         this.readiness.set(r);
         const run = r.latestRun;
-        if (run && (run.status === 'Queued' || run.status === 'Running') && !this.reviewing()) {
+        const running = run && (run.status === 'Queued' || run.status === 'Running');
+        if ((r.intakePending || running) && !this.reviewing()) {
           this.reviewing.set(true);
-          this.reviews.waitFor(this.documentId, run.id).subscribe({
+          (r.intakePending ? this.reviews.waitForIntake(this.documentId) : this.reviews.waitFor(this.documentId, run!.id)).subscribe({
             next: () => { this.reviewing.set(false); this.load(); },
             error: (err: Error) => { this.reviewing.set(false); this.snack.open(err.message, 'OK', { duration: 6000 }); this.load(); }
           });

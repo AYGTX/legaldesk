@@ -252,7 +252,7 @@ public class TemplateRevisionTests
 
         var handler = new UploadRevisionCommandHandler(
             fixture.Db, fixture.GetHandler<IStorageService>(), fixture.GetHandler<IPdfService>(),
-            fixture.GetHandler<PdfUploadGuard>(), fixture.GetHandler<ICurrentUserService>(),
+            fixture.GetHandler<PdfUploadGuard>(), fixture.GetHandler<IReviewQueue>(), fixture.GetHandler<ICurrentUserService>(),
             fixture.GetHandler<IAuditService>(), NullLogger<UploadRevisionCommandHandler>.Instance);
 
         await Assert.ThrowsAsync<ConflictException>(() => handler.HandleAsync(new UploadRevisionCommand(

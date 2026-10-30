@@ -55,7 +55,7 @@ public class PreflightResolutionTests
     {
         var handler = new UploadRevisionCommandHandler(
             f.Db, f.GetHandler<IStorageService>(), f.GetHandler<IPdfService>(), f.GetHandler<PdfUploadGuard>(),
-            f.GetHandler<ICurrentUserService>(), f.GetHandler<IAuditService>(), NullLogger<UploadRevisionCommandHandler>.Instance);
+            f.GetHandler<IReviewQueue>(), f.GetHandler<ICurrentUserService>(), f.GetHandler<IAuditService>(), NullLogger<UploadRevisionCommandHandler>.Instance);
         var result = await handler.HandleAsync(new UploadRevisionCommand(
             d.Id, new MemoryStream(NullPdfInspector.FakePdf), "supply-v2.pdf", NullPdfInspector.FakePdf.Length, "application/pdf", "Revised"));
         return result.Version;

@@ -29,6 +29,12 @@ public class StartReviewCommandHandler(
         if (!currentUser.Can(Permissions.ManageAllContracts) && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
+        // A new file is read in the background first (text recognition included) and then reviewed by that job; a
+        // review now would read nothing. An intake silent for this long died with its server: review anyway.
+        if (document.IntakePending && DateTime.UtcNow - (document.UpdatedAt ?? document.CreatedAt) < Abandoned)
+            throw new ConflictException("review.intake_pending",
+                "LegalDesk is still reading this contract; its review starts as soon as it is done.");
+
         // One review at a time per contract: asking again while one runs returns it.
         var active = await db.ReviewRuns
             .Where(r => r.DocumentId == document.Id

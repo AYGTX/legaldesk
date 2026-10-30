@@ -51,6 +51,7 @@ public class ServiceRegistrationTests
     [Theory]
     [InlineData(typeof(ReviewRunJob))]
     [InlineData(typeof(ReviewFeedbackJob))]
+    [InlineData(typeof(ContractIntakeJob))]
     [InlineData(typeof(OutboxDispatcherJob))]
     public void Every_dependency_of_a_background_job_is_registered(Type job)
     {

@@ -40,6 +40,10 @@ public class ContractTextProvider(
             return HtmlToText.Convert(rendered);
         }
 
+        // A scanned contract was read once by text recognition at intake; every review reads those same words.
+        if (document.OcrText is not null)
+            return document.OcrText;
+
         await using var pdf = await storage.DownloadAsync(document.StoragePath, cancellationToken);
         var pdfText = await pdfService.ExtractTextAsync(pdf, cancellationToken);
 

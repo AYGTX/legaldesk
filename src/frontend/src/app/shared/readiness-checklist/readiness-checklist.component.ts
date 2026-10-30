@@ -99,7 +99,9 @@ type Decision = 'Accepted' | 'NotApplicable';
 
               @if (item.quotes.length > 0) {
                 <div class="item-block">
-                  <span class="item-block-label">{{ 'shared.review.quotes' | translate }}</span>
+                  <span class="item-block-label">{{ 'shared.review.quotes' | translate }}
+                    @if (fromOcr()) { <span class="ocr-chip">{{ 'shared.review.fromOcr' | translate }}</span> }
+                  </span>
                   @for (q of item.quotes; track $index) {
                     <blockquote class="quote">« {{ q }} »</blockquote>
                   }
@@ -279,6 +281,7 @@ type Decision = 'Accepted' | 'NotApplicable';
     .fixed summary { cursor: pointer; font-weight: 600; }
     .fixed ul { margin: 6px 0 0; padding-left: 18px; }
     .pre-line { white-space: pre-line; }
+    .ocr-chip { margin-left: 6px; font-size: 10px; font-weight: 600; text-transform: none; letter-spacing: 0; background: #fef3c7; color: #92400e; border-radius: 6px; padding: 1px 6px; }
     :host-context(html.dark) .accept-box { background: rgba(255, 196, 0, 0.08); }
   `]
 })
@@ -286,6 +289,8 @@ export class ReadinessChecklistComponent {
   readonly documentId = input.required<string>();
   readonly items = input<ReviewItem[]>([]);
   readonly fixedItems = input<ReviewItem[]>([]);
+  /** The words reviewed came from text recognition on a scan: quotes may carry reading errors (R-M2-4). */
+  readonly fromOcr = input(false);
   /** Viewers who do not own the contract, and contracts already sent, show the list without actions. */
   readonly readonly = input(false);
 

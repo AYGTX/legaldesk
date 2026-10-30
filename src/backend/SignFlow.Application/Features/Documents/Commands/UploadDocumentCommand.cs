@@ -1,4 +1,3 @@
-using System.Text.Json;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -45,7 +44,7 @@ public class UploadDocumentCommandHandler(
     IStorageService storage,
     IPdfService pdfService,
     Common.Services.PdfUploadGuard uploadGuard,
-    IAiService aiService,
+    IReviewQueue queue,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<UploadDocumentCommandHandler> logger) : ICommandHandler<UploadDocumentCommand, DocumentUploadResult>
@@ -57,12 +56,6 @@ public class UploadDocumentCommandHandler(
 
         var hash = await pdfService.ComputeHashAsync(command.FileStream, cancellationToken);
         command.FileStream.Position = 0;
-
-        var extractedText = await pdfService.ExtractTextAsync(command.FileStream, cancellationToken);
-        command.FileStream.Position = 0;
-
-        var obligationSuggestion = await aiService.SuggestObligationAsync(extractedText, command.Title, DateTime.UtcNow, cancellationToken);
-        var proposedTerm = await ProposeTermAsync(extractedText, command.Title, cancellationToken);
 
         var userId = currentUser.UserId!.Value;
         var folder = $"documents/{userId}";
@@ -82,9 +75,8 @@ public class UploadDocumentCommandHandler(
 
         document.SetHash(hash);
         document.SetCreatedBy(userId.ToString());
-        document.SetObligationSuggestion(obligationSuggestion.DueDate, obligationSuggestion.ObligationType, obligationSuggestion.Rationale);
-        if (proposedTerm?.EndDate is not null)
-            document.SuggestContractTerm(proposedTerm.StartDate, proposedTerm.EndDate, proposedTerm.AutoRenews ?? false, proposedTerm.NoticePeriodDays);
+        // The text is read, the dates proposed and the review run in the background (R-M2-3): the upload answers now.
+        document.MarkIntakePending();
 
         // Apply the request type's SLA — snapshot the deadline from the creation timestamp so that
         // later changes to the request type's SLA never affect this in-flight request.
@@ -98,6 +90,7 @@ public class UploadDocumentCommandHandler(
 
         db.Documents.Add(document);
         await db.SaveChangesAsync(cancellationToken);
+        queue.EnqueueIntake(document.Id, document.OrganisationId, suggest: true);
 
         await auditService.LogAsync(
             document.Id,
@@ -111,23 +104,5 @@ public class UploadDocumentCommandHandler(
         logger.LogInformation("Document {DocumentId} uploaded by user {UserId}", document.Id, userId);
 
         return new DocumentUploadResult(document.Id, document.Title, pageCount, storagePath);
-    }
-
-    /// <summary>The contract's term as the AI assistant reads it (dates backed by a verified excerpt), so the contract
-    /// appears in the schedule without anyone typing its dates; null when no model is configured or nothing is found.
-    /// A failure here never blocks the upload.</summary>
-    private async Task<SuggestedTermDto?> ProposeTermAsync(string text, string title, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return null;
-        try
-        {
-            var terms = await ExtractKeyTermsCommandHandler.ReadAsync(aiService, text, title, "fr", ct);
-            return ExtractKeyTermsCommandHandler.Suggest(terms);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            logger.LogInformation(ex, "No contract term proposed at upload");
-            return null;
-        }
     }
 }

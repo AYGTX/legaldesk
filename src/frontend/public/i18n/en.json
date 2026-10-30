@@ -1788,9 +1788,11 @@
           "unavailable": "Harvey cannot be reached, so the contract was not reviewed. Nothing was changed; try again in a few minutes.",
           "timeout": "Harvey did not answer in time. Nothing was changed; try again.",
           "no_text": "This contract has no readable text, so Harvey cannot review it. A scanned PDF needs text recognition first.",
-          "stale": "The contract was revised while the review waited. Review the new version."
+          "stale": "The contract was revised while the review waited. Review the new version.",
+          "intake_pending": "LegalDesk is still reading this contract; its review starts as soon as it is done."
         }
-      }
+      },
+      "fromOcr": "text from OCR: check the original"
     }
   },
   "reports": {

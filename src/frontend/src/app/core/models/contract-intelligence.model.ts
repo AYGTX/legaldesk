@@ -101,6 +101,10 @@ export interface Review {
   latestRun?: ReviewRun | null;
   items: ReviewItem[];
   fixedItems: ReviewItem[];
+  /** Where the reviewed words come from: the PDF's own text, text recognition on a scan, or nothing readable. */
+  textSource: 'Embedded' | 'Ocr' | 'Unreadable';
+  /** A new file is still being read; its review starts by itself when that is done. */
+  intakePending: boolean;
 }
 
 /** A Harvey rule in service and the organisation's setting for it. */

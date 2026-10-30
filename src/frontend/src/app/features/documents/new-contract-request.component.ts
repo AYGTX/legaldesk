@@ -174,7 +174,7 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
 
             <div class="resolve-layout">
               <div class="nc-card">
-                <sf-readiness-checklist [documentId]="documentId()!" [items]="r.items" [fixedItems]="r.fixedItems" (changed)="readiness.set($event)">
+                <sf-readiness-checklist [documentId]="documentId()!" [items]="r.items" [fixedItems]="r.fixedItems" [fromOcr]="r.textSource === 'Ocr'" (changed)="readiness.set($event)">
                 </sf-readiness-checklist>
               </div>
 

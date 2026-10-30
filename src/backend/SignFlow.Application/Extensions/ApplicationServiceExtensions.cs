@@ -98,6 +98,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<SetReviewSettingCommand>, SetReviewSettingCommandHandler>();
         services.AddScoped<IReviewRunner, ReviewRunner>();
         services.AddScoped<IReviewFeedbackSender, ReviewFeedbackSender>();
+        services.AddScoped<IContractIntake, ContractIntake>();
 
         // Document query handlers
         services.AddScoped<IQueryHandler<GetDocumentsQuery, PagedResult<DocumentSummaryDto>>, GetDocumentsQueryHandler>();

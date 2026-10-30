@@ -88,7 +88,7 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<IStorageService>(),
             sp.GetRequiredService<IPdfService>(),
             sp.GetRequiredService<PdfUploadGuard>(),
-            sp.GetRequiredService<IAiService>(),
+            sp.GetRequiredService<IReviewQueue>(),
             sp.GetRequiredService<ICurrentUserService>(),
             sp.GetRequiredService<IAuditService>(),
             NullLogger<UploadDocumentCommandHandler>.Instance));
@@ -154,6 +154,14 @@ public sealed class ScenarioFixture : IDisposable
     /// <summary>Runs Harvey's review of the contract's current version to the end, as the API and its job would.</summary>
     public async Task<ReviewDto> ReviewAsync(Guid documentId)
     {
+        // The intake job is not run here (ContractIntakeTests covers it): its reading is taken as done.
+        var document = await Db.Documents.FirstAsync(d => d.Id == documentId);
+        if (document.IntakePending)
+        {
+            document.CompleteIntake(Domain.Enums.ContractTextSource.Embedded, null);
+            await Db.SaveChangesAsync();
+        }
+
         var run = await GetHandler<StartReviewCommandHandler>().HandleAsync(new StartReviewCommand(documentId));
         await GetHandler<ReviewRunner>().RunAsync(run.Id);
         return await GetHandler<GetLatestReviewQueryHandler>().HandleAsync(new GetLatestReviewQuery(documentId));

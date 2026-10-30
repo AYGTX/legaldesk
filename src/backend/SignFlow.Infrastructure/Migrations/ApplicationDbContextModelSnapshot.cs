@@ -817,6 +817,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid?>("HtmlTemplateId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IntakePending")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -856,6 +859,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ObligationType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OcrText")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("OrganisationId")
@@ -918,6 +924,9 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<bool>("TermConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<int>("TextSource")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()

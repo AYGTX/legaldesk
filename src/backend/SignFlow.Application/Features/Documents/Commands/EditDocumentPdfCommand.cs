@@ -41,6 +41,7 @@ public class EditDocumentPdfCommandHandler(
     IPdfService pdfService,
     IPdfTextEditService editService,
     ICommandHandler<UploadRevisionCommand, UploadRevisionResult> revisionHandler,
+    IReviewQueue queue,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<EditDocumentPdfCommandHandler> logger) : ICommandHandler<EditDocumentPdfCommand, UploadRevisionResult>
@@ -96,7 +97,9 @@ public class EditDocumentPdfCommandHandler(
 
         var oldVersion = document.Version;
         document.ApplyRevision(document.FileName, storagePath, size, pageCount, hash);
+        document.MarkIntakePending();
         await db.SaveChangesAsync(cancellationToken);
+        queue.EnqueueIntake(document.Id, document.OrganisationId, suggest: false);
 
         await auditService.LogAsync(
             document.Id,
