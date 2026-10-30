@@ -211,7 +211,6 @@
     "users": {
       "searchLabel": "Rechercher des utilisateurs",
       "searchPlaceholder": "Nom ou e-mail...",
-      "addUser": "Ajouter un utilisateur",
       "columnUser": "Utilisateur",
       "columnRoles": "Rôles",
       "columnCompany": "Entreprise",
@@ -224,34 +223,31 @@
       "deactivate": "Désactiver",
       "activate": "Activer",
       "noUsersFound": "Aucun utilisateur trouvé",
-      "userCreated": "Utilisateur créé",
       "userUpdated": "Utilisateur mis à jour",
       "userDeactivated": "Utilisateur désactivé",
       "userActivated": "Utilisateur activé",
       "failedToUpdateUser": "Échec de la mise à jour de l'utilisateur",
-      "resetPasswordPrompt": "Saisissez un nouveau mot de passe pour {{name}}\n(min. 8 caractères, avec majuscule, chiffre et symbole) :",
       "passwordResetSuccess": "Mot de passe réinitialisé avec succès",
       "failedToResetPassword": "Échec de la réinitialisation du mot de passe",
-      "confirmDelete": "Supprimer {{name}} ? Cette action est irréversible.",
-      "userDeleted": "Utilisateur supprimé",
-      "failedToDeleteUser": "Échec de la suppression de l'utilisateur"
+      "inviteUser": "Inviter",
+      "resetPasswordConfirm": "Déconnecter {{name}} partout et lui envoyer un lien pour choisir un nouveau mot de passe ?"
     },
     "userDialog": {
-      "createTitle": "Créer un utilisateur",
       "editTitle": "Modifier l'utilisateur",
       "firstName": "Prénom",
       "lastName": "Nom",
       "emailCannotBeChanged": "L'e-mail ne peut pas être modifié",
-      "temporaryPassword": "Mot de passe temporaire",
-      "passwordHint": "Min. 8 caractères avec majuscule, chiffre et symbole",
       "company": "Entreprise",
       "department": "Département",
       "title": "Fonction",
       "roles": "Rôles",
       "accountActive": "Compte actif",
-      "createUser": "Créer l'utilisateur",
       "saveChanges": "Enregistrer les modifications",
-      "operationFailed": "Échec de l'opération"
+      "operationFailed": "Échec de l'opération",
+      "inviteTitle": "Inviter une personne",
+      "inviteHint": "La personne recevra un e-mail avec un lien pour choisir son mot de passe. Le lien fonctionne une fois, pendant 72 heures.",
+      "role": "Rôle",
+      "sendInvitation": "Envoyer l'invitation"
     },
     "workflows": {
       "back": "Retour aux circuits",
@@ -345,6 +341,18 @@
       "create": "Créer",
       "save": "Enregistrer",
       "operationFailed": "Échec de l'opération"
+    },
+    "roles": {
+      "Administrator": "Administrateur",
+      "Manager": "Responsable juridique",
+      "Employee": "Collaborateur"
+    },
+    "invitations": {
+      "title": "Invitations en attente",
+      "expires": "Expire le {{date}}",
+      "revoke": "Retirer",
+      "failed": "L'invitation n'a pas pu être retirée.",
+      "sent": "Invitation envoyée"
     }
   },
   "auth": {
@@ -366,34 +374,9 @@
       "forgotPassword": "Mot de passe oublié ?",
       "signingIn": "Connexion en cours...",
       "signIn": "Se connecter",
-      "noAccount": "Vous n'avez pas de compte ?",
-      "createOne": "Créez-en un",
-      "defaultError": "Adresse e-mail ou mot de passe incorrect"
-    },
-    "register": {
-      "title": "Créez votre compte",
-      "subtitle": "Commencez à signer des contrats gratuitement",
-      "firstNameLabel": "Prénom",
-      "lastNameLabel": "Nom",
-      "emailLabel": "Adresse e-mail",
-      "emailRequired": "L'adresse e-mail est requise",
-      "emailInvalid": "Saisissez une adresse e-mail valide",
-      "passwordLabel": "Mot de passe",
-      "passwordRequired": "Le mot de passe est requis",
-      "passwordMinLength": "8 caractères minimum",
-      "passwordHint": "8 caractères minimum, avec majuscule, chiffre et symbole",
-      "confirmPasswordLabel": "Confirmer le mot de passe",
-      "passwordMismatch": "Les mots de passe ne correspondent pas",
-      "consentText": "J'ai lu et j'accepte les",
-      "termsOfService": "Conditions d'utilisation",
-      "and": "et la",
-      "privacyPolicy": "Politique de confidentialité",
-      "consentRequired": "Vous devez accepter les conditions pour continuer.",
-      "creatingAccount": "Création du compte...",
-      "createAccount": "Créer un compte",
-      "haveAccount": "Vous avez déjà un compte ?",
-      "signIn": "Se connecter",
-      "defaultError": "Échec de l'inscription"
+      "defaultError": "Adresse e-mail ou mot de passe incorrect",
+      "invitationOnly": "Les comptes sont créés sur invitation. Adressez-vous à votre administrateur.",
+      "tooManyAttempts": "Trop de tentatives. Patientez quelques minutes avant de réessayer."
     },
     "forgotPassword": {
       "title": "Mot de passe oublié ?",
@@ -420,6 +403,45 @@
       "successMessage": "Votre mot de passe a été réinitialisé avec succès.",
       "signInNow": "Se connecter maintenant",
       "defaultError": "Le lien de réinitialisation est invalide ou expiré"
+    },
+    "mfa": {
+      "codeHint": "Saisissez le code à 6 chiffres affiché par votre application d'authentification.",
+      "recoveryHint": "Saisissez l'un des codes de secours que vous avez conservés. Chaque code ne sert qu'une fois.",
+      "codeLabel": "Code à 6 chiffres",
+      "recoveryLabel": "Code de secours",
+      "useRecovery": "Utiliser un code de secours",
+      "useApp": "Utiliser l'application d'authentification",
+      "verify": "Vérifier",
+      "back": "Retour à la connexion",
+      "invalidCode": "Code invalide ou expiré."
+    },
+    "invitation": {
+      "title": "Rejoindre LegalDesk",
+      "subtitle": "Choisissez un mot de passe pour terminer la création de votre compte.",
+      "missingToken": "Ce lien est incomplet. Rouvrez le lien de votre e-mail d'invitation.",
+      "toSignIn": "Aller à la connexion",
+      "passwordLabel": "Mot de passe",
+      "passwordRules": "Au moins 10 caractères, avec majuscules et minuscules, un chiffre et un symbole.",
+      "confirmLabel": "Confirmer le mot de passe",
+      "submit": "Créer mon compte",
+      "defaultError": "Le compte n'a pas pu être créé. Demandez une nouvelle invitation à votre administrateur."
+    },
+    "mfaSetup": {
+      "title": "Connexion à deux facteurs",
+      "subtitle": "Protégez votre compte avec un code de votre téléphone à chaque connexion.",
+      "requiredSubtitle": "Votre rôle exige la connexion à deux facteurs. Activez-la pour continuer.",
+      "step1": "Ouvrez une application d'authentification (Microsoft Authenticator, Google Authenticator…) et scannez ce QR code.",
+      "step2": "Saisissez le code à 6 chiffres affiché par l'application.",
+      "qrAlt": "QR code pour l'application d'authentification",
+      "manualKey": "Impossible de scanner ? Saisissez cette clé :",
+      "confirm": "Activer la connexion à deux facteurs",
+      "signOut": "Se déconnecter",
+      "doneTitle": "La connexion à deux facteurs est activée",
+      "recoveryIntro": "Conservez ces codes de secours en lieu sûr. Chacun sert une fois si vous perdez votre téléphone. Ils ne seront plus affichés.",
+      "copy": "Copier les codes",
+      "copied": "Copiés",
+      "continue": "Se reconnecter",
+      "defaultError": "La configuration n'a pas pu démarrer. Réessayez."
     }
   },
   "dashboard": {
@@ -634,7 +656,11 @@
         "handled": "Traités ({{count}})",
         "profileTitle": "Profil du contrat",
         "noneOpen": "Plus rien à traiter.",
-        "status": { "Open": "Ouvert", "Resolved": "Corrigé", "Dismissed": "Écarté" },
+        "status": {
+          "Open": "Ouvert",
+          "Resolved": "Corrigé",
+          "Dismissed": "Écarté"
+        },
         "filterAll": "Tous",
         "whyItMatters": "Pourquoi c'est important",
         "recommendedAction": "Action recommandée",
@@ -716,25 +742,39 @@
         "notifiedAfter": "Notifié après l'étape {{step}}"
       },
       "rail": {
-        "imported": "Importé", "review": "Revue", "signature": "Signature", "active": "Actif",
-        "reviewOpen": "{{count}} à traiter", "reviewHandled": "Tout traité",
-        "declinedBy": "Refusé par {{name}}", "paused": "En pause", "waitingOn": "En attente de {{name}}",
-        "draftHint": "Pas encore envoyé.", "risk": "Risque", "fitness": "Aptitude",
+        "imported": "Importé",
+        "review": "Revue",
+        "signature": "Signature",
+        "active": "Actif",
+        "reviewOpen": "{{count}} à traiter",
+        "reviewHandled": "Tout traité",
+        "declinedBy": "Refusé par {{name}}",
+        "paused": "En pause",
+        "waitingOn": "En attente de {{name}}",
+        "draftHint": "Pas encore envoyé.",
+        "risk": "Risque",
+        "fitness": "Aptitude",
         "riskAnalysed": "Risque calculé sur le texte analysé le {{date}}.",
         "riskStale": "{{count}} point(s) traité(s) depuis : relancez la revue sur la version corrigée pour le mettre à jour."
       },
       "send": {
-      "intro": "Votre demande est remplie mais pas encore envoyée. Harvey a lu le contrat avec vos réponses. Traitez les points critiques, puis envoyez-la.",
-      "button": "Envoyer pour signature",
-      "sending": "Envoi…",
-      "sent": "Demande envoyée."
-    },
-    "next": {
-        "title": "Prochaines actions", "none": "Rien à faire pour l'instant.",
-        "fixDecline": "Traiter le refus", "fixDeclineSub": "Voir le circuit de signature",
-        "risks": "{{count}} risque(s) élevé(s)", "risksSub": "Ouvrir la revue juridique",
-        "setTerm": "Enregistrer la durée du contrat", "setTermSub": "Aucune durée saisie",
-        "points": "Points ouverts", "open": "à traiter", "handled": "{{count}} déjà traité(s)"
+        "intro": "Votre demande est remplie mais pas encore envoyée. Harvey a lu le contrat avec vos réponses. Traitez les points critiques, puis envoyez-la.",
+        "button": "Envoyer pour signature",
+        "sending": "Envoi…",
+        "sent": "Demande envoyée."
+      },
+      "next": {
+        "title": "Prochaines actions",
+        "none": "Rien à faire pour l'instant.",
+        "fixDecline": "Traiter le refus",
+        "fixDeclineSub": "Voir le circuit de signature",
+        "risks": "{{count}} risque(s) élevé(s)",
+        "risksSub": "Ouvrir la revue juridique",
+        "setTerm": "Enregistrer la durée du contrat",
+        "setTermSub": "Aucune durée saisie",
+        "points": "Points ouverts",
+        "open": "à traiter",
+        "handled": "{{count}} déjà traité(s)"
       },
       "changesRequestedHint": "Un participant a demandé des modifications. Importez un PDF révisé pour relancer le circuit d'approbation.",
       "changeNotePlaceholder": "Qu'est-ce qui a changé dans cette révision ? (facultatif)",
@@ -1171,8 +1211,8 @@
       "catNecessary": "Nécessaire",
       "catFunctional": "Fonctionnel",
       "catAnalytics": "Analytique",
-      "authPurpose": "Authentification — vous maintient connecté",
-      "authDuration": "Session / 7 jours",
+      "authPurpose": "Authentification : vous garde connecté sur cet appareil (cookie HttpOnly, illisible par les scripts)",
+      "authDuration": "Jusqu'à 14 jours sans utilisation, 90 jours au plus",
       "prefsPurpose": "Enregistre votre préférence en matière de cookies afin de ne pas vous la redemander",
       "oneYear": "1 an",
       "sidebarPurpose": "Mémorise l'état de la barre latérale entre les sessions",
@@ -1247,7 +1287,20 @@
       "minLength": "Minimum 8 caractères",
       "passwordHint": "Min. 8 caractères avec majuscule, chiffre et symbole",
       "passwordMismatch": "Les mots de passe ne correspondent pas",
-      "updatePassword": "Mettre à jour le mot de passe"
+      "updatePassword": "Mettre à jour le mot de passe",
+      "mfaTitle": "Connexion à deux facteurs",
+      "mfaOn": "Activée : chaque connexion demande un code de votre téléphone.",
+      "mfaOff": "Désactivée : votre mot de passe seul ouvre votre compte.",
+      "mfaEnable": "Activer",
+      "mfaDisable": "Désactiver",
+      "mfaDisablePrompt": "Saisissez un code de votre application d'authentification pour désactiver la connexion à deux facteurs.",
+      "mfaDisabled": "La connexion à deux facteurs est désactivée.",
+      "sessionsTitle": "Appareils connectés",
+      "sessionsHint": "Déconnectez un appareil que vous n'utilisez plus ou ne reconnaissez pas.",
+      "lastUsed": "Dernière activité le {{date}}",
+      "signOutDevice": "Déconnecter",
+      "noSessions": "Aucun autre appareil n'est connecté.",
+      "unknownDevice": "Appareil inconnu"
     },
     "messages": {
       "profileUpdated": "Profil mis à jour",
@@ -1897,45 +1950,45 @@
     }
   },
   "htmlTemplateEditor": {
-      "undo": "Annuler",
-      "redo": "Rétablir",
-      "settings": {
-        "title": "Paramètres",
-        "basics": "Général",
-        "routing": "Circuit",
-        "privacy": "Confidentialité",
-        "clearApprover": "Retirer l'approbateur"
-      },
-      "lint": {
-        "title": "Vérifications du modèle",
-        "none": "Aucun problème détecté.",
-        "emptyContent": "Le modèle est vide.",
-        "undefinedPlaceholder": "{{key}} est utilisé dans le texte mais n'est pas un champ.",
-        "unusedField": "Le champ {{key}} n'est pas utilisé dans le texte.",
-        "signatureNotPlaced": "La signature {{key}} n'est pas placée dans le texte ; elle sera ajoutée à la fin.",
-        "noApprover": "Aucun champ de signature d'approbateur : ce modèle ne peut pas être envoyé en signature.",
-        "unclosedCondition": "Les conditions ne sont pas équilibrées : {{opens}} ouverte(s), {{closes}} fermée(s).",
-        "duplicateKey": "Deux champs partagent la clé {{key}}.",
-        "unsafeMarkup": "Les scripts et gestionnaires d'événements sont retirés à l'affichage du contrat."
-      },
-      "review": {
-        "button": "Revue juridique",
-        "tooltip": "Faire relire le texte du modèle par la revue juridique",
-        "title": "Revue juridique",
-        "intro": "Lancez la revue juridique pour voir ce qu'un juriste examinerait dans le contrat que produit ce modèle.",
-        "running": "Revue du modèle en cours…",
-        "disclaimer": "Contrôles assistés par Harvey, appuyés sur le droit vérifié. Un juriste valide chaque contrat.",
-        "none": "Aucun point relevé.",
-        "stale": "modèle modifié depuis cette revue",
-        "failed": "La revue n'a pas pu s'exécuter. Veuillez réessayer.",
-        "insert": "Insérer la formulation proposée",
-        "severity": {
-          "Critical": "Critique",
-          "High": "Élevé",
-          "Medium": "Moyen",
-          "Low": "Faible"
-        }
-      },
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "settings": {
+      "title": "Paramètres",
+      "basics": "Général",
+      "routing": "Circuit",
+      "privacy": "Confidentialité",
+      "clearApprover": "Retirer l'approbateur"
+    },
+    "lint": {
+      "title": "Vérifications du modèle",
+      "none": "Aucun problème détecté.",
+      "emptyContent": "Le modèle est vide.",
+      "undefinedPlaceholder": "{{key}} est utilisé dans le texte mais n'est pas un champ.",
+      "unusedField": "Le champ {{key}} n'est pas utilisé dans le texte.",
+      "signatureNotPlaced": "La signature {{key}} n'est pas placée dans le texte ; elle sera ajoutée à la fin.",
+      "noApprover": "Aucun champ de signature d'approbateur : ce modèle ne peut pas être envoyé en signature.",
+      "unclosedCondition": "Les conditions ne sont pas équilibrées : {{opens}} ouverte(s), {{closes}} fermée(s).",
+      "duplicateKey": "Deux champs partagent la clé {{key}}.",
+      "unsafeMarkup": "Les scripts et gestionnaires d'événements sont retirés à l'affichage du contrat."
+    },
+    "review": {
+      "button": "Revue juridique",
+      "tooltip": "Faire relire le texte du modèle par la revue juridique",
+      "title": "Revue juridique",
+      "intro": "Lancez la revue juridique pour voir ce qu'un juriste examinerait dans le contrat que produit ce modèle.",
+      "running": "Revue du modèle en cours…",
+      "disclaimer": "Contrôles assistés par Harvey, appuyés sur le droit vérifié. Un juriste valide chaque contrat.",
+      "none": "Aucun point relevé.",
+      "stale": "modèle modifié depuis cette revue",
+      "failed": "La revue n'a pas pu s'exécuter. Veuillez réessayer.",
+      "insert": "Insérer la formulation proposée",
+      "severity": {
+        "Critical": "Critique",
+        "High": "Élevé",
+        "Medium": "Moyen",
+        "Low": "Faible"
+      }
+    },
     "workflowType": "Flux de travail",
     "requestType": "Type de contrat",
     "noRequestType": "— Aucun type de contrat (sans échéance) —",
@@ -2290,7 +2343,10 @@
       "failed": "Échec du téléversement"
     },
     "designer": {
-      "tabs": {"properties":"Propriétés","circuit":"Circuit"},
+      "tabs": {
+        "properties": "Propriétés",
+        "circuit": "Circuit"
+      },
       "namePlaceholder": "Nom du formulaire",
       "fieldTypes": "Types de champs",
       "fillRoleLegend": "Responsabilité de saisie",

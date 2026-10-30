@@ -3,6 +3,7 @@ mat-dialog-content { min-width: 460px; padding-top: 8px; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .row mat-form-field, .full { width: 100%; }
     .toggle-row { padding: 8px 0; }
+    .invite-hint { margin: 0 0 12px; color: #475569; font-size: 14px; }
     .error-banner {
       display: flex; align-items: center; gap: 8px;
       background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;

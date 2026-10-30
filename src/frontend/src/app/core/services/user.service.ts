@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
-  UserDto, CreateUserRequest, UpdateUserRequest,
+  UserDto, UpdateUserRequest, Invitation, UserSessionInfo,
   ProfileDto, UpdateProfileRequest, ChangePasswordRequest, PagedResult
 } from '../models';
 
@@ -19,20 +19,26 @@ export class UserService {
     return this.api.get<string[]>('/v1/admin/roles');
   }
 
-  createUser(request: CreateUserRequest): Observable<{ id: string }> {
-    return this.api.post<{ id: string }>('/v1/admin/users', request);
+  /** Accounts are created by invitation only (R-M1-1). */
+  inviteUser(request: { email: string; firstName: string; lastName: string; role: string }): Observable<Invitation> {
+    return this.api.post<Invitation>('/v1/admin/invitations', request);
+  }
+
+  getInvitations(): Observable<Invitation[]> {
+    return this.api.get<Invitation[]>('/v1/admin/invitations');
+  }
+
+  revokeInvitation(id: string): Observable<void> {
+    return this.api.delete<void>(`/v1/admin/invitations/${id}`);
   }
 
   updateUser(id: string, request: UpdateUserRequest): Observable<void> {
     return this.api.put<void>(`/v1/admin/users/${id}`, request);
   }
 
-  deleteUser(id: string): Observable<void> {
-    return this.api.delete<void>(`/v1/admin/users/${id}`);
-  }
-
-  resetUserPassword(id: string, newPassword: string): Observable<void> {
-    return this.api.post<void>(`/v1/admin/users/${id}/reset-password`, { newPassword });
+  /** Signs the user out everywhere and e-mails them a reset link; the administrator never sets the password. */
+  resetUserPassword(id: string): Observable<void> {
+    return this.api.post<void>(`/v1/admin/users/${id}/reset-password`);
   }
 
   // ---- Self-service profile ----
@@ -46,6 +52,14 @@ export class UserService {
 
   changePassword(request: ChangePasswordRequest): Observable<void> {
     return this.api.post<void>('/v1/profile/change-password', request);
+  }
+
+  getSessions(): Observable<UserSessionInfo[]> {
+    return this.api.get<UserSessionInfo[]>('/v1/profile/sessions');
+  }
+
+  endSession(id: string): Observable<void> {
+    return this.api.delete<void>(`/v1/profile/sessions/${id}`);
   }
 
   uploadAvatar(file: File): Observable<{ avatarUrl: string }> {

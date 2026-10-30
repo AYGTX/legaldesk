@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard, sessionGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 
 export const routes: Routes = [
@@ -9,6 +9,14 @@ export const routes: Routes = [
     canActivate: [guestGuard],
     loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent),
     title: 'LegalDesk — Contract Lifecycle Management'
+  },
+  {
+    // Before the guest-only 'auth' block: reached while signed in, by an Administrator or Manager who must
+    // set up two-factor sign-in first.
+    path: 'auth/mfa-setup',
+    canActivate: [sessionGuard],
+    loadComponent: () => import('./features/auth/mfa-setup/mfa-setup.component').then(m => m.MfaSetupComponent),
+    title: 'Two-factor sign-in — LegalDesk'
   },
   {
     path: 'auth',

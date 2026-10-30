@@ -36,6 +36,27 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
             </div>
           }
 
+          @if (challenge()) {
+            <!-- Second step: two-factor sign-in (R-M1-3) -->
+            <form [formGroup]="codeForm" (ngSubmit)="submitCode()" class="form">
+              <p class="mfa-hint">{{ (useRecovery() ? 'auth.mfa.recoveryHint' : 'auth.mfa.codeHint') | translate }}</p>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ (useRecovery() ? 'auth.mfa.recoveryLabel' : 'auth.mfa.codeLabel') | translate }}</mat-label>
+                <input matInput formControlName="code" autocomplete="one-time-code"
+                       [attr.inputmode]="useRecovery() ? 'text' : 'numeric'" [attr.maxlength]="useRecovery() ? 11 : 6" />
+                <mat-icon matSuffix>{{ useRecovery() ? 'key' : 'pin' }}</mat-icon>
+              </mat-form-field>
+              <div class="form-actions">
+                <a href="" class="forgot-link" (click)="$event.preventDefault(); useRecovery.update(v => !v); codeForm.reset()">
+                  {{ (useRecovery() ? 'auth.mfa.useApp' : 'auth.mfa.useRecovery') | translate }}
+                </a>
+              </div>
+              <button mat-flat-button color="primary" type="submit" class="submit-btn" [disabled]="loading() || codeForm.invalid">
+                @if (loading()) { <mat-spinner diameter="20"></mat-spinner> } @else { {{ 'auth.mfa.verify' | translate }} }
+              </button>
+              <button mat-button type="button" class="submit-btn" (click)="restart()">{{ 'auth.mfa.back' | translate }}</button>
+            </form>
+          } @else {
           <form [formGroup]="form" (ngSubmit)="submit()" class="form">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>{{ 'auth.login.emailLabel' | translate }}</mat-label>
@@ -74,12 +95,11 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
               }
             </button>
           </form>
+          }
         </mat-card-content>
 
         <mat-card-actions>
-          <p class="signup-link">
-            {{ 'auth.login.noAccount' | translate }} <a routerLink="/auth/register">{{ 'auth.login.createOne' | translate }}</a>
-          </p>
+          <p class="signup-link">{{ 'auth.login.invitationOnly' | translate }}</p>
         </mat-card-actions>
       </mat-card>
     </div>
@@ -96,9 +116,17 @@ export class LoginComponent {
   readonly error = signal<string | null>(null);
   readonly showPassword = signal(false);
 
+  /** Set when the password was right and two-factor sign-in is on: the second step answers it. */
+  readonly challenge = signal<string | null>(null);
+  readonly useRecovery = signal(false);
+
   readonly form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required]
+  });
+
+  readonly codeForm = this.fb.group({
+    code: ['', [Validators.required, Validators.minLength(6)]]
   });
 
   submit(): void {
@@ -108,11 +136,47 @@ export class LoginComponent {
 
     this.auth.login({ email: this.form.value.email!, password: this.form.value.password! })
       .subscribe({
-        next: () => this.router.navigate(['/dashboard']),
-        error: err => {
+        next: result => {
           this.loading.set(false);
-          this.error.set(err.error?.detail ?? err.error?.title ?? this.translate.instant('auth.login.defaultError'));
-        }
+          if (result.mfaRequired) {
+            this.challenge.set(result.mfaChallenge ?? null);
+            this.form.controls.password.reset();
+          } else {
+            this.goIn();
+          }
+        },
+        error: err => this.fail(err, 'auth.login.defaultError')
       });
+  }
+
+  submitCode(): void {
+    const challenge = this.challenge();
+    if (!challenge || this.codeForm.invalid || this.loading()) return;
+    this.loading.set(true);
+    this.error.set(null);
+    this.auth.verifyMfa(challenge, this.codeForm.value.code!).subscribe({
+      next: () => this.goIn(),
+      // Wrong and expired codes get the same answer; "Back" restarts from the password when the 5 minutes ran out.
+      error: err => this.fail(err, 'auth.mfa.invalidCode')
+    });
+  }
+
+  restart(): void {
+    this.challenge.set(null);
+    this.useRecovery.set(false);
+    this.codeForm.reset();
+    this.error.set(null);
+  }
+
+  private goIn(): void {
+    this.router.navigate([this.auth.mfaSetupRequired() ? '/auth/mfa-setup' : '/dashboard']);
+  }
+
+  private fail(err: { status?: number; error?: { detail?: string; title?: string } }, fallbackKey: string): void {
+    this.loading.set(false);
+    // 429: too many attempts from this address.
+    this.error.set(err.status === 429
+      ? this.translate.instant('auth.login.tooManyAttempts')
+      : err.error?.detail ?? err.error?.title ?? this.translate.instant(fallbackKey));
   }
 }

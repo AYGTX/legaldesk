@@ -22,6 +22,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ProfileDto } from '../../core/models';
 import { resolveFileUrl } from '../../core/utils/file-url';
 import { VacationPanelComponent } from './vacation-panel.component';
+import { SecurityPanelComponent } from './security-panel.component';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   const pw = control.get('newPassword')?.value;
@@ -45,6 +46,7 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
     MatChipsModule,
     MatSnackBarModule,
     VacationPanelComponent,
+    SecurityPanelComponent,
     TranslatePipe,
   ],
   template: `
@@ -216,6 +218,13 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
                   </button>
                 </div>
               </form>
+            </mat-card>
+          </mat-tab>
+
+          <!-- Security: two-factor and signed-in devices -->
+          <mat-tab [label]="'profile.tabs.security' | translate">
+            <mat-card class="tab-card">
+              <sf-security-panel></sf-security-panel>
             </mat-card>
           </mat-tab>
 

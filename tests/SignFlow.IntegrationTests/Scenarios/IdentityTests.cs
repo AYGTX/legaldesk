@@ -62,6 +62,7 @@ public sealed class IdentityTests : IDisposable
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IEmailService, OutboxEmailService>();
         services.AddSingleton<ICurrentUserService>(_currentUser);
+        services.AddSingleton<IQrCodes, SignFlow.Infrastructure.Services.Pdf.QrCodes>();
         services.AddScoped<AuthSessions>();
         services.AddScoped<PasswordResetMail>();
         services.AddScoped<LoginCommandHandler>();
@@ -228,8 +229,10 @@ public sealed class IdentityTests : IDisposable
         IReadOnlyList<string> recovery;
         await using (var scope = Scope())
         {
-            key = (await scope.ServiceProvider.GetRequiredService<BeginMfaSetupCommandHandler>()
-                .HandleAsync(new BeginMfaSetupCommand())).SharedKey;
+            var setup = await scope.ServiceProvider.GetRequiredService<BeginMfaSetupCommandHandler>()
+                .HandleAsync(new BeginMfaSetupCommand());
+            Assert.StartsWith("data:image/png;base64,", setup.QrCodeDataUri);
+            key = setup.SharedKey;
             recovery = await scope.ServiceProvider.GetRequiredService<ConfirmMfaSetupCommandHandler>()
                 .HandleAsync(new ConfirmMfaSetupCommand(Totp(key)));
         }

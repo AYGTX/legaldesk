@@ -15,7 +15,7 @@ import { UserService } from '../../core/services/user.service';
 import { UserDto } from '../../core/models';
 
 export interface UserDialogData {
-  user: UserDto | null;       // null = create mode
+  user: UserDto | null;       // null = invite someone new (R-M1-1)
   roles: string[];
 }
 
@@ -28,7 +28,7 @@ export interface UserDialogData {
     MatButtonModule, MatIconModule, MatSlideToggleModule, MatProgressSpinnerModule, TranslatePipe
   ],
   template: `
-    <h2 mat-dialog-title>{{ (isEdit ? 'admin.userDialog.editTitle' : 'admin.userDialog.createTitle') | translate }}</h2>
+    <h2 mat-dialog-title>{{ (isEdit ? 'admin.userDialog.editTitle' : 'admin.userDialog.inviteTitle') | translate }}</h2>
 
     <mat-dialog-content>
       @if (error()) {
@@ -54,16 +54,16 @@ export interface UserDialogData {
         </mat-form-field>
 
         @if (!isEdit) {
+          <p class="invite-hint">{{ 'admin.userDialog.inviteHint' | translate }}</p>
           <mat-form-field appearance="outline" class="full">
-            <mat-label>{{ 'admin.userDialog.temporaryPassword' | translate }}</mat-label>
-            <input matInput [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
-            <button mat-icon-button matSuffix type="button" (click)="showPassword.set(!showPassword())">
-              <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-            <mat-hint>{{ 'admin.userDialog.passwordHint' | translate }}</mat-hint>
+            <mat-label>{{ 'admin.userDialog.role' | translate }}</mat-label>
+            <mat-select formControlName="role">
+              @for (role of data.roles; track role) {
+                <mat-option [value]="role">{{ 'admin.roles.' + role | translate }}</mat-option>
+              }
+            </mat-select>
           </mat-form-field>
-        }
-
+        } @else {
         <div class="row">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'admin.userDialog.company' | translate }}</mat-label>
@@ -84,15 +84,14 @@ export interface UserDialogData {
           <mat-label>{{ 'admin.userDialog.roles' | translate }}</mat-label>
           <mat-select formControlName="roles" multiple>
             @for (role of data.roles; track role) {
-              <mat-option [value]="role">{{ role }}</mat-option>
+              <mat-option [value]="role">{{ 'admin.roles.' + role | translate }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
 
-        @if (isEdit) {
-          <div class="toggle-row">
-            <mat-slide-toggle formControlName="isActive">{{ 'admin.userDialog.accountActive' | translate }}</mat-slide-toggle>
-          </div>
+        <div class="toggle-row">
+          <mat-slide-toggle formControlName="isActive">{{ 'admin.userDialog.accountActive' | translate }}</mat-slide-toggle>
+        </div>
         }
       </form>
     </mat-dialog-content>
@@ -101,7 +100,7 @@ export interface UserDialogData {
       <button mat-button mat-dialog-close>{{ 'common.cancel' | translate }}</button>
       <button mat-flat-button color="primary" (click)="submit()" [disabled]="saving() || form.invalid">
         @if (saving()) { <mat-spinner diameter="18"></mat-spinner> }
-        @else { {{ (isEdit ? 'admin.userDialog.saveChanges' : 'admin.userDialog.createUser') | translate }} }
+        @else { {{ (isEdit ? 'admin.userDialog.saveChanges' : 'admin.userDialog.sendInvitation') | translate }} }
       </button>
     </mat-dialog-actions>
   `,
@@ -117,13 +116,12 @@ export class UserDialogComponent {
   readonly isEdit = !!this.data.user;
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
-  readonly showPassword = signal(false);
 
   readonly form = this.fb.group({
     firstName: [this.firstNameFromUser(), Validators.required],
     lastName: [this.lastNameFromUser(), Validators.required],
     email: [{ value: this.data.user?.email ?? '', disabled: this.isEdit }, [Validators.required, Validators.email]],
-    password: ['', this.isEdit ? [] : [Validators.required, Validators.minLength(8)]],
+    role: ['Employee', this.isEdit ? [] : [Validators.required]],
     company: [this.data.user?.company ?? ''],
     department: [this.data.user?.department ?? ''],
     title: [this.data.user?.title ?? ''],
@@ -154,15 +152,11 @@ export class UserDialogComponent {
           isActive: v.isActive!,
           roles: v.roles!
         })
-      : this.userService.createUser({
+      : this.userService.inviteUser({
           firstName: v.firstName!,
           lastName: v.lastName!,
           email: v.email!,
-          password: v.password!,
-          company: v.company || undefined,
-          department: v.department || undefined,
-          title: v.title || undefined,
-          roles: v.roles!
+          role: v.role!
         });
 
     request$.subscribe({

@@ -11,17 +11,6 @@ export interface UserDto {
   roles: string[];
 }
 
-export interface CreateUserRequest {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  company?: string;
-  department?: string;
-  title?: string;
-  roles: string[];
-}
-
 export interface UpdateUserRequest {
   firstName: string;
   lastName: string;

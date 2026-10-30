@@ -13,9 +13,14 @@ export const authRoutes: Routes = [
         title: 'Sign In — LegalDesk'
       },
       {
+        // Accounts exist only by invitation (R-M1-1); old links to the sign-up page land on sign-in.
         path: 'register',
-        loadComponent: () => import('./register/register.component').then(m => m.RegisterComponent),
-        title: 'Create Account — LegalDesk'
+        redirectTo: 'login'
+      },
+      {
+        path: 'accept-invitation',
+        loadComponent: () => import('./accept-invitation/accept-invitation.component').then(m => m.AcceptInvitationComponent),
+        title: 'Join LegalDesk'
       },
       {
         path: 'forgot-password',

@@ -105,9 +105,9 @@ public class MfaLoginCommandHandler(
 /// <summary>Starts setup: a fresh authenticator key, returned with the otpauth:// address the QR code encodes.</summary>
 public record BeginMfaSetupCommand : ICommand<MfaSetupDto>;
 
-public record MfaSetupDto(string SharedKey, string AuthenticatorUri);
+public record MfaSetupDto(string SharedKey, string AuthenticatorUri, string QrCodeDataUri);
 
-public class BeginMfaSetupCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUser)
+public class BeginMfaSetupCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUser, IQrCodes qrCodes)
     : ICommandHandler<BeginMfaSetupCommand, MfaSetupDto>
 {
     public async Task<MfaSetupDto> HandleAsync(BeginMfaSetupCommand command, CancellationToken cancellationToken = default)
@@ -121,7 +121,7 @@ public class BeginMfaSetupCommandHandler(UserManager<ApplicationUser> userManage
                   ?? throw new InvalidOperationException("No authenticator key was generated.");
         var label = Uri.EscapeDataString($"{Mfa.Issuer}:{user.Email}");
         var uri = $"otpauth://totp/{label}?secret={key}&issuer={Uri.EscapeDataString(Mfa.Issuer)}&digits=6&period=30";
-        return new MfaSetupDto(key, uri);
+        return new MfaSetupDto(key, uri, qrCodes.PngDataUri(uri));
     }
 }
 

@@ -20,7 +20,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { UserService } from '../../core/services/user.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { UserDto } from '../../core/models';
+import { Invitation, UserDto } from '../../core/models';
 import { UserDialogComponent } from './user-dialog.component';
 import { RequestTypesComponent } from './request-types.component';
 
@@ -59,7 +59,7 @@ import { RequestTypesComponent } from './request-types.component';
                 }
               </div>
               <button mat-flat-button color="primary" (click)="openCreate()">
-                <mat-icon>person_add</mat-icon> {{ 'admin.users.addUser' | translate }}
+                <mat-icon>person_add</mat-icon> {{ 'admin.users.inviteUser' | translate }}
               </button>
             </div>
 
@@ -86,7 +86,7 @@ import { RequestTypesComponent } from './request-types.component';
                   <td mat-cell *matCellDef="let u">
                     <div class="roles-chips">
                       @for (role of u.roles; track role) {
-                        <span class="role-chip">{{ role }}</span>
+                        <span class="role-chip">{{ 'admin.roles.' + role | translate }}</span>
                       }
                     </div>
                   </td>
@@ -133,11 +133,6 @@ import { RequestTypesComponent } from './request-types.component';
                         <mat-icon>{{ u.isActive ? 'block' : 'check_circle' }}</mat-icon>
                         <span>{{ (u.isActive ? 'admin.users.deactivate' : 'admin.users.activate') | translate }}</span>
                       </button>
-                      <mat-divider></mat-divider>
-                      <button mat-menu-item class="danger-item" (click)="deleteUser(u)"
-                              [disabled]="u.id === currentUserId()">
-                        <mat-icon>delete</mat-icon><span>{{ 'common.delete' | translate }}</span>
-                      </button>
                     </mat-menu>
                   </td>
                 </ng-container>
@@ -154,6 +149,24 @@ import { RequestTypesComponent } from './request-types.component';
               <mat-paginator [length]="totalCount()" [pageSize]="pageSize" [pageSizeOptions]="[10, 20, 50]"
                              (page)="onPage($event)" showFirstLastButtons></mat-paginator>
             </div>
+
+            @if (pendingInvitations().length) {
+              <section class="invitations">
+                <h2>{{ 'admin.invitations.title' | translate }}</h2>
+                <ul>
+                  @for (i of pendingInvitations(); track i.id) {
+                    <li>
+                      <div>
+                        <span class="user-name">{{ i.firstName }} {{ i.lastName }}</span>
+                        <span class="user-email">{{ i.email }} · {{ 'admin.roles.' + i.role | translate }}</span>
+                      </div>
+                      <span class="inv-expiry">{{ 'admin.invitations.expires' | translate: { date: (i.expiresAt | date:'d MMM, HH:mm') } }}</span>
+                      <button mat-button color="warn" (click)="revoke(i)">{{ 'admin.invitations.revoke' | translate }}</button>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
           </div>
         }
 
@@ -196,6 +209,8 @@ export class AdminComponent implements OnInit {
   readonly users = signal<UserDto[]>([]);
   readonly totalCount = signal(0);
   readonly roles = signal<string[]>([]);
+  readonly invitations = signal<Invitation[]>([]);
+  readonly pendingInvitations = () => this.invitations().filter(i => i.status === 'Pending');
 
   readonly searchControl = new FormControl('');
   pageSize = 20;
@@ -216,8 +231,9 @@ export class AdminComponent implements OnInit {
     this.load();
     this.userService.getRoles().subscribe({
       next: r => this.roles.set(r),
-      error: () => this.roles.set(['Administrator', 'Manager', 'Employee', 'ExternalSigner'])
+      error: () => this.roles.set(['Administrator', 'Manager', 'Employee'])
     });
+    this.loadInvitations();
     this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe(() => {
       this.pageNumber = 1;
       this.load();
@@ -236,6 +252,17 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  loadInvitations(): void {
+    this.userService.getInvitations().subscribe({ next: list => this.invitations.set(list), error: () => this.invitations.set([]) });
+  }
+
+  revoke(invitation: Invitation): void {
+    this.userService.revokeInvitation(invitation.id).subscribe({
+      next: () => this.loadInvitations(),
+      error: err => this.snackBar.open(this.errorText(err, this.translate.instant('admin.invitations.failed')), this.translate.instant('common.close'), { duration: 5000 })
+    });
+  }
+
   onPage(event: PageEvent): void {
     this.pageNumber = event.pageIndex + 1;
     this.pageSize = event.pageSize;
@@ -248,7 +275,7 @@ export class AdminComponent implements OnInit {
       data: { user: null, roles: this.roles() }
     });
     ref.afterClosed().subscribe(saved => {
-      if (saved) { this.snackBar.open(this.translate.instant('admin.users.userCreated'), this.translate.instant('common.close'), { duration: 3000 }); this.load(); }
+      if (saved) { this.snackBar.open(this.translate.instant('admin.invitations.sent'), this.translate.instant('common.close'), { duration: 3000 }); this.loadInvitations(); }
     });
   }
 
@@ -281,29 +308,16 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  /** Signs the user out everywhere and e-mails them a reset link (R-M1-6). */
   resetPassword(user: UserDto): void {
-    this.confirmService.prompt({
-      message: this.translate.instant('admin.users.resetPasswordPrompt', { name: user.fullName }),
-      inputType: 'password'
-    }).subscribe(pw => {
-      if (!pw) return;
-      this.userService.resetUserPassword(user.id, pw).subscribe({
-        next: () => this.snackBar.open(this.translate.instant('admin.users.passwordResetSuccess'), this.translate.instant('common.close'), { duration: 3000 }),
-        error: err => this.snackBar.open(this.errorText(err, this.translate.instant('admin.users.failedToResetPassword')), this.translate.instant('common.close'), { duration: 5000 })
-      });
-    });
-  }
-
-  deleteUser(user: UserDto): void {
     this.confirmService.confirm({
-      message: this.translate.instant('admin.users.confirmDelete', { name: user.fullName }),
-      confirmLabel: this.translate.instant('common.delete'),
-      danger: true
+      message: this.translate.instant('admin.users.resetPasswordConfirm', { name: user.fullName }),
+      confirmLabel: this.translate.instant('admin.users.resetPassword')
     }).subscribe(ok => {
       if (!ok) return;
-      this.userService.deleteUser(user.id).subscribe({
-        next: () => { this.snackBar.open(this.translate.instant('admin.users.userDeleted'), this.translate.instant('common.close'), { duration: 3000 }); this.load(); },
-        error: err => this.snackBar.open(this.errorText(err, this.translate.instant('admin.users.failedToDeleteUser')), this.translate.instant('common.close'), { duration: 5000 })
+      this.userService.resetUserPassword(user.id).subscribe({
+        next: () => this.snackBar.open(this.translate.instant('admin.users.passwordResetSuccess'), this.translate.instant('common.close'), { duration: 3000 }),
+        error: err => this.snackBar.open(this.errorText(err, this.translate.instant('admin.users.failedToResetPassword')), this.translate.instant('common.close'), { duration: 5000 })
       });
     });
   }

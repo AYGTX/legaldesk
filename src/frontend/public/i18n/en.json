@@ -211,7 +211,6 @@
     "users": {
       "searchLabel": "Search users",
       "searchPlaceholder": "Name or email...",
-      "addUser": "Add User",
       "columnUser": "User",
       "columnRoles": "Roles",
       "columnCompany": "Company",
@@ -224,34 +223,31 @@
       "deactivate": "Deactivate",
       "activate": "Activate",
       "noUsersFound": "No users found",
-      "userCreated": "User created",
       "userUpdated": "User updated",
       "userDeactivated": "User deactivated",
       "userActivated": "User activated",
       "failedToUpdateUser": "Failed to update user",
-      "resetPasswordPrompt": "Enter a new password for {{name}}\n(min. 8 chars, with uppercase, number & symbol):",
       "passwordResetSuccess": "Password reset successfully",
       "failedToResetPassword": "Failed to reset password",
-      "confirmDelete": "Delete {{name}}? This cannot be undone.",
-      "userDeleted": "User deleted",
-      "failedToDeleteUser": "Failed to delete user"
+      "inviteUser": "Invite",
+      "resetPasswordConfirm": "Sign {{name}} out everywhere and e-mail them a link to choose a new password?"
     },
     "userDialog": {
-      "createTitle": "Create User",
       "editTitle": "Edit User",
       "firstName": "First name",
       "lastName": "Last name",
       "emailCannotBeChanged": "Email cannot be changed",
-      "temporaryPassword": "Temporary password",
-      "passwordHint": "Min. 8 chars with uppercase, number & symbol",
       "company": "Company",
       "department": "Department",
       "title": "Title",
       "roles": "Roles",
       "accountActive": "Account active",
-      "createUser": "Create User",
       "saveChanges": "Save Changes",
-      "operationFailed": "Operation failed"
+      "operationFailed": "Operation failed",
+      "inviteTitle": "Invite someone",
+      "inviteHint": "They will receive an e-mail with a link to choose their password. The link works once, for 72 hours.",
+      "role": "Role",
+      "sendInvitation": "Send invitation"
     },
     "workflows": {
       "back": "Back to workflows",
@@ -345,6 +341,18 @@
       "create": "Create",
       "save": "Save",
       "operationFailed": "Operation failed"
+    },
+    "roles": {
+      "Administrator": "Administrator",
+      "Manager": "Manager",
+      "Employee": "Employee"
+    },
+    "invitations": {
+      "title": "Pending invitations",
+      "expires": "Expires {{date}}",
+      "revoke": "Withdraw",
+      "failed": "The invitation could not be withdrawn.",
+      "sent": "Invitation sent"
     }
   },
   "auth": {
@@ -366,34 +374,9 @@
       "forgotPassword": "Forgot password?",
       "signingIn": "Signing in...",
       "signIn": "Sign in",
-      "noAccount": "Don't have an account?",
-      "createOne": "Create one",
-      "defaultError": "Invalid email or password"
-    },
-    "register": {
-      "title": "Create your account",
-      "subtitle": "Start signing contracts for free",
-      "firstNameLabel": "First name",
-      "lastNameLabel": "Last name",
-      "emailLabel": "Email address",
-      "emailRequired": "Email is required",
-      "emailInvalid": "Enter a valid email",
-      "passwordLabel": "Password",
-      "passwordRequired": "Password is required",
-      "passwordMinLength": "Minimum 8 characters",
-      "passwordHint": "Min. 8 characters with uppercase, number, and symbol",
-      "confirmPasswordLabel": "Confirm password",
-      "passwordMismatch": "Passwords do not match",
-      "consentText": "I have read and agree to the",
-      "termsOfService": "Terms of Service",
-      "and": "and",
-      "privacyPolicy": "Privacy Policy",
-      "consentRequired": "You must accept the terms to continue.",
-      "creatingAccount": "Creating account...",
-      "createAccount": "Create account",
-      "haveAccount": "Already have an account?",
-      "signIn": "Sign in",
-      "defaultError": "Registration failed"
+      "defaultError": "Invalid email or password",
+      "invitationOnly": "Accounts are created by invitation. Ask your administrator.",
+      "tooManyAttempts": "Too many attempts. Wait a few minutes and try again."
     },
     "forgotPassword": {
       "title": "Forgot your password?",
@@ -420,6 +403,45 @@
       "successMessage": "Your password has been reset successfully.",
       "signInNow": "Sign in now",
       "defaultError": "Reset link is invalid or expired"
+    },
+    "mfa": {
+      "codeHint": "Enter the 6-digit code shown in your authenticator app.",
+      "recoveryHint": "Enter one of the recovery codes you saved. Each code works once.",
+      "codeLabel": "6-digit code",
+      "recoveryLabel": "Recovery code",
+      "useRecovery": "Use a recovery code instead",
+      "useApp": "Use the authenticator app instead",
+      "verify": "Verify",
+      "back": "Back to sign-in",
+      "invalidCode": "Invalid or expired code."
+    },
+    "invitation": {
+      "title": "Join LegalDesk",
+      "subtitle": "Choose a password to finish creating your account.",
+      "missingToken": "This link is incomplete. Open the link from your invitation e-mail again.",
+      "toSignIn": "Go to sign-in",
+      "passwordLabel": "Password",
+      "passwordRules": "At least 10 characters, with upper and lower case, a digit and a symbol.",
+      "confirmLabel": "Confirm password",
+      "submit": "Create my account",
+      "defaultError": "The account could not be created. Ask your administrator for a new invitation."
+    },
+    "mfaSetup": {
+      "title": "Two-factor sign-in",
+      "subtitle": "Protect your account with a code from your phone at each sign-in.",
+      "requiredSubtitle": "Your role requires two-factor sign-in. Set it up to continue.",
+      "step1": "Open an authenticator app (Microsoft Authenticator, Google Authenticator…) and scan this QR code.",
+      "step2": "Enter the 6-digit code the app shows.",
+      "qrAlt": "QR code for the authenticator app",
+      "manualKey": "Cannot scan? Enter this key:",
+      "confirm": "Turn on two-factor sign-in",
+      "signOut": "Sign out",
+      "doneTitle": "Two-factor sign-in is on",
+      "recoveryIntro": "Keep these recovery codes somewhere safe. Each works once if you lose your phone. They will not be shown again.",
+      "copy": "Copy the codes",
+      "copied": "Copied",
+      "continue": "Sign in again",
+      "defaultError": "Two-factor setup could not start. Try again."
     }
   },
   "dashboard": {
@@ -634,7 +656,11 @@
         "handled": "Handled ({{count}})",
         "profileTitle": "Contract profile",
         "noneOpen": "Nothing left to handle.",
-        "status": { "Open": "Open", "Resolved": "Fixed", "Dismissed": "Dismissed" },
+        "status": {
+          "Open": "Open",
+          "Resolved": "Fixed",
+          "Dismissed": "Dismissed"
+        },
         "filterAll": "All",
         "whyItMatters": "Why it matters",
         "recommendedAction": "Recommended action",
@@ -716,25 +742,39 @@
         "notifiedAfter": "Notified after step {{step}}"
       },
       "rail": {
-        "imported": "Imported", "review": "Review", "signature": "Signature", "active": "Active",
-        "reviewOpen": "{{count}} to handle", "reviewHandled": "All handled",
-        "declinedBy": "Declined by {{name}}", "paused": "Paused", "waitingOn": "Waiting on {{name}}",
-        "draftHint": "Not sent yet.", "risk": "Risk", "fitness": "Readiness",
+        "imported": "Imported",
+        "review": "Review",
+        "signature": "Signature",
+        "active": "Active",
+        "reviewOpen": "{{count}} to handle",
+        "reviewHandled": "All handled",
+        "declinedBy": "Declined by {{name}}",
+        "paused": "Paused",
+        "waitingOn": "Waiting on {{name}}",
+        "draftHint": "Not sent yet.",
+        "risk": "Risk",
+        "fitness": "Readiness",
         "riskAnalysed": "Risk scored on the text analysed on {{date}}.",
         "riskStale": "{{count}} point(s) handled since: re-run the review on the corrected version to update it."
       },
       "send": {
-      "intro": "Your request is filled in but not sent yet. Harvey has read the contract with your answers. Resolve the critical findings, then send it.",
-      "button": "Send for signature",
-      "sending": "Sending…",
-      "sent": "Request sent."
-    },
-    "next": {
-        "title": "Next actions", "none": "Nothing to do for now.",
-        "fixDecline": "Deal with the refusal", "fixDeclineSub": "See the signing circuit",
-        "risks": "{{count}} high-severity risk(s)", "risksSub": "Open the legal review",
-        "setTerm": "Record the contract term", "setTermSub": "No term entered",
-        "points": "Open points", "open": "to handle", "handled": "{{count}} already handled"
+        "intro": "Your request is filled in but not sent yet. Harvey has read the contract with your answers. Resolve the critical findings, then send it.",
+        "button": "Send for signature",
+        "sending": "Sending…",
+        "sent": "Request sent."
+      },
+      "next": {
+        "title": "Next actions",
+        "none": "Nothing to do for now.",
+        "fixDecline": "Deal with the refusal",
+        "fixDeclineSub": "See the signing circuit",
+        "risks": "{{count}} high-severity risk(s)",
+        "risksSub": "Open the legal review",
+        "setTerm": "Record the contract term",
+        "setTermSub": "No term entered",
+        "points": "Open points",
+        "open": "to handle",
+        "handled": "{{count}} already handled"
       },
       "changesRequestedHint": "A participant requested changes. Upload a revised PDF to restart the approval round.",
       "changeNotePlaceholder": "What changed in this revision? (optional)",
@@ -1171,8 +1211,8 @@
       "catNecessary": "Necessary",
       "catFunctional": "Functional",
       "catAnalytics": "Analytics",
-      "authPurpose": "Authentication — keeps you logged in",
-      "authDuration": "Session / 7 days",
+      "authPurpose": "Authentication: keeps you signed in on this device (HttpOnly cookie, unreadable by scripts)",
+      "authDuration": "Up to 14 days without use, 90 days at most",
       "prefsPurpose": "Stores your cookie preference so we don't ask again",
       "oneYear": "1 year",
       "sidebarPurpose": "Remembers sidebar state between sessions",
@@ -1247,7 +1287,20 @@
       "minLength": "Minimum 8 characters",
       "passwordHint": "Min. 8 chars with uppercase, number & symbol",
       "passwordMismatch": "Passwords do not match",
-      "updatePassword": "Update Password"
+      "updatePassword": "Update Password",
+      "mfaTitle": "Two-factor sign-in",
+      "mfaOn": "On: each sign-in asks for a code from your phone.",
+      "mfaOff": "Off: your password alone opens your account.",
+      "mfaEnable": "Turn on",
+      "mfaDisable": "Turn off",
+      "mfaDisablePrompt": "Enter a code from your authenticator app to turn two-factor sign-in off.",
+      "mfaDisabled": "Two-factor sign-in is off.",
+      "sessionsTitle": "Signed-in devices",
+      "sessionsHint": "Sign out a device you no longer use or do not recognise.",
+      "lastUsed": "Last used {{date}}",
+      "signOutDevice": "Sign out",
+      "noSessions": "No other device is signed in.",
+      "unknownDevice": "Unknown device"
     },
     "messages": {
       "profileUpdated": "Profile updated",
@@ -1897,45 +1950,45 @@
     }
   },
   "htmlTemplateEditor": {
-      "undo": "Undo",
-      "redo": "Redo",
-      "settings": {
-        "title": "Settings",
-        "basics": "Basics",
-        "routing": "Routing",
-        "privacy": "Privacy",
-        "clearApprover": "Clear approver"
-      },
-      "lint": {
-        "title": "Template checks",
-        "none": "No problems found.",
-        "emptyContent": "The template is empty.",
-        "undefinedPlaceholder": "{{key}} is used in the text but is not a field.",
-        "unusedField": "Field {{key}} is not used in the text.",
-        "signatureNotPlaced": "Signature {{key}} is not placed in the text; it will be added at the end.",
-        "noApprover": "No approver signature field: this template cannot be sent for signing.",
-        "unclosedCondition": "Conditions are not balanced: {{opens}} opened, {{closes}} closed.",
-        "duplicateKey": "Two fields share the key {{key}}.",
-        "unsafeMarkup": "Scripts and event handlers are removed when the contract is shown."
-      },
-      "review": {
-        "button": "Legal review",
-        "tooltip": "Review the template's wording with the legal review",
-        "title": "Legal review",
-        "intro": "Run the legal review to see what a lawyer would look at in the contract this template produces.",
-        "running": "Reviewing the template…",
-        "disclaimer": "Harvey-assisted checks against verified law. A lawyer validates every contract.",
-        "none": "No issues found.",
-        "stale": "template changed since this review",
-        "failed": "The review could not run. Please try again.",
-        "insert": "Insert proposed wording",
-        "severity": {
-          "Critical": "Critical",
-          "High": "High",
-          "Medium": "Medium",
-          "Low": "Low"
-        }
-      },
+    "undo": "Undo",
+    "redo": "Redo",
+    "settings": {
+      "title": "Settings",
+      "basics": "Basics",
+      "routing": "Routing",
+      "privacy": "Privacy",
+      "clearApprover": "Clear approver"
+    },
+    "lint": {
+      "title": "Template checks",
+      "none": "No problems found.",
+      "emptyContent": "The template is empty.",
+      "undefinedPlaceholder": "{{key}} is used in the text but is not a field.",
+      "unusedField": "Field {{key}} is not used in the text.",
+      "signatureNotPlaced": "Signature {{key}} is not placed in the text; it will be added at the end.",
+      "noApprover": "No approver signature field: this template cannot be sent for signing.",
+      "unclosedCondition": "Conditions are not balanced: {{opens}} opened, {{closes}} closed.",
+      "duplicateKey": "Two fields share the key {{key}}.",
+      "unsafeMarkup": "Scripts and event handlers are removed when the contract is shown."
+    },
+    "review": {
+      "button": "Legal review",
+      "tooltip": "Review the template's wording with the legal review",
+      "title": "Legal review",
+      "intro": "Run the legal review to see what a lawyer would look at in the contract this template produces.",
+      "running": "Reviewing the template…",
+      "disclaimer": "Harvey-assisted checks against verified law. A lawyer validates every contract.",
+      "none": "No issues found.",
+      "stale": "template changed since this review",
+      "failed": "The review could not run. Please try again.",
+      "insert": "Insert proposed wording",
+      "severity": {
+        "Critical": "Critical",
+        "High": "High",
+        "Medium": "Medium",
+        "Low": "Low"
+      }
+    },
     "workflowType": "Workflow",
     "requestType": "Contract type",
     "noRequestType": "— No contract type (open-ended) —",
@@ -2290,7 +2343,10 @@
       "failed": "Upload failed"
     },
     "designer": {
-      "tabs": {"properties":"Properties","circuit":"Circuit"},
+      "tabs": {
+        "properties": "Properties",
+        "circuit": "Circuit"
+      },
       "namePlaceholder": "Form name",
       "fieldTypes": "Field types",
       "fillRoleLegend": "Fill responsibility",

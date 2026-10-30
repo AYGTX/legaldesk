@@ -34,7 +34,7 @@ import { CookieConsentService } from '../../core/services/cookie-consent.service
         <tbody>
           <tr>
             <td><strong>{{ 'legal.cookies.catNecessary' | translate }}</strong></td>
-            <td><code>sf_access_token</code>, <code>sf_refresh_token</code></td>
+            <td><code>ld_session</code></td>
             <td>{{ 'legal.cookies.authPurpose' | translate }}</td>
             <td>{{ 'legal.cookies.authDuration' | translate }}</td>
           </tr>

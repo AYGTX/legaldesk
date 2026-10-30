@@ -181,6 +181,7 @@ public static class InfrastructureServiceExtensions
         // Features queue mail in the outbox; only the dispatcher job talks to SMTP (R-M4-9).
         services.AddScoped<IEmailService, OutboxEmailService>();
         services.AddScoped<ISmtpSender, MailKitEmailService>();
+        services.AddSingleton<IQrCodes, SignFlow.Infrastructure.Services.Pdf.QrCodes>();
         services.AddScoped<IPdfService, PdfPigService>();
         services.AddScoped<ICacheService, RedisCacheService>();
         services.AddScoped<IAuditService, AuditService>();
