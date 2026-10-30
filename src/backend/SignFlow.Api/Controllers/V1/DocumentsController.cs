@@ -7,6 +7,7 @@ using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Models;
 using SignFlow.Application.Features.Documents.Commands;
 using SignFlow.Application.Features.Documents.Queries;
+using SignFlow.Application.Features.Reviews;
 using SignFlow.Application.Features.RequestTypes.Queries;
 using SignFlow.Domain.Enums;
 
@@ -242,7 +243,7 @@ public class DocumentsController(
         [FromBody] SendDocumentRequest? request,
         CancellationToken ct)
     {
-        await sendHandler.HandleAsync(new SendDocumentCommand(id, request?.Force ?? false), ct);
+        await sendHandler.HandleAsync(new SendDocumentCommand(id, request?.Reason), ct);
         return NoContent();
     }
 
@@ -271,21 +272,6 @@ public class DocumentsController(
         var path = doc.FinalStoragePath ?? doc.StoragePath;
         var stream = await storageService.DownloadAsync(path, ct);
         return File(stream, "application/pdf", doc.FileName);
-    }
-
-    /// <summary>Run a full legal review of the contract — gaps, weak clauses, proposed wording and the next obligation date</summary>
-    [HttpPost("{id:guid}/analyze")]
-    [ProducesResponseType(typeof(ContractAnalysisDto), 200)]
-    [ProducesResponseType(typeof(ProblemDetails), 403)]
-    [ProducesResponseType(typeof(ProblemDetails), 404)]
-    [ProducesResponseType(typeof(ProblemDetails), 422)]
-    public async Task<ActionResult<ContractAnalysisDto>> Analyze(
-        [FromRoute] Guid id,
-        [FromServices] ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto> analyzeHandler,
-        CancellationToken ct)
-    {
-        var result = await analyzeHandler.HandleAsync(new AnalyzeContractCommand(id), ct);
-        return Ok(result);
     }
 
     /// <summary>
@@ -355,66 +341,47 @@ public class DocumentsController(
         }
     }
 
-    /// <summary>Check the contract against the published regulatory watch registry — a keyword scan, not a legal opinion</summary>
-    [HttpPost("{id:guid}/compliance")]
-    [ProducesResponseType(typeof(ComplianceAnalysisDto), 200)]
+    /// <summary>Start Harvey's review of the current version in the background (R-M8-9). Progress and the result arrive
+    /// over SignalR ("review-progress"); read them with GET reviews/latest.</summary>
+    [HttpPost("{id:guid}/reviews")]
+    [ProducesResponseType(typeof(ReviewRunDto), 202)]
     [ProducesResponseType(typeof(ProblemDetails), 403)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 503)]
+    public async Task<ActionResult<ReviewRunDto>> StartReview(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<StartReviewCommand, ReviewRunDto> handler,
+        CancellationToken ct)
+    {
+        var run = await handler.HandleAsync(new StartReviewCommand(id), ct);
+        return Accepted(run);
+    }
+
+    /// <summary>The contract's review: latest run, verdict, scores and findings with their origin</summary>
+    [HttpGet("{id:guid}/reviews/latest")]
+    [ProducesResponseType(typeof(ReviewDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<ActionResult<ReviewDto>> GetLatestReview(
+        [FromRoute] Guid id,
+        [FromServices] IQueryHandler<GetLatestReviewQuery, ReviewDto> handler,
+        CancellationToken ct)
+        => Ok(await handler.HandleAsync(new GetLatestReviewQuery(id), ct));
+
+    /// <summary>Accept a finding, mark it not applicable (both with a reason), or reopen it; the verdict is re-graded</summary>
+    [HttpPatch("{id:guid}/review-items/{itemId:guid}")]
+    [ProducesResponseType(typeof(ReviewDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]
-    public async Task<ActionResult<ComplianceAnalysisDto>> AnalyzeCompliance(
-        [FromRoute] Guid id,
-        [FromServices] ICommandHandler<AnalyzeComplianceCommand, ComplianceAnalysisDto> analyzeComplianceHandler,
-        CancellationToken ct)
-    {
-        var result = await analyzeComplianceHandler.HandleAsync(new AnalyzeComplianceCommand(id), ct);
-        return Ok(result);
-    }
-
-    /// <summary>Pre-flight review: run the legal and regulatory checks, then grade whether the contract is fit to send</summary>
-    [HttpPost("{id:guid}/readiness")]
-    [ProducesResponseType(typeof(ReadinessDto), 200)]
-    [ProducesResponseType(typeof(ProblemDetails), 403)]
-    [ProducesResponseType(typeof(ProblemDetails), 404)]
-    [ProducesResponseType(typeof(ProblemDetails), 422)]
-    public async Task<ActionResult<ReadinessDto>> EvaluateReadiness(
-        [FromRoute] Guid id,
-        [FromServices] ICommandHandler<EvaluateReadinessCommand, ReadinessDto> readinessHandler,
-        CancellationToken ct)
-    {
-        var result = await readinessHandler.HandleAsync(new EvaluateReadinessCommand(id), ct);
-        return Ok(result);
-    }
-
-    /// <summary>Get the stored pre-flight verdict and its to-do list without re-running the analysis</summary>
-    [HttpGet("{id:guid}/readiness")]
-    [ProducesResponseType(typeof(ReadinessDto), 200)]
-    [ProducesResponseType(typeof(ProblemDetails), 403)]
-    [ProducesResponseType(typeof(ProblemDetails), 404)]
-    public async Task<ActionResult<ReadinessDto>> GetReadiness(
-        [FromRoute] Guid id,
-        [FromServices] IQueryHandler<GetReadinessQuery, ReadinessDto> readinessQueryHandler,
-        CancellationToken ct)
-    {
-        var result = await readinessQueryHandler.HandleAsync(new GetReadinessQuery(id), ct);
-        return Ok(result);
-    }
-
-    /// <summary>Resolve or dismiss one pre-flight to-do item — the verdict is re-graded from what stays open</summary>
-    [HttpPatch("{id:guid}/readiness/items/{itemId:guid}")]
-    [ProducesResponseType(typeof(ReadinessDto), 200)]
-    [ProducesResponseType(typeof(ProblemDetails), 403)]
-    [ProducesResponseType(typeof(ProblemDetails), 404)]
-    public async Task<ActionResult<ReadinessDto>> SetReadinessItemStatus(
+    public async Task<ActionResult<ReviewDto>> DecideReviewItem(
         [FromRoute] Guid id,
         [FromRoute] Guid itemId,
-        [FromBody] SetReadinessItemStatusRequest request,
-        [FromServices] ICommandHandler<SetReadinessItemStatusCommand, ReadinessDto> setItemHandler,
+        [FromBody] DecideReviewItemRequest request,
+        [FromServices] ICommandHandler<DecideReviewItemCommand, ReviewDto> handler,
         CancellationToken ct)
-    {
-        var result = await setItemHandler.HandleAsync(
-            new SetReadinessItemStatusCommand(id, itemId, request.Status, request.Note), ct);
-        return Ok(result);
-    }
+        => Ok(await handler.HandleAsync(new DecideReviewItemCommand(id, itemId, request.Status, request.Reason), ct));
 
     /// <summary>Get an AI-generated plain-English summary of a document</summary>
     [HttpGet("{id:guid}/summary")]
@@ -496,10 +463,11 @@ public record ReviseAnswersRequest(Dictionary<string, string>? FilledValues, str
 public record EditPdfRequest(List<PdfTextEdit> Edits, string? ChangeNote = null);
 public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);
 
-public record SetReadinessItemStatusRequest(ReadinessItemStatus Status, string? Note = null);
 
-/// <summary>Force lets the owner send past a "needs work" verdict after acknowledging it.</summary>
-public record SendDocumentRequest(bool Force = false);
+/// <param name="Reason">Why the contract goes out with open high-risk findings; required in that case (R-M8-8).</param>
+public record SendDocumentRequest(string? Reason = null);
+
+public record DecideReviewItemRequest(ReadinessItemStatus Status, string? Reason);
 
 /// <summary>A question about a contract, with the conversation so far (the client keeps it).</summary>
 public record AskContractQuestionRequest(string Question, IReadOnlyList<ChatTurn>? History, string? Language);

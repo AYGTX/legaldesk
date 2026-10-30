@@ -202,6 +202,32 @@
   {% endif %}
 </section>
 
+{% if feedback %}
+<section class="card" id="feedback">
+  <h2>{{ t('pb_feedback_title') }} ({{ feedback|length }})</h2>
+  <p class="muted">{{ t('pb_feedback_hint') }}</p>
+  {% for f in feedback %}
+    <div class="phrase-row" style="margin-bottom:12px">
+      <p style="margin:0 0 4px"><strong>{{ f.clause_reference or '—' }}</strong>
+        <span class="muted">· {{ t('pb_feedback_version', version=f.rule_version or '?') }} · {{ f.received_at.strftime('%Y-%m-%d') }}</span></p>
+      {% if f.quote %}<p class="example-text" style="margin:0 0 4px">« {{ f.quote }} »</p>{% endif %}
+      <p style="margin:0 0 6px">{{ t('pb_feedback_reason') }} : {{ f.reason }}</p>
+      <div class="row">
+        {% if f.quote and f.quote|length >= 30 %}
+        <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/examples/counter_examples">
+          <input type="hidden" name="text" value="{{ f.quote[:600] }}">
+          <button class="secondary" type="submit">{{ t('pb_feedback_counter') }}</button>
+        </form>
+        {% endif %}
+        <form hx-boost="true" method="post" action="/playbook/rules/{{ rule.key|urlencode }}/feedback/{{ f.id }}/handled">
+          <button class="ghost" type="submit">{{ t('pb_feedback_handled') }}</button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 <section class="card" id="examples">
   <h2>{{ t('pb_examples') }} ({{ rule.examples|length }})</h2>
   <p class="muted">{{ t('pb_examples_hint') }}</p>

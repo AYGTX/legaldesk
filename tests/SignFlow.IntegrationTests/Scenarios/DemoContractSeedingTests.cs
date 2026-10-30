@@ -132,7 +132,7 @@ public class DemoContractSeedingTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_lifecycle_and_risk_reports_have_something_to_show()
+    public async Task The_lifecycle_report_has_something_to_show_and_no_review_is_seeded()
     {
         var lifecycle = await new GetContractLifecycleQueryHandler(_db).HandleAsync(new GetContractLifecycleQuery());
         Assert.True(lifecycle.TotalTracked >= 4);
@@ -140,72 +140,11 @@ public class DemoContractSeedingTests : IAsyncLifetime
         Assert.NotEmpty(lifecycle.Upcoming);
         Assert.NotEmpty(lifecycle.ByRequestType);
 
+        // Findings come only from Harvey's approved rules (D1): demo contracts are reviewed live, never seeded with one.
         var riskMap = await new GetRiskMapQueryHandler(_db).HandleAsync(new GetRiskMapQuery());
-        Assert.True(riskMap.TotalAnalyzed >= 7);
-        Assert.True(riskMap.AvgRiskScore > 0);
-        Assert.NotEmpty(riskMap.TopClauseTypes);
-        Assert.Contains(riskMap.BySeverity, s => s.Severity == "Critical");
-    }
-
-    [Fact]
-    public async Task Readiness_verdicts_follow_from_the_stored_findings()
-    {
-        var evaluated = await _db.Documents
-            .Where(d => d.ReadinessVerdict != ReadinessVerdict.NotEvaluated)
-            .ToListAsync();
-
-        Assert.Equal(2, evaluated.Count);
-
-        // A critical open finding blocks; high-severity ones only warn. Both states are on show.
-        Assert.Contains(evaluated, d => d.ReadinessVerdict == ReadinessVerdict.Blocked);
-        Assert.Contains(evaluated, d => d.ReadinessVerdict == ReadinessVerdict.NeedsWork);
-
-        foreach (var document in evaluated)
-        {
-            var items = await _db.DocumentReadinessItems.Where(i => i.DocumentId == document.Id).ToListAsync();
-            Assert.NotEmpty(items);
-            Assert.All(items, i => Assert.Equal(ReadinessItemStatus.Open, i.Status));
-
-            var blocked = items.Any(i => i.Severity == "Critical");
-            Assert.Equal(blocked ? ReadinessVerdict.Blocked : ReadinessVerdict.NeedsWork, document.ReadinessVerdict);
-        }
-    }
-
-    [Fact]
-    public async Task Compliance_analyses_answer_every_tracked_regulation_exactly_once()
-    {
-        var published = await _db.RegulatoryTexts
-            .Where(r => r.Status == RegulatoryTextStatus.Published)
-            .ToListAsync();
-
-        var analysed = await _db.Documents
-            .Where(d => d.AiComplianceAnalysisJson != null)
-            .Include(d => d.RequestType)
-            .ToListAsync();
-
-        Assert.NotEmpty(analysed);
-
-        foreach (var document in analysed)
-        {
-            var analysis = System.Text.Json.JsonSerializer.Deserialize<ComplianceShape>(
-                document.AiComplianceAnalysisJson!,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-
-            var applicable = published
-                .Where(r => r.RequestTypeId is null || r.RequestTypeId == document.RequestTypeId)
-                .Select(r => r.Id)
-                .ToHashSet();
-
-            Assert.Equal(applicable.Count, analysis.Findings.Count);
-            Assert.Equal(applicable, analysis.Findings.Select(f => f.RegulationId).ToHashSet());
-
-            // The score is the share found addressed — never a number the seeder chose.
-            var expected = (int)Math.Round(100.0 * analysis.Findings.Count(f => f.Status == "Addressed") / analysis.Findings.Count);
-            Assert.Equal(expected, analysis.ComplianceScore);
-
-            // A severity chip next to "Addressed" would read as a problem in the UI.
-            Assert.All(analysis.Findings.Where(f => f.Status != "Gap"), f => Assert.Null(f.Severity));
-        }
+        Assert.Equal(0, riskMap.TotalAnalyzed);
+        Assert.Empty(await _db.DocumentReadinessItems.ToListAsync());
+        Assert.All(await _db.Documents.ToListAsync(), d => Assert.Equal(ReadinessVerdict.NotEvaluated, d.ReadinessVerdict));
     }
 
     [Fact]
@@ -346,7 +285,4 @@ public class DemoContractSeedingTests : IAsyncLifetime
         Assert.DoesNotContain("ne saurait excéder", risky);
         Assert.DoesNotContain("{{", risky);
     }
-
-    private sealed record ComplianceShape(int ComplianceScore, List<ComplianceFindingShape> Findings);
-    private sealed record ComplianceFindingShape(Guid RegulationId, string Status, string? Severity);
 }

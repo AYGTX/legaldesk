@@ -269,3 +269,23 @@ class RuleVersion(Base):
     edited_by_user_id: Mapped[str | None] = mapped_column(String(36))
     # Set when a lawyer withdraws the rule from reviews; a withdrawn rule is not served until approved again.
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ReviewFeedback(Base):
+    """A finding a LegalDesk user marked "not applicable" (rework spec R-M8-4): a possible false positive for the
+    lawyers who keep the grid. Harvey stores no contract, only the rule, the clause reference, the quoted words and the
+    reason given; it is reviewed on the risk's page and closed once a lawyer has acted on it."""
+
+    __tablename__ = "review_feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # LegalDesk's id for the finding, so a retried delivery is stored once.
+    source_ref: Mapped[str] = mapped_column(String(64), unique=True)
+    rule_key: Mapped[str] = mapped_column(String(80), index=True)
+    rule_version: Mapped[int | None] = mapped_column(Integer)
+    clause_reference: Mapped[str | None] = mapped_column(String(300))
+    quote: Mapped[str | None] = mapped_column(Text)
+    reason: Mapped[str] = mapped_column(Text)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    handled_by_user_id: Mapped[str | None] = mapped_column(String(36))

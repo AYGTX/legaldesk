@@ -37,5 +37,9 @@ public enum AuditAction
     ReviewAcknowledged = 32,
     ContractQuestionAsked = 33,
     ContractKeyTermsExtracted = 34,
-    ContractRenewalNoteWritten = 35
+    ContractRenewalNoteWritten = 35,
+    ReviewRequested = 36,
+    ReviewFailed = 37,
+    /// <summary>Sent with an open High finding: the owner's reason is in the entry (R-M8-8).</summary>
+    SentWithOpenRisks = 38
 }

@@ -743,18 +743,6 @@ namespace SignFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("AiComplianceAnalysisGeneratedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("AiComplianceAnalysisJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("AiRiskAnalysisGeneratedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("AiRiskAnalysisJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("AiSummary")
                         .HasColumnType("nvarchar(max)");
 
@@ -841,6 +829,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<DateTime?>("LastObligationReminderSentAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("LastReviewRunId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("LastTermAlertSentAt")
                         .HasColumnType("datetime2");
 
@@ -893,6 +884,9 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<Guid?>("RequestTypeId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("RiskScore")
+                        .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -982,8 +976,18 @@ namespace SignFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ArticlesJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("Category")
                         .HasColumnType("int");
+
+                    b.Property<string>("ClauseReference")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("float");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -992,15 +996,37 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DecidedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Detail")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DetectionKind")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int?>("FirstFoundInVersion")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FixedInVersion")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<Guid?>("LastSeenRunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("LastSeenVersion")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("OrganisationId")
                         .HasColumnType("uniqueidentifier");
@@ -1008,18 +1034,29 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("ProposedLanguage")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RecommendedAction")
+                    b.Property<string>("QuotesJson")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ResolutionNote")
+                    b.Property<string>("Reason")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<DateTime?>("ResolvedAt")
+                    b.Property<string>("RecommendedAction")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RuleApprovedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("ResolvedByUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("RuleApprovedBy")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("RuleKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int?>("RuleVersion")
+                        .HasColumnType("int");
 
                     b.Property<string>("Severity")
                         .IsRequired()
@@ -1050,6 +1087,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LastSeenRunId");
 
                     b.HasIndex("OrganisationId");
 
@@ -1410,6 +1449,60 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Organisations");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.OrganisationRuleSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RuleKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("SeverityOverride")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.HasIndex("OrganisationId", "RuleKey")
+                        .IsUnique();
+
+                    b.ToTable("OrganisationRuleSettings");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.OutboxMessage", b =>
@@ -1982,6 +2075,77 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("OrganisationId");
 
                     b.ToTable("RequestTypes");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.ReviewRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AsOfDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("FindingCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GridVersion")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.HasIndex("DocumentId", "CreatedAt");
+
+                    b.ToTable("ReviewRuns");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Signature", b =>
@@ -3110,6 +3274,15 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.OrganisationRuleSetting", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.OutboxMessage", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.Organisation", null)
@@ -3241,6 +3414,21 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.RequestType", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.ReviewRun", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("SignFlow.Domain.Entities.Organisation", null)
                         .WithMany()
                         .HasForeignKey("OrganisationId")

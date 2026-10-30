@@ -47,6 +47,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<RegulatoryText> RegulatoryTexts => Set<RegulatoryText>();
     public DbSet<RegulatoryArticle> RegulatoryArticles => Set<RegulatoryArticle>();
     public DbSet<DocumentReadinessItem> DocumentReadinessItems => Set<DocumentReadinessItem>();
+    public DbSet<ReviewRun> ReviewRuns => Set<ReviewRun>();
+    public DbSet<OrganisationRuleSetting> OrganisationRuleSettings => Set<OrganisationRuleSetting>();
     public DbSet<WorkflowPreset> WorkflowPresets => Set<WorkflowPreset>();
     public DbSet<WorkflowPresetStep> WorkflowPresetSteps => Set<WorkflowPresetStep>();
 

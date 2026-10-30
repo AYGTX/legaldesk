@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Services;
 using SignFlow.Application.Features.Documents.Commands;
+using SignFlow.Application.Features.Reviews;
 using SignFlow.Application.Features.Recipients.Commands;
 using SignFlow.Application.Features.SignatureFields.Commands;
 using SignFlow.Application.Features.Signing.Commands;
@@ -88,7 +89,6 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<IPdfService>(),
             sp.GetRequiredService<PdfUploadGuard>(),
             sp.GetRequiredService<IAiService>(),
-            new LegalPlaybookService(new NullLegalCorpusClient(), NullLogger<LegalPlaybookService>.Instance),
             sp.GetRequiredService<ICurrentUserService>(),
             sp.GetRequiredService<IAuditService>(),
             NullLogger<UploadDocumentCommandHandler>.Instance));
@@ -126,10 +126,38 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<INotificationHub>(),
             NullLogger<ApproveSigningCommandHandler>.Instance));
 
+        // The pre-flight review (M8): Harvey faked, jobs recorded and run by the test, the real handlers in between.
+        services.AddSingleton(Harvey);
+        services.AddSingleton<ILegalCorpusClient>(Harvey);
+        services.AddSingleton(ReviewQueue);
+        services.AddSingleton<IReviewQueue>(ReviewQueue);
+        services.AddSingleton(Text);
+        services.AddSingleton<IContractTextProvider>(Text);
+        services.AddScoped<IContractReviewService, ContractReviewService>();
+        services.AddSingleton(Microsoft.Extensions.Options.Options.Create(new ReviewOptions()));
+        services.AddScoped<StartReviewCommandHandler>();
+        services.AddScoped<ReviewRunner>();
+        services.AddScoped<DecideReviewItemCommandHandler>();
+        services.AddScoped<GetLatestReviewQueryHandler>();
+        services.AddScoped<ReviewFeedbackSender>();
+        services.AddScoped<SetReviewSettingCommandHandler>();
+
         _provider = services.BuildServiceProvider();
     }
 
+    public FakeHarvey Harvey { get; } = new();
+    public RecordingReviewQueue ReviewQueue { get; } = new();
+    public FixedTextProvider Text { get; } = new();
+
     public T GetHandler<T>() where T : notnull => _provider.GetRequiredService<T>();
+
+    /// <summary>Runs Harvey's review of the contract's current version to the end, as the API and its job would.</summary>
+    public async Task<ReviewDto> ReviewAsync(Guid documentId)
+    {
+        var run = await GetHandler<StartReviewCommandHandler>().HandleAsync(new StartReviewCommand(documentId));
+        await GetHandler<ReviewRunner>().RunAsync(run.Id);
+        return await GetHandler<GetLatestReviewQueryHandler>().HandleAsync(new GetLatestReviewQuery(documentId));
+    }
 
     public void Dispose() => _provider.Dispose();
 }

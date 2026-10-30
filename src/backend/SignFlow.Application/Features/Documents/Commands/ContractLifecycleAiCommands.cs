@@ -104,7 +104,18 @@ public class WriteRenewalNoteCommandHandler(
         var language = ContractLanguage.ForAnswer(text, command.Language);
         var status = ContractTermEvaluator.Evaluate(document.ContractStartDate, document.ContractEndDate, document.NoticePeriodDays, DateTime.UtcNow);
 
-        var note = await aiService.WriteRenewalNoteAsync(text, Facts(document, status), language, cancellationToken);
+        // Harvey's open findings on the current version, so the note cannot ignore a risk the review raised.
+        var openRisks = document.LastReviewRunId is { } runId
+            ? await db.DocumentReadinessItems.AsNoTracking()
+                .Where(i => i.LastSeenRunId == runId && i.Status == ReadinessItemStatus.Open)
+                .Select(i => new { i.Title, i.Severity, i.ClauseReference })
+                .ToListAsync(cancellationToken)
+            : [];
+        var risks = openRisks
+            .OrderBy(r => ReviewGrading.Rank(r.Severity))
+            .Take(8)
+            .Select(r => $"{r.Title} ({r.Severity}{(r.ClauseReference is null ? "" : $", {r.ClauseReference}")})");
+        var note = await aiService.WriteRenewalNoteAsync(text, Facts(document, status, risks), language, cancellationToken);
         var citations = note.Quotes.Where(q => !string.IsNullOrWhiteSpace(q)).Select(q => q.Trim()).Distinct().Take(4)
             .Select(q => new ChatCitationDto(q, QuoteMatcher.IsVerbatim(text, q))).Where(c => c.Verified).ToList();
         var recommendation = Recommendations.FirstOrDefault(r => r.Equals(note.Recommendation?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? "Review";
@@ -118,7 +129,7 @@ public class WriteRenewalNoteCommandHandler(
     }
 
     /// <summary>What LegalDesk knows for certain, given to the model as facts it must not contradict.</summary>
-    public static string Facts(Document document, ContractTermStatus status)
+    public static string Facts(Document document, ContractTermStatus status, IEnumerable<string> openRisks)
     {
         static string D(DateTime? d) => d?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "not recorded";
         var sb = new StringBuilder();
@@ -128,28 +139,9 @@ public class WriteRenewalNoteCommandHandler(
         sb.AppendLine($"Last day to give notice: {D(status.NoticeDeadline)}; days to end: {status.DaysToEnd?.ToString(CultureInfo.InvariantCulture) ?? "?"}; stage: {status.Stage}");
         if (document.ObligationDueDate is not null)
             sb.AppendLine($"Tracked obligation: {document.ObligationType} due {D(document.ObligationDueDate)}");
-        foreach (var risk in OpenRisks(document.AiRiskAnalysisJson))
+        foreach (var risk in openRisks)
             sb.AppendLine($"Open risk from the review: {risk}");
         return sb.ToString();
-    }
-
-    private static IEnumerable<string> OpenRisks(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) yield break;
-        List<(string, string)> risks = [];
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("findings", out var findings) || doc.RootElement.TryGetProperty("Findings", out findings))
-                foreach (var f in findings.EnumerateArray())
-                {
-                    var severity = (f.TryGetProperty("severity", out var s) || f.TryGetProperty("Severity", out s)) ? s.GetString() : null;
-                    var type = (f.TryGetProperty("clauseType", out var c) || f.TryGetProperty("ClauseType", out c)) ? c.GetString() : null;
-                    if (severity is "High" or "Medium" && type is not null) risks.Add((severity, type));
-                }
-        }
-        catch (JsonException) { }
-        foreach (var (severity, type) in risks.Take(8)) yield return $"{type} ({severity})";
     }
 }
 

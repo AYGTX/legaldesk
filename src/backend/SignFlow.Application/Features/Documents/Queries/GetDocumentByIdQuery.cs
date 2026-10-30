@@ -35,14 +35,11 @@ public record DocumentDetailDto(
     string? RequestTypeColor,
     string? AiSummary,
     DateTime? AiSummaryGeneratedAt,
-    string? AiRiskAnalysisJson,
-    DateTime? AiRiskAnalysisGeneratedAt,
-    string? AiComplianceAnalysisJson,
-    DateTime? AiComplianceAnalysisGeneratedAt,
-    // Pre-flight verdict, threaded through so the detail page's intelligence band renders in the
-    // same round-trip. The to-do items themselves come from GET /readiness.
+    // Review verdict and scores of the current version, threaded through so the detail page's band renders in the
+    // same round-trip. The findings themselves come from GET reviews/latest.
     ReadinessVerdict ReadinessVerdict,
     int? ReadinessScore,
+    int? RiskScore,
     DateTime? ReadinessEvaluatedAt,
     DateTime? ObligationDueDate,
     string? ObligationType,
@@ -151,12 +148,9 @@ public class GetDocumentByIdQueryHandler(
             document.RequestType != null ? document.RequestType.Color : null,
             document.AiSummary,
             document.AiSummaryGeneratedAt,
-            document.AiRiskAnalysisJson,
-            document.AiRiskAnalysisGeneratedAt,
-            document.AiComplianceAnalysisJson,
-            document.AiComplianceAnalysisGeneratedAt,
             document.ReadinessVerdict,
             document.ReadinessScore,
+            document.RiskScore,
             document.ReadinessEvaluatedAt,
             document.ObligationDueDate,
             document.ObligationType,

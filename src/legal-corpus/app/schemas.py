@@ -90,6 +90,15 @@ class ReviewOut(BaseModel):
     findings: list[FindingOut]
 
 
+class ReviewFeedbackIn(BaseModel):
+    source_ref: str = Field(min_length=1, max_length=64)
+    rule_key: str = Field(min_length=1, max_length=80)
+    rule_version: int | None = None
+    clause_reference: str | None = Field(default=None, max_length=300)
+    quote: str | None = Field(default=None, max_length=4000)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
 class ClauseMatchOut(BaseModel):
     reference: str
     rule_key: str

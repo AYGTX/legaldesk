@@ -653,6 +653,7 @@ def resolve(db: Session, include_unconfirmed: bool = False) -> dict:
         clause = (working.get(rule["key"]) or {}).get("model_clause")
         rules[rule["key"]] = {"label": rule.get("label"), "version": rule.get("version"),
                               "approved_by": rule.get("approved_by") or rule.get("confirmed_by"),
+                              "approved_at": rule.get("approved_at"),
                               "confirmed_by": rule.get("approved_by") or rule.get("confirmed_by"),
                               "severity": rule.get("severity"), "articles": articles,
                               "phrases": rule.get("phrases", []),

@@ -53,11 +53,25 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Status = 401,
                 Detail = uae.Message
             }),
+            ConflictException { Code: not null } ce => (HttpStatusCode.Conflict, new ProblemDetails
+            {
+                Title = "Conflict",
+                Status = 409,
+                Detail = ce.Message,
+                Extensions = { ["code"] = ce.Code }
+            }),
             ConflictException ce => (HttpStatusCode.Conflict, new ProblemDetails
             {
                 Title = "Conflict",
                 Status = 409,
                 Detail = ce.Message
+            }),
+            ServiceUnavailableException sue => (HttpStatusCode.ServiceUnavailable, new ProblemDetails
+            {
+                Title = "Service unavailable",
+                Status = 503,
+                Detail = sue.Message,
+                Extensions = { ["code"] = sue.Code }
             }),
             InvalidStatusTransitionException iste => (HttpStatusCode.Conflict, new ProblemDetails
             {

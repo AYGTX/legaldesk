@@ -12,17 +12,16 @@ namespace SignFlow.Infrastructure.Persistence.Demo;
 
 /// <summary>
 /// Materialises <see cref="DemoContractCatalogue"/> into a working contract portfolio: real PDF
-/// files in storage, documents with a history, validation circuits at every stage, stored risk and
-/// compliance analyses, contract terms and a traceability trail.
+/// files in storage, documents with a history, validation circuits at every stage, contract terms and a traceability
+/// trail.
 ///
 /// Why this exists: LegalDesk's lifecycle report, risk map, expiry alert ladder and readiness gate
 /// all read from executed contracts. On a database that has just been created there are none, so a
 /// product with eleven working capabilities demonstrates none of them until somebody manually
 /// drafts, sends and signs a contract in front of the audience.
 ///
-/// Nothing here is a mock: the analyses are written through the same
-/// <see cref="ReadinessEvaluator"/> and JSON contract the runtime uses, so a seeded document is
-/// indistinguishable from one the application produced — including when it is re-analysed live.
+/// No review is seeded: findings come only from Harvey's approved rules (D1), so each demo contract starts "not
+/// reviewed" and is reviewed live, like any other contract.
 /// </summary>
 internal static class DemoContractSeeder
 {
@@ -56,9 +55,6 @@ internal static class DemoContractSeeder
         }
 
         var requestTypes = await context.RequestTypes.ToDictionaryAsync(t => t.Name, cancellationToken);
-        var regulations = await context.RegulatoryTexts
-            .Where(r => r.Status == RegulatoryTextStatus.Published)
-            .ToListAsync(cancellationToken);
 
         var today = DateTime.UtcNow.Date;
 
@@ -72,7 +68,7 @@ internal static class DemoContractSeeder
             }
 
             await SeedOneAsync(context, storage, pdfService, spec, owners[spec.OwnerEmail],
-                requestType, regulations, today, cancellationToken);
+                requestType, today, cancellationToken);
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -86,7 +82,6 @@ internal static class DemoContractSeeder
         DemoContract spec,
         ApplicationUser owner,
         RequestType requestType,
-        IReadOnlyList<RegulatoryText> regulations,
         DateTime today,
         CancellationToken cancellationToken)
     {
@@ -160,107 +155,8 @@ internal static class DemoContractSeeder
                 document.SetObligationSuggestion(dueDate, obligation.Type, obligation.Rationale);
         }
 
-        var analysedAt = spec.Status == DocumentStatus.Draft ? createdAt : createdAt.AddHours(1);
-
-        ContractRiskAnalysis? risk = null;
-        if (spec.Risk is { } r)
-        {
-            risk = new ContractRiskAnalysis(r.Score, [.. r.Findings], analysedAt, r.Profile);
-            document.SetAiRiskAnalysis(JsonSerializer.Serialize(risk, ContractJson.Options));
-            Backdate(context, document, nameof(Document.AiRiskAnalysisGeneratedAt), analysedAt);
-        }
-
-        var compliance = BuildCompliance(spec, requestType, regulations, analysedAt);
-        if (compliance is not null)
-        {
-            document.SetAiComplianceAnalysis(JsonSerializer.Serialize(compliance, ContractJson.Options));
-            Backdate(context, document, nameof(Document.AiComplianceAnalysisGeneratedAt), analysedAt);
-        }
-
-        if (spec.EvaluateReadiness)
-            ApplyReadiness(context, document, risk, compliance, analysedAt);
-
         var recipients = AddParticipants(context, document, spec, sentAt, completedAt);
-        AddAuditTrail(context, document, spec, owner, recipients, createdAt, sentAt, completedAt, analysedAt);
-    }
-
-    /// <summary>
-    /// Builds the stored compliance analysis the way the runtime does: every regulation the
-    /// document's family is subject to is answered exactly once, and the score is computed from the
-    /// findings rather than asserted. Regulations the catalogue has no verdict for come back as
-    /// "Unclear" — an incomplete answer must not flatter the score.
-    /// </summary>
-    private static ComplianceAnalysis? BuildCompliance(
-        DemoContract spec,
-        RequestType requestType,
-        IReadOnlyList<RegulatoryText> regulations,
-        DateTime analysedAt)
-    {
-        if (spec.Compliance is null) return null;
-
-        // Same selection as AnalyzeComplianceCommand: everything published, minus the entries
-        // scoped to a different contract family.
-        var applicable = regulations
-            .Where(r => r.RequestTypeId is null || r.RequestTypeId == requestType.Id)
-            .ToList();
-        if (applicable.Count == 0) return null;
-
-        var findings = applicable
-            .Select(regulation =>
-            {
-                var key = DemoContractCatalogue.NormaliseReference(regulation.Reference ?? string.Empty);
-                if (!spec.Compliance.TryGetValue(key, out var verdict))
-                {
-                    return new ComplianceFinding(regulation.Id, regulation.Title, "Unclear",
-                        "Le contrat ne comporte pas d'élément permettant de se prononcer sur cette exigence.");
-                }
-
-                return new ComplianceFinding(
-                    regulation.Id,
-                    regulation.Title,
-                    verdict.Status,
-                    verdict.Explanation,
-                    // A severity chip beside "Addressed" reads as a problem — gaps only, as at runtime.
-                    Severity: verdict.Status == "Gap" ? verdict.Severity : null,
-                    WhyItMatters: verdict.WhyItMatters,
-                    RecommendedAction: verdict.RecommendedAction);
-            })
-            .ToList();
-
-        var score = (int)Math.Round(100.0 * findings.Count(f => f.Status == "Addressed") / findings.Count);
-        return new ComplianceAnalysis(score, findings, analysedAt);
-    }
-
-    /// <summary>
-    /// Derives the pre-flight to-do list and verdict from the stored analyses using the production
-    /// evaluator, so a seeded readiness verdict is the one the application would have reached.
-    /// </summary>
-    private static void ApplyReadiness(
-        ApplicationDbContext context,
-        Document document,
-        ContractRiskAnalysis? risk,
-        ComplianceAnalysis? compliance,
-        DateTime evaluatedAt)
-    {
-        var drafts = ReadinessEvaluator.BuildItems(risk, compliance);
-
-        foreach (var draft in drafts)
-        {
-            var item = DocumentReadinessItem.Create(
-                document.Id, draft.Category, draft.Severity, draft.SourceKey,
-                draft.Title, draft.Detail, draft.WhyItMatters, draft.RecommendedAction, draft.ProposedLanguage);
-            context.DocumentReadinessItems.Add(item);
-            Backdate(context, item, nameof(DocumentReadinessItem.CreatedAt), evaluatedAt);
-        }
-
-        var assessment = ReadinessEvaluator.Assess(
-            drafts.Count,
-            [.. drafts.Select(d => d.Severity)],
-            risk?.RiskScore,
-            compliance?.ComplianceScore);
-
-        document.SetReadiness(assessment.Verdict, assessment.Score);
-        Backdate(context, document, nameof(Document.ReadinessEvaluatedAt), evaluatedAt);
+        AddAuditTrail(context, document, spec, owner, recipients, createdAt, sentAt, completedAt);
     }
 
     /// <summary>
@@ -375,8 +271,7 @@ internal static class DemoContractSeeder
         IReadOnlyList<Recipient> recipients,
         DateTime createdAt,
         DateTime sentAt,
-        DateTime? completedAt,
-        DateTime analysedAt)
+        DateTime? completedAt)
     {
         var ownerName = $"{owner.FirstName} {owner.LastName}";
 
@@ -397,17 +292,6 @@ internal static class DemoContractSeeder
         }
 
         Log(AuditAction.DocumentCreated, createdAt, $"Contrat créé — {spec.RequestTypeName}");
-
-        if (spec.Risk is not null)
-            Log(AuditAction.ContractAnalysed, analysedAt,
-                $"Revue de contrat exécutée — score de risque {spec.Risk.Score}/100, {spec.Risk.Findings.Count} constat(s)");
-
-        if (spec.Compliance is not null)
-            Log(AuditAction.ComplianceAnalysed, analysedAt, "Analyse de conformité exécutée sur la veille réglementaire publiée");
-
-        if (spec.EvaluateReadiness)
-            Log(AuditAction.ReadinessEvaluated, analysedAt,
-                $"Revue préalable exécutée — verdict {document.ReadinessVerdict}, score {document.ReadinessScore}/100");
 
         if (spec.Status == DocumentStatus.Draft) return;
 

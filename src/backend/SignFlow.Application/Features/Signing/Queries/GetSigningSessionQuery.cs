@@ -50,7 +50,6 @@ public record AiReviewDto(
     ReadinessVerdict Verdict,
     int? Score,
     int? RiskScore,
-    int? ComplianceScore,
     int OpenCount,
     int CriticalCount,
     int HandledCount,
@@ -63,7 +62,8 @@ public record AiReviewItemDto(
     string? WhyItMatters,
     string? RecommendedAction,
     ReadinessItemStatus Status,
-    string? ResolutionNote);
+    string? Reason,
+    string? ClauseReference = null);
 
 public record RecipientSessionDto(Guid Id, string Name, string Email, ApprovalType ApprovalType, WorkflowStepStatus Status, string? RoleLabel = null, List<ChecklistItemSessionDto>? ChecklistItems = null);
 public record ChecklistItemSessionDto(Guid Id, string Text, int Order, bool IsChecked);
@@ -240,23 +240,24 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
         if (document.ReadinessVerdict == ReadinessVerdict.NotEvaluated)
             return new ReviewGateDto(required, acknowledged, ReviewRestricted: false, Review: null);
 
+        // The findings of the last completed review of the version being signed.
+        var runId = document.LastReviewRunId;
         var items = await db.DocumentReadinessItems.AsNoTracking()
-            .Where(i => i.DocumentId == document.Id)
+            .Where(i => i.DocumentId == document.Id && runId != null && i.LastSeenRunId == runId)
             .ToListAsync(cancellationToken);
 
         var open = items.Where(i => i.Status == ReadinessItemStatus.Open).ToList();
         var review = new AiReviewDto(
             document.ReadinessVerdict,
             document.ReadinessScore,
-            Documents.Queries.ReadinessDto.ScoreFrom(document.AiRiskAnalysisJson, "riskScore"),
-            Documents.Queries.ReadinessDto.ScoreFrom(document.AiComplianceAnalysisJson, "complianceScore"),
+            document.RiskScore,
             open.Count,
             open.Count(i => string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase)),
             items.Count - open.Count,
             items
                 .OrderBy(i => i.Status == ReadinessItemStatus.Open ? 0 : 1)
                 .ThenBy(i => Array.IndexOf(["Critical", "High", "Medium", "Low"], i.Severity))
-                .Select(i => new AiReviewItemDto(i.Severity, i.Title, i.Detail, i.WhyItMatters, i.RecommendedAction, i.Status, i.ResolutionNote))
+                .Select(i => new AiReviewItemDto(i.Severity, i.Title, i.Detail, i.WhyItMatters, i.RecommendedAction, i.Status, i.Reason, i.ClauseReference))
                 .ToList());
 
         return new ReviewGateDto(required, acknowledged, ReviewRestricted: false, Review: review);

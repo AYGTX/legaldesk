@@ -1,4 +1,3 @@
-using SignFlow.Application.Common.Interfaces;
 using SignFlow.Domain.Enums;
 
 namespace SignFlow.Infrastructure.Persistence.Demo;
@@ -21,21 +20,6 @@ internal record DemoTerm(int StartDaysAgo, int EndInDays, bool AutoRenews, int? 
 
 internal record DemoObligation(int DueInDays, string Type, string? Rationale, bool Confirmed);
 
-/// <summary>A stored risk analysis, shaped like the full model review rather than the keyword fallback.</summary>
-internal record DemoRisk(int Score, IReadOnlyList<RiskFinding> Findings, ContractProfile Profile);
-
-/// <summary>
-/// The verdict to record against one tracked regulation. Keyed by the regulation's
-/// <c>Reference</c> in <see cref="DemoContract.Compliance"/> so the same verdict lands on both the
-/// English and French registry entries for a given law.
-/// </summary>
-internal record DemoComplianceVerdict(
-    string Status,
-    string? Severity,
-    string Explanation,
-    string? WhyItMatters = null,
-    string? RecommendedAction = null);
-
 internal record DemoContract(
     string Title,
     string Description,
@@ -48,10 +32,7 @@ internal record DemoContract(
     IReadOnlyList<DemoParticipant> Participants,
     int? CompletedDaysAgo = null,
     DemoTerm? Term = null,
-    DemoObligation? Obligation = null,
-    DemoRisk? Risk = null,
-    IReadOnlyDictionary<string, DemoComplianceVerdict>? Compliance = null,
-    bool EvaluateReadiness = false);
+    DemoObligation? Obligation = null);
 
 /// <summary>
 /// The demo contract portfolio: what a legal desk's LegalDesk instance looks like a year in.
@@ -70,14 +51,6 @@ internal static class DemoContractCatalogue
 {
     internal const string ManagerEmail = "manager@legaldesk.tn";
     internal const string EmployeeEmail = "employee@legaldesk.tn";
-
-    // Registry references, used to attach compliance verdicts to the seeded regulatory texts.
-    private const string RefDataProtectionTn = "Loi organique n° 2004-63 du 27 juillet 2004";
-    private const string RefGdpr = "Regulation (EU) 2016/679 (GDPR)";
-    private const string RefGdprFr = "Règlement (UE) 2016/679 (RGPD)";
-    private const string RefConsumer = "Loi n° 92-117 du 7 décembre 1992";
-    private const string RefTelecom = "Loi n° 2001-1 du 15 janvier 2001";
-    private const string RefCommercial = "Code de commerce";
 
     public static IReadOnlyList<DemoContract> All =>
     [
@@ -132,50 +105,7 @@ internal static class DemoContractCatalogue
             new("Karim Trabelsi", "k.trabelsi@orange-business.tn", 2, ApprovalType.Signature, "Signataire — Orange Business Tunisie", WorkflowStepStatus.Completed)
         ],
         Term: new DemoTerm(StartDaysAgo: 392, EndInDays: 12, AutoRenews: true, NoticePeriodDays: 30),
-        Obligation: new DemoObligation(DueInDays: 12, "Renewal", null, Confirmed: true),
-        Risk: new DemoRisk(
-            Score: 42,
-            Findings:
-            [
-                new RiskFinding(
-                    "Reconduction tacite", "Medium",
-                    "L'article 2 prévoit une reconduction tacite par périodes de douze mois, la dénonciation devant intervenir au plus tard trente jours avant l'échéance.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "Un préavis de trente jours sur un engagement reconduit pour douze mois laisse une fenêtre de sortie étroite : passée cette date, le Client est réengagé pour une année entière.",
-                    RecommendedAction: "Porter le préavis de dénonciation à quatre-vingt-dix jours, ou inscrire l'échéance dans le suivi contractuel dès la signature.",
-                    ContractReference: "Article 2"),
-                new RiskFinding(
-                    "Exclusivité", "Medium",
-                    "L'article 4 impose une exclusivité totale sur le périmètre des services managés, sans contrepartie tarifaire ni clause de sortie propre.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "Une exclusivité sans engagement de volume ni de prix côté Prestataire prive le Client de toute mise en concurrence pendant la durée du contrat.",
-                    RecommendedAction: "Assortir l'exclusivité d'un engagement de niveau de prix révisable, ou la limiter aux seules prestations effectivement commandées.",
-                    ProposedLanguage: "L'exclusivité prévue au présent article est subordonnée au maintien par le Prestataire des conditions tarifaires figurant au bordereau de prix annexé. Elle cesse de plein droit en cas de révision tarifaire non acceptée par le Client.",
-                    ContractReference: "Article 4"),
-                new RiskFinding(
-                    "Pénalités de retard", "Low",
-                    "L'article 3 applique des pénalités de retard de plein droit, sans mise en demeure préalable.",
-                    FindingType: "WeakClause",
-                    WhyItMatters: "La clause est conforme aux usages commerciaux, mais son automaticité mérite d'être connue des équipes comptables.",
-                    RecommendedAction: "Aucune action juridique requise ; signaler l'échéance de paiement à quarante-cinq jours au service financier.",
-                    ContractReference: "Article 3")
-            ],
-            Profile: new ContractProfile(
-                "Contrat-cadre de services", "Client / Orange Business Tunisie",
-                "Fourniture de services managés d'infrastructure et de connectivité",
-                "Tunisie", "Droit tunisien", "36 mois, reconductible tacitement par périodes de 12 mois")),
-        Compliance: new Dictionary<string, DemoComplianceVerdict>
-        {
-            [RefDataProtectionTn] = new("Addressed", null,
-                "L'article 7 vise expressément la loi organique n° 2004-63 et met à la charge des deux parties des mesures techniques et organisationnelles ainsi qu'une obligation de notification des violations."),
-            [RefGdpr] = new("Unclear", null,
-                "Le contrat renvoie au règlement (UE) 2016/679 « lorsque le traitement entre dans son champ d'application territorial », sans préciser si des personnes concernées situées dans l'UE sont visées ni prévoir d'accord de sous-traitance distinct.",
-                WhyItMatters: "En l'absence d'accord de sous-traitance et de garanties de transfert, l'applicabilité du RGPD ne peut être écartée sur la seule foi de cette réserve.",
-                RecommendedAction: "Documenter si des données de personnes situées dans l'UE sont traitées et, le cas échéant, annexer un accord de sous-traitance."),
-            [RefCommercial] = new("Addressed", null,
-                "L'article 3 fixe un délai de paiement déterminé et l'article 9 désigne le droit tunisien et les tribunaux de Tunis, conformément aux règles applicables entre commerçants.")
-        },
-        EvaluateReadiness: false);
+        Obligation: new DemoObligation(DueInDays: 12, "Renewal", null, Confirmed: true));
 
     // ── 2. NDA expiring inside a week — the T7 rung ──────────────────────────────────────────────
     private static DemoContract NdaSopra() => new(
@@ -211,24 +141,7 @@ internal static class DemoContractCatalogue
         ],
         Term: new DemoTerm(StartDaysAgo: 150, EndInDays: 5, AutoRenews: false, NoticePeriodDays: null),
         Obligation: new DemoObligation(DueInDays: 5, "Expiry",
-            "Durée de six mois relevée à l'article 4 ; l'obligation de confidentialité survit cinq ans au terme.", Confirmed: false),
-        Risk: new DemoRisk(
-            Score: 18,
-            Findings:
-            [
-                new RiskFinding(
-                    "Restitution des informations", "Low",
-                    "L'article 5 prévoit la restitution ou la destruction des supports à l'expiration, mais ne fixe pas de délai pour l'attestation écrite qui l'accompagne.",
-                    FindingType: "Ambiguity",
-                    WhyItMatters: "Sans délai, l'obligation d'attester est difficile à faire respecter au terme de l'accord — c'est-à-dire précisément au moment où elle compte.",
-                    RecommendedAction: "Fixer un délai de trente jours pour la restitution et l'attestation.",
-                    ProposedLanguage: "La restitution ou la destruction, ainsi que l'attestation écrite qui l'accompagne, interviennent dans un délai de trente (30) jours à compter de l'expiration du présent accord ou de la demande.",
-                    ContractReference: "Article 5")
-            ],
-            Profile: new ContractProfile(
-                "Accord de confidentialité réciproque", "Client / Sopra Banking Software",
-                "Échanges préalables à un projet d'intégration de plateforme bancaire",
-                "Tunisie", "Droit tunisien", "6 mois, confidentialité survivant 5 ans")));
+            "Durée de six mois relevée à l'article 4 ; l'obligation de confidentialité survit cinq ans au terme.", Confirmed: false));
 
     // ── 3. In-flight DCWI contract with an open regulatory gap — the pre-flight review demo ──────
     private static DemoContract DcwiInterconnection() => new(
@@ -261,47 +174,7 @@ internal static class DemoContractCatalogue
             new("Sonia Ben Amor", ManagerEmail, 1, ApprovalType.Review, "Revue juridique", WorkflowStepStatus.Completed),
             new("Mohamed Gharbi", "m.gharbi@legaldesk.tn", 2, ApprovalType.Approval, "Conformité réglementaire", WorkflowStepStatus.InProgress),
             new("Leila Mansouri", "l.mansouri@tunisietelecom.example", 3, ApprovalType.Signature, "Signataire — Tunisie Telecom", WorkflowStepStatus.Pending)
-        ],
-        Risk: new DemoRisk(
-            Score: 55,
-            Findings:
-            [
-                new RiskFinding(
-                    "Révision tarifaire", "High",
-                    "L'article 3 subordonne la révision annuelle des tarifs à un « commun accord » sans mécanisme applicable en cas de désaccord.",
-                    FindingType: "Ambiguity",
-                    WhyItMatters: "Sur une convention de vingt-quatre mois, un désaccord tarifaire sans procédure de sortie ni recours à expertise bloque l'exécution sans que la partie lésée dispose d'un remède.",
-                    RecommendedAction: "Prévoir un mécanisme de règlement du désaccord tarifaire : indexation de repli, recours à un tiers expert, ou faculté de résiliation ouverte.",
-                    ProposedLanguage: "À défaut d'accord des parties sur la révision tarifaire dans un délai de soixante (60) jours à compter de la demande, les tarifs en vigueur sont reconduits et chaque partie peut résilier la présente convention moyennant un préavis de quatre-vingt-dix (90) jours.",
-                    ContractReference: "Article 3"),
-                new RiskFinding(
-                    "Qualité de service", "Medium",
-                    "L'article 4 fixe un engagement de disponibilité de 99,7 % mais ne l'assortit d'aucune conséquence financière : le seul remède prévu est un plan d'action correctif.",
-                    FindingType: "WeakClause",
-                    WhyItMatters: "Un engagement de niveau de service sans pénalité associée n'est pas dissuasif et se révèle difficile à opposer à la partie défaillante.",
-                    RecommendedAction: "Assortir le seuil de disponibilité d'avoirs proportionnels au manquement constaté.",
-                    ContractReference: "Article 4")
-            ],
-            Profile: new ContractProfile(
-                "Convention d'interconnexion de réseaux", "Client / Tunisie Telecom",
-                "Interconnexion des réseaux et acheminement réciproque du trafic voix et données",
-                "Tunisie", "Droit tunisien", "24 mois, préavis de dénonciation de 90 jours")),
-        Compliance: new Dictionary<string, DemoComplianceVerdict>
-        {
-            [RefTelecom] = new("Gap", "High",
-                "La convention traite de la qualité de service et des points d'interconnexion, mais ne comporte aucune stipulation relative aux obligations de licence des parties ni au reporting auprès de l'autorité de régulation.",
-                WhyItMatters: "Le code des télécommunications met ces obligations à la charge des opérateurs interconnectés ; leur absence du contrat laisse la répartition des responsabilités indéterminée en cas de contrôle.",
-                RecommendedAction: "Ajouter un article rappelant les titres d'exploitation de chaque partie et désignant celle qui assure les déclarations auprès de l'autorité de régulation."),
-            [RefDataProtectionTn] = new("Gap", "High",
-                "La convention porte sur l'acheminement de trafic voix et données mais ne comporte aucune stipulation relative à la protection des données à caractère personnel : l'article 5 ne couvre que la confidentialité commerciale entre les parties.",
-                WhyItMatters: "Les données de trafic permettent d'identifier les abonnés ; leur traitement relève de la loi organique n° 2004-63, dont les obligations ne sont ici réparties entre les parties par aucune clause.",
-                RecommendedAction: "Insérer un article dédié désignant le responsable de traitement, les mesures de sécurité et la procédure de notification des violations."),
-            [RefGdpr] = new("Unclear", null,
-                "Rien dans la convention n'indique si du trafic à destination ou en provenance de l'Union européenne est acheminé, ni si des données de personnes situées dans l'UE sont traitées."),
-            [RefCommercial] = new("Addressed", null,
-                "L'article 3 fixe un délai de paiement déterminé et l'article 7 désigne le droit et la juridiction applicables entre commerçants.")
-        },
-        EvaluateReadiness: true);
+        ]);
 
     // ── 4. B2C subscription expiring inside 30 days — the T30 rung ──────────────────────────────
     private static DemoContract B2CFibreSubscription() => new(
@@ -338,35 +211,7 @@ internal static class DemoContractCatalogue
             new("Amine Chaouch", "amine.chaouch@example.tn", 2, ApprovalType.Signature, "Client — particulier", WorkflowStepStatus.Completed)
         ],
         Term: new DemoTerm(StartDaysAgo: 198, EndInDays: 26, AutoRenews: true, NoticePeriodDays: 15),
-        Obligation: new DemoObligation(DueInDays: 26, "Renewal", null, Confirmed: true),
-        Risk: new DemoRisk(
-            Score: 22,
-            Findings:
-            [
-                new RiskFinding(
-                    "Indemnité de résiliation anticipée", "Medium",
-                    "L'article 7 met à la charge du consommateur l'intégralité des mensualités restant dues en cas de résiliation avant le terme de l'engagement.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "Une indemnité égale à la totalité des échéances restantes, sans plafond ni proratisation, est susceptible d'être analysée comme une clause abusive dans un contrat de consommation.",
-                    RecommendedAction: "Plafonner l'indemnité ou la proratiser en fonction de la durée d'engagement restant à courir.",
-                    ProposedLanguage: "En cas de résiliation à l'initiative du Client avant le terme de la période d'engagement, l'indemnité due est égale au quart des mensualités restant à courir, dans la limite de trois (3) mensualités.",
-                    ContractReference: "Article 7")
-            ],
-            Profile: new ContractProfile(
-                "Contrat d'abonnement de services de communications électroniques", "Opérateur / Client particulier",
-                "Fourniture d'un accès Internet très haut débit par fibre optique",
-                "Tunisie", "Droit tunisien", "12 mois d'engagement, puis durée indéterminée")),
-        Compliance: new Dictionary<string, DemoComplianceVerdict>
-        {
-            [RefConsumer] = new("Addressed", null,
-                "Le contrat comporte l'information précontractuelle sur support durable (article 2), le droit de rétractation (article 5), un préavis de résiliation encadré (article 7) et une procédure de réclamation (article 8)."),
-            [RefDataProtectionTn] = new("Addressed", null,
-                "L'article 6 identifie les finalités du traitement et rappelle les droits d'accès, de rectification et d'opposition du Client ainsi que leurs modalités d'exercice."),
-            [RefGdpr] = new("Unclear", null,
-                "Le contrat s'adresse à des consommateurs résidents ; rien n'indique si des personnes concernées situées dans l'UE sont susceptibles d'être visées."),
-            [RefCommercial] = new("Unclear", null,
-                "Le contrat est conclu avec un consommateur et non entre commerçants ; les règles visées n'ont pas vocation à s'y appliquer directement.")
-        });
+        Obligation: new DemoObligation(DueInDays: 26, "Renewal", null, Confirmed: true));
 
     // ── 5. Draft amendment — nothing analysed yet, so the pre-flight gate can be run live ────────
     private static DemoContract AmendmentOrange() => new(
@@ -432,23 +277,7 @@ internal static class DemoContractCatalogue
             new("Foued Belhaj", "f.belhaj@tunisienetworks.example", 3, ApprovalType.Signature, "Signataire — Tunisie Networks", WorkflowStepStatus.Completed)
         ],
         Term: new DemoTerm(StartDaysAgo: 410, EndInDays: -20, AutoRenews: false, NoticePeriodDays: 60),
-        Obligation: new DemoObligation(DueInDays: -20, "Expiry", null, Confirmed: true),
-        Risk: new DemoRisk(
-            Score: 30,
-            Findings:
-            [
-                new RiskFinding(
-                    "Pièces de rechange", "Medium",
-                    "L'article 5 exclut les pièces de rechange du forfait sans plafonner leur coût annuel ni encadrer les délais de remise des devis.",
-                    FindingType: "WeakClause",
-                    WhyItMatters: "Sur des installations critiques, un devis non plafonné et sans délai de remise transforme un contrat forfaitaire en dépense ouverte au moment même où l'urgence prive le Client de tout pouvoir de négociation.",
-                    RecommendedAction: "Plafonner le coût annuel des pièces et imposer un délai de remise de devis en situation d'incident bloquant.",
-                    ContractReference: "Article 5")
-            ],
-            Profile: new ContractProfile(
-                "Contrat de maintenance d'installations techniques", "Client / Tunisie Networks",
-                "Maintenance préventive et corrective des installations techniques du datacenter",
-                "Tunisie", "Droit tunisien", "24 mois, sans reconduction tacite")));
+        Obligation: new DemoObligation(DueInDays: -20, "Expiry", null, Confirmed: true));
 
     // ── 7. Contract sent back for changes on a blocking finding — the readiness gate demo ────────
     private static DemoContract SystemsIntegration() => new(
@@ -484,39 +313,7 @@ internal static class DemoContractCatalogue
             new("Sonia Ben Amor", ManagerEmail, 2, ApprovalType.Approval, "Direction juridique", WorkflowStepStatus.ChangesRequested,
                 DeclineReason: "L'article 5 fait peser une responsabilité illimitée sur le Client et laisse au Prestataire la seule appréciation de ses corrections. À reprendre avant transmission au signataire."),
             new("Julien Marchand", "j.marchand@delta-consulting.example", 3, ApprovalType.Signature, "Signataire — Delta Consulting", WorkflowStepStatus.Pending)
-        ],
-        Risk: new DemoRisk(
-            Score: 78,
-            Findings:
-            [
-                new RiskFinding(
-                    "Responsabilité illimitée", "Critical",
-                    "L'article 5 met à la charge du Client une responsabilité illimitée pour tout dommage résultant de l'utilisation des livrables, assortie d'une obligation de garantie contre les réclamations de tiers, sans contrepartie ni plafond.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "L'exposition financière du Client n'est bornée ni en montant ni dans le temps, alors que la maîtrise technique des livrables appartient au Prestataire. C'est le déséquilibre le plus lourd que puisse comporter un contrat de prestation.",
-                    RecommendedAction: "Remplacer la clause par un plafond de responsabilité réciproque assis sur les sommes versées au titre du contrat.",
-                    ProposedLanguage: "Sauf en cas de faute lourde, de dol ou de dommage corporel, la responsabilité globale de chaque partie au titre du présent contrat ne saurait excéder le montant total des sommes versées au cours des douze (12) mois précédant le fait générateur. Aucune des parties ne saurait être tenue responsable des dommages indirects ou consécutifs.",
-                    ContractReference: "Article 5"),
-                new RiskFinding(
-                    "Appréciation discrétionnaire", "High",
-                    "L'article 5 laisse au Prestataire le soin de déterminer « à sa seule discrétion » l'étendue des corrections apportées aux livrables.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "Une obligation de correction dont le débiteur fixe seul l'étendue n'est pas une obligation : le Client ne dispose d'aucun critère objectif pour en exiger l'exécution.",
-                    RecommendedAction: "Rattacher les corrections à la conformité aux spécifications annexées plutôt qu'à l'appréciation du Prestataire.",
-                    ContractReference: "Article 5"),
-                new RiskFinding(
-                    "Recette tacite", "Medium",
-                    "L'article 3 répute la recette acquise à défaut de réserve écrite dans les quinze jours suivant la mise à disposition de chaque lot.",
-                    FindingType: "WeakClause",
-                    WhyItMatters: "Un délai de quinze jours par lot suppose une disponibilité continue des équipes de recette ; à défaut, des livrables non conformes sont réputés acceptés.",
-                    RecommendedAction: "Porter le délai à trente jours ou suspendre son cours pendant les périodes de fermeture convenues.",
-                    ContractReference: "Article 3")
-            ],
-            Profile: new ContractProfile(
-                "Contrat de prestation de services informatiques", "Client / Delta Consulting",
-                "Intégration du système d'information de facturation, reprise de données et recette",
-                "Tunisie", "Droit tunisien", "Durée liée à l'exécution du planning annexé")),
-        EvaluateReadiness: true);
+        ]);
 
     // ── 8. Colocation contract still comfortably in force — the T90 rung ─────────────────────────
     private static DemoContract DcwiColocation() => new(
@@ -555,30 +352,7 @@ internal static class DemoContractCatalogue
         ],
         Term: new DemoTerm(StartDaysAgo: 105, EndInDays: 78, AutoRenews: true, NoticePeriodDays: 60),
         Obligation: new DemoObligation(DueInDays: 18, "Renewal review",
-            "Échéance de dénonciation déduite de la durée de trente-six mois et du préavis de soixante jours relevés à l'article 5.", Confirmed: false),
-        Risk: new DemoRisk(
-            Score: 26,
-            Findings:
-            [
-                new RiskFinding(
-                    "Reconduction tacite", "Medium",
-                    "L'article 5 prévoit une reconduction tacite par périodes de douze mois, sous réserve d'une dénonciation notifiée soixante jours avant l'échéance.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "Le préavis est plus confortable que sur un contrat-cadre classique, mais il court sur un engagement d'hébergement dont la sortie suppose une migration physique des équipements.",
-                    RecommendedAction: "Inscrire l'échéance de dénonciation dans le suivi contractuel et anticiper le délai de migration au-delà des soixante jours de préavis.",
-                    ContractReference: "Article 5"),
-                new RiskFinding(
-                    "Facturation de la consommation excédentaire", "Low",
-                    "L'article 6 facture au réel la consommation dépassant la puissance allouée, sans seuil d'alerte préalable.",
-                    FindingType: "WeakClause",
-                    WhyItMatters: "Le Client découvre le dépassement à la facturation plutôt qu'au moment où il pourrait encore agir sur sa consommation.",
-                    RecommendedAction: "Demander la mise en place d'une alerte au franchissement de 90 % de la puissance allouée.",
-                    ContractReference: "Article 6")
-            ],
-            Profile: new ContractProfile(
-                "Contrat d'hébergement et de colocation", "Client / Carthage Datacenter",
-                "Mise à disposition d'emplacements en baies dédiées, énergie secourue et climatisation",
-                "Tunisie", "Droit tunisien", "36 mois, reconductible tacitement par périodes de 12 mois")));
+            "Échéance de dénonciation déduite de la durée de trente-six mois et du préavis de soixante jours relevés à l'article 5.", Confirmed: false));
 
     // ── 9. Rejected contract — the outcome the reporting page has to be able to show ─────────────
     private static DemoContract B2CRemoteSupport() => new(
@@ -609,46 +383,7 @@ internal static class DemoContractCatalogue
             new("Nizar Ayari", EmployeeEmail, 1, ApprovalType.Review, "Rédaction — offre grand public", WorkflowStepStatus.Completed),
             new("Sonia Ben Amor", ManagerEmail, 2, ApprovalType.Approval, "Direction juridique", WorkflowStepStatus.Rejected,
                 DeclineReason: "Trois clauses abusives au regard du droit de la consommation : préavis de dénonciation de trois mois, acceptation tacite d'une hausse tarifaire en huit jours, exonération totale au titre des pertes de données. Refus en l'état.")
-        ],
-        Risk: new DemoRisk(
-            Score: 85,
-            Findings:
-            [
-                new RiskFinding(
-                    "Exonération de responsabilité", "Critical",
-                    "L'article 5 exclut toute responsabilité du Prestataire au titre des pertes de données, « quelle qu'en soit la cause », y compris donc en cas de faute.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "Une exonération totale de responsabilité, y compris en cas de faute, stipulée dans un contrat de consommation, est de nature à être réputée non écrite comme clause abusive.",
-                    RecommendedAction: "Limiter l'exonération aux cas de force majeure et de faute du Client, et prévoir une obligation de sauvegarde préalable à l'intervention.",
-                    ProposedLanguage: "Le Prestataire procède, préalablement à toute intervention susceptible d'affecter les données du Client, à une sauvegarde de celles-ci. Sa responsabilité ne peut être écartée en cas de faute dans l'exécution de cette obligation.",
-                    ContractReference: "Article 5"),
-                new RiskFinding(
-                    "Modification unilatérale du prix", "Critical",
-                    "L'article 4 permet au Prestataire de modifier le tarif à tout moment, la hausse étant réputée acceptée à défaut d'opposition du Client dans les huit jours.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "Une modification unilatérale du prix assortie d'une acceptation tacite en huit jours, sans faculté de résiliation sans frais, est caractéristique d'une clause abusive en droit de la consommation.",
-                    RecommendedAction: "Notifier toute évolution tarifaire un mois à l'avance et ouvrir au Client un droit de résiliation sans frais pendant trente jours.",
-                    ContractReference: "Article 4"),
-                new RiskFinding(
-                    "Préavis de dénonciation", "High",
-                    "L'article 3 impose un préavis de dénonciation de trois mois par lettre recommandée sur un engagement de douze mois reconduit tacitement.",
-                    FindingType: "Imbalance",
-                    WhyItMatters: "Un préavis de trois mois sur un contrat de consommation reconduit tacitement restreint fortement la faculté du consommateur de mettre fin à son engagement.",
-                    RecommendedAction: "Ramener le préavis à un mois et ouvrir la dénonciation par tout moyen écrit, y compris depuis l'espace client.",
-                    ContractReference: "Article 3")
-            ],
-            Profile: new ContractProfile(
-                "Contrat d'assistance technique", "Prestataire / Client particulier",
-                "Assistance technique à distance sur équipements informatiques et connexion Internet",
-                "Tunisie", "Droit tunisien", "12 mois, reconductible tacitement")));
-
-    /// <summary>
-    /// French-language registry entries carry a translated <c>Reference</c> for the same law, so a
-    /// verdict keyed on one has to be found under the other. Keeps a seeded analysis covering
-    /// "every regulation exactly once", which is what the compliance mapper guarantees at runtime.
-    /// </summary>
-    public static string NormaliseReference(string reference) =>
-        reference == RefGdprFr ? RefGdpr : reference;
+        ]);
 
     // ── 10. A bank outsourcing its core system — the bank client's demo, reviewed live ──────────
     // No stored analysis on purpose: the presenter runs Harvey's review in the room. Each article holds

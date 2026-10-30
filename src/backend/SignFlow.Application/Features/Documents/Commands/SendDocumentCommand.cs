@@ -8,10 +8,10 @@ using SignFlow.Domain.Enums;
 namespace SignFlow.Application.Features.Documents.Commands;
 
 /// <summary>
-/// Starts the validation circuit. <paramref name="Force"/> is the owner acknowledging a "needs
-/// work" pre-flight verdict — a critical finding is never forceable.
+/// Starts the validation circuit, behind the review gate (R-M8-8). <paramref name="Reason"/> is the owner's reason for
+/// sending with an open High finding; it is kept in the audit trail. A Critical finding is never forceable.
 /// </summary>
-public record SendDocumentCommand(Guid DocumentId, bool Force = false) : ICommand;
+public record SendDocumentCommand(Guid DocumentId, string? Reason = null) : ICommand;
 
 public class SendDocumentCommandValidator : AbstractValidator<SendDocumentCommand>
 {
@@ -42,14 +42,7 @@ public class SendDocumentCommandHandler(
         if (!db.Recipients.Any(r => r.DocumentId == document.Id))
             throw new ConflictException("Document must have at least one recipient before sending.");
 
-        // A request made from a PDF template is filled in by someone other than the contract's author, so it never
-        // goes out unreviewed: the review reads the answers against the clauses before anyone is notified.
-        if (document.PdfTemplateId.HasValue && document.ReadinessVerdict == ReadinessVerdict.NotEvaluated)
-            throw new Common.Exceptions.ValidationException(
-                [new FluentValidation.Results.ValidationFailure("readinessRequired",
-                    "Run the pre-flight review on this request before sending it.")]);
-
-        EnforceReadinessGate(document, command.Force);
+        var reason = EnforceReviewGate(document, command.Reason);
 
         await workflowEngine.StartAsync(document.Id, cancellationToken);
 
@@ -62,29 +55,47 @@ public class SendDocumentCommandHandler(
             actorEmail: currentUser.UserEmail,
             cancellationToken: cancellationToken);
 
+        if (reason is not null)
+            await auditService.LogAsync(
+                document.Id,
+                AuditAction.SentWithOpenRisks,
+                "system",
+                $"Sent with open high-risk findings. Reason: {reason}",
+                currentUser.UserId,
+                actorEmail: currentUser.UserEmail,
+                cancellationToken: cancellationToken);
+
         logger.LogInformation("Document {DocumentId} sent for signing", command.DocumentId);
     }
 
     /// <summary>
-    /// Applies the pre-flight verdict. Contracts that were never reviewed pass through untouched, so
-    /// this does not change the behaviour of any flow that predates the review feature.
-    ///
-    /// The error is keyed on "readiness" rather than being a bare message, so the UI can tell this
-    /// apart from an ordinary validation failure and offer to acknowledge and retry.
+    /// The review gate, the same for every contract (R-M8-8): no completed review of this version → refused; an open
+    /// Critical → refused, never forceable; an open High → the owner gives a reason (returned, for the audit trail).
+    /// Each error is keyed so the page can tell which one it is and offer the right next step.
     /// </summary>
-    private static void EnforceReadinessGate(Document document, bool force)
+    private static string? EnforceReviewGate(Document document, string? reason)
     {
+        if (document.LastReviewRunId is null || document.ReadinessVerdict == ReadinessVerdict.NotEvaluated)
+            throw Refused("readinessRequired", "Run Harvey's review of this version before sending it.");
+
         switch (document.ReadinessVerdict)
         {
             case ReadinessVerdict.Blocked:
-                throw new Common.Exceptions.ValidationException(
-                    [new FluentValidation.Results.ValidationFailure("readiness",
-                        "This contract has unresolved critical issues. Resolve or dismiss them in the pre-flight review before sending.")]);
+                throw Refused("readiness",
+                    "This contract has open critical findings. Fix them, or have a manager accept them, before sending.");
 
-            case ReadinessVerdict.NeedsWork when !force:
-                throw new Common.Exceptions.ValidationException(
-                    [new FluentValidation.Results.ValidationFailure("readinessWarning",
-                        "The pre-flight review flagged issues on this contract. Confirm to send it anyway.")]);
+            case ReadinessVerdict.NeedsWork when string.IsNullOrWhiteSpace(reason):
+                throw Refused("readinessWarning",
+                    "The review found high risks that are still open. Give your reason to send the contract anyway.");
+
+            case ReadinessVerdict.NeedsWork:
+                return reason!.Trim().Length > 1000 ? reason.Trim()[..1000] : reason.Trim();
+
+            default:
+                return null;
         }
     }
+
+    private static Common.Exceptions.ValidationException Refused(string key, string message) =>
+        new([new FluentValidation.Results.ValidationFailure(key, message)]);
 }

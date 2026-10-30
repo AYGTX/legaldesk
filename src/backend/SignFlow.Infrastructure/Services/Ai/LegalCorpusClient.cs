@@ -17,11 +17,20 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public async Task<IReadOnlyList<LegalArticleContext>> SearchAsync(string query, int topK, CancellationToken ct = default)
+    public async Task<bool> IsAvailableAsync(CancellationToken ct = default)
     {
-        // Only verified, published law: include_unverified stays false on purpose.
-        var hits = await PostAsync<List<SearchHit>>("api/v1/search", new { query, top_k = topK }, ct);
-        return hits.Select(h => new LegalArticleContext(h.ArticleId, h.Citation, h.ArticleText, h.Score)).ToList();
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            using var client = httpFactory.CreateClient(HttpClientName);
+            using var response = await client.GetAsync($"{opts.Value.BaseUrl.TrimEnd('/')}/health", timeout.Token);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            return false;
+        }
     }
 
     public async Task<LegalPlaybook> GetPlaybookAsync(CancellationToken ct = default)
@@ -43,39 +52,45 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
                 r => r.Key,
                 r => (IReadOnlyList<PlaybookArticle>)r.Value.Articles
                     .Select(a => new PlaybookArticle(a.ArticleId, a.Citation, a.Text, a.Why, a.Explanations)).ToList()),
-            body.Regulations,
-            body.Rules
-                .Where(r => r.Value.Phrases is { Count: > 0 })
-                .ToDictionary(r => r.Key, r => new PlaybookWording(r.Value.Label ?? r.Key, r.Value.Phrases!)),
             body.Rules
                 .Where(r => r.Value.ModelClause is { Fr.Length: > 0 })
-                .ToDictionary(r => r.Key, r => new ModelClause(r.Value.ModelClause!.Fr, r.Value.ModelClause.En)));
+                .ToDictionary(r => r.Key, r => new ModelClause(r.Value.ModelClause!.Fr, r.Value.ModelClause.En)),
+            body.Rules.ToDictionary(r => r.Key, r => new RuleApproval(r.Value.Version, r.Value.ApprovedBy, r.Value.ApprovedAt)));
     }
 
-    public async Task<IReadOnlyList<CitationCheckResult>> CheckCitationsAsync(
-        IReadOnlyList<CitationCheckRequest> citations, CancellationToken ct = default)
+    public async Task<HarveyReview> ReviewAsync(
+        IReadOnlyList<ClauseText> clauses,
+        string? language,
+        IReadOnlyCollection<string> disabledRules,
+        IReadOnlyDictionary<string, string> severityOverrides,
+        CancellationToken ct = default)
     {
-        var body = new { citations = citations.Select(c => new { article_id = c.ArticleId, quote = c.Quote }) };
-        var results = await PostAsync<List<CitationOut>>("api/v1/citations/check-batch", body, ct);
-        return results.Select(r => new CitationCheckResult(r.Found, r.IsVerified, r.Citation, r.Reason)).ToList();
-    }
-
-    public async Task<ClauseClassification> ClassifyAsync(IReadOnlyList<ClauseText> clauses, CancellationToken ct = default)
-    {
-        var body = new { clauses = clauses.Select(c => new { reference = c.Reference, text = c.Text }) };
-        var result = await PostAsync<ClassifyOut>("api/v1/classify", body, ct);
-        return new ClauseClassification(result.Enabled, result.Matches
-            .Select(m => new ClauseMatch(m.Reference, m.RuleKey, m.Label, m.Score, m.Sentence, m.Example)).ToList());
-    }
-
-    public async Task<IReadOnlyList<RiskFinding>> ReviewAsync(IReadOnlyList<ClauseText> clauses, string? language, CancellationToken ct = default)
-    {
-        var body = new { clauses = clauses.Select(c => new { reference = c.Reference, text = c.Text }), language };
+        var body = new
+        {
+            clauses = clauses.Select(c => new { reference = c.Reference, text = c.Text }),
+            language,
+            disabled_rules = disabledRules,
+            severity_overrides = severityOverrides
+        };
         var result = await PostAsync<ReviewOut>("api/v1/review", body, ct);
-        return result.Findings.Select(f => new RiskFinding(f.ClauseType, f.Severity, f.Explanation,
-            FindingType: f.FindingType, RecommendedAction: f.RecommendedAction,
-            ContractReference: f.ContractReference, RuleKey: f.RuleKey,
-            RuleVersion: f.RuleVersion, Detection: f.Detection, Confidence: f.Confidence, Quote: f.Quote)).ToList();
+        return new HarveyReview(result.Language, result.GridVersion, result.Findings
+            .Select(f => new HarveyFinding(f.RuleKey, f.ClauseType, f.Severity, f.Explanation, f.RecommendedAction,
+                f.ContractReference, f.FindingType, f.RuleVersion, f.Detection, f.Confidence, f.Quote))
+            .ToList());
+    }
+
+    public async Task SendFeedbackAsync(ReviewFeedbackReport report, CancellationToken ct = default)
+    {
+        var body = new
+        {
+            source_ref = report.SourceRef,
+            rule_key = report.RuleKey,
+            rule_version = report.RuleVersion,
+            clause_reference = report.ClauseReference,
+            quote = report.Quote,
+            reason = report.Reason
+        };
+        await PostAsync<JsonElement>("api/v1/review-feedback", body, ct);
     }
 
     public async Task<DetectedFormFields> DetectFormFieldsAsync(Stream pdf, string fileName, CancellationToken ct = default)
@@ -124,27 +139,19 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
         float Y, float Width, float Height, bool IsRequired, string? AutoFillFrom, List<string>? Options, string Source,
         string Confidence);
 
-    private sealed record SearchHit(string ArticleId, string ArticleText, string Citation, double Score);
+    private sealed record PlaybookOut(Dictionary<string, PlaybookRuleOut> Rules);
 
-    private sealed record PlaybookOut(Dictionary<string, PlaybookRuleOut> Rules, Dictionary<string, string> Regulations);
-
-    private sealed record PlaybookRuleOut(List<PlaybookArticleOut> Articles, string? Label = null, List<string>? Phrases = null,
-        ModelClauseOut? ModelClause = null);
+    private sealed record PlaybookRuleOut(List<PlaybookArticleOut> Articles, string? Label = null, ModelClauseOut? ModelClause = null,
+        int? Version = null, string? ApprovedBy = null, DateTime? ApprovedAt = null);
 
     private sealed record ModelClauseOut(string Fr, string? En);
 
     private sealed record PlaybookArticleOut(string ArticleId, string Citation, string Text, string? Why,
         Dictionary<string, string>? Explanations = null);
 
-    private sealed record CitationOut(bool Found, bool IsVerified, string? Citation, string? Reason);
-
-    private sealed record ReviewOut(string Language, string? Model, List<FindingOut> Findings);
+    private sealed record ReviewOut(string Language, string? Model, List<FindingOut> Findings, string? GridVersion = null);
 
     private sealed record FindingOut(string ClauseType, string Severity, string Explanation, string? RecommendedAction,
         string? ContractReference, string? RuleKey, string? FindingType, int? RuleVersion = null, string? Detection = null,
         double? Confidence = null, string? Quote = null);
-
-    private sealed record ClassifyOut(bool Enabled, string? Model, List<ClauseMatchOut> Matches);
-
-    private sealed record ClauseMatchOut(string Reference, string RuleKey, string Label, double Score, string Sentence, string Example);
 }

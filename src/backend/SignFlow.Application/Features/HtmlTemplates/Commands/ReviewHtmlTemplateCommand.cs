@@ -1,5 +1,6 @@
 using SignFlow.Application.Common.Security;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Services;
@@ -12,7 +13,20 @@ public record ReviewTemplateField(string FieldKey, string Label, string Type, st
 public record ReviewHtmlTemplateCommand(string HtmlContent, List<ReviewTemplateField> Fields)
     : ICommand<ReviewHtmlTemplateResult>;
 
-public record ReviewHtmlTemplateResult(int RiskScore, List<RiskFinding> Findings, List<string> Limitations);
+/// <summary>One risk in the template, with the rule and the clause it was found in.</summary>
+public record TemplateFindingDto(
+    string RuleKey,
+    int? RuleVersion,
+    string ClauseType,
+    string Severity,
+    string Explanation,
+    string? RecommendedAction,
+    string? ProposedLanguage,
+    string? ContractReference,
+    List<string> Quotes,
+    List<ReviewArticle> Articles);
+
+public record ReviewHtmlTemplateResult(int RiskScore, List<TemplateFindingDto> Findings, List<string> Limitations, string? GridVersion);
 
 public class ReviewHtmlTemplateCommandValidator : AbstractValidator<ReviewHtmlTemplateCommand>
 {
@@ -24,16 +38,16 @@ public class ReviewHtmlTemplateCommandValidator : AbstractValidator<ReviewHtmlTe
 }
 
 /// <summary>
-/// Reviews a template before any request exists: the same legal review (Harvey, grounded in the law corpus) that runs
-/// on a finished contract, applied to the template's wording. Placeholders read as «Label» gaps and every conditional
+/// Reviews a template before any request exists: the same Harvey review, with the approved rules and the
+/// organisation's settings, that runs on a contract, applied to the template's wording. Placeholders read as «Label» gaps and every conditional
 /// clause is included, so the review sees the whole contract the template can produce. Nothing is stored.
 ///
-/// Like the pre-flight, it refuses to answer when the review could not run: an empty list of findings would read as
+/// Like the pre-flight, it refuses to answer when Harvey could not run: an empty list of findings would read as
 /// "no problems".
 /// </summary>
 public class ReviewHtmlTemplateCommandHandler(
-    IAiService aiService,
-    ILegalPlaybookService playbook,
+    IApplicationDbContext db,
+    IContractReviewService reviewService,
     ICurrentUserService currentUser) : ICommandHandler<ReviewHtmlTemplateCommand, ReviewHtmlTemplateResult>
 {
     public async Task<ReviewHtmlTemplateResult> HandleAsync(ReviewHtmlTemplateCommand command, CancellationToken cancellationToken = default)
@@ -54,12 +68,27 @@ public class ReviewHtmlTemplateCommandHandler(
 
         var text = HtmlToText.Convert(HtmlContractRenderer.RenderForReview(command.HtmlContent, labels));
 
-        var risk = await aiService.AnalyzeContractRiskAsync(text, "Template", cancellationToken);
-        if (risk.ReviewFailed)
-            throw new ConflictException(risk.Limitations?.FirstOrDefault()
-                ?? "The contract review is unavailable; the template has not been reviewed.");
+        var settings = await db.OrganisationRuleSettings.AsNoTracking().ToListAsync(cancellationToken);
+        ContractReview review;
+        try
+        {
+            review = await reviewService.ReviewAsync(
+                text,
+                [.. settings.Where(s => !s.Enabled).Select(s => s.RuleKey)],
+                settings.Where(s => s.Enabled && s.SeverityOverride is not null).ToDictionary(s => s.RuleKey, s => s.SeverityOverride!),
+                cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ServiceUnavailableException(Domain.Entities.ReviewRun.Unavailable,
+                "Harvey cannot be reached: the template has not been reviewed. Try again in a few minutes.");
+        }
 
-        risk = await playbook.AttachToRiskAsync(risk, text, cancellationToken);
-        return new ReviewHtmlTemplateResult(risk.RiskScore, risk.Findings, risk.Limitations ?? []);
+        var findings = review.Findings
+            .Select(f => new TemplateFindingDto(f.RuleKey, f.RuleVersion, f.Label, f.Severity, f.Explanation,
+                f.RecommendedAction, f.ProposedLanguage, f.ClauseReference, [.. f.Quotes], [.. f.Articles]))
+            .ToList();
+        var risk = Math.Min(100, review.Findings.Sum(f => ReviewGrading.Weight(f.Severity)));
+        return new ReviewHtmlTemplateResult(risk, findings, [], review.GridVersion);
     }
 }

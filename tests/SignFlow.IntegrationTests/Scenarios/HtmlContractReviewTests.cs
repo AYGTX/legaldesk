@@ -5,6 +5,7 @@ using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Services;
 using SignFlow.Application.Features.Documents.Commands;
 using SignFlow.Application.Features.Documents.Queries;
+using SignFlow.Application.Features.Reviews;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 using SignFlow.Infrastructure.Persistence;
@@ -21,32 +22,13 @@ public class HtmlContractReviewTests
 {
     private static readonly Guid OwnerId = Guid.NewGuid();
 
-    private static readonly LegalPlaybookService Playbook =
-        new(new NullLegalCorpusClient(), NullLogger<LegalPlaybookService>.Instance);
-
-    /// <summary>Records what the language model is handed, so the tests can assert on the contract text itself.</summary>
-    private sealed class CapturingAiService : IAiService
+    /// <summary>Records what the language model is handed (the summary only: the review never uses a model).</summary>
+    private sealed class CapturingAiService : NullAiService, IAiService
     {
         public List<string> Texts { get; } = [];
 
-        public Task<string> SummarizeDocumentAsync(string text, string title, CancellationToken ct = default)
+        public new Task<string> SummarizeDocumentAsync(string text, string title, CancellationToken ct = default)
         { Texts.Add(text); return Task.FromResult("A short summary."); }
-
-        public Task<ContractAnalysisResult> AnalyzeContractAsync(string text, string title, DateTime referenceDate, CancellationToken ct = default)
-        {
-            Texts.Add(text);
-            var risk = new ContractRiskAnalysis(40, [new RiskFinding("Liability", "High", "Uncapped.")], DateTime.UtcNow);
-            return Task.FromResult(new ContractAnalysisResult(risk, new ObligationSuggestion(null, null, null)));
-        }
-
-        public Task<ComplianceAnalysis> ReviewComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, IReadOnlyList<LegalArticleContext>? legalArticles = null, CancellationToken ct = default)
-        { Texts.Add(text); return Task.FromResult(new ComplianceAnalysis(100, [], DateTime.UtcNow)); }
-
-        public Task<ContractAnswer> AnswerQuestionAsync(string text, string title, IReadOnlyList<ChatTurn> history, string question, string language, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<GeneratedHtmlTemplate> GenerateHtmlFromTextAsync(string userText, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ContractRiskAnalysis> AnalyzeContractRiskAsync(string text, string title, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ObligationSuggestion> SuggestObligationAsync(string text, string title, DateTime referenceDate, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ComplianceAnalysis> AnalyzeContractComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private sealed record Seed(ScenarioFixture Fixture, Document Document, CapturingAiService Ai, ContractTextProvider Text);
@@ -112,39 +94,28 @@ public class HtmlContractReviewTests
     }
 
     [Fact]
-    public async Task The_risk_review_reads_an_html_contract_and_stores_its_findings()
+    public async Task Harveys_review_reads_an_html_contract_clause_by_clause_and_stores_its_findings()
     {
         var seed = await SeedAsync("45000", personalData: true);
         using var fixture = seed.Fixture;
+        fixture.Harvey.Findings = [FakeHarvey.Finding("liability", "High", "Article 1 — Prix")];
 
-        var handler = new AnalyzeContractCommandHandler(fixture.Db, seed.Text, seed.Ai, Playbook,
-            fixture.GetHandler<ICurrentUserService>(), fixture.GetHandler<IAuditService>(),
-            NullLogger<AnalyzeContractCommandHandler>.Instance);
+        var run = await fixture.GetHandler<StartReviewCommandHandler>().HandleAsync(new StartReviewCommand(seed.Document.Id));
+        await new ReviewRunner(fixture.Db, seed.Text, fixture.GetHandler<IContractReviewService>(), fixture.GetHandler<INotificationHub>(),
+                fixture.GetHandler<IAuditService>(), Microsoft.Extensions.Options.Options.Create(new ReviewOptions()), NullLogger<ReviewRunner>.Instance)
+            .RunAsync(run.Id);
 
-        await handler.HandleAsync(new AnalyzeContractCommand(seed.Document.Id));
-
-        Assert.Contains("Le Client Smith & Sons paie 45000 TND.", Assert.Single(seed.Ai.Texts));
-        var stored = await fixture.Db.Documents.SingleAsync();
-        Assert.Contains("Liability", stored.AiRiskAnalysisJson);
+        Assert.Contains(fixture.Harvey.ClausesSent, c => c.Text.Contains("Le Client Smith & Sons paie 45000 TND."));
+        var item = await fixture.Db.DocumentReadinessItems.SingleAsync();
+        Assert.Equal(("liability", "Article 1 — Prix"), (item.RuleKey, item.ClauseReference));
+        Assert.Equal(ReadinessVerdict.NeedsWork, (await fixture.Db.Documents.SingleAsync()).ReadinessVerdict);
     }
 
     [Fact]
-    public async Task The_pre_flight_review_and_the_summary_work_on_an_html_contract_too()
+    public async Task The_summary_works_on_an_html_contract_too()
     {
         var seed = await SeedAsync("45000", personalData: true);
         using var fixture = seed.Fixture;
-
-        var readiness = new EvaluateReadinessCommandHandler(fixture.Db, seed.Text, seed.Ai,
-            new GroundedComplianceReview(seed.Ai, new NullLegalCorpusClient(), Playbook, NullLogger<GroundedComplianceReview>.Instance),
-            Playbook,
-            Microsoft.Extensions.Options.Options.Create(new SignFlow.Application.Common.Models.ReviewFeatures { RegulatoryCompliance = true }),
-            fixture.GetHandler<ICurrentUserService>(), fixture.GetHandler<IAuditService>(),
-            NullLogger<EvaluateReadinessCommandHandler>.Instance);
-        var result = await readiness.HandleAsync(new EvaluateReadinessCommand(seed.Document.Id));
-
-        Assert.NotEqual(ReadinessVerdict.NotEvaluated, result.Verdict);
-        Assert.Contains(result.Items, i => i.Title.Contains("Liability", StringComparison.OrdinalIgnoreCase)
-                                           || i.SourceKey.Contains("Liability", StringComparison.OrdinalIgnoreCase));
 
         var summary = await new GetDocumentSummaryQueryHandler(fixture.Db, seed.Text, seed.Ai)
             .HandleAsync(new GetDocumentSummaryQuery(seed.Document.Id));

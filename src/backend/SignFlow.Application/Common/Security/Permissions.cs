@@ -25,6 +25,8 @@ public static class Permissions
     public const string ViewWorkflowPresets = "presets.view";
     public const string ManageWorkflowPresets = "presets.manage";
     public const string ViewReports = "reports.view";
+    /// <summary>Switch rules of Harvey's grid off for the organisation, or change their severity (R-M0-7).</summary>
+    public const string ManageReviewSettings = "reviewSettings.manage";
 
     public const string Administrator = "Administrator";
     public const string Manager = "Manager";
@@ -46,6 +48,7 @@ public static class Permissions
         [ViewWorkflowPresets] = [Administrator, Manager],
         [ManageWorkflowPresets] = [Administrator],
         [ViewReports] = [Administrator, Manager],
+        [ManageReviewSettings] = [Administrator],
     };
 
     public static IReadOnlyCollection<string> All => Grants.Keys;

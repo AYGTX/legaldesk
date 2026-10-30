@@ -5,5 +5,6 @@ public class LegalCorpusSettings
 {
     public string BaseUrl { get; set; } = "http://127.0.0.1:8100";
     public string? ApiKey { get; set; }
-    public int TimeoutSeconds { get; set; } = 30;
+    /// <summary>Long enough for a review of a long contract (R-M8-9 allows 120 s).</summary>
+    public int TimeoutSeconds { get; set; } = 120;
 }

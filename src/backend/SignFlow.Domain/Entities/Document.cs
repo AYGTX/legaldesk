@@ -39,19 +39,15 @@ public class Document : TenantEntity
     public string? AiSummary { get; private set; }
     public DateTime? AiSummaryGeneratedAt { get; private set; }
 
-    // AI risk-clause analysis (JSON-serialized ContractRiskAnalysis), generated at upload time
-    public string? AiRiskAnalysisJson { get; private set; }
-    public DateTime? AiRiskAnalysisGeneratedAt { get; private set; }
-
-    // AI compliance analysis (JSON-serialized ComplianceAnalysis), generated on demand
-    public string? AiComplianceAnalysisJson { get; private set; }
-    public DateTime? AiComplianceAnalysisGeneratedAt { get; private set; }
-
-    // Pre-flight readiness: is this contract fit to enter a validation circuit? Derived from the
-    // risk + compliance findings that are still open, never from a separate model call.
+    // Pre-flight review (M8): Harvey's findings on the current version, graded. NotEvaluated until a review of
+    // this version has completed (R-M8-5); the scores are computed from the findings, never asked of a model.
     public ReadinessVerdict ReadinessVerdict { get; private set; } = ReadinessVerdict.NotEvaluated;
     public int? ReadinessScore { get; private set; }
+    public int? RiskScore { get; private set; }
     public DateTime? ReadinessEvaluatedAt { get; private set; }
+
+    /// <summary>The last completed review of the current version; its findings are the contract's current findings.</summary>
+    public Guid? LastReviewRunId { get; private set; }
 
     // Obligation tracking (renewal/expiry date), AI-suggested at upload time and owner-confirmable
     public DateTime? ObligationDueDate { get; private set; }
@@ -232,16 +228,9 @@ public class Document : TenantEntity
         // The cached summary/risk analysis describe the previous file's content
         AiSummary = null;
         AiSummaryGeneratedAt = null;
-        AiRiskAnalysisJson = null;
-        AiRiskAnalysisGeneratedAt = null;
-        AiComplianceAnalysisJson = null;
-        AiComplianceAnalysisGeneratedAt = null;
-        // The verdict described the previous file too. Existing to-do items are deliberately kept:
-        // the adjustments they ask for may or may not be in this revision, and the next pre-flight
-        // run reconciles them by SourceKey.
-        ReadinessVerdict = ReadinessVerdict.NotEvaluated;
-        ReadinessScore = null;
-        ReadinessEvaluatedAt = null;
+        // The review described the previous file: sending is refused until this version is reviewed (R-M7-6).
+        // The findings are kept: the next review marks the ones it no longer finds as Fixed in this version.
+        ClearReview();
         // The contract term is deliberately kept, like a human-confirmed obligation date: the paper
         // changed, but the dates the parties negotiated did not.
         if (SlaHours.HasValue)
@@ -296,30 +285,27 @@ public class Document : TenantEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void SetAiRiskAnalysis(string riskAnalysisJson)
-    {
-        AiRiskAnalysisJson = riskAnalysisJson;
-        AiRiskAnalysisGeneratedAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void SetAiComplianceAnalysis(string complianceAnalysisJson)
-    {
-        AiComplianceAnalysisJson = complianceAnalysisJson;
-        AiComplianceAnalysisGeneratedAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
     /// <summary>
-    /// Records the outcome of a pre-flight review. Called both after a full analysis and after an
-    /// owner ticks an item off, since resolving a finding changes the verdict without re-analysing.
+    /// Records the grade of the current findings: after a completed review, and after an owner's decision on a finding,
+    /// which changes the verdict without re-reviewing.
     /// </summary>
-    public void SetReadiness(ReadinessVerdict verdict, int score)
+    public void SetReview(Guid runId, ReadinessVerdict verdict, int readinessScore, int riskScore)
     {
+        LastReviewRunId = runId;
         ReadinessVerdict = verdict;
-        ReadinessScore = score;
+        ReadinessScore = readinessScore;
+        RiskScore = riskScore;
         ReadinessEvaluatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    private void ClearReview()
+    {
+        LastReviewRunId = null;
+        ReadinessVerdict = ReadinessVerdict.NotEvaluated;
+        ReadinessScore = null;
+        RiskScore = null;
+        ReadinessEvaluatedAt = null;
     }
 
     /// <summary>AI-suggested obligation date at upload/analysis time — not yet confirmed by the owner.</summary>

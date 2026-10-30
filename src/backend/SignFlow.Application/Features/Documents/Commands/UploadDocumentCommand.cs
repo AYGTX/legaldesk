@@ -46,7 +46,6 @@ public class UploadDocumentCommandHandler(
     IPdfService pdfService,
     Common.Services.PdfUploadGuard uploadGuard,
     IAiService aiService,
-    ILegalPlaybookService playbook,
     ICurrentUserService currentUser,
     IAuditService auditService,
     ILogger<UploadDocumentCommandHandler> logger) : ICommandHandler<UploadDocumentCommand, DocumentUploadResult>
@@ -62,13 +61,6 @@ public class UploadDocumentCommandHandler(
         var extractedText = await pdfService.ExtractTextAsync(command.FileStream, cancellationToken);
         command.FileStream.Position = 0;
 
-        // Fast rules-based pass so the risk card is populated the moment the upload lands. The full
-        // legal review is on demand (POST /documents/{id}/analyze) because it takes tens of seconds; attaching
-        // the playbook's verified law citations here is cheap (cached playbook, local matching) and degrades
-        // to plain findings if the legal-corpus service is unreachable, so there is no reason to make the
-        // reader wait for "Analyze" just to see which article backs a flagged risk.
-        var riskAnalysis = await aiService.AnalyzeContractRiskAsync(extractedText, command.Title, cancellationToken);
-        riskAnalysis = await playbook.AttachToRiskAsync(riskAnalysis, extractedText, cancellationToken);
         var obligationSuggestion = await aiService.SuggestObligationAsync(extractedText, command.Title, DateTime.UtcNow, cancellationToken);
         var proposedTerm = await ProposeTermAsync(extractedText, command.Title, cancellationToken);
 
@@ -90,7 +82,6 @@ public class UploadDocumentCommandHandler(
 
         document.SetHash(hash);
         document.SetCreatedBy(userId.ToString());
-        document.SetAiRiskAnalysis(JsonSerializer.Serialize(riskAnalysis, ContractJson.Options));
         document.SetObligationSuggestion(obligationSuggestion.DueDate, obligationSuggestion.ObligationType, obligationSuggestion.Rationale);
         if (proposedTerm?.EndDate is not null)
             document.SuggestContractTerm(proposedTerm.StartDate, proposedTerm.EndDate, proposedTerm.AutoRenews ?? false, proposedTerm.NoticePeriodDays);

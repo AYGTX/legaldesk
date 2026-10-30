@@ -69,7 +69,6 @@ public static class InfrastructureServiceExtensions
         services.Configure<GroqSettings>(configuration.GetSection("Groq"));
         services.Configure<LocalLlmSettings>(configuration.GetSection("LocalLlm"));
         services.Configure<LegalCorpusSettings>(configuration.GetSection("LegalCorpus"));
-        services.Configure<SignFlow.Application.Common.Models.ReviewFeatures>(configuration.GetSection("Features"));
 
         // JWT Authentication
         var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()!;
@@ -173,6 +172,8 @@ public static class InfrastructureServiceExtensions
         services.AddHttpClient(LegalCorpusClient.HttpClientName, client =>
             client.Timeout = TimeSpan.FromSeconds(corpusSettings.TimeoutSeconds));
         services.AddScoped<ILegalCorpusClient, LegalCorpusClient>();
+        services.Configure<SignFlow.Application.Features.Reviews.ReviewOptions>(configuration.GetSection("Review"));
+        services.AddScoped<IReviewQueue, SignFlow.Infrastructure.Services.Background.HangfireReviewQueue>();
 
         // Application services
         services.AddScoped<IAiService, LlmAiService>();

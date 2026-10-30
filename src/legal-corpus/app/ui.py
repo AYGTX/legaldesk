@@ -17,7 +17,7 @@ from app.deps import get_db, get_embedder
 from app.i18n import LANGUAGES, is_known, pick_language, translator
 from app.models import Category, HarveyUser, Jurisdiction, Role, TextStatus, wording_on
 from app.schemas import ArticleIn, CitationIn, LegalTextIn, SearchIn
-from app.services import accounts, amendments, assist, corpus, definitions, explanations, pdf, playbook, references
+from app.services import accounts, amendments, assist, corpus, definitions, explanations, feedback, pdf, playbook, references
 from app.services.corpus import RuleError
 from app.services.llm import LlmUnavailable
 from app.services.citations import check_citation
@@ -800,6 +800,7 @@ def _rule_page(key: str, request: Request, db: Session, **extra):
     return _render(request, "playbook_rule.html", rule=rule, texts=texts,
                    detected=playbook.DETECTED_KEYS, ai=request.app.state.llm.name,
                    versions=playbook.versions_of(db, key), editor=editor, own_edit=own_edit,
+                   feedback=feedback.open_for(db, key),
                    severities=["Critical", "High", "Medium", "Low"], **extra)
 
 
@@ -807,6 +808,13 @@ def _risk_description(rule: dict) -> str:
     detected = playbook.DETECTED_KEYS.get(rule["key"])
     name = f"{rule['label']} ({detected[1]})" if detected and detected[1] != rule["label"] else rule["label"]
     return f"{name} — {rule['description']}" if rule.get("description") else name
+
+
+@router.post("/playbook/rules/{key}/feedback/{feedback_id}/handled")
+def rule_feedback_handled(key: str, feedback_id: int, request: Request, db: Session = Depends(get_db)):
+    """A lawyer or editor has looked at a "not applicable" report from LegalDesk (R-M8-4)."""
+    feedback.handle(db, feedback_id, request.state.account.id)
+    return _redirect(_rule_url(key), "saved")
 
 
 @router.post("/playbook/rules/{key}/suggest-articles", response_class=HTMLResponse)

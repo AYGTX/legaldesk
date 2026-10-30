@@ -6,6 +6,7 @@ using SignFlow.Application.Common.Models;
 using SignFlow.Application.Features.Auth.Commands;
 using SignFlow.Application.Features.Documents.Commands;
 using SignFlow.Application.Features.Documents.Queries;
+using SignFlow.Application.Features.Reviews;
 using SignFlow.Application.Features.SignatureFields.Commands;
 using SignFlow.Application.Features.Recipients.Commands;
 using SignFlow.Application.Features.Checklist.Commands;
@@ -78,28 +79,31 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<DeleteDocumentCommand>, DeleteDocumentCommandHandler>();
         services.AddScoped<ICommandHandler<ReopenDocumentCommand>, ReopenDocumentCommandHandler>();
         services.AddScoped<IContractTextProvider, ContractTextProvider>();
-        services.AddScoped<IGroundedComplianceReview, GroundedComplianceReview>();
-        services.AddScoped<ILegalPlaybookService, LegalPlaybookService>();
+        services.AddScoped<IContractReviewService, ContractReviewService>();
         services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
         services.AddScoped<ICommandHandler<EditDocumentPdfCommand, UploadRevisionResult>, EditDocumentPdfCommandHandler>();
         services.AddScoped<ICommandHandler<EditPdfTemplateCommand, EditPdfTemplateResult>, EditPdfTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult>, ReviseFromTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateObligationCommand>, UpdateObligationCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateContractTermCommand>, UpdateContractTermCommandHandler>();
-        services.AddScoped<ICommandHandler<AnalyzeContractCommand, ContractAnalysisDto>, AnalyzeContractCommandHandler>();
         services.AddScoped<ICommandHandler<AskContractQuestionCommand, ContractChatReplyDto>, AskContractQuestionCommandHandler>();
         services.AddScoped<ICommandHandler<ExtractKeyTermsCommand, KeyTermsDto>, ExtractKeyTermsCommandHandler>();
         services.AddScoped<ICommandHandler<WriteRenewalNoteCommand, RenewalNoteDto>, WriteRenewalNoteCommandHandler>();
-        services.AddScoped<ICommandHandler<AnalyzeComplianceCommand, ComplianceAnalysisDto>, AnalyzeComplianceCommandHandler>();
-        services.AddScoped<ICommandHandler<EvaluateReadinessCommand, ReadinessDto>, EvaluateReadinessCommandHandler>();
-        services.AddScoped<ICommandHandler<SetReadinessItemStatusCommand, ReadinessDto>, SetReadinessItemStatusCommandHandler>();
+
+        // Pre-flight review (M8)
+        services.AddScoped<ICommandHandler<StartReviewCommand, ReviewRunDto>, StartReviewCommandHandler>();
+        services.AddScoped<ICommandHandler<DecideReviewItemCommand, ReviewDto>, DecideReviewItemCommandHandler>();
+        services.AddScoped<IQueryHandler<GetLatestReviewQuery, ReviewDto>, GetLatestReviewQueryHandler>();
+        services.AddScoped<IQueryHandler<GetReviewSettingsQuery, List<ReviewRuleSettingDto>>, GetReviewSettingsQueryHandler>();
+        services.AddScoped<ICommandHandler<SetReviewSettingCommand>, SetReviewSettingCommandHandler>();
+        services.AddScoped<IReviewRunner, ReviewRunner>();
+        services.AddScoped<IReviewFeedbackSender, ReviewFeedbackSender>();
 
         // Document query handlers
         services.AddScoped<IQueryHandler<GetDocumentsQuery, PagedResult<DocumentSummaryDto>>, GetDocumentsQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentByIdQuery, DocumentDetailDto>, GetDocumentByIdQueryHandler>();
         services.AddScoped<IQueryHandler<GetDashboardQuery, DashboardDto>, GetDashboardQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentSummaryQuery, AiDocumentSummaryDto>, GetDocumentSummaryQueryHandler>();
-        services.AddScoped<IQueryHandler<GetReadinessQuery, ReadinessDto>, GetReadinessQueryHandler>();
         services.AddScoped<IQueryHandler<GetTemplateRevisionFormQuery, TemplateRevisionFormDto>, GetTemplateRevisionFormQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentVersionFileQuery, DocumentVersionFileDto>, GetDocumentVersionFileQueryHandler>();
         services.AddScoped<IQueryHandler<CompareDocumentVersionsQuery, VersionComparisonDto>, CompareDocumentVersionsQueryHandler>();

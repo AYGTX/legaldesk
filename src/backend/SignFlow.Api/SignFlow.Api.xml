@@ -248,9 +248,6 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Download(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentByIdQuery,SignFlow.Application.Features.Documents.Queries.DocumentDetailDto},System.Threading.CancellationToken)">
             <summary>Download the signed PDF (as attachment)</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Analyze(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AnalyzeContractCommand,SignFlow.Application.Features.Documents.Commands.ContractAnalysisDto},System.Threading.CancellationToken)">
-            <summary>Run a full legal review of the contract — gaps, weak clauses, proposed wording and the next obligation date</summary>
-        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Ask(System.Guid,SignFlow.Api.Controllers.V1.AskContractQuestionRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AskContractQuestionCommand,SignFlow.Application.Features.Documents.Commands.ContractChatReplyDto},System.Threading.CancellationToken)">
             <summary>
             Ask a question about the contract. The answer comes only from the contract's own text and is shown with the
@@ -264,17 +261,15 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.WriteRenewalNote(System.Guid,System.String,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.WriteRenewalNoteCommand,SignFlow.Application.Features.Documents.Commands.RenewalNoteDto},System.Threading.CancellationToken)">
             <summary>A short AI decision note for the contract's next deadline: renew, renegotiate or terminate.</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.AnalyzeCompliance(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.AnalyzeComplianceCommand,SignFlow.Application.Features.Documents.Commands.ComplianceAnalysisDto},System.Threading.CancellationToken)">
-            <summary>Check the contract against the published regulatory watch registry — a keyword scan, not a legal opinion</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.StartReview(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Reviews.StartReviewCommand,SignFlow.Application.Features.Reviews.ReviewRunDto},System.Threading.CancellationToken)">
+            <summary>Start Harvey's review of the current version in the background (R-M8-9). Progress and the result arrive
+            over SignalR ("review-progress"); read them with GET reviews/latest.</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.EvaluateReadiness(System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.EvaluateReadinessCommand,SignFlow.Application.Features.Documents.Queries.ReadinessDto},System.Threading.CancellationToken)">
-            <summary>Pre-flight review: run the legal and regulatory checks, then grade whether the contract is fit to send</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetLatestReview(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Reviews.GetLatestReviewQuery,SignFlow.Application.Features.Reviews.ReviewDto},System.Threading.CancellationToken)">
+            <summary>The contract's review: latest run, verdict, scores and findings with their origin</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetReadiness(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetReadinessQuery,SignFlow.Application.Features.Documents.Queries.ReadinessDto},System.Threading.CancellationToken)">
-            <summary>Get the stored pre-flight verdict and its to-do list without re-running the analysis</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.SetReadinessItemStatus(System.Guid,System.Guid,SignFlow.Api.Controllers.V1.SetReadinessItemStatusRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.SetReadinessItemStatusCommand,SignFlow.Application.Features.Documents.Queries.ReadinessDto},System.Threading.CancellationToken)">
-            <summary>Resolve or dismiss one pre-flight to-do item — the verdict is re-graded from what stays open</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.DecideReviewItem(System.Guid,System.Guid,SignFlow.Api.Controllers.V1.DecideReviewItemRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Reviews.DecideReviewItemCommand,SignFlow.Application.Features.Reviews.ReviewDto},System.Threading.CancellationToken)">
+            <summary>Accept a finding, mark it not applicable (both with a reason), or reopen it; the verdict is re-graded</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSummary(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
             <summary>Get an AI-generated plain-English summary of a document</summary>
@@ -289,10 +284,13 @@
             <summary>Stream the original PDF inline (for in-browser rendering)</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.SendDocumentRequest">
-            <summary>Force lets the owner send past a "needs work" verdict after acknowledging it.</summary>
+            <param name="Reason">Why the contract goes out with open high-risk findings; required in that case (R-M8-8).</param>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.SendDocumentRequest.#ctor(System.Boolean)">
-            <summary>Force lets the owner send past a "needs work" verdict after acknowledging it.</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.SendDocumentRequest.#ctor(System.String)">
+            <param name="Reason">Why the contract goes out with open high-risk findings; required in that case (R-M8-8).</param>
+        </member>
+        <member name="P:SignFlow.Api.Controllers.V1.SendDocumentRequest.Reason">
+            <summary>Why the contract goes out with open high-risk findings; required in that case (R-M8-8).</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.AskContractQuestionRequest">
             <summary>A question about a contract, with the conversation so far (the client keeps it).</summary>
@@ -596,6 +594,24 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.RequestTypesController.Delete(System.Guid,System.Threading.CancellationToken)">
             <summary>Delete a request type (only if unused)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.ReviewSettingsController">
+            <summary>
+            The organisation's choices about Harvey's grid (R-M0-7): which rules in service it reviews with, and at which
+            severity. Applies to the next review of each contract.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ReviewSettingsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Reviews.GetReviewSettingsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Reviews.ReviewRuleSettingDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Reviews.SetReviewSettingCommand})">
+            <summary>
+            The organisation's choices about Harvey's grid (R-M0-7): which rules in service it reviews with, and at which
+            severity. Applies to the next review of each contract.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ReviewSettingsController.Get(System.Threading.CancellationToken)">
+            <summary>The rules in service and the organisation's setting for each</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ReviewSettingsController.Set(System.String,SignFlow.Api.Controllers.V1.SetReviewSettingRequest,System.Threading.CancellationToken)">
+            <summary>Switch a rule on or off, or change its severity (null keeps the rule's own)</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.SigningController">
             <summary>External signing endpoints: the link's token is the credential, so no sign-in</summary>

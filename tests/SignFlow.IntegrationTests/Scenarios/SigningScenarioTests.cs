@@ -104,6 +104,7 @@ public class SigningScenarioTests
 
         // ── 4. Send document (starts workflow) ────────────────────────────────
         var sendHandler = fixture.GetHandler<SendDocumentCommandHandler>();
+        await fixture.ReviewAsync(documentId); // nothing goes out unreviewed (R-M8-8)
         await sendHandler.HandleAsync(new SendDocumentCommand(documentId));
 
         var sentDoc = await fixture.Db.Documents.FindAsync(documentId);
@@ -191,6 +192,7 @@ public class SigningScenarioTests
         var aliceField = await fixture.Db.SignatureFields.FirstAsync(f => f.RecipientId == alice.Id);
         var bobField   = await fixture.Db.SignatureFields.FirstAsync(f => f.RecipientId == bob.Id);
 
+        await fixture.ReviewAsync(docId);
         await fixture.GetHandler<SendDocumentCommandHandler>().HandleAsync(new SendDocumentCommand(docId));
 
         var signHandler = fixture.GetHandler<SignFieldCommandHandler>();

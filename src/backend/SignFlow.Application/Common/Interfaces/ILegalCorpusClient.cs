@@ -3,26 +3,26 @@ namespace SignFlow.Application.Common.Interfaces;
 /// <summary>The legal corpus service: verified, article-level law and word-for-word quote checks.</summary>
 public interface ILegalCorpusClient
 {
-    /// <summary>The most relevant verified, published articles for <paramref name="query"/>.</summary>
-    Task<IReadOnlyList<LegalArticleContext>> SearchAsync(string query, int topK, CancellationToken ct = default);
+    /// <summary>Harvey answers its health check. Used before queueing a review, so a review that cannot run is refused at
+    /// once (code review.unavailable) instead of failing in the background.</summary>
+    Task<bool> IsAvailableAsync(CancellationToken ct = default);
 
+    /// <summary>The rules in service (approved versions only), with their verified articles and approved model clauses.</summary>
     Task<LegalPlaybook> GetPlaybookAsync(CancellationToken ct = default);
 
-    /// <summary>One result per request, in order.</summary>
-    Task<IReadOnlyList<CitationCheckResult>> CheckCitationsAsync(
-        IReadOnlyList<CitationCheckRequest> citations, CancellationToken ct = default);
-
     /// <summary>
-    /// Matches clauses to confirmed playbook rules by meaning, against the rules' example clauses. Runs inside the
-    /// corpus service on the client's servers; returns Enabled = false when no semantic model is installed there.
+    /// Harvey's contract review (R-M8-1, R-M8-2): the risks in <paramref name="clauses"/>, found with approved rules only,
+    /// minus the rules the organisation switched off and with its severities. Throws when Harvey cannot answer.
     /// </summary>
-    Task<ClauseClassification> ClassifyAsync(IReadOnlyList<ClauseText> clauses, CancellationToken ct = default);
+    Task<HarveyReview> ReviewAsync(
+        IReadOnlyList<ClauseText> clauses,
+        string? language,
+        IReadOnlyCollection<string> disabledRules,
+        IReadOnlyDictionary<string, string> severityOverrides,
+        CancellationToken ct = default);
 
-    /// <summary>
-    /// Harvey's contract review: the risks in <paramref name="clauses"/>, found by meaning and by checks in code. Runs
-    /// on Harvey's server (the client's own); throws when Harvey cannot be reached or has no semantic model.
-    /// </summary>
-    Task<IReadOnlyList<RiskFinding>> ReviewAsync(IReadOnlyList<ClauseText> clauses, string? language, CancellationToken ct = default);
+    /// <summary>Reports a finding a user marked "not applicable" to the lawyers who keep the grid (R-M8-4). Safe to retry.</summary>
+    Task SendFeedbackAsync(ReviewFeedbackReport report, CancellationToken ct = default);
 
     /// <summary>
     /// Finds the fields of a contract PDF and proposes a type, label, fill role and auto-fill for each. Coordinates are
@@ -30,6 +30,30 @@ public interface ILegalCorpusClient
     /// </summary>
     Task<DetectedFormFields> DetectFormFieldsAsync(Stream pdf, string fileName, CancellationToken ct = default);
 }
+
+/// <summary>One finding as Harvey returns it: one hit of one rule in one clause.</summary>
+/// <param name="Label">The rule's label (Harvey's clause_type).</param>
+/// <param name="Detection">CodeCheck, MeaningMatch or Phrase.</param>
+/// <param name="Confidence">Similarity of a meaning match.</param>
+/// <param name="Quote">The contract's words that raised it.</param>
+public record HarveyFinding(
+    string? RuleKey,
+    string Label,
+    string Severity,
+    string Explanation,
+    string? RecommendedAction,
+    string? ClauseReference,
+    string? FindingType,
+    int? RuleVersion,
+    string? Detection,
+    double? Confidence,
+    string? Quote);
+
+/// <param name="GridVersion">Fingerprint of the rule versions used.</param>
+public record HarveyReview(string Language, string? GridVersion, IReadOnlyList<HarveyFinding> Findings);
+
+/// <param name="SourceRef">LegalDesk's id of the finding, so a retried delivery is stored once.</param>
+public record ReviewFeedbackReport(string SourceRef, string RuleKey, int? RuleVersion, string? ClauseReference, string? Quote, string Reason);
 
 public record DetectedFormField(
     string FieldKey, string Label, string Type, string FillRole, int Page, float X, float Y, float Width, float Height,
@@ -40,31 +64,19 @@ public record DetectedFormFields(int Pages, string? Model, bool AiUsed, IReadOnl
 
 public record ClauseText(string Reference, string Text);
 
-public record ClauseMatch(string Reference, string RuleKey, string Label, double Score, string Sentence, string Example);
-
-public record ClauseClassification(bool Enabled, IReadOnlyList<ClauseMatch> Matches);
-
-/// <summary>Confirmed clause playbook: rule key → verified articles; regulation reference fragment → rule key.</summary>
+/// <summary>The rules in service: rule key → verified articles, approved model clause, and who approved the version.</summary>
 public record LegalPlaybook(
     IReadOnlyDictionary<string, IReadOnlyList<PlaybookArticle>> Rules,
-    IReadOnlyDictionary<string, string> Regulations,
-    IReadOnlyDictionary<string, PlaybookWording>? Wording = null,
-    IReadOnlyDictionary<string, ModelClause>? ModelClauses = null);
+    IReadOnlyDictionary<string, ModelClause>? ModelClauses = null,
+    IReadOnlyDictionary<string, RuleApproval>? Approvals = null);
+
+/// <summary>The approved version of a rule in service, and the lawyer who approved it.</summary>
+public record RuleApproval(int? Version, string? ApprovedBy, DateTime? ApprovedAt);
 
 /// <summary>The corrected wording a lawyer approved for a risk, proposed in findings of that risk.</summary>
 public record ModelClause(string Fr, string? En);
-
-/// <summary>
-/// Extra wording a lawyer attached to a confirmed rule: a clause containing any of these phrases is flagged for that
-/// rule, even when the built-in detection misses it.
-/// </summary>
-public record PlaybookWording(string Label, IReadOnlyList<string> Phrases);
 
 /// <summary>An article a playbook rule quotes; <paramref name="Explanations"/> holds lawyer-approved plain-language
 /// explanations of its current wording, by language ("fr", "en").</summary>
 public record PlaybookArticle(string ArticleId, string Citation, string Text, string? Why,
     IReadOnlyDictionary<string, string>? Explanations = null);
-
-public record CitationCheckRequest(string ArticleId, string Quote);
-
-public record CitationCheckResult(bool Found, bool IsVerified, string? Citation, string? Reason);

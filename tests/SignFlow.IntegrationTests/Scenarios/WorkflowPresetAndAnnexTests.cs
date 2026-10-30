@@ -454,25 +454,13 @@ public class PdfAnnexRequestTests
 
 public class TemplateReviewTests
 {
-    private sealed class FakeAi(ContractRiskAnalysis result) : IAiService
+    private static (ScenarioFixture Fixture, ReviewHtmlTemplateCommandHandler Handler) Setup(string[]? roles = null)
     {
-        public string? Text { get; private set; }
-
-        public Task<ContractRiskAnalysis> AnalyzeContractRiskAsync(string text, string title, CancellationToken ct = default)
-        { Text = text; return Task.FromResult(result); }
-
-        public Task<string> SummarizeDocumentAsync(string text, string title, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ContractAnalysisResult> AnalyzeContractAsync(string text, string title, DateTime referenceDate, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ComplianceAnalysis> ReviewComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, IReadOnlyList<LegalArticleContext>? legalArticles = null, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ContractAnswer> AnswerQuestionAsync(string text, string title, IReadOnlyList<ChatTurn> history, string question, string language, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<GeneratedHtmlTemplate> GenerateHtmlFromTextAsync(string userText, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ObligationSuggestion> SuggestObligationAsync(string text, string title, DateTime referenceDate, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ComplianceAnalysis> AnalyzeContractComplianceAsync(string text, string title, IReadOnlyList<RegulatoryTextSummary> activeRegulations, CancellationToken ct = default) => throw new NotSupportedException();
+        var fixture = new ScenarioFixture(Guid.NewGuid());
+        ((FakeCurrentUserService)fixture.GetHandler<ICurrentUserService>()).RolesOverride = roles;
+        return (fixture, new ReviewHtmlTemplateCommandHandler(fixture.Db, fixture.GetHandler<IContractReviewService>(),
+            fixture.GetHandler<ICurrentUserService>()));
     }
-
-    private static ReviewHtmlTemplateCommandHandler Handler(FakeAi ai, string[]? roles = null) => new(
-        ai, new LegalPlaybookService(new NullLegalCorpusClient(), NullLogger<LegalPlaybookService>.Instance),
-        new FakeCurrentUserService(Guid.NewGuid()) { RolesOverride = roles });
 
     private static readonly ReviewHtmlTemplateCommand Command = new(
         "<p>{{party}} paie {{amount}}.</p>{{#if amount > 1000}}<p>Garantie.</p>{{#else}}<p>Sans garantie.</p>{{/if}}<div>{{sig}}</div>",
@@ -480,41 +468,50 @@ public class TemplateReviewTests
          new ReviewTemplateField("sig", "Signature", "Signature", "Approver")]);
 
     [Fact]
-    public async Task The_reviewer_reads_the_template_with_gaps_labelled_and_every_conditional_clause_included()
+    public async Task Harvey_reads_the_template_with_gaps_labelled_and_every_conditional_clause_included()
     {
-        var ai = new FakeAi(new ContractRiskAnalysis(40, [new RiskFinding("Liability", "High", "Uncapped.")], DateTime.UtcNow));
+        var (fixture, handler) = Setup();
+        using var _ = fixture;
+        fixture.Harvey.Findings = [FakeHarvey.Finding("liability", "High", "Article 1")];
 
-        var result = await Handler(ai).HandleAsync(Command);
+        var result = await handler.HandleAsync(Command);
 
-        Assert.Contains("«Partie» paie «Montant».", ai.Text);
-        Assert.Contains("Garantie.", ai.Text);
-        Assert.Contains("Sans garantie.", ai.Text);
-        Assert.DoesNotContain("{{", ai.Text);
-        Assert.Equal(40, result.RiskScore);
-        Assert.Equal("Liability", Assert.Single(result.Findings).ClauseType);
+        var text = string.Join(" ", fixture.Harvey.ClausesSent.Select(c => c.Text));
+        Assert.Contains("«Partie» paie «Montant».", text);
+        Assert.Contains("Garantie.", text);
+        Assert.Contains("Sans garantie.", text);
+        Assert.DoesNotContain("{{", text);
+        Assert.Equal(10, result.RiskScore);
+        Assert.Equal(("Risque liability", "liability"), (Assert.Single(result.Findings).ClauseType, result.Findings[0].RuleKey));
     }
 
     [Fact]
     public async Task A_review_that_could_not_run_is_refused_instead_of_reading_as_no_problems()
     {
-        var unavailable = ContractRuleEngine.ReviewUnavailable("fr");
+        var (fixture, handler) = Setup();
+        using var _ = fixture;
+        fixture.Harvey.Down = true;
 
-        var ex = await Assert.ThrowsAsync<ConflictException>(() => Handler(new FakeAi(unavailable)).HandleAsync(Command));
+        var ex = await Assert.ThrowsAsync<ServiceUnavailableException>(() => handler.HandleAsync(Command));
 
         Assert.Contains("Harvey", ex.Message);
+        Assert.Equal(ReviewRun.Unavailable, ex.Code);
     }
 
     [Fact]
     public async Task Only_administrators_and_managers_may_review_a_template()
     {
-        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
-            Handler(new FakeAi(new ContractRiskAnalysis(0, [], DateTime.UtcNow)), roles: ["Employee"]).HandleAsync(Command));
+        var (fixture, handler) = Setup(["Employee"]);
+        using var _ = fixture;
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => handler.HandleAsync(Command));
     }
 
     [Fact]
     public async Task An_empty_template_is_refused()
     {
+        var (fixture, handler) = Setup();
+        using var _ = fixture;
         await Assert.ThrowsAsync<SignFlow.Application.Common.Exceptions.ValidationException>(() =>
-            Handler(new FakeAi(new ContractRiskAnalysis(0, [], DateTime.UtcNow))).HandleAsync(new ReviewHtmlTemplateCommand("  ", [])));
+            handler.HandleAsync(new ReviewHtmlTemplateCommand("  ", [])));
     }
 }

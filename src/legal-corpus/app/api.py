@@ -7,6 +7,7 @@ from datetime import date
 
 from app.models import Category, Jurisdiction, TextStatus, wording_on
 from app.schemas import (
+    ReviewFeedbackIn,
     ReviewIn,
     ReviewOut,
     ClassifyIn,
@@ -162,6 +163,17 @@ def review_contract(body: ReviewIn, db: Session = Depends(get_db), matcher=Depen
     findings, lang = review.review(clauses, rules, matcher, body.language)
     return ReviewOut(language=lang, model=matcher.embedder.name, grid_version=playbook.grid_version(rules),
                      findings=review.as_dicts(findings))
+
+
+@router.post("/review-feedback", status_code=202, tags=["retrieval"])
+def review_feedback(body: ReviewFeedbackIn, db: Session = Depends(get_db)):
+    """A finding a LegalDesk user marked "not applicable", with their reason (R-M8-4). Shown on the risk's page for the
+    lawyers who keep the grid; it changes nothing by itself. Sending the same report twice stores it once."""
+    from app.services import feedback
+
+    item = feedback.record(db, body.source_ref, body.rule_key, body.reason, body.rule_version, body.clause_reference,
+                           body.quote)
+    return {"id": item.id}
 
 
 MAX_PDF_BYTES = 25 * 1024 * 1024

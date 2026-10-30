@@ -35,6 +35,8 @@ public interface IApplicationDbContext
     DbSet<RegulatoryText> RegulatoryTexts { get; }
     DbSet<RegulatoryArticle> RegulatoryArticles { get; }
     DbSet<DocumentReadinessItem> DocumentReadinessItems { get; }
+    DbSet<ReviewRun> ReviewRuns { get; }
+    DbSet<OrganisationRuleSetting> OrganisationRuleSettings { get; }
     DbSet<WorkflowPreset> WorkflowPresets { get; }
     DbSet<WorkflowPresetStep> WorkflowPresetSteps { get; }
 

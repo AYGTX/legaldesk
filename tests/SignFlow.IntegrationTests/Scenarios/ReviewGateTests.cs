@@ -8,6 +8,7 @@ using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 using SignFlow.Infrastructure.Persistence;
 using SignFlow.IntegrationTests.Infrastructure;
+using SignFlow.IntegrationTests.Stubs;
 
 namespace SignFlow.IntegrationTests.Scenarios;
 
@@ -35,22 +36,23 @@ public class ReviewGateTests
         var document = Document.Create("Supply agreement", "supply.pdf", "documents/supply.pdf", 10, 1, OwnerId);
         db.Documents.Add(document);
 
-        if (reviewed)
-        {
-            document.SetAiRiskAnalysis("{\"riskScore\":72}");
-            document.SetAiComplianceAnalysis("{\"complianceScore\":45}");
-            document.SetReadiness(ReadinessVerdict.NeedsWork, 58);
-            db.DocumentReadinessItems.AddRange(
-                DocumentReadinessItem.Create(document.Id, ReadinessItemCategory.Risk, "Critical", "k1", "Unlimited liability", "Uncapped.", "Open-ended exposure.", "Cap it."),
-                DocumentReadinessItem.Create(document.Id, ReadinessItemCategory.Structure, "Low", "k2", "No notices clause", "Add one."));
-        }
-
         var signer = Recipient.Create(document.Id, "Mia Member", "member@test.com", 1, ApprovalType.Signature);
         var outsider = Recipient.Create(document.Id, "Oscar Outside", "oscar@partner.com", 2, ApprovalType.Signature);
         db.Recipients.AddRange(signer, outsider);
         var field = SignatureField.Create(document.Id, FieldType.Signature, 1, 0, 0, 200, 80, signer.Id);
         db.SignatureFields.Add(field);
         await db.SaveChangesAsync();
+
+        if (reviewed)
+        {
+            // A real review run: one open High and one open Low finding from Harvey.
+            fixture.Harvey.Findings =
+            [
+                FakeHarvey.Finding("liability", "High", "Article 2 — Responsabilité"),
+                FakeHarvey.Finding("notices", "Low", "Article 3 — Durée"),
+            ];
+            await fixture.ReviewAsync(document.Id);
+        }
 
         await fixture.GetHandler<IWorkflowEngine>().StartAsync(document.Id);
         return new Seed(fixture, document, signer, field, outsider);
@@ -137,9 +139,10 @@ public class ReviewGateTests
         Assert.False(gate.ReviewRestricted);                          // matched by email, whatever the letter case
         var review = gate.Review!;
         Assert.Equal(ReadinessVerdict.NeedsWork, review.Verdict);
-        Assert.Equal((58, 72, 45), (review.Score, review.RiskScore, review.ComplianceScore));
-        Assert.Equal((2, 1, 0), (review.OpenCount, review.CriticalCount, review.HandledCount));
-        Assert.Equal(["Unlimited liability", "No notices clause"], review.Items.Select(i => i.Title));   // most severe first
+        Assert.Equal((89, 11), (review.Score, review.RiskScore));                     // 100 − 10 − 1; 10 + 1
+        Assert.Equal((2, 0, 0), (review.OpenCount, review.CriticalCount, review.HandledCount));
+        Assert.Equal(["Risque liability", "Risque notices"], review.Items.Select(i => i.Title));   // most severe first
+        Assert.Equal("Article 2 — Responsabilité", review.Items[0].ClauseReference);
     }
 
     [Fact]

@@ -237,5 +237,5 @@ def test_migrating_an_old_database_keeps_every_article(tmp_path):
     with sqlite3.connect(path) as con:
         assert con.execute("SELECT COUNT(*) FROM articles").fetchone() == (50,)
         assert con.execute("SELECT verified_by, verified_by_user_id FROM legal_texts").fetchone() == ("Me Ancien", None)
-        assert con.execute("SELECT version_num FROM alembic_version").fetchone() == ("0002_accounts_rule_versions",)
+        assert con.execute("SELECT version_num FROM alembic_version").fetchone() == ("0003_review_feedback",)
         assert con.execute("PRAGMA foreign_key_check").fetchall() == []
