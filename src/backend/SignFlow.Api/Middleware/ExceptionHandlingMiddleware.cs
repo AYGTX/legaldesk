@@ -58,7 +58,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Title = "Conflict",
                 Status = 409,
                 Detail = ce.Message,
-                Extensions = { ["code"] = ce.Code }
+                Extensions = { ["code"] = ce.Code, ["params"] = ce.Parameters }
             }),
             ConflictException ce => (HttpStatusCode.Conflict, new ProblemDetails
             {

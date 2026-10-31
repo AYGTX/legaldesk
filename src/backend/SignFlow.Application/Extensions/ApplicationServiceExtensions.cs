@@ -105,6 +105,10 @@ public static class ApplicationServiceExtensions
         services.AddScoped<SignFlow.Application.Features.Signing.ISigningAccess, SignFlow.Application.Features.Signing.SigningAccess>();
         services.AddScoped<ICommandHandler<ResendSigningLinkCommand>, ResendSigningLinkCommandHandler>();
 
+        // Circuits (M4): pools, stand-ins, delegation
+        services.AddScoped<ICircuitDirectory, CircuitDirectory>();
+        services.AddScoped<ICommandHandler<DelegateStepCommand, DelegatedStepDto>, DelegateStepCommandHandler>();
+
         // Seal and public verification (R-M5-8, R-M5-9)
         services.AddScoped<IDocumentSealer, DocumentSealer>();
         services.AddScoped<IQueryHandler<VerifySealQuery, SealInfoDto>, VerifySealQueryHandler>();
@@ -224,6 +228,14 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<CreateWorkflowPresetCommand, Guid>, CreateWorkflowPresetCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateWorkflowPresetCommand>, UpdateWorkflowPresetCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteWorkflowPresetCommand>, DeleteWorkflowPresetCommandHandler>();
+
+        // Teams and the working calendar (R-M4-4, R-M4-10)
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Teams.GetTeamsQuery, List<SignFlow.Application.Features.Teams.TeamDto>>, SignFlow.Application.Features.Teams.GetTeamsQueryHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Teams.SaveTeamCommand, Guid>, SignFlow.Application.Features.Teams.SaveTeamCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Teams.DeleteTeamCommand>, SignFlow.Application.Features.Teams.DeleteTeamCommandHandler>();
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Teams.GetHolidaysQuery, List<SignFlow.Application.Features.Teams.HolidayDto>>, SignFlow.Application.Features.Teams.GetHolidaysQueryHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Teams.AddHolidayCommand, Guid>, SignFlow.Application.Features.Teams.AddHolidayCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Teams.DeleteHolidayCommand>, SignFlow.Application.Features.Teams.DeleteHolidayCommandHandler>();
         services.AddScoped<ICommandHandler<CreateHtmlTemplateCommand, Guid>, CreateHtmlTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateHtmlTemplateCommand>, UpdateHtmlTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteHtmlTemplateCommand>, DeleteHtmlTemplateCommandHandler>();

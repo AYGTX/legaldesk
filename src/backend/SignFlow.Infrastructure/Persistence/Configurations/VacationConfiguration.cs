@@ -19,6 +19,8 @@ public class VacationConfiguration : IEntityTypeConfiguration<Vacation>
             .HasForeignKey(v => v.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(v => v.DelegateUserId).OnDelete(DeleteBehavior.NoAction);
+
         builder.HasIndex(v => v.UserId);
         builder.HasIndex(v => new { v.StartDate, v.EndDate });
     }

@@ -30,6 +30,13 @@ public static class DatabaseSeeder
         }
         using var tenantScope = context.Tenant.BeginScope(Organisation.DefaultId);
 
+        // The working calendar starts with Tunisia's fixed-date holidays (R-M4-10); administrators add the religious ones.
+        if (!await context.OrganisationHolidays.AnyAsync())
+        {
+            context.OrganisationHolidays.AddRange(OrganisationHoliday.TunisianFixed());
+            await context.SaveChangesAsync();
+        }
+
         // Roles
         string[] roles = ["Administrator", "Manager", "Employee"];
         foreach (var roleName in roles)

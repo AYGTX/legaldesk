@@ -25,8 +25,32 @@ public class Recipient : TenantEntity
     public string? DeclineReason { get; private set; }
     public bool ReminderSent { get; private set; }
     public DateTime? LastReminderSentAt { get; private set; }
+    /// <summary>The participant this one handed their step to (R-M4-8).</summary>
     public Guid? DelegatedToId { get; private set; }
     public string? DelegationNote { get; private set; }
+    /// <summary>The participant this one stands in for, by delegation.</summary>
+    public Guid? DelegatedFromRecipientId { get; private set; }
+
+    // The circuit (M4): the stage's rule, a pool assignee (team or role, R-M4-3), and the step's timing (R-M4-6).
+    public StageRule StageRule { get; private set; } = StageRule.All;
+    public Guid? PoolTeamId { get; private set; }
+    public string? PoolRole { get; private set; }
+    public int? DueInWorkingDays { get; private set; }
+    public int ReminderEveryDays { get; private set; } = 3;
+    public int? EscalateAfterDays { get; private set; }
+    public string? EscalationEmail { get; private set; }
+
+    /// <summary>For a pool, the member who acted for it (R-M4-3).</summary>
+    public Guid? ActedByUserId { get; private set; }
+
+    public bool IsPool => PoolTeamId is not null || PoolRole is not null;
+
+    /// <summary>Taken out of the circuit while keeping what they did in earlier rounds (their steps, signatures and
+    /// evidence): a participant removed after a round, or someone who stood in for one.</summary>
+    public DateTime? RetiredAt { get; private set; }
+
+    /// <summary>Address of a team or role step, which has no mailbox of its own: its members are written to.</summary>
+    public const string PoolAddress = "pool@legaldesk.invalid";
     public bool IsRequired { get; private set; } = true;
     public string? PrivateMessage { get; private set; }
     public string? Company { get; private set; }
@@ -122,6 +146,16 @@ public class Recipient : TenantEntity
 
     public void ResetForRevision()
     {
+        // Someone who stood in for a participant does not carry over to the next round (R-M4-8).
+        if (DelegatedFromRecipientId is not null)
+        {
+            Retire();
+            return;
+        }
+        if (RetiredAt is not null) return;
+        DelegatedToId = null;
+        DelegationNote = null;
+        ActedByUserId = null;
         ReviewAcknowledgedAt = null;
         Status = WorkflowStepStatus.Pending;
         SignedAt = null;
@@ -141,10 +175,62 @@ public class Recipient : TenantEntity
         LastReminderSentAt = DateTime.UtcNow;
     }
 
-    public void Delegate(Guid userId, string note)
+    /// <summary>Handed to <paramref name="delegateRecipientId"/> (R-M4-8): this participant's link stops working.</summary>
+    public void DelegateTo(Guid delegateRecipientId, string note)
     {
-        DelegatedToId = userId;
+        DelegatedToId = delegateRecipientId;
         DelegationNote = note;
         Status = WorkflowStepStatus.Delegated;
+        TokenExpiresAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void StandsInFor(Guid recipientId) => DelegatedFromRecipientId = recipientId;
+
+    public void SetCircuit(StageRule stageRule, Guid? poolTeamId, string? poolRole, int? dueInWorkingDays, int reminderEveryDays,
+        int? escalateAfterDays, string? escalationEmail)
+    {
+        StageRule = stageRule;
+        PoolTeamId = poolTeamId;
+        PoolRole = string.IsNullOrWhiteSpace(poolRole) ? null : poolRole.Trim();
+        DueInWorkingDays = dueInWorkingDays;
+        ReminderEveryDays = Math.Clamp(reminderEveryDays, 0, 30);
+        EscalateAfterDays = escalateAfterDays;
+        EscalationEmail = string.IsNullOrWhiteSpace(escalationEmail) ? null : escalationEmail.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ActedBy(Guid? userId) => ActedByUserId = userId;
+
+    /// <summary>Stage closed by an "Any" rule before this participant acted (R-M4-2): their link stops working.</summary>
+    public void Skip()
+    {
+        Status = WorkflowStepStatus.Skipped;
+        if (TokenHash is not null) TokenExpiresAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Retire()
+    {
+        RetiredAt ??= DateTime.UtcNow;
+        Skip();
+    }
+
+    /// <summary>Changes a participant of a draft circuit. Who they are only changes while they have acted in no round.</summary>
+    public void Revise(string name, string email, int order, ApprovalType approvalType, string? privateMessage, string? company,
+        string? roleLabel, bool identityLocked)
+    {
+        if (!identityLocked)
+        {
+            Name = name.Trim();
+            Email = email.Trim();
+            ApprovalType = approvalType;
+            IsRequired = approvalType != ApprovalType.ViewOnly;
+        }
+        Order = order;
+        PrivateMessage = privateMessage;
+        Company = company;
+        RoleLabel = roleLabel;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

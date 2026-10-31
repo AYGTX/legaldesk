@@ -683,6 +683,9 @@
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.Decline(System.String,SignFlow.Api.Controllers.V1.RejectRequest,System.Threading.CancellationToken)">
             <summary>Decline the contract, with a reason</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.Delegate(System.String,SignFlow.Api.Controllers.V1.DelegateRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.DelegateStepCommand,SignFlow.Application.Features.Signing.Commands.DelegatedStepDto},System.Threading.CancellationToken)">
+            <summary>Hand the step to someone else, with a note (R-M4-8): this link stops working, the stand-in gets their own</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.RequestChanges(System.String,SignFlow.Api.Controllers.V1.RequestChangesRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.RequestChangesCommand},System.Threading.CancellationToken)">
             <summary>Ask the sender for changes — pauses the circuit instead of ending it</summary>
         </member>
@@ -694,6 +697,39 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.AddSigningCommentRequest.#ctor(System.String,System.Nullable{System.Guid},System.Nullable{System.Int32},System.Nullable{System.Single},System.Nullable{System.Single})">
             <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.TeamsController">
+            <summary>
+            Teams of the organisation (R-M4-4) and its working calendar (R-M4-10). Everyone can read them to compose a circuit;
+            administrators change them.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TeamsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Teams.GetTeamsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Teams.TeamDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Teams.SaveTeamCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Teams.DeleteTeamCommand},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Teams.GetHolidaysQuery,System.Collections.Generic.List{SignFlow.Application.Features.Teams.HolidayDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Teams.AddHolidayCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Teams.DeleteHolidayCommand})">
+            <summary>
+            Teams of the organisation (R-M4-4) and its working calendar (R-M4-10). Everyone can read them to compose a circuit;
+            administrators change them.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TeamsController.GetAll(System.Threading.CancellationToken)">
+            <summary>Teams with their members</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TeamsController.Create(SignFlow.Api.Controllers.V1.SaveTeamRequest,System.Threading.CancellationToken)">
+            <summary>Create a team</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TeamsController.Update(System.Guid,SignFlow.Api.Controllers.V1.SaveTeamRequest,System.Threading.CancellationToken)">
+            <summary>Rename a team or change its members. Open steps of the team are shared by its new members.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TeamsController.Delete(System.Guid,System.Threading.CancellationToken)">
+            <summary>Delete a team that no workflow or circuit names (team.inUse otherwise)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TeamsController.GetHolidays(System.Threading.CancellationToken)">
+            <summary>The organisation's holidays: no step falls due on them</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TeamsController.AddHoliday(SignFlow.Api.Controllers.V1.AddHolidayRequest,System.Threading.CancellationToken)">
+            <summary>Add a holiday (a fixed date every year, or one date)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TeamsController.DeleteHoliday(System.Guid,System.Threading.CancellationToken)">
+            <summary>Remove a holiday</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.VacationsController">
             <summary>Vacation scheduling — users on vacation cannot be added as recipients</summary>

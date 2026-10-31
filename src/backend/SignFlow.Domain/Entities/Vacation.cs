@@ -8,6 +8,11 @@ public class Vacation : TenantEntity
     public DateTime EndDate { get; private set; }
     public string? Note { get; private set; }
 
+    /// <summary>Who acts for this person while they are away (R-M1-8): their steps are handed over when they open.</summary>
+    public Guid? DelegateUserId { get; private set; }
+
+    public void SetDelegate(Guid? userId) => DelegateUserId = userId;
+
     private Vacation() { }
 
     public static Vacation Create(Guid userId, DateTime startDate, DateTime endDate, string? note = null)

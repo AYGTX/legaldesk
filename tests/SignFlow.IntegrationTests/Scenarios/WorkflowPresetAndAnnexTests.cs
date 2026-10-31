@@ -16,8 +16,8 @@ using SignFlow.IntegrationTests.Stubs;
 namespace SignFlow.IntegrationTests.Scenarios;
 
 /// <summary>
-/// A template that follows a workflow gets its approvers from it when a request is created: named people, a role or
-/// department looked up on the spot, and steps dropped when their condition does not hold. A PDF template can also carry
+/// A template that follows a workflow gets its approvers from it when a request is created: named people, a
+/// team or role shared by its members, and steps dropped when their condition does not hold. A PDF template can also carry
 /// library clauses as an annex, appended after the file.
 /// </summary>
 public class WorkflowPresetRoutingTests
@@ -129,47 +129,70 @@ public class WorkflowPresetRoutingTests
         Assert.Equal(expectedSigners, await f.Db.SignatureFields.CountAsync(s => s.DocumentId == documentId));
     }
 
-    [Fact]
-    public async Task A_department_step_resolves_to_the_one_active_person_in_it()
+    private static async Task<Team> AddTeamAsync(ScenarioFixture f, string name, params ApplicationUser[] members)
     {
-        using var f = await FixtureWithOwnerAsync();
-        await AddUserAsync(f, "Finance1", department: "Finance", active: false);
-        var cfo = await AddUserAsync(f, "Cfo", department: "Finance");
-        var preset = await AddPresetAsync(f, WorkflowType.Sequential, id =>
-            [WorkflowPresetStep.Create(id, 1, 1, "Finance", PresetApproverKind.Department, null, null, "finance", null, null, null)]);
-        var template = await AddTemplateAsync(f, preset.Id, signatures: 1);
-
-        var recipients = await RecipientsAsync(f, await SubmitAsync(f, template, "1"));
-
-        Assert.Equal(cfo.Email, Assert.Single(recipients).Email);
+        var team = Team.Create(name);
+        f.Db.Teams.Add(team);
+        foreach (var member in members)
+            f.Db.TeamMembers.Add(TeamMember.Of(team.Id, member.Id));
+        await f.Db.SaveChangesAsync();
+        return team;
     }
 
     [Fact]
-    public async Task A_role_step_resolves_to_the_one_active_person_holding_it()
+    public async Task A_team_step_becomes_one_participant_shared_by_the_team()
     {
         using var f = await FixtureWithOwnerAsync();
-        var dpo = await AddUserAsync(f, "Dpo", role: "DataProtection");
+        var former = await AddUserAsync(f, "Finance1", active: false);
+        var cfo = await AddUserAsync(f, "Cfo");
+        var team = await AddTeamAsync(f, "Finance", former, cfo);
+        var preset = await AddPresetAsync(f, WorkflowType.Sequential, id =>
+            [WorkflowPresetStep.Create(id, 1, 1, "Finance", PresetApproverKind.Team, null, null, team.Id, null, null, null)]);
+        var template = await AddTemplateAsync(f, preset.Id, signatures: 1);
+
+        var recipient = Assert.Single(await RecipientsAsync(f, await SubmitAsync(f, template, "1")));
+
+        Assert.True(recipient.IsPool);
+        Assert.Equal(team.Id, recipient.PoolTeamId);
+        Assert.Equal("Finance", recipient.Name);
+        Assert.Equal(Recipient.PoolAddress, recipient.Email);
+        // The active member is told; the inactive one is not.
+        var emails = (NullEmailService)f.GetHandler<IEmailService>();
+        Assert.Contains(emails.Sent, m => m.To == cfo.Email);
+        Assert.DoesNotContain(emails.Sent, m => m.To == former.Email || m.To == Recipient.PoolAddress);
+    }
+
+    [Fact]
+    public async Task A_role_step_becomes_one_participant_shared_by_the_role()
+    {
+        using var f = await FixtureWithOwnerAsync();
+        await AddUserAsync(f, "Dpo", role: "DataProtection");
+        await AddUserAsync(f, "Dpo2", role: "DataProtection");
         var preset = await AddPresetAsync(f, WorkflowType.Sequential, id =>
             [WorkflowPresetStep.Create(id, 1, 1, null, PresetApproverKind.Role, null, "DataProtection", null, null, null, null)]);
         var template = await AddTemplateAsync(f, preset.Id, signatures: 1);
 
-        Assert.Equal(dpo.Email, Assert.Single(await RecipientsAsync(f, await SubmitAsync(f, template, "1"))).Email);
+        var recipient = Assert.Single(await RecipientsAsync(f, await SubmitAsync(f, template, "1")));
+
+        Assert.Equal("DataProtection", recipient.PoolRole);
+        Assert.Null(recipient.PoolTeamId);
     }
 
     [Fact]
-    public async Task A_department_with_two_people_is_refused_and_names_who_they_are()
+    public async Task A_team_with_nobody_active_is_refused_with_its_name()
     {
         using var f = await FixtureWithOwnerAsync();
-        await AddUserAsync(f, "Ines", department: "Legal");
-        await AddUserAsync(f, "Omar", department: "Legal");
+        var gone = await AddUserAsync(f, "Ines", active: false);
+        var team = await AddTeamAsync(f, "Legal", gone);
         var preset = await AddPresetAsync(f, WorkflowType.Sequential, id =>
-            [WorkflowPresetStep.Create(id, 1, 1, "Legal", PresetApproverKind.Department, null, null, "Legal", null, null, null)]);
+            [WorkflowPresetStep.Create(id, 1, 1, "Legal", PresetApproverKind.Team, null, null, team.Id, null, null, null)]);
         var template = await AddTemplateAsync(f, preset.Id, signatures: 1);
 
-        var ex = await Assert.ThrowsAsync<SignFlow.Application.Common.Exceptions.ValidationException>(() => SubmitAsync(f, template, "1"));
+        var ex = await Assert.ThrowsAsync<SignFlow.Application.Common.Exceptions.ConflictException>(() => SubmitAsync(f, template, "1"));
 
-        Assert.Contains("2 active people", ex.Errors[string.Empty][0]);
-        Assert.Contains("Ines", ex.Errors[string.Empty][0]);
+        Assert.Equal("preset.step.poolEmpty", ex.Code);
+        Assert.Equal("Legal", ex.Parameters!["team"]);
+        Assert.Equal(1, ex.Parameters["step"]);
         Assert.Empty(f.Db.Documents);
     }
 

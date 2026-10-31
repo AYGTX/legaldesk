@@ -71,9 +71,9 @@ internal static class WorkflowPresetRules
                     if (string.IsNullOrWhiteSpace(step.RoleName) || !await roles.RoleExistsAsync(step.RoleName))
                         throw new Common.Exceptions.ValidationException($"{where}: choose an existing role.");
                     break;
-                case PresetApproverKind.Department:
-                    if (string.IsNullOrWhiteSpace(step.Department))
-                        throw new Common.Exceptions.ValidationException($"{where}: enter a department.");
+                case PresetApproverKind.Team:
+                    if (step.TeamId is not { } teamId || !await db.Teams.AnyAsync(t => t.Id == teamId, ct))
+                        throw new Common.Exceptions.ValidationException($"{where}: choose a team.");
                     break;
             }
 
@@ -93,7 +93,7 @@ internal static class WorkflowPresetRules
             presetId, i + 1, s.Stage,
             string.IsNullOrWhiteSpace(s.Label) ? null : s.Label.Trim(),
             s.Kind, s.UserId,
-            s.RoleName?.Trim(), s.Department?.Trim(),
+            s.RoleName?.Trim(), s.TeamId,
             string.IsNullOrWhiteSpace(s.ConditionFieldKey) ? null : s.ConditionFieldKey.Trim(),
             string.IsNullOrWhiteSpace(s.ConditionOperator) ? null : s.ConditionOperator.Trim(),
             string.IsNullOrWhiteSpace(s.ConditionValue) ? null : s.ConditionValue.Trim()));

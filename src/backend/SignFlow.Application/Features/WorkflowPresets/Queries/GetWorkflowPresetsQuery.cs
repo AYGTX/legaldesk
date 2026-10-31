@@ -28,6 +28,8 @@ public class GetWorkflowPresetsQueryHandler(
         var names = await db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.FullName, cancellationToken);
 
+        var teams = await db.Teams.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Name, cancellationToken);
+
         var htmlCounts = await db.HtmlTemplates.AsNoTracking().Where(t => t.WorkflowPresetId != null && !t.IsDeleted)
             .GroupBy(t => t.WorkflowPresetId!.Value).Select(g => new { Id = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Id, x => x.Count, cancellationToken);
@@ -40,7 +42,8 @@ public class GetWorkflowPresetsQueryHandler(
             [.. p.Steps.OrderBy(s => s.Order).Select(s => new WorkflowPresetStepDto(
                 s.Order, s.Stage, s.Label, s.ApproverKind, s.ApproverUserId,
                 s.ApproverUserId.HasValue && names.TryGetValue(s.ApproverUserId.Value, out var n) ? n : null,
-                s.RoleName, s.Department, s.ConditionFieldKey, s.ConditionOperator, s.ConditionValue))],
+                s.RoleName, s.TeamId, s.TeamId.HasValue && teams.TryGetValue(s.TeamId.Value, out var tn) ? tn : null,
+                s.ConditionFieldKey, s.ConditionOperator, s.ConditionValue))],
             htmlCounts.GetValueOrDefault(p.Id) + pdfCounts.GetValueOrDefault(p.Id))).ToList();
     }
 }

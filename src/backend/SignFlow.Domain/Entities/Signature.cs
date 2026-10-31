@@ -7,6 +7,8 @@ public class Signature : TenantEntity
     public Guid SignatureFieldId { get; private set; }
     public SignatureField SignatureField { get; private set; } = null!;
     public Guid RecipientId { get; private set; }
+    /// <summary>The round the signature was given in (R-M7-2).</summary>
+    public Guid? RoundId { get; private set; }
     public Recipient Recipient { get; private set; } = null!;
     public SignatureType SignatureType { get; private set; }
     public string? ImageUrl { get; private set; }
@@ -48,6 +50,8 @@ public class Signature : TenantEntity
             TypedText = typedText,
             FontFamily = fontFamily
         };
+
+    public void InRound(Guid? roundId) => RoundId = roundId;
 
     public void RecordEvidence(string? verifiedEmail, string? method, DateTime? verifiedAt, int documentVersion,
         string? documentSha256, string? imageSha256)

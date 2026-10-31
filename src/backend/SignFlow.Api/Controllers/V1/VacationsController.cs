@@ -43,7 +43,7 @@ public class VacationsController(
     [ProducesResponseType(typeof(ProblemDetails), 422)]
     public async Task<ActionResult<VacationDto>> Schedule([FromBody] ScheduleVacationRequest request, CancellationToken ct)
     {
-        var result = await scheduleHandler.HandleAsync(new ScheduleVacationCommand(request.StartDate, request.EndDate, request.Note), ct);
+        var result = await scheduleHandler.HandleAsync(new ScheduleVacationCommand(request.StartDate, request.EndDate, request.Note, request.DelegateUserId), ct);
         return CreatedAtAction(nameof(GetMyVacations), new { }, result);
     }
 
@@ -57,4 +57,4 @@ public class VacationsController(
     }
 }
 
-public record ScheduleVacationRequest(DateTime StartDate, DateTime EndDate, string? Note);
+public record ScheduleVacationRequest(DateTime StartDate, DateTime EndDate, string? Note, Guid? DelegateUserId = null);

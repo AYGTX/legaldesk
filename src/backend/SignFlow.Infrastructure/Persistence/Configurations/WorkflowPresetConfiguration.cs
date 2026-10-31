@@ -28,7 +28,6 @@ public class WorkflowPresetStepConfiguration : IEntityTypeConfiguration<Workflow
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Label).HasMaxLength(200);
         builder.Property(s => s.RoleName).HasMaxLength(100);
-        builder.Property(s => s.Department).HasMaxLength(200);
         builder.Property(s => s.ConditionFieldKey).HasMaxLength(100);
         builder.Property(s => s.ConditionOperator).HasMaxLength(2);
         builder.Property(s => s.ConditionValue).HasMaxLength(200);
@@ -39,6 +38,8 @@ public class WorkflowPresetStepConfiguration : IEntityTypeConfiguration<Workflow
             .WithMany()
             .HasForeignKey(s => s.ApproverUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Team>().WithMany().HasForeignKey(s => s.TeamId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(s => new { s.WorkflowPresetId, s.Order });
     }

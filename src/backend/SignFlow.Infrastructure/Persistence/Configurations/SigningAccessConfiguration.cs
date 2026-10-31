@@ -30,5 +30,6 @@ public class SigningSessionConfiguration : IEntityTypeConfiguration<SigningSessi
         builder.Property(s => s.UpdatedBy).HasMaxLength(50);
         builder.HasOne<Recipient>().WithMany().HasForeignKey(s => s.RecipientId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(s => s.SecretHash).IsUnique();
+        builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.NoAction);
     }
 }

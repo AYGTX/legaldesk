@@ -227,10 +227,13 @@ public class CreateRequestFromPdfTemplateCommandHandler(
             };
 
             var recipient = Recipient.Create(document.Id, name, email, order, ApprovalType.Signature, company: company, roleLabel: presetFor[i]?.Label);
+            // A team or role step: its members share it (R-M4-3).
+            if (i < presetFor.Count && presetFor[i]?.Pool is { } recipientPool)
+                recipient.SetCircuit(StageRule.All, recipientPool.TeamId, recipientPool.Role, null, 3, null, null);
             db.Recipients.Add(recipient);
             sigFieldRecipient[sf.Id] = recipient;
             stageToRecipient.TryAdd(stageOf[i], recipient);
-            if (i == 0) firstApproverEmail = email;
+            if (i == 0) firstApproverEmail = recipient.IsPool ? name : email;
         }
 
         // Materialize every configured field onto the instance document at its coordinates.
@@ -326,7 +329,9 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         for (var fieldIndex = 0; fieldIndex < approverSigFields.Count; fieldIndex++)
         {
             var field = approverSigFields[fieldIndex];
-            if (presetFor[fieldIndex]?.Approver is { } presetApprover)
+            if (presetFor[fieldIndex]?.Pool is { } pool)
+                selections.Add(new ApproverSelection(null, pool.Name, Recipient.PoolAddress));
+            else if (presetFor[fieldIndex]?.Approver is { } presetApprover)
                 selections.Add(presetApprover);
             else if (field.PreAssignedApproverId.HasValue)
                 selections.Add(new ApproverSelection(field.PreAssignedApproverId, null, null));

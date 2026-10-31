@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 
@@ -105,13 +106,10 @@ public class UploadRevisionCommandHandler(
         foreach (var field in voidedFields)
             field.VoidSignature();
 
+        // The interrupted round keeps its steps and decisions; re-sending opens the next one (R-M7-2).
+        await CircuitRounds.CloseForRevisionAsync(db, document, cancellationToken);
         foreach (var recipient in document.Recipients)
             recipient.ResetForRevision();
-
-        // The old run's steps describe the superseded round; re-sending rebuilds the workflow
-        // from the current recipients through the engine's normal creation path.
-        if (document.Workflow is not null)
-            db.Workflows.Remove(document.Workflow);
 
         var oldVersion = document.Version;
         document.ApplyRevision(command.FileName, storagePath, command.FileSizeBytes, pageCount, hash);

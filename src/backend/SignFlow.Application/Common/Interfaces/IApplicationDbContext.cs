@@ -41,6 +41,10 @@ public interface IApplicationDbContext
     DbSet<OrganisationRuleSetting> OrganisationRuleSettings { get; }
     DbSet<WorkflowPreset> WorkflowPresets { get; }
     DbSet<WorkflowPresetStep> WorkflowPresetSteps { get; }
+    DbSet<ContractRound> ContractRounds { get; }
+    DbSet<Team> Teams { get; }
+    DbSet<TeamMember> TeamMembers { get; }
+    DbSet<OrganisationHoliday> OrganisationHolidays { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

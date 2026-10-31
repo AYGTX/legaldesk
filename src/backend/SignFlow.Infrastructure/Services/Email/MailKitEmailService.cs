@@ -80,6 +80,7 @@ public class MailKitEmailService(IOptions<EmailSettings> settings, ILogger<MailK
     {
         "DocumentReceived" => "A contract is awaiting your action",
         "Reminder" => "Reminder: a contract is still awaiting your action",
+        "StepEscalated" => "A contract step is late",
         "Completed" => "Contract fully executed",
         "Rejected" => "Contract was declined",
         "ChangesRequested" => "Revision requested on your contract",

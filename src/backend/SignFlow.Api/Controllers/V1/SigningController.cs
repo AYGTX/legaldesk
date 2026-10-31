@@ -127,7 +127,7 @@ public class SigningController(
     public async Task<ActionResult<ApproveSigningResult>> Approve([FromRoute] string token, CancellationToken ct)
     {
         var context = await Gate(token, SigningNeed.Act, ct);
-        return Ok(await approveHandler.HandleAsync(new ApproveSigningCommand(context.Recipient.Id, Ip, UserAgent), ct));
+        return Ok(await approveHandler.HandleAsync(new ApproveSigningCommand(context.Recipient.Id, Ip, UserAgent, context.Session?.UserId), ct));
     }
 
     /// <summary>A plain-language summary of the contract</summary>
@@ -180,6 +180,21 @@ public class SigningController(
         return NoContent();
     }
 
+    /// <summary>Hand the step to someone else, with a note (R-M4-8): this link stops working, the stand-in gets their own</summary>
+    [HttpPost("{token}/delegate")]
+    [ProducesResponseType(typeof(DelegatedStepDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<ActionResult<DelegatedStepDto>> Delegate(
+        [FromRoute] string token,
+        [FromBody] DelegateRequest request,
+        [FromServices] ICommandHandler<DelegateStepCommand, DelegatedStepDto> delegateHandler,
+        CancellationToken ct)
+    {
+        var context = await Gate(token, SigningNeed.Act, ct);
+        return Ok(await delegateHandler.HandleAsync(
+            new DelegateStepCommand(context.Recipient.Id, request.Name, request.Email, request.Note, Ip), ct));
+    }
+
     /// <summary>Ask the sender for changes — pauses the circuit instead of ending it</summary>
     [HttpPost("{token}/request-changes")]
     [ProducesResponseType(204)]
@@ -215,6 +230,7 @@ public record VerifyCodeRequest(string Code);
 public record SignFieldRequest(SignFlow.Domain.Enums.SignatureType SignatureType, string? ImageBase64, string? TypedText, string? FontFamily);
 public record RejectRequest(string Reason);
 public record RequestChangesRequest(string Reason);
+public record DelegateRequest(string Name, string Email, string Note);
 public record ToggleChecklistItemRequest(bool Checked);
 
 /// <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>

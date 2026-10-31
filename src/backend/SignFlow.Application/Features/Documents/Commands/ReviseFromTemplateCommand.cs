@@ -107,11 +107,9 @@ public class ReviseFromTemplateCommandHandler(
         foreach (var field in voided)
             field.VoidSignature();
 
+        await CircuitRounds.CloseForRevisionAsync(db, document, cancellationToken);
         foreach (var recipient in document.Recipients)
             recipient.ResetForRevision();
-
-        if (document.Workflow is not null)
-            db.Workflows.Remove(document.Workflow);
 
         var oldVersion = document.Version;
         document.ApplyTemplateRevision(JsonSerializer.Serialize(after));

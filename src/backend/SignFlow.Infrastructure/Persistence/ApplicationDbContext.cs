@@ -53,6 +53,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<OrganisationRuleSetting> OrganisationRuleSettings => Set<OrganisationRuleSetting>();
     public DbSet<WorkflowPreset> WorkflowPresets => Set<WorkflowPreset>();
     public DbSet<WorkflowPresetStep> WorkflowPresetSteps => Set<WorkflowPresetStep>();
+    public DbSet<ContractRound> ContractRounds => Set<ContractRound>();
+    public DbSet<Team> Teams => Set<Team>();
+    public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
+    public DbSet<OrganisationHoliday> OrganisationHolidays => Set<OrganisationHoliday>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -21,6 +21,9 @@ public class RecipientConfiguration : IEntityTypeConfiguration<Recipient>
         builder.Property(r => r.PrivateMessage).HasMaxLength(2000);
         builder.Property(r => r.Company).HasMaxLength(200);
         builder.Property(r => r.RoleLabel).HasMaxLength(100);
+        builder.Property(r => r.PoolRole).HasMaxLength(100);
+        builder.Property(r => r.EscalationEmail).HasMaxLength(256);
+        builder.HasOne<Team>().WithMany().HasForeignKey(r => r.PoolTeamId).OnDelete(DeleteBehavior.NoAction);
 
         builder.HasMany(r => r.Signatures)
             .WithOne(s => s.Recipient)

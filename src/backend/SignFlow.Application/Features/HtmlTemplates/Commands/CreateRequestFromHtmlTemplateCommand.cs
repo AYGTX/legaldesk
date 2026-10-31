@@ -138,7 +138,9 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
         for (var fieldIndex = 0; fieldIndex < approverSigFields.Count; fieldIndex++)
         {
             var field = approverSigFields[fieldIndex];
-            if (presetFor[fieldIndex]?.Approver is { } presetApprover)
+            if (presetFor[fieldIndex]?.Pool is { } pool)
+                selections.Add(new ApproverSelection(null, pool.Name, Recipient.PoolAddress));
+            else if (presetFor[fieldIndex]?.Approver is { } presetApprover)
                 selections.Add(presetApprover);
             else if (field.PreAssignedApproverId.HasValue)
                 selections.Add(new ApproverSelection(field.PreAssignedApproverId, null, null));
@@ -225,9 +227,12 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
                 ApprovalType.Signature,
                 company: approverCompany,
                 roleLabel: i < presetFor.Count ? presetFor[i]?.Label : null);
+            // A team or role step: its members share it (R-M4-3).
+            if (i < presetFor.Count && presetFor[i]?.Pool is { } recipientPool)
+                recipient.SetCircuit(StageRule.All, recipientPool.TeamId, recipientPool.Role, null, 3, null, null);
             db.Recipients.Add(recipient);
 
-            if (i == 0) firstApproverEmail = approverEmail;
+            if (i == 0) firstApproverEmail = recipient.IsPool ? approverName : approverEmail;
 
             // One SignatureField per Approver Signature template field, assigned to this recipient
             if (i < approverSigFields.Count)

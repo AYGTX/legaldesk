@@ -27,9 +27,8 @@ public class WorkflowPresetStep : TenantEntity
     [MaxLength(100)]
     public string? RoleName { get; private set; }
 
-    /// <summary>The department, when <see cref="ApproverKind"/> is Department.</summary>
-    [MaxLength(200)]
-    public string? Department { get; private set; }
+    /// <summary>The team, when <see cref="ApproverKind"/> is Team (R-M4-4).</summary>
+    public Guid? TeamId { get; private set; }
 
     /// <summary>
     /// Optional: the step only applies when this field's answer meets the condition (same single comparison as
@@ -48,7 +47,7 @@ public class WorkflowPresetStep : TenantEntity
 
     public static WorkflowPresetStep Create(
         Guid presetId, int order, int stage, string? label,
-        PresetApproverKind kind, Guid? userId, string? roleName, string? department,
+        PresetApproverKind kind, Guid? userId, string? roleName, Guid? teamId,
         string? conditionFieldKey, string? conditionOperator, string? conditionValue)
         => new()
         {
@@ -59,7 +58,7 @@ public class WorkflowPresetStep : TenantEntity
             ApproverKind = kind,
             ApproverUserId = kind == PresetApproverKind.User ? userId : null,
             RoleName = kind == PresetApproverKind.Role ? roleName : null,
-            Department = kind == PresetApproverKind.Department ? department : null,
+            TeamId = kind == PresetApproverKind.Team ? teamId : null,
             ConditionFieldKey = conditionFieldKey,
             ConditionOperator = conditionFieldKey is null ? null : conditionOperator,
             ConditionValue = conditionFieldKey is null ? null : conditionValue

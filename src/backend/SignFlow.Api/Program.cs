@@ -189,6 +189,12 @@ try
         job => job.SweepAsync(CancellationToken.None),
         "*/15 * * * *");
 
+    // Circuit follow-up: reminders and escalations of open steps, every hour (R-M4-6).
+    RecurringJob.AddOrUpdate<StepFollowUpJob>(
+        "step-follow-up",
+        job => job.SweepAsync(CancellationToken.None),
+        "5 * * * *");
+
     // Outbox: send queued e-mail every minute, retrying failures (R-M4-9).
     RecurringJob.AddOrUpdate<SignFlow.Infrastructure.Services.Email.OutboxDispatcherJob>(
         "outbox-dispatch",

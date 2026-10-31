@@ -52,4 +52,15 @@ public class Workflow : TenantEntity
     public void RequestChanges() => Status = WorkflowStepStatus.ChangesRequested;
 
     public void AdvanceToNextStep() => CurrentStepOrder++;
+
+    /// <summary>A new round on a revised version: the circuit runs again from its first stage; earlier steps stay.</summary>
+    public void NewRound()
+    {
+        Status = WorkflowStepStatus.Pending;
+        CurrentStepOrder = 1;
+        StartedAt = null;
+        CompletedAt = null;
+    }
+
+    public void SetType(WorkflowType type) => Type = type;
 }

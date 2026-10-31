@@ -4,14 +4,14 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Application.Features.WorkflowPresets;
 
-/// <summary>One step as the admin screen sends it. Which of UserId / RoleName / Department counts depends on Kind.</summary>
+/// <summary>One step as the admin screen sends it. Which of UserId / RoleName / TeamId counts depends on Kind.</summary>
 public record WorkflowPresetStepInput(
     int Stage,
     string? Label,
     PresetApproverKind Kind,
     Guid? UserId,
     string? RoleName,
-    string? Department,
+    Guid? TeamId,
     string? ConditionFieldKey,
     string? ConditionOperator,
     string? ConditionValue);
@@ -24,7 +24,8 @@ public record WorkflowPresetStepDto(
     Guid? UserId,
     string? UserName,
     string? RoleName,
-    string? Department,
+    Guid? TeamId,
+    string? TeamName,
     string? ConditionFieldKey,
     string? ConditionOperator,
     string? ConditionValue);
@@ -58,6 +59,8 @@ public static class WorkflowPresetSummaries
         var userIds = preset.Steps.Where(s => s.ApproverUserId.HasValue).Select(s => s.ApproverUserId!.Value).ToList();
         var names = await db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+        var teamIds = preset.Steps.Where(s => s.TeamId.HasValue).Select(s => s.TeamId!.Value).ToList();
+        var teams = await db.Teams.AsNoTracking().Where(t => teamIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, t => t.Name, ct);
 
         return new TemplatePresetDto(
             preset.Id, preset.Name, preset.WorkflowType, preset.IsActive,
@@ -67,7 +70,7 @@ public static class WorkflowPresetSummaries
                 {
                     PresetApproverKind.User => s.ApproverUserId is { } id && names.TryGetValue(id, out var n) ? n : "?",
                     PresetApproverKind.Role => $"Role: {s.RoleName}",
-                    _ => $"Department: {s.Department}"
+                    _ => $"Team: {(s.TeamId is { } t && teams.TryGetValue(t, out var tn) ? tn : "?")}"
                 },
                 string.IsNullOrWhiteSpace(s.ConditionFieldKey)
                     ? null

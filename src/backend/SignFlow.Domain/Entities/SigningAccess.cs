@@ -69,11 +69,15 @@ public class SigningSession : TenantEntity
     [MaxLength(64)]
     public string? Ip { get; private set; }
 
+    /// <summary>The LegalDesk account behind an account session: for a team or role step, the member who acts.</summary>
+    public Guid? UserId { get; private set; }
+
     private SigningSession() { }
 
-    public static SigningSession Open(Guid recipientId, string secretHash, string method, string verifiedEmail, string? ip) => new()
+    public static SigningSession Open(Guid recipientId, string secretHash, string method, string verifiedEmail, string? ip, Guid? userId = null) => new()
     {
         RecipientId = recipientId,
+        UserId = userId,
         SecretHash = secretHash,
         Method = method,
         VerifiedEmail = verifiedEmail,

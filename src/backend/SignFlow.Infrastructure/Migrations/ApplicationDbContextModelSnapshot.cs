@@ -669,6 +669,60 @@ namespace SignFlow.Infrastructure.Migrations
                     b.ToTable("ConsentLogs");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.ContractRound", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.HasIndex("DocumentId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("ContractRounds");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.DataSubjectRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1479,6 +1533,52 @@ namespace SignFlow.Infrastructure.Migrations
                     b.ToTable("Organisations");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.OrganisationHoliday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("EveryYear")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.HasIndex("OrganisationId", "Date");
+
+                    b.ToTable("OrganisationHolidays");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.OrganisationRuleSetting", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1781,6 +1881,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ActedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("ApprovalType")
                         .HasColumnType("int");
 
@@ -1798,6 +1901,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<Guid?>("DelegatedFromRecipientId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("DelegatedToId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1808,8 +1914,18 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int?>("DueInWorkingDays")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int?>("EscalateAfterDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EscalationEmail")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -1833,12 +1949,25 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("OrganisationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("PoolRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("PoolTeamId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("PrivateMessage")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<int>("ReminderEveryDays")
+                        .HasColumnType("int");
+
                     b.Property<bool>("ReminderSent")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("RetiredAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("ReviewAcknowledgedAt")
                         .HasColumnType("datetime2");
@@ -1857,6 +1986,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("SignedUserAgent")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("StageRule")
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -1891,6 +2023,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("Email");
 
                     b.HasIndex("OrganisationId");
+
+                    b.HasIndex("PoolTeamId");
 
                     b.HasIndex("TokenHash")
                         .IsUnique()
@@ -2219,6 +2353,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("RoundId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("SignatureFieldId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2492,6 +2629,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("VerifiedAt")
                         .HasColumnType("datetime2");
 
@@ -2509,7 +2649,98 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasIndex("SecretHash")
                         .IsUnique();
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("SigningSessions");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.Team", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.HasIndex("OrganisationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.TeamMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TeamId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("TeamMembers");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Template", b =>
@@ -2750,6 +2981,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("DelegateUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -2776,6 +3010,8 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DelegateUserId");
 
                     b.HasIndex("OrganisationId");
 
@@ -2934,10 +3170,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Department")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -2958,6 +3190,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("Stage")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -2973,6 +3208,8 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("OrganisationId");
 
+                    b.HasIndex("TeamId");
+
                     b.HasIndex("WorkflowPresetId", "Order");
 
                     b.ToTable("WorkflowPresetSteps");
@@ -2984,15 +3221,14 @@ namespace SignFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ActedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("ApprovalType")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("ConditionalExpression")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -3004,7 +3240,13 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<Guid?>("DelegatedFromStepId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("DueAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EscalatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("EscalationDays")
@@ -3029,6 +3271,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime?>("NextReminderAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("OpenedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
@@ -3041,14 +3289,23 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("ReminderCount")
+                        .HasColumnType("int");
+
                     b.Property<int>("ReminderDays")
                         .HasColumnType("int");
 
                     b.Property<bool>("Required")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("RoundId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("SendReminders")
                         .HasColumnType("bit");
+
+                    b.Property<int>("StageRule")
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -3068,7 +3325,11 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("RecipientId");
 
+                    b.HasIndex("RoundId");
+
                     b.HasIndex("WorkflowId");
+
+                    b.HasIndex("Status", "NextReminderAt");
 
                     b.HasIndex("WorkflowId", "Order");
 
@@ -3255,6 +3516,21 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.ContractRound", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.DataSubjectRequest", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.Organisation", null)
@@ -3412,6 +3688,15 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.OrganisationHoliday", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.OrganisationRuleSetting", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.Organisation", null)
@@ -3505,6 +3790,11 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasForeignKey("OrganisationId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Team", null)
+                        .WithMany()
+                        .HasForeignKey("PoolTeamId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Document");
                 });
@@ -3651,6 +3941,43 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasForeignKey("RecipientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.Team", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.TeamMember", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Team", "Team")
+                        .WithMany("Members")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Template", b =>
@@ -3690,6 +4017,11 @@ namespace SignFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Vacation", b =>
                 {
+                    b.HasOne("SignFlow.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DelegateUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("SignFlow.Domain.Entities.Organisation", null)
                         .WithMany()
                         .HasForeignKey("OrganisationId")
@@ -3744,6 +4076,11 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("SignFlow.Domain.Entities.Team", null)
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SignFlow.Domain.Entities.WorkflowPreset", "WorkflowPreset")
                         .WithMany("Steps")
                         .HasForeignKey("WorkflowPresetId")
@@ -3766,6 +4103,11 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasForeignKey("RecipientId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.ContractRound", null)
+                        .WithMany()
+                        .HasForeignKey("RoundId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SignFlow.Domain.Entities.Workflow", "Workflow")
                         .WithMany("Steps")
@@ -3836,6 +4178,11 @@ namespace SignFlow.Infrastructure.Migrations
             modelBuilder.Entity("SignFlow.Domain.Entities.SignatureField", b =>
                 {
                     b.Navigation("Signatures");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.Team", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Workflow", b =>

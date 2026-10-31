@@ -54,6 +54,7 @@ public sealed class ScenarioFixture : IDisposable
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<ApplicationDbContext>();
         services.AddScoped<IWorkflowPresetResolver, WorkflowPresetResolver>();
+        services.AddScoped<ICircuitDirectory, CircuitDirectory>();
 
         // Real infrastructure services
         services.AddScoped<IWorkflowEngine>(sp => new WorkflowEngine(
@@ -61,7 +62,8 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<IEmailService>(),
             sp.GetRequiredService<INotificationHub>(),
             sp.GetRequiredService<INotificationService>(),
-            NullLogger<WorkflowEngine>.Instance));
+            NullLogger<WorkflowEngine>.Instance,
+            directory: sp.GetRequiredService<ICircuitDirectory>()));
 
         services.AddScoped<INotificationService>(sp => new NotificationService(
             sp.GetRequiredService<IApplicationDbContext>(),
@@ -95,7 +97,8 @@ public sealed class ScenarioFixture : IDisposable
 
         services.AddScoped(sp => new ManageRecipientsCommandHandler(
             sp.GetRequiredService<IApplicationDbContext>(),
-            sp.GetRequiredService<ICurrentUserService>()));
+            sp.GetRequiredService<ICurrentUserService>(),
+            sp.GetRequiredService<ICircuitDirectory>()));
 
         services.AddScoped(sp => new SaveFieldsCommandHandler(
             sp.GetRequiredService<IApplicationDbContext>(),
@@ -147,6 +150,8 @@ public sealed class ScenarioFixture : IDisposable
         // Signing access (M5): the gate, and the decline handler the scenarios use.
         services.AddScoped<SignFlow.Application.Features.Signing.ISigningAccess, SignFlow.Application.Features.Signing.SigningAccess>();
         services.AddScoped<ICommandHandler<RejectDocumentCommand>, RejectDocumentCommandHandler>();
+        services.AddScoped<DelegateStepCommandHandler>();
+        services.AddScoped<StepFollowUpJob>();
         services.AddScoped<SignFlow.IntegrationTests.Scenarios.RejectDocumentHandlerAccessor>();
 
         _provider = services.BuildServiceProvider();

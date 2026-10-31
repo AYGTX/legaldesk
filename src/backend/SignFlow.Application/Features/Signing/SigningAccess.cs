@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Application.Common.Security;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 
@@ -47,14 +48,15 @@ public interface ISigningAccess
 /// <summary>
 /// The one gate in front of every signing endpoint (R-M5-1 to R-M5-4). The e-mailed link (stored as a hash) shows who
 /// is asking and sends a 6-digit code; the code, or the participant's own LegalDesk account, opens a 30-minute session,
-/// and only a session acts. Each refusal carries a code: link.invalid, link.expired, session.required,
+/// and only a session acts. Each refusal carries a code: link.invalid, link.expired, link.delegated, session.required,
 /// session.expired, contract.expired, contract.closed, participant.done, step.not_open.
 /// </summary>
 public class SigningAccess(
     IApplicationDbContext db,
     IEmailService email,
     ICurrentUserService currentUser,
-    IAuditService audit) : ISigningAccess
+    IAuditService audit,
+    ICircuitDirectory? directory = null) : ISigningAccess
 {
     /// <summary>Request header carrying the signing session's secret.</summary>
     public const string SessionHeader = "X-Signing-Session";
@@ -93,6 +95,10 @@ public class SigningAccess(
         if (recipient is null || recipient.Document.IsDeleted)
             throw new SigningRefusedException("link.invalid", 404, "This signing link is not valid.");
 
+        // Handed to someone else (R-M4-8): the stand-in has their own link now.
+        if (recipient.Status == WorkflowStepStatus.Delegated)
+            throw new SigningRefusedException("link.delegated", 410, "You handed this step to someone else; your link no longer works.");
+
         // An account session does not depend on the e-mailed link; everything else does.
         if (session?.Method != SigningSession.Account && recipient.LinkExpired)
             throw new SigningRefusedException("link.expired", 410, "This signing link has expired. Ask the sender for a new one.");
@@ -127,19 +133,14 @@ public class SigningAccess(
             });
 
         if (recipient.Status is WorkflowStepStatus.Completed or WorkflowStepStatus.Rejected
-            or WorkflowStepStatus.ChangesRequested or WorkflowStepStatus.Delegated)
+            or WorkflowStepStatus.ChangesRequested or WorkflowStepStatus.Delegated or WorkflowStepStatus.Skipped)
             throw new SigningRefusedException("participant.done", 409, "You have already responded to this contract.");
 
-        var parallel = await db.Workflows.AsNoTracking()
-            .AnyAsync(w => w.DocumentId == recipient.DocumentId && w.Type == WorkflowType.Parallel, ct);
-        if (!parallel)
-        {
-            var earlierPending = await db.Recipients.AnyAsync(r =>
-                r.DocumentId == recipient.DocumentId && r.Order < recipient.Order && r.IsRequired &&
-                r.Status != WorkflowStepStatus.Completed && r.Status != WorkflowStepStatus.Skipped, ct);
-            if (earlierPending)
-                throw new SigningRefusedException("step.not_open", 409, "It is not your turn yet: an earlier participant has to respond first.");
-        }
+        // Their turn is an open step in the current round (R-M4-2): the stage before theirs is done.
+        var open = await db.WorkflowSteps.AnyAsync(s => s.RecipientId == recipient.Id && s.Status == WorkflowStepStatus.InProgress &&
+            db.ContractRounds.Any(r => r.Id == s.RoundId && r.Outcome == RoundOutcome.Open), ct);
+        if (!open)
+            throw new SigningRefusedException("step.not_open", 409, "It is not your turn yet: an earlier participant has to respond first.");
     }
 
     public async Task<SigningIntroDto> IntroAsync(string token, CancellationToken ct = default)
@@ -207,16 +208,25 @@ public class SigningAccess(
         var recipient = await LoadAsync(r => r.Id == recipientId, ct)
             ?? throw new NotFoundException(nameof(Recipient), recipientId);
         var userEmail = currentUser.UserEmail;
-        // Signed in as the participant: their account already proves the address.
-        if (string.IsNullOrWhiteSpace(userEmail) || !string.Equals(recipient.Email, userEmail, StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(userEmail))
             throw new ForbiddenAccessException();
-        return await OpenAsync(recipient, SigningSession.Account, userEmail, ip, ct);
+        // Signed in as the participant, or as a member of the team or role the step is for (R-M4-3): the account
+        // already proves the address.
+        var own = string.Equals(recipient.Email, userEmail, StringComparison.OrdinalIgnoreCase);
+        var member = !own && currentUser.UserId is { } userId && directory is not null
+            && await directory.IsPoolMemberAsync(recipient, userId, ct);
+        if (!own && !member)
+            throw new ForbiddenAccessException();
+        if (recipient.Status == WorkflowStepStatus.Delegated)
+            throw new SigningRefusedException("link.delegated", 410, "You handed this step to someone else.");
+        return await OpenAsync(recipient, SigningSession.Account, userEmail, ip, ct, currentUser.UserId);
     }
 
-    private async Task<OpenedSigningSession> OpenAsync(Recipient recipient, string method, string verifiedEmail, string? ip, CancellationToken ct)
+    private async Task<OpenedSigningSession> OpenAsync(Recipient recipient, string method, string verifiedEmail, string? ip,
+        CancellationToken ct, Guid? userId = null)
     {
         var secret = SecureTokens.Generate();
-        var session = SigningSession.Open(recipient.Id, SecureTokens.Hash(secret), method, verifiedEmail, ip);
+        var session = SigningSession.Open(recipient.Id, SecureTokens.Hash(secret), method, verifiedEmail, ip, userId);
         db.SigningSessions.Add(session);
         recipient.MarkVerified(method);
         await db.SaveChangesAsync(ct);

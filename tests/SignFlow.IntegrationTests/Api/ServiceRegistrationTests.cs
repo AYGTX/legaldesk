@@ -54,6 +54,7 @@ public class ServiceRegistrationTests
     [InlineData(typeof(ContractIntakeJob))]
     [InlineData(typeof(SealDocumentJob))]
     [InlineData(typeof(OutboxDispatcherJob))]
+    [InlineData(typeof(StepFollowUpJob))]
     public void Every_dependency_of_a_background_job_is_registered(Type job)
     {
         using var provider = ApiServices().BuildServiceProvider();

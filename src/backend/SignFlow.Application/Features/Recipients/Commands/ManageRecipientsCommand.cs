@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 using SignFlow.Domain.Entities;
 using SignFlow.Domain.Enums;
 
@@ -9,6 +10,13 @@ namespace SignFlow.Application.Features.Recipients.Commands;
 
 public record ManageRecipientsCommand(Guid DocumentId, WorkflowType WorkflowType, List<RecipientInputDto> Recipients, bool HideRecipientIdentities = false) : ICommand;
 
+/// <summary>One participant of the circuit (M4).</summary>
+/// <param name="StageRule">All: the stage waits for everyone sharing this order; Any: the first answer closes it (R-M4-2).</param>
+/// <param name="PoolTeamId">A team step: its members share it, any one acts (R-M4-3). Name and e-mail are then ignored.</param>
+/// <param name="PoolRole">A role step, like a team step.</param>
+/// <param name="DueInWorkingDays">Due this many working days after the step opens (R-M4-10).</param>
+/// <param name="ReminderEveryDays">Reminder interval while the step is open; 0 turns reminders off (R-M4-6).</param>
+/// <param name="EscalateAfterDays">Days after which the escalation contact (else the owner) is told.</param>
 public record RecipientInputDto(
     Guid? Id,
     string Name,
@@ -17,7 +25,17 @@ public record RecipientInputDto(
     ApprovalType ApprovalType,
     string? PrivateMessage = null,
     string? Company = null,
-    string? RoleLabel = null);
+    string? RoleLabel = null,
+    StageRule StageRule = StageRule.All,
+    Guid? PoolTeamId = null,
+    string? PoolRole = null,
+    int? DueInWorkingDays = null,
+    int ReminderEveryDays = 3,
+    int? EscalateAfterDays = null,
+    string? EscalationEmail = null)
+{
+    public bool IsPool => PoolTeamId is not null || !string.IsNullOrWhiteSpace(PoolRole);
+}
 
 public class ManageRecipientsCommandValidator : AbstractValidator<ManageRecipientsCommand>
 {
@@ -27,17 +45,23 @@ public class ManageRecipientsCommandValidator : AbstractValidator<ManageRecipien
         RuleFor(x => x.Recipients).NotNull().NotEmpty().WithMessage("At least one recipient is required.");
         RuleForEach(x => x.Recipients).ChildRules(r =>
         {
-            r.RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-            r.RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+            r.RuleFor(x => x.Name).NotEmpty().MaximumLength(200).When(x => !x.IsPool);
+            r.RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256).When(x => !x.IsPool);
             r.RuleFor(x => x.Order).GreaterThan(0);
             r.RuleFor(x => x.RoleLabel).MaximumLength(100);
+            r.RuleFor(x => x.ApprovalType).NotEqual(ApprovalType.Reject).WithMessage("\"Reject\" is not a step of a circuit.");
+            r.RuleFor(x => x.DueInWorkingDays).InclusiveBetween(1, 60).When(x => x.DueInWorkingDays is not null);
+            r.RuleFor(x => x.ReminderEveryDays).InclusiveBetween(0, 30);
+            r.RuleFor(x => x.EscalateAfterDays).InclusiveBetween(1, 90).When(x => x.EscalateAfterDays is not null);
+            r.RuleFor(x => x.EscalationEmail).EmailAddress().MaximumLength(256).When(x => !string.IsNullOrWhiteSpace(x.EscalationEmail));
         });
     }
 }
 
 public class ManageRecipientsCommandHandler(
     IApplicationDbContext db,
-    ICurrentUserService currentUser) : ICommandHandler<ManageRecipientsCommand>
+    ICurrentUserService currentUser,
+    ICircuitDirectory? directory = null) : ICommandHandler<ManageRecipientsCommand>
 {
     public async Task HandleAsync(ManageRecipientsCommand command, CancellationToken cancellationToken = default)
     {
@@ -50,15 +74,16 @@ public class ManageRecipientsCommandHandler(
         if (document.Status != DocumentStatus.Draft)
             throw new ConflictException("Recipients can only be managed on draft documents.");
 
-        // Block recipients who are registered users currently on scheduled vacation.
+        var inputs = new List<RecipientInputDto>(command.Recipients.Count);
+        foreach (var dto in command.Recipients)
+            inputs.Add(await NormaliseAsync(dto, cancellationToken));
+
+        // Someone away blocks the circuit unless they named a colleague to act for them (R-M1-8).
         var today = DateTime.UtcNow.Date;
-        var emails = command.Recipients
-            .Select(r => r.Email.Trim().ToLower())
-            .Distinct()
-            .ToList();
+        var emails = inputs.Where(r => !r.IsPool).Select(r => r.Email.Trim().ToLower()).Distinct().ToList();
 
         var unavailable = await db.Vacations
-            .Where(v => v.StartDate <= today && v.EndDate >= today && emails.Contains(v.User.Email!.ToLower()))
+            .Where(v => v.StartDate <= today && v.EndDate >= today && v.DelegateUserId == null && emails.Contains(v.User.Email!.ToLower()))
             .Select(v => new { v.User.Email, v.EndDate })
             .ToListAsync(cancellationToken);
 
@@ -69,42 +94,69 @@ public class ManageRecipientsCommandHandler(
                 $"The following recipients are on vacation and cannot be added: {details}.");
         }
 
-        var existingIds = command.Recipients.Where(r => r.Id.HasValue).Select(r => r.Id!.Value).ToHashSet();
-        var toDelete = await db.Recipients
-            .Where(r => r.DocumentId == command.DocumentId && !existingIds.Contains(r.Id))
-            .ToListAsync(cancellationToken);
+        var current = await db.Recipients.Where(r => r.DocumentId == command.DocumentId).ToListAsync(cancellationToken);
+        var currentIds = current.Select(r => r.Id).ToList();
+        // Who acted in an earlier round keeps that history: their identity is fixed, and leaving the circuit retires them.
+        var withHistory = (await db.Signatures.Where(s => currentIds.Contains(s.RecipientId)).Select(s => s.RecipientId).ToListAsync(cancellationToken))
+            .Concat(await db.WorkflowSteps.Where(s => currentIds.Contains(s.RecipientId)).Select(s => s.RecipientId).ToListAsync(cancellationToken))
+            .ToHashSet();
 
-        // A document back in Draft after a revision upload can carry Signature rows from the
-        // previous round — those recipients are signing evidence and can't be removed.
-        var toDeleteIds = toDelete.Select(r => r.Id).ToHashSet();
-        if (toDeleteIds.Count > 0)
+        var keptIds = inputs.Where(r => r.Id.HasValue).Select(r => r.Id!.Value).ToHashSet();
+        // Stand-ins and retired participants are history, not part of what the editor sends back.
+        foreach (var gone in current.Where(r => !keptIds.Contains(r.Id) && r.DelegatedFromRecipientId is null && r.RetiredAt is null))
         {
-            var withEvidence = await db.Signatures
-                .Where(s => toDeleteIds.Contains(s.RecipientId))
-                .Select(s => s.Recipient.Email)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-            if (withEvidence.Count > 0)
-                throw new ConflictException(
-                    $"These recipients signed a previous version of this document and can't be removed: {string.Join(", ", withEvidence)}.");
+            if (withHistory.Contains(gone.Id)) gone.Retire();
+            else db.Recipients.Remove(gone);
         }
 
-        db.Recipients.RemoveRange(toDelete);
         document.SetWorkflowType(command.WorkflowType);
         document.SetHideRecipientIdentities(command.HideRecipientIdentities);
 
-        foreach (var dto in command.Recipients)
+        foreach (var dto in inputs)
         {
-            if (dto.Id.HasValue)
+            var existing = dto.Id is { } id ? current.FirstOrDefault(r => r.Id == id) : null;
+            if (existing is not null)
             {
-                var existing = await db.Recipients.FindAsync([dto.Id.Value], cancellationToken);
-                if (existing is not null) continue;
+                existing.Revise(dto.Name, dto.Email, dto.Order, dto.ApprovalType, dto.PrivateMessage, dto.Company, dto.RoleLabel,
+                    identityLocked: withHistory.Contains(existing.Id));
             }
-
-            var recipient = Recipient.Create(command.DocumentId, dto.Name, dto.Email, dto.Order, dto.ApprovalType, dto.PrivateMessage, dto.Company, dto.Id, dto.RoleLabel);
-            db.Recipients.Add(recipient);
+            else
+            {
+                existing = Recipient.Create(command.DocumentId, dto.Name, dto.Email, dto.Order, dto.ApprovalType, dto.PrivateMessage, dto.Company, dto.Id, dto.RoleLabel);
+                db.Recipients.Add(existing);
+            }
+            existing.SetCircuit(dto.StageRule, dto.PoolTeamId, dto.PoolTeamId is null ? dto.PoolRole : null, dto.DueInWorkingDays,
+                dto.ReminderEveryDays, dto.EscalateAfterDays, dto.EscalationEmail);
         }
 
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>A team or role step is named after its group and written to its members, who must exist.</summary>
+    private async Task<RecipientInputDto> NormaliseAsync(RecipientInputDto dto, CancellationToken ct)
+    {
+        if (dto.ApprovalType == ApprovalType.Reject)
+            throw new Common.Exceptions.ValidationException("\"Reject\" is not a step of a circuit.");
+        if (!dto.IsPool) return dto;
+
+        if (dto.ApprovalType == ApprovalType.ViewOnly)
+            throw new Common.Exceptions.ValidationException("A team or role can act on a contract, not only view it.");
+
+        string name;
+        if (dto.PoolTeamId is { } teamId)
+        {
+            name = await db.Teams.Where(t => t.Id == teamId).Select(t => t.Name).FirstOrDefaultAsync(ct)
+                ?? throw new NotFoundException(nameof(Team), teamId);
+        }
+        else
+        {
+            name = dto.PoolRole!.Trim();
+        }
+
+        if (directory is not null && (await directory.PoolMembersAsync(dto.PoolTeamId, dto.PoolTeamId is null ? name : null, ct)).Count == 0)
+            throw new ConflictException("circuit.poolEmpty", $"\"{name}\" has no active member, so nobody could act for it.",
+                new Dictionary<string, object?> { ["team"] = name });
+
+        return dto with { Name = name, Email = Recipient.PoolAddress };
     }
 }

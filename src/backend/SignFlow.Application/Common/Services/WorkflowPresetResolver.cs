@@ -10,17 +10,21 @@ namespace SignFlow.Application.Common.Services;
 
 /// <summary>What a preset decided for one approver signature field of a template.</summary>
 /// <param name="Skipped">The step's condition did not hold, so this field gets no signer at all.</param>
-/// <param name="Approver">The person the step resolved to. Null only when <paramref name="Skipped"/>.</param>
+/// <param name="Approver">The person a named step resolved to. Null when <paramref name="Skipped"/> or for a pool.</param>
 /// <param name="Label">The step's name, kept on the recipient as their role on the request.</param>
 /// <param name="Stage">The step's stage (used when the preset is Mixed).</param>
-public record PresetAssignment(bool Skipped, ApproverSelection? Approver, string? Label, int Stage);
+/// <param name="Pool">A team or role step (R-M4-3): any of its members acts for it.</param>
+public record PresetAssignment(bool Skipped, ApproverSelection? Approver, string? Label, int Stage, PresetPool? Pool = null);
+
+/// <summary>A team or role a step goes to; <paramref name="Name"/> is shown as the participant.</summary>
+public record PresetPool(Guid? TeamId, string? Role, string Name);
 
 /// <summary>The preset's verdict for a template: how its recipients run, and one assignment per covered signature field.</summary>
 public record PresetRouting(string PresetName, WorkflowType WorkflowType, IReadOnlyList<PresetAssignment> Assignments);
 
 /// <summary>
-/// Turns a template's workflow preset into concrete signers at the moment a request is created: looks up the person
-/// behind a role or department, and drops the steps whose condition does not hold for this request's answers.
+/// Turns a template's workflow preset into concrete signers at the moment a request is created: a named person, or a
+/// team or role whose members share the step, and drops the steps whose condition does not hold for this request's answers.
 /// </summary>
 public interface IWorkflowPresetResolver
 {
@@ -38,7 +42,7 @@ public interface IWorkflowPresetResolver
 
 public class WorkflowPresetResolver(
     IApplicationDbContext db,
-    UserManager<ApplicationUser> userManager) : IWorkflowPresetResolver
+    ICircuitDirectory directory) : IWorkflowPresetResolver
 {
     public async Task<PresetRouting?> ResolveAsync(
         Guid? presetId,
@@ -66,8 +70,15 @@ public class WorkflowPresetResolver(
                 continue;
             }
 
-            var user = await ResolveApproverAsync(preset, step, cancellationToken);
-            assignments.Add(new PresetAssignment(false, new ApproverSelection(user.Id, null, null), step.Label, step.Stage));
+            if (step.ApproverKind == PresetApproverKind.User)
+            {
+                var user = await ResolveApproverAsync(preset, step, cancellationToken);
+                assignments.Add(new PresetAssignment(false, new ApproverSelection(user.Id, null, null), step.Label, step.Stage));
+            }
+            else
+            {
+                assignments.Add(new PresetAssignment(false, null, step.Label, step.Stage, await ResolvePoolAsync(preset, step, cancellationToken)));
+            }
         }
 
         return new PresetRouting(preset.Name, preset.WorkflowType, assignments);
@@ -94,46 +105,41 @@ public class WorkflowPresetResolver(
         return HtmlContractRenderer.Evaluate(condition, values, fieldTypes);
     }
 
+    private static string Where(WorkflowPreset preset, WorkflowPresetStep step) =>
+        $"Workflow \"{preset.Name}\", step {step.Order}" + (string.IsNullOrWhiteSpace(step.Label) ? "" : $" ({step.Label})");
+
     private async Task<ApplicationUser> ResolveApproverAsync(WorkflowPreset preset, WorkflowPresetStep step, CancellationToken ct)
     {
-        var where = $"Workflow \"{preset.Name}\", step {step.Order}" + (string.IsNullOrWhiteSpace(step.Label) ? "" : $" ({step.Label})");
-
-        switch (step.ApproverKind)
-        {
-            case PresetApproverKind.User:
-            {
-                var user = step.ApproverUserId is { } id ? await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct) : null;
-                if (user is null || !user.IsActive)
-                    throw new Common.Exceptions.ValidationException($"{where}: the named approver no longer exists or is inactive. Update the workflow.");
-                return user;
-            }
-
-            case PresetApproverKind.Role:
-            {
-                var role = step.RoleName ?? "";
-                var holders = (await userManager.GetUsersInRoleAsync(role)).Where(u => u.IsActive).ToList();
-                return ExactlyOne(holders, where, $"the role \"{role}\"");
-            }
-
-            default:
-            {
-                var department = step.Department ?? "";
-                var members = await db.Users
-                    .Where(u => u.IsActive && u.Department != null && u.Department.ToLower() == department.ToLower())
-                    .ToListAsync(ct);
-                return ExactlyOne(members, where, $"the department \"{department}\"");
-            }
-        }
+        var user = step.ApproverUserId is { } id ? await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct) : null;
+        if (user is null || !user.IsActive)
+            throw new Common.Exceptions.ValidationException($"{Where(preset, step)}: the named approver no longer exists or is inactive. Update the workflow.");
+        return user;
     }
 
-    private static ApplicationUser ExactlyOne(List<ApplicationUser> candidates, string where, string group)
+    /// <summary>A team or role with nobody active in it cannot act: refused with preset.step.poolEmpty.</summary>
+    private async Task<PresetPool> ResolvePoolAsync(WorkflowPreset preset, WorkflowPresetStep step, CancellationToken ct)
     {
-        if (candidates.Count == 1) return candidates[0];
+        string name;
+        if (step.ApproverKind == PresetApproverKind.Team)
+        {
+            var team = step.TeamId is { } teamId ? await db.Teams.AsNoTracking().FirstOrDefaultAsync(t => t.Id == teamId, ct) : null;
+            if (team is null)
+                throw new Common.Exceptions.ValidationException($"{Where(preset, step)}: its team no longer exists. Update the workflow.");
+            name = team.Name;
+        }
+        else
+        {
+            name = step.RoleName ?? "";
+        }
 
-        var detail = candidates.Count == 0
-            ? $"{group} has no active person"
-            : $"{group} has {candidates.Count} active people ({string.Join(", ", candidates.Take(5).Select(u => u.FullName))}{(candidates.Count > 5 ? "…" : "")})";
-        throw new Common.Exceptions.ValidationException(
-            $"{where}: {detail}. A role or department step needs exactly one person; name the approver instead.");
+        var members = await directory.PoolMembersAsync(step.ApproverKind == PresetApproverKind.Team ? step.TeamId : null,
+            step.ApproverKind == PresetApproverKind.Role ? step.RoleName : null, ct);
+        if (members.Count == 0)
+            throw new ConflictException("preset.step.poolEmpty",
+                $"{Where(preset, step)}: \"{name}\" has no active member, so nobody could act for it. Add someone to it or change the workflow.",
+                new Dictionary<string, object?> { ["step"] = step.Order, ["team"] = name });
+
+        return new PresetPool(step.ApproverKind == PresetApproverKind.Team ? step.TeamId : null,
+            step.ApproverKind == PresetApproverKind.Role ? step.RoleName : null, name);
     }
 }
