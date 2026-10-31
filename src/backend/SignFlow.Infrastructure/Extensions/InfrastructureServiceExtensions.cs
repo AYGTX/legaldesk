@@ -219,6 +219,9 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<SignFlow.Application.Common.Services.IPdfInspector, PdfInspector>();
         services.AddScoped<IWorkflowEngine, WorkflowEngine>();
         services.AddScoped<IPdfStampService, PdfStampService>();
+        // One browser per server, JavaScript off, network blocked (R-M6-4).
+        services.Configure<SignFlow.Infrastructure.Services.Pdf.PdfRenderingSettings>(configuration.GetSection("Pdf"));
+        services.AddSingleton<SignFlow.Infrastructure.Services.Pdf.ChromeRenderer>();
         services.AddScoped<IHtmlTemplatePdfGenerator, HtmlTemplatePdfGenerator>();
         services.AddScoped<INotificationHub, NotificationHubService>();
         services.AddScoped<INotificationService, NotificationService>();

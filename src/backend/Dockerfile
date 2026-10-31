@@ -30,6 +30,10 @@ RUN dotnet publish "SignFlow.Api.csproj" -c Release -o /app/publish /p:UseAppHos
 
 FROM base AS final
 WORKDIR /app
-RUN mkdir -p /app/uploads
 COPY --from=publish /app/publish .
+# Not root: Chrome keeps its sandbox only for an unprivileged user (R-M6-4). The image's own "app" user owns what the
+# API writes. If the host kernel forbids the sandbox, Pdf__ChromeSandbox=false turns it off (JavaScript stays off and
+# the network blocked).
+RUN mkdir -p /app/uploads /app/App_Data && chown -R $APP_UID /app/uploads /app/App_Data
+USER $APP_UID
 ENTRYPOINT ["dotnet", "SignFlow.Api.dll"]
