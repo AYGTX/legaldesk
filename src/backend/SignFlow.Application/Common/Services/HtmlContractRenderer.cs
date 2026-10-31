@@ -133,7 +133,8 @@ public static class HtmlContractRenderer
         IReadOnlyDictionary<string, string> values,
         IReadOnlyDictionary<string, HtmlTemplateFieldType> types)
     {
-        var match = Condition.Match(condition);
+        // A saved template escapes ">" and "<" in its text (SafeHtml); the condition is read as the author wrote it.
+        var match = Condition.Match(System.Net.WebUtility.HtmlDecode(condition).Trim());
         var key = match.Success ? match.Groups[1].Value : condition;
 
         if (!values.TryGetValue(key, out var actual) || actual is null)

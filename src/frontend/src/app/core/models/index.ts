@@ -15,5 +15,4 @@ export * from './comment.models';
 export * from './report.models';
 export * from './contract-intelligence.model';
 export * from './clause.models';
-export * from './regulatory-watch.models';
 export * from './version-comparison.model';

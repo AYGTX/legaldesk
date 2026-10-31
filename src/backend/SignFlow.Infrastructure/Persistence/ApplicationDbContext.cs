@@ -44,8 +44,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PdfTemplate> PdfTemplates => Set<PdfTemplate>();
     public DbSet<PdfTemplateField> PdfTemplateFields => Set<PdfTemplateField>();
     public DbSet<Clause> Clauses => Set<Clause>();
-    public DbSet<RegulatoryText> RegulatoryTexts => Set<RegulatoryText>();
-    public DbSet<RegulatoryArticle> RegulatoryArticles => Set<RegulatoryArticle>();
+    public DbSet<ClauseVersion> ClauseVersions => Set<ClauseVersion>();
+    public DbSet<ClauseRuleLink> ClauseRuleLinks => Set<ClauseRuleLink>();
     public DbSet<DocumentReadinessItem> DocumentReadinessItems => Set<DocumentReadinessItem>();
     public DbSet<ReviewRun> ReviewRuns => Set<ReviewRun>();
     public DbSet<SigningOtp> SigningOtps => Set<SigningOtp>();

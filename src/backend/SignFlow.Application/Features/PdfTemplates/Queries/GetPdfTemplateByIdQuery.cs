@@ -116,7 +116,8 @@ public class GetPdfTemplateByIdQueryHandler(
     {
         if (ids.Count == 0) return [];
         var found = await db.Clauses.AsNoTracking().Where(c => ids.Contains(c.Id))
-            .Select(c => new AnnexClauseDto(c.Id, c.Title, c.Version)).ToListAsync(ct);
+            .Select(c => new AnnexClauseDto(c.Id, c.Title,
+                c.Versions.Where(v => v.Status == ClauseStatus.Approved).Select(v => v.Number).FirstOrDefault())).ToListAsync(ct);
         return [.. ids.Select(id => found.FirstOrDefault(c => c.Id == id)).OfType<AnnexClauseDto>()];
     }
 }

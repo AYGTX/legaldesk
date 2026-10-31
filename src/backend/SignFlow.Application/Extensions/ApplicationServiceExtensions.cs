@@ -39,9 +39,7 @@ using SignFlow.Application.Features.HtmlTemplates.Queries;
 using SignFlow.Application.Features.PdfTemplates.Commands;
 using SignFlow.Application.Features.PdfTemplates.Queries;
 using SignFlow.Application.Features.Clauses.Commands;
-using SignFlow.Application.Features.Clauses.Queries;
-using SignFlow.Application.Features.RegulatoryWatch.Commands;
-using SignFlow.Application.Features.RegulatoryWatch.Queries;
+using SignFlow.Application.Features.Clauses;
 using SignFlow.Application.Services;
 
 namespace SignFlow.Application.Extensions;
@@ -190,24 +188,17 @@ public static class ApplicationServiceExtensions
 
         // Clause library
         services.AddScoped<IQueryHandler<GetClausesQuery, List<ClauseDto>>, GetClausesQueryHandler>();
-        services.AddScoped<IQueryHandler<GetApprovedClausesQuery, List<ClauseDto>>, GetApprovedClausesQueryHandler>();
+        services.AddScoped<IQueryHandler<GetApprovedClausesQuery, List<ApprovedClauseDto>>, GetApprovedClausesQueryHandler>();
+        services.AddScoped<IQueryHandler<GetClausesForRuleQuery, List<ApprovedClauseDto>>, GetClausesForRuleQueryHandler>();
         services.AddScoped<ICommandHandler<CreateClauseCommand, Guid>, CreateClauseCommandHandler>();
-        services.AddScoped<ICommandHandler<UpdateClauseCommand>, UpdateClauseCommandHandler>();
-        services.AddScoped<ICommandHandler<SetClauseStatusCommand>, SetClauseStatusCommandHandler>();
+        services.AddScoped<ICommandHandler<DescribeClauseCommand>, DescribeClauseCommandHandler>();
+        services.AddScoped<ICommandHandler<RedraftClauseCommand, int>, RedraftClauseCommandHandler>();
+        services.AddScoped<ICommandHandler<ApproveClauseVersionCommand>, ApproveClauseVersionCommandHandler>();
+        services.AddScoped<ICommandHandler<DeprecateClauseVersionCommand>, DeprecateClauseVersionCommandHandler>();
+        services.AddScoped<ICommandHandler<LinkClauseRulesCommand>, LinkClauseRulesCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteClauseCommand>, DeleteClauseCommandHandler>();
         services.AddScoped<ICommandHandler<RecordClauseUsageCommand>, RecordClauseUsageCommandHandler>();
 
-        // Regulatory watch
-        services.AddScoped<IQueryHandler<GetRegulatoryTextsQuery, List<RegulatoryTextDto>>, GetRegulatoryTextsQueryHandler>();
-        services.AddScoped<IQueryHandler<GetPublishedRegulatoryTextsQuery, List<RegulatoryTextDto>>, GetPublishedRegulatoryTextsQueryHandler>();
-        services.AddScoped<ICommandHandler<CreateRegulatoryTextCommand, Guid>, CreateRegulatoryTextCommandHandler>();
-        services.AddScoped<ICommandHandler<UpdateRegulatoryTextCommand>, UpdateRegulatoryTextCommandHandler>();
-        services.AddScoped<ICommandHandler<SetRegulatoryTextStatusCommand>, SetRegulatoryTextStatusCommandHandler>();
-        services.AddScoped<ICommandHandler<DeleteRegulatoryTextCommand>, DeleteRegulatoryTextCommandHandler>();
-        services.AddScoped<IQueryHandler<PreviewRegulatoryArticlesQuery, ArticleSplit>, PreviewRegulatoryArticlesQueryHandler>();
-        services.AddScoped<IQueryHandler<GetRegulatoryArticlesQuery, List<RegulatoryArticleDto>>, GetRegulatoryArticlesQueryHandler>();
-        services.AddScoped<ICommandHandler<SaveRegulatoryArticlesCommand>, SaveRegulatoryArticlesCommandHandler>();
-        services.AddScoped<ICommandHandler<VerifyRegulatoryTextCommand>, VerifyRegulatoryTextCommandHandler>();
 
         // Vacations
         services.AddScoped<IQueryHandler<GetMyVacationsQuery, List<VacationDto>>, GetMyVacationsQueryHandler>();

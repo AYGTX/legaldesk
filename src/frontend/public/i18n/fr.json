@@ -207,7 +207,6 @@
       "requestTypes": "Types de contrats",
       "htmlTemplates": "Modèles de contrats",
       "clauses": "Bibliothèque de clauses",
-      "regulatoryWatch": "Veille réglementaire",
       "systemSettings": "Paramètres système",
       "reviewRules": "Règles de revue",
       "teams": "Équipes"
@@ -221,11 +220,6 @@
       "title": "Bibliothèque de clauses",
       "description": "Gérez les rédactions contractuelles validées de l'organisation — confidentialité, responsabilité, résiliation, protection des données — prêtes à être insérées lors de la rédaction.",
       "manage": "Gérer la bibliothèque de clauses"
-    },
-    "regulatoryWatch": {
-      "title": "Veille réglementaire",
-      "description": "Gérez le référentiel de textes réglementaires suivis. Publier un texte notifie les propriétaires des contrats en vigueur qu'il concerne et alimente la vérification de conformité.",
-      "manage": "Gérer la veille réglementaire"
     },
     "systemSettings": {
       "title": "Paramètres système",
@@ -749,38 +743,6 @@
           "Imbalance": "Déséquilibre",
           "Possible": "Risque possible"
         }
-      },
-      "compliance": {
-        "title": "Conformité réglementaire",
-        "legalBasis": "Fondement juridique",
-        "relevantLaw": {
-          "title": "Droit applicable ({{count}} clauses rapprochées)",
-          "intro": "Harvey a rapproché chaque clause du contrat des articles de loi vérifiés de votre corpus juridique. La recherche s'effectue sur ce serveur ; le contrat n'est jamais envoyé à l'extérieur."
-        },
-        "citation": {
-          "Verified": "Loi vérifiée",
-          "Unverified": "Non confirmée",
-          "Rejected": "Citation rejetée",
-          "Pending": "Non vérifiée",
-          "VerifiedHint": "Cette citation figure mot à mot dans l'article, et l'article a été vérifié par rapport à la source officielle.",
-          "UnverifiedHint": "Cette citation n'a pas pu être confirmée par rapport à une loi vérifiée. Vérifiez-la avant de vous y fier.",
-          "RejectedHint": "Cette citation ne figure pas dans l'article cité. La constatation n'a aucun fondement juridique confirmé.",
-          "PendingHint": "Cette citation n'a pas été vérifiée dans le corpus juridique."
-        },
-        "run": "Demander à Harvey",
-        "rerun": "Relancer Harvey",
-        "failed": "Échec de la vérification de conformité",
-        "score": "Score de conformité : {{score}}/100",
-        "noRun": "Harvey n'a pas encore analysé ce contrat.",
-        "noneTracked": "Aucun texte réglementaire publié ne s'applique à ce contrat",
-        "status": {
-          "Addressed": "Couvert",
-          "Gap": "Écart",
-          "Unclear": "Incertain"
-        },
-        "running": "Harvey analyse le contrat — cela peut prendre quelques secondes",
-        "byHarvey": "Analysé par Harvey · chaque citation contrôlée mot à mot par rapport à la loi vérifiée",
-        "signedHarvey": "Harvey · loi vérifiée"
       },
       "obligation": {
         "title": "Suivi des obligations",
@@ -1871,7 +1833,9 @@
           "no_rules": "Aucune règle de revue n'est encore en service : un juriste doit valider les règles de Harvey avant toute revue de contrat."
         }
       },
-      "fromOcr": "texte issu de l'OCR : vérifiez l'original"
+      "fromOcr": "texte issu de l'OCR : vérifiez l'original",
+      "libraryClause": "Votre bibliothèque : {{title}} (v{{version}})",
+      "alreadyInLibrary": "Votre bibliothèque a déjà une clause approuvée pour cette règle."
     }
   },
   "reports": {
@@ -2311,14 +2275,12 @@
     "statusFailed": "Impossible de modifier le statut de la clause",
     "deleteFailed": "Impossible de supprimer la clause",
     "confirmDelete": "Supprimer la clause « {{title}} » ? Cette action est irréversible.",
-    "approve": "Valider",
-    "deprecate": "Déprécier",
-    "revertToDraft": "Repasser en brouillon",
     "usedTimes": "Utilisée {{count}} ×",
-    "versionTooltip": "Version de la clause — incrémentée à chaque modification de la rédaction",
     "usageTooltip": "Nombre d'insertions de cette clause dans un contrat",
     "stats": {
-      "total": "Clauses"
+      "total": "Clauses",
+      "inUse": "En vigueur",
+      "waiting": "À approuver"
     },
     "category": {
       "Confidentiality": "Confidentialité",
@@ -2366,9 +2328,13 @@
       "guidance": "Note juridique interne",
       "guidancePlaceholder": "Quand utiliser cette clause, position de négociation, replis acceptés…",
       "guidanceHint": "Affichée aux rédacteurs dans la bibliothèque et le sélecteur. N'apparaît jamais dans le contrat.",
-      "versionNote": "Version actuelle : {{version}}. Modifier la rédaction créera une nouvelle version.",
       "create": "Ajouter la clause",
-      "operationFailed": "L'opération a échoué"
+      "operationFailed": "L'opération a échoué",
+      "ruleKeys": "Règles Harvey auxquelles répond cette clause",
+      "ruleKeysPlaceholder": "ex. liability.cap, confidentiality.duration",
+      "ruleKeysHint": "Séparez par des virgules. Un constat sur l'une de ces règles propose cette clause.",
+      "redraftNote": "Modifier la rédaction crée le brouillon v{{next}}. La v{{approved}} reste en vigueur jusqu'à ce qu'une autre personne que vous approuve la nouvelle.",
+      "draftNote": "La version {{version}} est un brouillon : vous pouvez encore la modifier. Une autre personne que son dernier auteur l'approuve."
     },
     "picker": {
       "button": "Bibliothèque de clauses",
@@ -2378,115 +2344,21 @@
       "insert": "Insérer la clause",
       "inserted": "« {{title}} » insérée",
       "empty": "Aucune clause validée ne correspond à ces filtres."
-    }
-  },
-  "regulatoryWatch": {
-    "title": "Veille réglementaire",
-    "subtitle": "Un référentiel de textes réglementaires suivis, curé par l'équipe juridique. Publier un texte notifie les propriétaires des contrats en vigueur qu'il concerne et alimente la vérification de conformité de la fiche contrat.",
-    "backToAdmin": "Retour à l'administration",
-    "addText": "Ajouter un texte réglementaire",
-    "searchLabel": "Rechercher des textes réglementaires",
-    "searchPlaceholder": "Intitulé ou résumé…",
-    "filterCategory": "Catégorie",
-    "filterJurisdiction": "Juridiction",
-    "filterStatus": "Statut",
-    "allCategories": "Toutes les catégories",
-    "allJurisdictions": "Toutes les juridictions",
-    "allStatuses": "Tous les statuts",
-    "emptyTitle": "Aucun texte réglementaire trouvé",
-    "emptyHint": "Ajustez vos filtres ou ajoutez le premier texte suivi.",
-    "loadFailed": "Impossible de charger le référentiel de veille réglementaire",
-    "statusFailed": "Impossible de modifier le statut du texte réglementaire",
-    "deleteFailed": "Impossible de supprimer le texte réglementaire",
-    "confirmDelete": "Supprimer le texte réglementaire « {{title}} » ? Cette action est irréversible.",
-    "publish": "Publier",
-    "archive": "Archiver",
-    "revertToDraft": "Repasser en brouillon",
-    "effectiveDateTooltip": "Date d'effet de ce texte réglementaire",
-    "stats": {
-      "total": "Textes"
     },
-    "category": {
-      "DataProtection": "Protection des données",
-      "Labor": "Droit du travail",
-      "Consumer": "Consommation",
-      "Commercial": "Droit commercial",
-      "Tax": "Fiscalité",
-      "Telecom": "Télécommunications",
-      "Other": "Autre"
-    },
-    "jurisdiction": {
-      "Tunisia": "Tunisie",
-      "EU": "Union européenne",
-      "Sectoral": "Sectorielle"
-    },
-    "status": {
-      "Draft": "Brouillon",
-      "Published": "Publié",
-      "Archived": "Archivé"
-    },
-    "language": {
-      "en": "Anglais",
-      "fr": "Français",
-      "ar": "Arabe"
-    },
-    "dialog": {
-      "createTitle": "Ajouter un texte réglementaire",
-      "editTitle": "Modifier le texte réglementaire",
-      "textTitle": "Intitulé du texte",
-      "textTitlePlaceholder": "ex. Loi sur la protection des données personnelles",
-      "category": "Catégorie",
-      "jurisdiction": "Juridiction",
-      "language": "Langue",
-      "reference": "Référence légale",
-      "referencePlaceholder": "ex. Loi organique n° 2004-63 du 27 juillet 2004",
-      "effectiveDate": "Date d'effet",
-      "scope": "S'applique au type de contrat",
-      "scopeAll": "Tous les types de contrats",
-      "scopeHint": "Laissez « Tous les types de contrats » sauf si ce texte ne concerne qu'une seule famille de contrats.",
-      "summary": "Résumé",
-      "summaryPlaceholder": "<p>Résumé en langage clair de ce que ce texte impose…</p>",
-      "keywords": "Mots-clés",
-      "keywordsPlaceholder": "données personnelles, responsable de traitement, violation de données",
-      "keywordsHint": "Termes séparés par des virgules recherchés par l'analyse de conformité dans le texte d'un contrat.",
-      "create": "Ajouter le texte",
-      "operationFailed": "L'opération a échoué",
-      "sourceUrl": "Source officielle",
-      "sourceUrlPlaceholder": "https://…",
-      "sourceUrlHint": "Où lire le texte officiel (numéro du journal officiel ou portail législatif). Obligatoire pour vérifier."
-    },
-    "verified": "Vérifié",
-    "unverified": "Non vérifié",
-    "verifiedTooltip": "Validé par {{name}} le {{date}} par rapport à la source officielle.",
-    "unverifiedTooltip": "Ces termes n'ont pas été comparés au texte officiel. Ne pas s'y fier comme à la loi.",
-    "articleCount": "{{count}} article(s)",
-    "manageArticles": "Articles et vérification",
-    "articles": {
-      "title": "Articles",
-      "reference": "Référence officielle",
-      "source": "Source officielle",
-      "missing": "non renseignée",
-      "verifiedBy": "Vérifié par {{name}} le {{date}}",
-      "notVerified": "Non vérifié — rien ici n'est présenté comme la loi tant qu'une personne ne l'a pas validé.",
-      "pasteLabel": "Collez le texte officiel",
-      "pastePlaceholder": "Collez la loi telle que publiée. Chaque article doit commencer sur sa propre ligne, comme « Article 1 - » ou « الفصل 1 ».",
-      "split": "Découper en articles",
-      "splitReplaces": "La liste ci-dessous sera remplacée.",
-      "preamble": "Texte avant le premier article (non conservé)",
-      "count": "{{count}} article(s)",
-      "add": "Ajouter un article",
-      "empty": "Aucun article pour l'instant.",
-      "numberPlaceholder": "N°",
-      "textPlaceholder": "Texte de l'article, mot pour mot",
-      "confirm": "J'ai comparé ces articles à la source officielle, mot pour mot, et ils correspondent.",
-      "editWithdraws": "Modifier un article retire la vérification.",
-      "save": "Enregistrer les articles",
-      "verify": "Vérifier",
-      "loadFailed": "Impossible de charger les articles.",
-      "splitFailed": "Impossible de découper le texte.",
-      "saveFailed": "Impossible d'enregistrer les articles.",
-      "verifyFailed": "Impossible de vérifier ce texte."
-    }
+    "inUse": "En vigueur : v{{version}}",
+    "draftWaiting": "Brouillon v{{version}} à approuver",
+    "notInUse": "Non utilisée",
+    "actions": "Actions sur la clause",
+    "ownWording": "Vous avez rédigé cette version : quelqu'un d'autre doit l'approuver.",
+    "approveVersion": "Approuver la v{{version}}",
+    "withdrawVersion": "Retirer la v{{version}}",
+    "draftWording": "Brouillon v{{version}} par {{author}} — non utilisé avant approbation",
+    "draftBy": "Brouillon de {{author}} : proposé aux rédacteurs seulement après approbation par quelqu'un d'autre.",
+    "rulesHint": "Un constat de la revue sur l'une de ces règles Harvey propose d'abord cette clause.",
+    "history": "{{count}} versions",
+    "approvedBy": "approuvée par {{name}}",
+    "approved": "Version {{version}} approuvée : c’est désormais la rédaction en vigueur.",
+    "confirmWithdraw": "Retirer la version {{version}} de « {{title}} » ? Les contrats qui l'ont utilisée continuent de la citer ; elle ne sera plus proposée."
   },
   "htmlTemplates": {
     "list": {
@@ -2697,12 +2569,12 @@
         "desc": "Les canaux e-mail, dans l’application et en temps réel se déclenchent sur les échéances de signature, les relances et les escalades. Les contrats signés font en outre l’objet d’un balayage quotidien fondé sur la durée enregistrée : le propriétaire est alerté 90, 60, 30 et 7 jours avant l’échéance, de nouveau le jour où la date limite de préavis est dépassée, puis une fois le contrat échu — chaque jalon une seule fois. À partir du préavis dépassé, l’alerte est également transmise aux administrateurs et aux gestionnaires, afin qu’un propriétaire ayant quitté l’entreprise ne soit jamais le seul informé. Le balayage s’appuie sur les dates saisies sur chaque contrat ; il ne surveille rien en dehors de LegalDesk."
       },
       "regWatch": {
-        "title": "Veille réglementaire intégrée",
-        "desc": "Un référentiel de textes tunisiens, européens et sectoriels curé par l’équipe juridique — protection des données, consommation, télécommunications, droit commercial — chacun publiable avec une date d’effet et un périmètre optionnel par famille de contrat. La curation et la publication sont aujourd’hui des actions de l’équipe juridique, pas une veille automatisée de sources externes."
+        "title": "Droit tunisien vérifié",
+        "desc": "Harvey contient les codes, lois et décrets tunisiens article par article, chaque texte vérifié par un juriste sur sa source officielle. Chaque constat de la revue cite les articles sur lesquels il repose. L'ancienne veille réglementaire a été retirée : ses textes ont été exportés pour qu'un juriste les vérifie et les importe dans Harvey."
       },
       "riskMap": {
-        "title": "Alertes réglementaires et cartographie des risques",
-        "desc": "La publication d'un texte réglementaire notifie les propriétaires des contrats en vigueur qu'il concerne, et la page de reporting agrège les constats actuels de Harvey sur chaque contrat revu en une cartographie de portefeuille : répartition par gravité, risques les plus fréquents et exposition par famille de contrat."
+        "title": "Cartographie des risques",
+        "desc": "La page de reporting agrège les constats actuels de Harvey sur chaque contrat revu en une cartographie de portefeuille : répartition par gravité, risques les plus fréquents et exposition par famille de contrat."
       }
     }
   },
@@ -2758,8 +2630,8 @@
         "desc": "Clauses manquantes, faibles, ambiguës ou déséquilibrées, avec une proposition de rédaction pour chacune."
       },
       "regulatory": {
-        "title": "Couverture réglementaire",
-        "desc": "Vérifie si le contrat traite les textes suivis pour ce type de contrat."
+        "title": "Références juridiques",
+        "desc": "Chaque constat cite les articles du droit tunisien sur lesquels il repose, issus du corpus vérifié de Harvey."
       },
       "obligations": {
         "title": "Échéances clés",
@@ -2769,7 +2641,7 @@
     "analysing": {
       "title": "Analyse du contrat en cours",
       "uploading": "Téléversement et extraction du texte…",
-      "reviewing": "Revue juridique et contrôle réglementaire en cours…",
+      "reviewing": "Revue juridique en cours…",
       "note": "Comptez jusqu’à une minute — la revue complète lit l’intégralité du contrat."
     },
     "next": {
@@ -2850,6 +2722,10 @@
     },
     "team": {
       "inUse": "Cette équipe est utilisée par un circuit type ou un contrat en cours : elle ne peut pas être supprimée."
+    },
+    "clause": {
+      "ownWording": "Vous avez rédigé cette version : quelqu'un d'autre doit l'approuver.",
+      "notDraft": "Seul un brouillon peut être approuvé."
     }
   }
 }

@@ -126,10 +126,9 @@ public static class DatabaseSeeder
         await BackfillDepartmentsAsync(context);
         await SeedRequestTypesAsync(context);
         await SeedClausesAsync(context, userManager);
-        await SeedRegulatoryTextsAsync(context, userManager);
 
-        // Opt-in, and last: the demo portfolio depends on the contract families and the regulatory
-        // registry seeded above, and it is the only part of seeding that invents business data.
+        // Opt-in, and last: the demo portfolio depends on the contract families seeded above, and it is
+        // the only part of seeding that invents business data.
         if (demoContracts is not null)
         {
             await DemoContractSeeder.SeedAsync(
@@ -149,7 +148,7 @@ public static class DatabaseSeeder
     /// switched on so the default path takes no dependency on storage or PDF rendering.
     /// </summary>
     /// <summary>
-    /// Who the seeded clause library and regulatory registry are attributed to: the built-in administrator when it
+    /// Who the seeded clause library is attributed to: the built-in administrator when it
     /// exists, otherwise the first administrator in the database. Without this, switching the built-in accounts
     /// off would silently skip that reference data.
     /// </summary>
@@ -349,8 +348,8 @@ public static class DatabaseSeeder
                 false),
         };
 
-        var existing = await context.Clauses
-            .Select(c => new { c.Title, c.Language })
+        var existing = await context.ClauseVersions
+            .Join(context.Clauses, v => v.ClauseId, c => c.Id, (v, c) => new { c.Title, v.Language })
             .ToListAsync();
 
         var toAdd = new List<Clause>();
@@ -358,8 +357,9 @@ public static class DatabaseSeeder
         {
             if (existing.Any(e => e.Title == d.Title && e.Language == d.Language)) continue;
 
-            var clause = Clause.Create(d.Title, d.Category, d.Body, author.Id, d.Language, d.Guidance, d.RiskLevel);
-            if (d.Approved) clause.SetStatus(ClauseStatus.Approved);
+            var clause = Clause.Create(d.Title, d.Category, d.Body, author.Id, d.Language, d.Guidance,
+                d.RiskLevel is null ? null : Enum.Parse<ClauseRiskLevel>(d.RiskLevel));
+            if (d.Approved) clause.ImportApproved();
             clause.SetCreatedBy(author.Id.ToString());
             toAdd.Add(clause);
         }
@@ -367,107 +367,6 @@ public static class DatabaseSeeder
         if (toAdd.Count > 0)
         {
             context.Clauses.AddRange(toAdd);
-            await context.SaveChangesAsync();
-        }
-    }
-
-    /// <summary>
-    /// Seeds the regulatory watch registry with real Tunisian and EU texts relevant to the
-    /// client's B2B/B2C/DCWI scope, all published so compliance analysis has signal immediately.
-    /// Idempotent by (Title, Language) so an existing dev database keeps its curated edits.
-    /// </summary>
-    private static async Task SeedRegulatoryTextsAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
-    {
-        var author = await FindAuthorAsync(userManager);
-        if (author is null) return;
-
-        var dcwi = await context.RequestTypes.FirstOrDefaultAsync(t => t.Name == "Contrat DCWI");
-
-        // (Title, Category, Jurisdiction, Language, Reference, Summary, Keywords, EffectiveDate, RequestTypeId)
-        var defaults = new (string Title, RegulatoryCategory Category, RegulatoryJurisdiction Jurisdiction, string Language,
-            string Reference, string Summary, string Keywords, DateTime EffectiveDate, Guid? RequestTypeId)[]
-        {
-            ("Personal data protection law", RegulatoryCategory.DataProtection, RegulatoryJurisdiction.Tunisia, "en",
-                "Loi organique n° 2004-63 du 27 juillet 2004",
-                "<p>Tunisia's organic law on the protection of personal data: requires a lawful basis and INPDP declaration or authorisation before processing personal data, and imposes security and breach-notification duties on data controllers.</p>",
-                "personal data,inpdp,data protection,data controller,data subject,data breach",
-                new DateTime(2004, 7, 27, 0, 0, 0, DateTimeKind.Utc), null),
-
-            ("Loi sur la protection des données personnelles", RegulatoryCategory.DataProtection, RegulatoryJurisdiction.Tunisia, "fr",
-                "Loi organique n° 2004-63 du 27 juillet 2004",
-                "<p>Loi organique tunisienne relative à la protection des données à caractère personnel : impose une base légale et une déclaration ou autorisation INPDP avant tout traitement, ainsi que des obligations de sécurité et de notification des violations pour les responsables de traitement.</p>",
-                "données personnelles,inpdp,protection des données,responsable de traitement,violation de données",
-                new DateTime(2004, 7, 27, 0, 0, 0, DateTimeKind.Utc), null),
-
-            ("EU General Data Protection Regulation", RegulatoryCategory.DataProtection, RegulatoryJurisdiction.EU, "en",
-                "Regulation (EU) 2016/679 (GDPR)",
-                "<p>Applies whenever a contract involves the personal data of individuals in the EU, regardless of where the processor is established. Requires a documented lawful basis, data-subject rights handling, and cross-border transfer safeguards.</p>",
-                "gdpr,personal data,data subject,eu,cross-border transfer,data processing agreement",
-                new DateTime(2018, 5, 25, 0, 0, 0, DateTimeKind.Utc), null),
-
-            ("Règlement général sur la protection des données", RegulatoryCategory.DataProtection, RegulatoryJurisdiction.EU, "fr",
-                "Règlement (UE) 2016/679 (RGPD)",
-                "<p>S'applique dès qu'un contrat implique des données personnelles de personnes situées dans l'UE, quel que soit le lieu d'établissement du sous-traitant. Exige une base légale documentée, la gestion des droits des personnes concernées et des garanties pour les transferts hors UE.</p>",
-                "rgpd,données personnelles,personne concernée,ue,transfert hors ue,accord de sous-traitance",
-                new DateTime(2018, 5, 25, 0, 0, 0, DateTimeKind.Utc), null),
-
-            ("Consumer protection code", RegulatoryCategory.Consumer, RegulatoryJurisdiction.Tunisia, "en",
-                "Loi n° 92-117 du 7 décembre 1992",
-                "<p>Governs contracts with individual consumers: mandatory pre-contractual information, a right to a clear and legible contract, and prohibition of unfair or abusive clauses.</p>",
-                "consumer,unfair clause,pre-contractual information,withdrawal,b2c",
-                new DateTime(1992, 12, 7, 0, 0, 0, DateTimeKind.Utc), null),
-
-            ("Code de la protection du consommateur", RegulatoryCategory.Consumer, RegulatoryJurisdiction.Tunisia, "fr",
-                "Loi n° 92-117 du 7 décembre 1992",
-                "<p>Encadre les contrats conclus avec des consommateurs particuliers : information précontractuelle obligatoire, droit à un contrat clair et lisible, interdiction des clauses abusives.</p>",
-                "consommateur,clause abusive,information précontractuelle,rétractation,b2c",
-                new DateTime(1992, 12, 7, 0, 0, 0, DateTimeKind.Utc), null),
-
-            ("Telecommunications code", RegulatoryCategory.Telecom, RegulatoryJurisdiction.Sectoral, "en",
-                "Loi n° 2001-1 du 15 janvier 2001",
-                "<p>Sectoral framework for telecommunications activity: licensing obligations, service-quality/SLA commitments toward subscribers, and INT regulatory-authority reporting duties applicable to DCWI contracts.</p>",
-                "telecommunications,license,service quality,sla,regulatory authority,dcwi",
-                new DateTime(2001, 1, 15, 0, 0, 0, DateTimeKind.Utc), dcwi?.Id),
-
-            ("Code des télécommunications", RegulatoryCategory.Telecom, RegulatoryJurisdiction.Sectoral, "fr",
-                "Loi n° 2001-1 du 15 janvier 2001",
-                "<p>Cadre sectoriel de l'activité de télécommunications : obligations de licence, engagements de qualité de service envers les abonnés et obligations de reporting auprès de l'autorité de régulation, applicables aux contrats DCWI.</p>",
-                "télécommunications,licence,qualité de service,autorité de régulation,dcwi",
-                new DateTime(2001, 1, 15, 0, 0, 0, DateTimeKind.Utc), dcwi?.Id),
-
-            ("Commercial code — obligations between traders", RegulatoryCategory.Commercial, RegulatoryJurisdiction.Tunisia, "en",
-                "Code de commerce",
-                "<p>Baseline rules for contracts between businesses (B2B): commercial registration requirements, payment-term defaults, and the presumption of solidarity between commercial co-debtors.</p>",
-                "commercial,trader,b2b,payment term,commercial registration",
-                new DateTime(1959, 1, 1, 0, 0, 0, DateTimeKind.Utc), null),
-
-            ("Code de commerce — obligations entre commerçants", RegulatoryCategory.Commercial, RegulatoryJurisdiction.Tunisia, "fr",
-                "Code de commerce",
-                "<p>Règles de base des contrats entre entreprises (B2B) : obligations d'immatriculation au registre du commerce, délais de paiement par défaut, présomption de solidarité entre codébiteurs commerciaux.</p>",
-                "commerçant,b2b,délai de paiement,registre du commerce,solidarité",
-                new DateTime(1959, 1, 1, 0, 0, 0, DateTimeKind.Utc), null),
-        };
-
-        var existing = await context.RegulatoryTexts
-            .Select(r => new { r.Title, r.Language })
-            .ToListAsync();
-
-        var toAdd = new List<RegulatoryText>();
-        foreach (var d in defaults)
-        {
-            if (existing.Any(e => e.Title == d.Title && e.Language == d.Language)) continue;
-
-            var text = RegulatoryText.Create(
-                d.Title, d.Category, d.Jurisdiction, d.Summary, d.Keywords, author.Id,
-                d.Language, d.Reference, d.EffectiveDate, d.RequestTypeId);
-            text.SetStatus(RegulatoryTextStatus.Published);
-            text.SetCreatedBy(author.Id.ToString());
-            toAdd.Add(text);
-        }
-
-        if (toAdd.Count > 0)
-        {
-            context.RegulatoryTexts.AddRange(toAdd);
             await context.SaveChangesAsync();
         }
     }

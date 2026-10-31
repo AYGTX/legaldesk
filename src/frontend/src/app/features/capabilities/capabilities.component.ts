@@ -117,7 +117,7 @@ export class CapabilitiesComponent {
     { id: 'obligations', icon: 'event_repeat',       status: 'available', route: '/contracts' },
     { id: 'reporting',   icon: 'monitoring',         status: 'available', route: '/insights/reports' },
     { id: 'execution',   icon: 'notifications_active', status: 'available', route: '/insights/reports' },
-    { id: 'regWatch',    icon: 'travel_explore',     status: 'available', route: '/admin/regulatory-watch' },
+    { id: 'regWatch',    icon: 'gavel',     status: 'available', route: '/admin/review-rules' },
     { id: 'riskMap',     icon: 'crisis_alert',       status: 'available', route: '/insights/reports' }
   ];
 

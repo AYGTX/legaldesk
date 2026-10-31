@@ -23,7 +23,6 @@ const ICONS: Record<NotificationType, string> = {
   CommentMention: 'comment',
   ChangesRequested: 'published_with_changes',
   ObligationDue: 'event_repeat',
-  RegulatoryAlert: 'gavel',
   ContractTermAlert: 'update'
 };
 
@@ -38,7 +37,6 @@ const COLORS: Record<NotificationType, string> = {
   CommentMention:   '#0b57d0',
   ChangesRequested: '#b26a00',
   ObligationDue:    '#7a5900',
-  RegulatoryAlert:  '#6750a4',
   ContractTermAlert:'#b26a00'
 };
 

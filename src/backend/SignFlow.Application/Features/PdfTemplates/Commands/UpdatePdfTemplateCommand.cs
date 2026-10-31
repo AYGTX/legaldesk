@@ -102,7 +102,7 @@ public class UpdatePdfTemplateCommandHandler(
         {
             // A clause already on the template may have been deprecated since; it stays until someone removes it.
             var allowed = await db.Clauses.CountAsync(c => annexIds.Contains(c.Id)
-                && (c.Status == ClauseStatus.Approved || template.AnnexClauseIds.Contains(c.Id)), cancellationToken);
+                && (c.Versions.Any(v => v.Status == ClauseStatus.Approved) || template.AnnexClauseIds.Contains(c.Id)), cancellationToken);
             if (allowed != annexIds.Count)
                 throw new Common.Exceptions.ValidationException("Only approved clauses from the library can be added to the annex.");
         }

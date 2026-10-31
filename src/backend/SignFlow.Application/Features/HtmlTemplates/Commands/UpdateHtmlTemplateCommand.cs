@@ -76,7 +76,8 @@ public class UpdateHtmlTemplateCommandHandler(
 
         template.Update(
             command.Name,
-            command.HtmlContent,
+            // Cleaned on save (R-M6-3): what is stored never runs in a reader's browser or makes the renderer fetch a URL.
+            Common.Services.SafeHtml.Clean(command.HtmlContent),
             command.Description,
             command.DefaultApproverId,
             command.IsActive,

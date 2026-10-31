@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, concat, of, toArray } from 'rxjs';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -12,10 +12,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ClauseService } from '../../core/services/clause.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
-import { Clause, ClauseCategory, ClauseInput, ClauseLanguage, CLAUSE_CATEGORIES, RequestType } from '../../core/models';
+import { ClauseCategory, ClauseInput, ClauseLanguage, ClauseRiskLevel, CLAUSE_CATEGORIES, LibraryClause, RequestType } from '../../core/models';
+import { problemText } from '../../core/utils/problem-text';
 
 export interface ClauseDialogData {
-  clause: Clause | null; // null = create
+  clause: LibraryClause | null; // null = create
   /** Seeds the create form — e.g. from a contract-analysis finding's proposed language. Ignored when editing. */
   prefill?: Partial<ClauseInput>;
 }
@@ -94,8 +95,19 @@ export interface ClauseDialogData {
           <mat-hint>{{ 'clauses.dialog.guidanceHint' | translate }}</mat-hint>
         </mat-form-field>
 
-        @if (isEdit) {
-          <p class="version-note">{{ 'clauses.dialog.versionNote' | translate: { version: data.clause!.version } }}</p>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>{{ 'clauses.dialog.ruleKeys' | translate }}</mat-label>
+          <input matInput formControlName="ruleKeys" [placeholder]="'clauses.dialog.ruleKeysPlaceholder' | translate" />
+          <mat-hint>{{ 'clauses.dialog.ruleKeysHint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        @if (isEdit && latest?.status !== 'Draft') {
+          <p class="version-note">
+            <mat-icon inline>info</mat-icon>
+            {{ 'clauses.dialog.redraftNote' | translate: { approved: latest?.number, next: (latest?.number ?? 0) + 1 } }}
+          </p>
+        } @else if (isEdit) {
+          <p class="version-note">{{ 'clauses.dialog.draftNote' | translate: { version: latest?.number } }}</p>
         }
       </form>
     </mat-dialog-content>
@@ -135,15 +147,18 @@ export class ClauseDialogComponent implements OnInit {
   readonly requestTypes = signal<RequestType[]>([]);
 
   private readonly prefill = this.data.clause ? undefined : this.data.prefill;
+  /** The wording an edit starts from: the newest one. */
+  readonly latest = this.data.clause?.latest ?? this.data.clause?.versions?.[0] ?? null;
 
   readonly form = this.fb.group({
     title: [this.data.clause?.title ?? this.prefill?.title ?? '', [Validators.required, Validators.maxLength(300)]],
     category: [this.data.clause?.category ?? this.prefill?.category ?? 'Other', Validators.required],
-    language: [this.data.clause?.language ?? this.prefill?.language ?? 'en', Validators.required],
-    riskLevel: [this.data.clause?.riskLevel ?? this.prefill?.riskLevel ?? null],
+    language: [this.latest?.language ?? this.prefill?.language ?? 'en', Validators.required],
+    riskLevel: [(this.data.clause?.riskLevel ?? this.prefill?.riskLevel ?? null) as ClauseRiskLevel | null],
     requestTypeId: [this.data.clause?.requestTypeId ?? this.prefill?.requestTypeId ?? null],
-    body: [this.data.clause?.body ?? this.prefill?.body ?? '', Validators.required],
-    guidance: [this.data.clause?.guidance ?? this.prefill?.guidance ?? '']
+    body: [this.latest?.body ?? this.prefill?.body ?? '', Validators.required],
+    guidance: [this.data.clause?.guidance ?? this.prefill?.guidance ?? ''],
+    ruleKeys: [(this.data.clause?.ruleKeys ?? (this.prefill?.ruleKey ? [this.prefill.ruleKey] : [])).join(', ')]
   });
 
   ngOnInit(): void {
@@ -158,27 +173,42 @@ export class ClauseDialogComponent implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     const v = this.form.value;
-    const payload = {
+    const ruleKeys = (v.ruleKeys ?? '').split(',').map(k => k.trim()).filter(k => !!k);
+    const description = {
       title: v.title!,
       category: v.category! as ClauseCategory,
-      body: v.body!,
-      language: v.language! as ClauseLanguage,
       guidance: v.guidance || null,
-      riskLevel: v.riskLevel || null,
+      riskLevel: (v.riskLevel || null) as ClauseRiskLevel | null,
       requestTypeId: v.requestTypeId || null
     };
 
-    const req$: Observable<unknown> = this.isEdit
-      ? this.service.update(this.data.clause!.id, payload)
-      : this.service.create(payload);
+    let req$: Observable<unknown>;
+    if (!this.isEdit) {
+      const input: ClauseInput = { ...description, body: v.body!, language: v.language! as ClauseLanguage, ruleKey: ruleKeys[0] ?? null };
+      // A new clause carries one rule from a finding; any further ones are linked right after.
+      req$ = ruleKeys.length > 1
+        ? new Observable(sub => this.service.create(input).subscribe({
+            next: r => this.service.linkRules(r.id, ruleKeys).subscribe(sub),
+            error: e => sub.error(e)
+          }))
+        : this.service.create(input);
+    } else {
+      const id = this.data.clause!.id;
+      const wordingChanged = v.body !== this.latest?.body || v.language !== this.latest?.language;
+      const rulesChanged = ruleKeys.join('|') !== [...(this.data.clause!.ruleKeys ?? [])].join('|');
+      // An approved wording never changes: new wording drafts the next version, the approved one stays in use (R-M9-1).
+      req$ = concat(
+        this.service.describe(id, description),
+        wordingChanged ? this.service.redraft(id, v.body!, v.language! as ClauseLanguage) : of(null),
+        rulesChanged ? this.service.linkRules(id, ruleKeys) : of(null)
+      ).pipe(toArray());
+    }
 
     req$.subscribe({
       next: () => { this.saving.set(false); this.dialogRef.close(true); },
-      error: (err: { error?: { detail?: string; errors?: Record<string, string[]> } }) => {
+      error: (err: unknown) => {
         this.saving.set(false);
-        this.error.set(err.error?.errors
-          ? Object.values(err.error.errors).flat().join(' ')
-          : err.error?.detail ?? this.translate.instant('clauses.dialog.operationFailed'));
+        this.error.set(problemText(this.translate, err, 'clauses.dialog.operationFailed'));
       }
     });
   }

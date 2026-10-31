@@ -341,7 +341,7 @@ public class PdfAnnexRequestTests
 
         var approved = Clause.Create("Confidentialité", ClauseCategory.Confidentiality,
             "<p>Les parties gardent le secret. Montant : {{amount}}.</p>", OwnerId, "fr");
-        approved.SetStatus(ClauseStatus.Approved);
+        approved.ImportApproved();
         var draft = Clause.Create("Brouillon", ClauseCategory.Confidentiality, "<p>Pas encore validé.</p>", OwnerId, "fr");
         db.Clauses.AddRange(approved, draft);
 
@@ -437,16 +437,17 @@ public class PdfAnnexRequestTests
     }
 
     [Fact]
-    public async Task A_clause_the_template_carries_stays_even_after_it_is_deprecated()
+    public async Task A_clause_whose_wording_was_withdrawn_with_nothing_approved_in_its_place_is_left_out()
     {
+        // R-M9-2: a deprecated wording stays readable and cited by the contracts that used it, but is never offered again.
         var w = await SetUpAsync(templateCarriesApproved: true);
         using var _ = w.F;
-        w.Approved.SetStatus(ClauseStatus.Deprecated);
+        w.Approved.Deprecate(1);
         await w.F.Db.SaveChangesAsync();
 
         var documentId = await SubmitAsync(w);
 
-        Assert.Equal(2, await StoredPageCountAsync(w, documentId));
+        Assert.Equal(1, await StoredPageCountAsync(w, documentId));
     }
 
     [Fact]

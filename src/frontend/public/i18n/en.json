@@ -207,7 +207,6 @@
       "requestTypes": "Contract Types",
       "htmlTemplates": "Contract Templates",
       "clauses": "Clause Library",
-      "regulatoryWatch": "Regulatory Watch",
       "systemSettings": "System Settings",
       "reviewRules": "Review rules",
       "teams": "Teams"
@@ -221,11 +220,6 @@
       "title": "Clause Library",
       "description": "Curate the organisation's approved contract wording — confidentiality, liability, termination, data protection — ready to insert when drafting.",
       "manage": "Manage clause library"
-    },
-    "regulatoryWatch": {
-      "title": "Regulatory Watch",
-      "description": "Curate the registry of tracked regulatory texts. Publishing a text notifies owners of in-force contracts it applies to and feeds the compliance check.",
-      "manage": "Manage regulatory watch"
     },
     "systemSettings": {
       "title": "System Settings",
@@ -749,38 +743,6 @@
           "Imbalance": "Imbalance",
           "Possible": "Possible risk"
         }
-      },
-      "compliance": {
-        "title": "Regulatory Compliance",
-        "legalBasis": "Legal basis",
-        "relevantLaw": {
-          "title": "Relevant law ({{count}} clauses matched)",
-          "intro": "Harvey matched each clause of the contract to verified articles of law in your legal corpus. The search runs on this server; the contract is never sent anywhere."
-        },
-        "citation": {
-          "Verified": "Verified law",
-          "Unverified": "Not confirmed",
-          "Rejected": "Quote rejected",
-          "Pending": "Not checked",
-          "VerifiedHint": "This quote appears word for word in the article, and the article has been verified against the official source.",
-          "UnverifiedHint": "This quote could not be confirmed against verified law. Check it before relying on it.",
-          "RejectedHint": "This quote does not appear in the cited article. The finding has no confirmed legal basis.",
-          "PendingHint": "This citation has not been checked against the legal corpus."
-        },
-        "run": "Ask Harvey to review",
-        "rerun": "Ask Harvey again",
-        "failed": "Compliance check failed",
-        "score": "Compliance score: {{score}}/100",
-        "noRun": "Harvey has not reviewed this contract yet.",
-        "noneTracked": "No published regulatory texts apply to this contract",
-        "status": {
-          "Addressed": "Addressed",
-          "Gap": "Gap",
-          "Unclear": "Unclear"
-        },
-        "running": "Harvey is reviewing the contract — this can take a few seconds",
-        "byHarvey": "Analysed by Harvey · every citation checked word for word against verified law",
-        "signedHarvey": "Harvey · verified law"
       },
       "obligation": {
         "title": "Obligation Tracking",
@@ -1871,7 +1833,9 @@
           "no_rules": "No review rule is in service yet: a lawyer has to approve Harvey's rules before contracts can be reviewed."
         }
       },
-      "fromOcr": "text from OCR: check the original"
+      "fromOcr": "text from OCR: check the original",
+      "libraryClause": "Your library: {{title}} (v{{version}})",
+      "alreadyInLibrary": "Your library already has an approved clause for this rule."
     }
   },
   "reports": {
@@ -2311,14 +2275,12 @@
     "statusFailed": "Could not change the clause status",
     "deleteFailed": "Could not delete the clause",
     "confirmDelete": "Delete the clause \"{{title}}\"? This cannot be undone.",
-    "approve": "Approve",
-    "deprecate": "Deprecate",
-    "revertToDraft": "Revert to draft",
     "usedTimes": "Used {{count}}×",
-    "versionTooltip": "Clause version — bumped whenever the wording changes",
     "usageTooltip": "How many times this clause has been inserted into a contract",
     "stats": {
-      "total": "Clauses"
+      "total": "Clauses",
+      "inUse": "In use",
+      "waiting": "Awaiting approval"
     },
     "category": {
       "Confidentiality": "Confidentiality",
@@ -2366,9 +2328,13 @@
       "guidance": "Internal legal guidance",
       "guidancePlaceholder": "When to use this clause, negotiation stance, accepted fallback positions…",
       "guidanceHint": "Shown to drafters in the library and picker. Never appears in the contract itself.",
-      "versionNote": "Currently version {{version}}. Editing the wording will create a new version.",
       "create": "Add clause",
-      "operationFailed": "The operation failed"
+      "operationFailed": "The operation failed",
+      "ruleKeys": "Harvey rules this clause answers",
+      "ruleKeysPlaceholder": "e.g. liability.cap, confidentiality.duration",
+      "ruleKeysHint": "Separate with commas. A finding on one of these rules proposes this clause.",
+      "redraftNote": "Changing the wording drafts version {{next}}. Version {{approved}} stays in use until someone other than you approves the new one.",
+      "draftNote": "Version {{version}} is a draft: you can still change it. Someone other than its last author approves it."
     },
     "picker": {
       "button": "Clause library",
@@ -2378,115 +2344,21 @@
       "insert": "Insert clause",
       "inserted": "Inserted “{{title}}”",
       "empty": "No approved clause matches these filters."
-    }
-  },
-  "regulatoryWatch": {
-    "title": "Regulatory Watch",
-    "subtitle": "A legal-team-curated registry of tracked regulatory texts. Publishing a text notifies the owners of in-force contracts it applies to, and feeds the compliance check on the contract page.",
-    "backToAdmin": "Back to Administration",
-    "addText": "Add regulatory text",
-    "searchLabel": "Search regulatory texts",
-    "searchPlaceholder": "Title or summary…",
-    "filterCategory": "Category",
-    "filterJurisdiction": "Jurisdiction",
-    "filterStatus": "Status",
-    "allCategories": "All categories",
-    "allJurisdictions": "All jurisdictions",
-    "allStatuses": "All statuses",
-    "emptyTitle": "No regulatory texts found",
-    "emptyHint": "Adjust your filters, or add the first tracked text.",
-    "loadFailed": "Could not load the regulatory watch registry",
-    "statusFailed": "Could not change the regulatory text status",
-    "deleteFailed": "Could not delete the regulatory text",
-    "confirmDelete": "Delete the regulatory text \"{{title}}\"? This cannot be undone.",
-    "publish": "Publish",
-    "archive": "Archive",
-    "revertToDraft": "Revert to draft",
-    "effectiveDateTooltip": "Effective date of this regulatory text",
-    "stats": {
-      "total": "Texts"
     },
-    "category": {
-      "DataProtection": "Data protection",
-      "Labor": "Labor",
-      "Consumer": "Consumer",
-      "Commercial": "Commercial",
-      "Tax": "Tax",
-      "Telecom": "Telecom",
-      "Other": "Other"
-    },
-    "jurisdiction": {
-      "Tunisia": "Tunisia",
-      "EU": "European Union",
-      "Sectoral": "Sectoral"
-    },
-    "status": {
-      "Draft": "Draft",
-      "Published": "Published",
-      "Archived": "Archived"
-    },
-    "language": {
-      "en": "English",
-      "fr": "French",
-      "ar": "Arabic"
-    },
-    "dialog": {
-      "createTitle": "Add a regulatory text",
-      "editTitle": "Edit regulatory text",
-      "textTitle": "Text title",
-      "textTitlePlaceholder": "e.g. Personal data protection law",
-      "category": "Category",
-      "jurisdiction": "Jurisdiction",
-      "language": "Language",
-      "reference": "Legal reference",
-      "referencePlaceholder": "e.g. Loi organique n° 2004-63 du 27 juillet 2004",
-      "effectiveDate": "Effective date",
-      "scope": "Applies to contract type",
-      "scopeAll": "All contract types",
-      "scopeHint": "Leave on “All contract types” unless this text only applies to one contract family.",
-      "summary": "Summary",
-      "summaryPlaceholder": "<p>Plain-language summary of what this text requires…</p>",
-      "keywords": "Keywords",
-      "keywordsPlaceholder": "personal data, data controller, data breach",
-      "keywordsHint": "Comma-separated terms the compliance scan looks for in a contract's text.",
-      "create": "Add text",
-      "operationFailed": "The operation failed",
-      "sourceUrl": "Official source",
-      "sourceUrlPlaceholder": "https://…",
-      "sourceUrlHint": "Where the official text can be read (gazette issue or legislation portal). Required to verify."
-    },
-    "verified": "Verified",
-    "unverified": "Not verified",
-    "verifiedTooltip": "Signed off by {{name}} on {{date}} against the official source.",
-    "unverifiedTooltip": "These words have not been checked against the official text. Do not rely on them as law.",
-    "articleCount": "{{count}} article(s)",
-    "manageArticles": "Articles and verification",
-    "articles": {
-      "title": "Articles",
-      "reference": "Official reference",
-      "source": "Official source",
-      "missing": "not given",
-      "verifiedBy": "Verified by {{name}} on {{date}}",
-      "notVerified": "Not verified — nothing here is presented as law until a person signs it off.",
-      "pasteLabel": "Paste the official text",
-      "pastePlaceholder": "Paste the law as published. Each article should start on its own line, like “Article 1 -” or “الفصل 1”.",
-      "split": "Split into articles",
-      "splitReplaces": "The list below will be replaced.",
-      "preamble": "Text before the first article (not stored)",
-      "count": "{{count}} article(s)",
-      "add": "Add an article",
-      "empty": "No articles yet.",
-      "numberPlaceholder": "No.",
-      "textPlaceholder": "Text of the article, word for word",
-      "confirm": "I compared these articles with the official source, word for word, and they match.",
-      "editWithdraws": "Changing an article withdraws the verification.",
-      "save": "Save articles",
-      "verify": "Verify",
-      "loadFailed": "Could not load the articles.",
-      "splitFailed": "Could not split the text.",
-      "saveFailed": "Could not save the articles.",
-      "verifyFailed": "Could not verify this text."
-    }
+    "inUse": "In use: v{{version}}",
+    "draftWaiting": "Draft v{{version}} awaiting approval",
+    "notInUse": "Not in use",
+    "actions": "Clause actions",
+    "ownWording": "You wrote this wording: someone else must approve it.",
+    "approveVersion": "Approve v{{version}}",
+    "withdrawVersion": "Withdraw v{{version}}",
+    "draftWording": "Draft v{{version}} by {{author}} — not used until approved",
+    "draftBy": "Draft by {{author}}: not offered to drafters until someone else approves it.",
+    "rulesHint": "A review finding on one of these Harvey rules proposes this clause first.",
+    "history": "{{count}} wordings",
+    "approvedBy": "approved by {{name}}",
+    "approved": "Version {{version}} approved: it is now the wording in use.",
+    "confirmWithdraw": "Withdraw version {{version}} of \"{{title}}\"? Contracts that used it keep citing it; it will no longer be offered."
   },
   "htmlTemplates": {
     "list": {
@@ -2697,12 +2569,12 @@
         "desc": "Email, in-app and real-time channels fire on signing deadlines, reminders and escalations. Executed contracts are swept once a day against the term recorded on them: the owner is alerted 90, 60, 30 and 7 days before expiry, again the day the notice deadline passes, and once the contract has lapsed — each milestone exactly once. From the notice deadline onwards the alert also reaches administrators and managers, so a departed owner is never the only person told. The sweep reads the dates entered on each contract; it does not monitor anything outside LegalDesk."
       },
       "regWatch": {
-        "title": "Integrated regulatory watch",
-        "desc": "A legal-team-curated registry of Tunisian, European and sector-specific texts — data protection, consumer, telecom, commercial — each publishable with an effective date and an optional contract-family scope. Curation and publication are legal-team actions today, not an automated crawler of external sources."
+        "title": "Verified Tunisian law",
+        "desc": "Harvey holds Tunisian codes, laws and decrees article by article, each text checked by a lawyer against its official source. Every review finding cites the articles it rests on. The former regulatory watch was retired: its texts were exported for a lawyer to verify and import into Harvey."
       },
       "riskMap": {
-        "title": "Regulatory alerts and risk mapping",
-        "desc": "Publishing a regulatory text notifies the owners of in-force contracts it applies to, and the reporting page aggregates Harvey's current findings on every reviewed contract into a portfolio map: severity distribution, most frequent risks, and exposure by contract family."
+        "title": "Risk mapping",
+        "desc": "The reporting page aggregates Harvey's current findings on every reviewed contract into a portfolio map: severity distribution, most frequent risks, and exposure by contract family."
       }
     }
   },
@@ -2758,8 +2630,8 @@
         "desc": "Missing, weak, ambiguous or unbalanced clauses, with proposed wording for each."
       },
       "regulatory": {
-        "title": "Regulatory coverage",
-        "desc": "Whether the contract addresses the regulations tracked for this contract family."
+        "title": "Law references",
+        "desc": "Each finding cites the articles of Tunisian law it rests on, from Harvey's verified corpus."
       },
       "obligations": {
         "title": "Key dates",
@@ -2769,7 +2641,7 @@
     "analysing": {
       "title": "Analysing the contract",
       "uploading": "Uploading and extracting the text…",
-      "reviewing": "Legal review and regulatory check in progress…",
+      "reviewing": "Legal review in progress…",
       "note": "This takes up to a minute — the full review reads the whole contract."
     },
     "next": {
@@ -2850,6 +2722,10 @@
     },
     "team": {
       "inUse": "This team is used by a workflow or a contract in progress, so it cannot be deleted."
+    },
+    "clause": {
+      "ownWording": "You wrote this wording, so someone else must approve it.",
+      "notDraft": "Only a draft wording can be approved."
     }
   }
 }

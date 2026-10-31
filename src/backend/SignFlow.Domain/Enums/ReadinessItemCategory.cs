@@ -6,7 +6,7 @@ public enum ReadinessItemCategory
     /// <summary>From a RiskFinding in the contract risk analysis.</summary>
     Risk = 0,
 
-    /// <summary>From a "Gap" ComplianceFinding against the regulatory watch registry.</summary>
+    /// <summary>Formerly a gap against the regulatory watch (retired, R-M9-6); kept so old items still read.</summary>
     Compliance = 1,
 
     /// <summary>From the renewal/expiry obligation extraction.</summary>

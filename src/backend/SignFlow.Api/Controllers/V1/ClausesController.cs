@@ -4,15 +4,16 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Features.Clauses;
 using SignFlow.Application.Features.Clauses.Commands;
-using SignFlow.Application.Features.Clauses.Queries;
 using SignFlow.Domain.Enums;
 
 namespace SignFlow.Api.Controllers.V1;
 
 /// <summary>
-/// The shared clause library — legally vetted, reusable contract wording. Curation is restricted
-/// to administrators and managers; approved clauses are readable by anyone drafting a contract.
+/// The clause library (M9): each clause keeps every wording it has had; an approved wording never changes, a new one is
+/// drafted and approved by someone other than its author. Curation is for administrators and managers; approved
+/// wordings are readable by anyone drafting or reviewing a contract.
 /// </summary>
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/clauses")]
@@ -20,14 +21,18 @@ namespace SignFlow.Api.Controllers.V1;
 [Authorize]
 public class ClausesController(
     IQueryHandler<GetClausesQuery, List<ClauseDto>> getAllHandler,
-    IQueryHandler<GetApprovedClausesQuery, List<ClauseDto>> getApprovedHandler,
+    IQueryHandler<GetApprovedClausesQuery, List<ApprovedClauseDto>> getApprovedHandler,
+    IQueryHandler<GetClausesForRuleQuery, List<ApprovedClauseDto>> forRuleHandler,
     ICommandHandler<CreateClauseCommand, Guid> createHandler,
-    ICommandHandler<UpdateClauseCommand> updateHandler,
-    ICommandHandler<SetClauseStatusCommand> setStatusHandler,
+    ICommandHandler<DescribeClauseCommand> describeHandler,
+    ICommandHandler<RedraftClauseCommand, int> redraftHandler,
+    ICommandHandler<ApproveClauseVersionCommand> approveHandler,
+    ICommandHandler<DeprecateClauseVersionCommand> deprecateHandler,
+    ICommandHandler<LinkClauseRulesCommand> rulesHandler,
     ICommandHandler<DeleteClauseCommand> deleteHandler,
     ICommandHandler<RecordClauseUsageCommand> recordUsageHandler) : ControllerBase
 {
-    /// <summary>List every clause in the library, including drafts (administrators and managers)</summary>
+    /// <summary>Every clause with all its wordings, drafts included (administrators and managers)</summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<ClauseDto>), 200)]
     public async Task<ActionResult<List<ClauseDto>>> GetAll(
@@ -38,10 +43,10 @@ public class ClausesController(
         CancellationToken ct = default)
         => Ok(await getAllHandler.HandleAsync(new GetClausesQuery(search, category, language, status), ct));
 
-    /// <summary>List approved clauses available for insertion into a contract</summary>
+    /// <summary>Approved wordings available for insertion into a contract</summary>
     [HttpGet("approved")]
-    [ProducesResponseType(typeof(List<ClauseDto>), 200)]
-    public async Task<ActionResult<List<ClauseDto>>> GetApproved(
+    [ProducesResponseType(typeof(List<ApprovedClauseDto>), 200)]
+    public async Task<ActionResult<List<ApprovedClauseDto>>> GetApproved(
         [FromQuery] string? search = null,
         [FromQuery] ClauseCategory? category = null,
         [FromQuery] string? language = null,
@@ -49,36 +54,68 @@ public class ClausesController(
         CancellationToken ct = default)
         => Ok(await getApprovedHandler.HandleAsync(new GetApprovedClausesQuery(search, category, language, requestTypeId), ct));
 
-    /// <summary>Add a clause to the library (created as a draft)</summary>
+    /// <summary>The organisation's approved wordings for a Harvey rule, in the given language first</summary>
+    [HttpGet("for-rule/{ruleKey}")]
+    [ProducesResponseType(typeof(List<ApprovedClauseDto>), 200)]
+    public async Task<ActionResult<List<ApprovedClauseDto>>> ForRule([FromRoute] string ruleKey, [FromQuery] string? language = null, CancellationToken ct = default)
+        => Ok(await forRuleHandler.HandleAsync(new GetClausesForRuleQuery(ruleKey, language), ct));
+
+    /// <summary>Add a clause with its first wording, as a draft; from a finding, linked to its rule</summary>
     [HttpPost]
     [ProducesResponseType(typeof(CreateClauseResponse), 201)]
     public async Task<ActionResult<CreateClauseResponse>> Create([FromBody] CreateClauseRequest request, CancellationToken ct)
     {
         var id = await createHandler.HandleAsync(
             new CreateClauseCommand(request.Title, request.Category, request.Body, request.Language,
-                request.Guidance, request.RiskLevel, request.RequestTypeId), ct);
+                request.Guidance, request.RiskLevel, request.RequestTypeId, request.RuleKey), ct);
         return CreatedAtAction(nameof(GetAll), new { }, new CreateClauseResponse(id));
     }
 
-    /// <summary>Update clause wording or metadata (bumps the version when the wording changes)</summary>
+    /// <summary>Change what describes a clause (title, category, guidance, risk, family); not its wording</summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
-    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateClauseRequest request, CancellationToken ct)
+    public async Task<IActionResult> Describe([FromRoute] Guid id, [FromBody] DescribeClauseRequest request, CancellationToken ct)
     {
-        await updateHandler.HandleAsync(
-            new UpdateClauseCommand(id, request.Title, request.Category, request.Body, request.Language,
-                request.Guidance, request.RiskLevel, request.RequestTypeId), ct);
+        await describeHandler.HandleAsync(
+            new DescribeClauseCommand(id, request.Title, request.Category, request.Guidance, request.RiskLevel, request.RequestTypeId), ct);
         return NoContent();
     }
 
-    /// <summary>Approve or deprecate a clause (administrators only)</summary>
-    [HttpPatch("{id:guid}/status")]
+    /// <summary>New wording: rewrites the open draft, or drafts the next version (the approved one stays in use)</summary>
+    [HttpPost("{id:guid}/versions")]
+    [ProducesResponseType(typeof(ClauseVersionResponse), 200)]
+    public async Task<ActionResult<ClauseVersionResponse>> Redraft([FromRoute] Guid id, [FromBody] RedraftClauseRequest request, CancellationToken ct)
+        => Ok(new ClauseVersionResponse(await redraftHandler.HandleAsync(new RedraftClauseCommand(id, request.Body, request.Language), ct)));
+
+    /// <summary>Approve a draft wording (a manager or administrator other than its author)</summary>
+    [HttpPost("{id:guid}/versions/{number:int}/approve")]
     [RequirePermission(Permissions.ApproveClauses)]
     [ProducesResponseType(204)]
-    public async Task<IActionResult> SetStatus([FromRoute] Guid id, [FromBody] SetClauseStatusRequest request, CancellationToken ct)
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<IActionResult> Approve([FromRoute] Guid id, [FromRoute] int number, CancellationToken ct)
     {
-        await setStatusHandler.HandleAsync(new SetClauseStatusCommand(id, request.Status), ct);
+        await approveHandler.HandleAsync(new ApproveClauseVersionCommand(id, number), ct);
+        return NoContent();
+    }
+
+    /// <summary>Withdraw a wording: still readable and cited, never offered again</summary>
+    [HttpPost("{id:guid}/versions/{number:int}/deprecate")]
+    [RequirePermission(Permissions.ApproveClauses)]
+    [ProducesResponseType(204)]
+    public async Task<IActionResult> Deprecate([FromRoute] Guid id, [FromRoute] int number, CancellationToken ct)
+    {
+        await deprecateHandler.HandleAsync(new DeprecateClauseVersionCommand(id, number), ct);
+        return NoContent();
+    }
+
+    /// <summary>The Harvey rules this clause answers</summary>
+    [HttpPut("{id:guid}/rules")]
+    [ProducesResponseType(204)]
+    public async Task<IActionResult> LinkRules([FromRoute] Guid id, [FromBody] LinkRulesRequest request, CancellationToken ct)
+    {
+        await rulesHandler.HandleAsync(new LinkClauseRulesCommand(id, request.RuleKeys ?? []), ct);
         return NoContent();
     }
 
@@ -91,7 +128,7 @@ public class ClausesController(
         return NoContent();
     }
 
-    /// <summary>Delete a clause that has never been used (administrators only)</summary>
+    /// <summary>Delete a clause that has never been used (administrators and managers)</summary>
     [HttpDelete("{id:guid}")]
     [RequirePermission(Permissions.ApproveClauses)]
     [ProducesResponseType(204)]
@@ -110,21 +147,26 @@ public record CreateClauseRequest(
     string Body,
     string Language,
     string? Guidance,
-    string? RiskLevel,
-    Guid? RequestTypeId);
+    ClauseRiskLevel? RiskLevel,
+    Guid? RequestTypeId,
+    string? RuleKey = null);
 
-/// <summary>Payload to update an existing clause.</summary>
-public record UpdateClauseRequest(
+/// <summary>What describes a clause.</summary>
+public record DescribeClauseRequest(
     string Title,
     ClauseCategory Category,
-    string Body,
-    string Language,
     string? Guidance,
-    string? RiskLevel,
+    ClauseRiskLevel? RiskLevel,
     Guid? RequestTypeId);
 
-/// <summary>Payload to move a clause through its approval lifecycle.</summary>
-public record SetClauseStatusRequest(ClauseStatus Status);
+/// <summary>New wording for a clause.</summary>
+public record RedraftClauseRequest(string Body, string Language);
+
+/// <summary>The Harvey rule keys a clause answers.</summary>
+public record LinkRulesRequest(List<string>? RuleKeys);
 
 /// <summary>Identifier of the newly created clause.</summary>
 public record CreateClauseResponse(Guid Id);
+
+/// <summary>The number of the wording just written.</summary>
+public record ClauseVersionResponse(int Number);

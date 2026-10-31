@@ -108,9 +108,11 @@ internal static class B2BContractTemplateSeeder
             approvers[email] = user.Id;
         }
 
-        var library = await context.Clauses
-            .Where(c => c.Language == "fr" && Clauses.All.Contains(c.Title))
-            .ToDictionaryAsync(c => c.Title, c => c.Body, cancellationToken);
+        var library = (await context.Clauses
+                .Where(c => Clauses.All.Contains(c.Title))
+                .SelectMany(c => c.Versions.Where(v => v.Language == "fr" && v.Status == ClauseStatus.Approved), (c, v) => new { c.Title, v.Body })
+                .ToListAsync(cancellationToken))
+            .GroupBy(x => x.Title).ToDictionary(g => g.Key, g => g.First().Body);
         var missing = Clauses.All.Where(t => !library.ContainsKey(t)).ToList();
         if (missing.Count > 0)
         {

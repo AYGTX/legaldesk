@@ -108,60 +108,86 @@
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.ClausesController">
             <summary>
-            The shared clause library — legally vetted, reusable contract wording. Curation is restricted
-            to administrators and managers; approved clauses are readable by anyone drafting a contract.
+            The clause library (M9): each clause keeps every wording it has had; an approved wording never changes, a new one is
+            drafted and approved by someone other than its author. Curation is for administrators and managers; approved
+            wordings are readable by anyone drafting or reviewing a contract.
             </summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Clauses.Queries.GetClausesQuery,System.Collections.Generic.List{SignFlow.Application.Features.Clauses.Queries.ClauseDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Clauses.Queries.GetApprovedClausesQuery,System.Collections.Generic.List{SignFlow.Application.Features.Clauses.Queries.ClauseDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.CreateClauseCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.UpdateClauseCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.SetClauseStatusCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.DeleteClauseCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.RecordClauseUsageCommand})">
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Clauses.GetClausesQuery,System.Collections.Generic.List{SignFlow.Application.Features.Clauses.ClauseDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Clauses.GetApprovedClausesQuery,System.Collections.Generic.List{SignFlow.Application.Features.Clauses.ApprovedClauseDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Clauses.GetClausesForRuleQuery,System.Collections.Generic.List{SignFlow.Application.Features.Clauses.ApprovedClauseDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.CreateClauseCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.DescribeClauseCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.RedraftClauseCommand,System.Int32},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.ApproveClauseVersionCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.DeprecateClauseVersionCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.LinkClauseRulesCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.DeleteClauseCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Clauses.Commands.RecordClauseUsageCommand})">
             <summary>
-            The shared clause library — legally vetted, reusable contract wording. Curation is restricted
-            to administrators and managers; approved clauses are readable by anyone drafting a contract.
+            The clause library (M9): each clause keeps every wording it has had; an approved wording never changes, a new one is
+            drafted and approved by someone other than its author. Curation is for administrators and managers; approved
+            wordings are readable by anyone drafting or reviewing a contract.
             </summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ClausesController.GetAll(System.String,System.Nullable{SignFlow.Domain.Enums.ClauseCategory},System.String,System.Nullable{SignFlow.Domain.Enums.ClauseStatus},System.Threading.CancellationToken)">
-            <summary>List every clause in the library, including drafts (administrators and managers)</summary>
+            <summary>Every clause with all its wordings, drafts included (administrators and managers)</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ClausesController.GetApproved(System.String,System.Nullable{SignFlow.Domain.Enums.ClauseCategory},System.String,System.Nullable{System.Guid},System.Threading.CancellationToken)">
-            <summary>List approved clauses available for insertion into a contract</summary>
+            <summary>Approved wordings available for insertion into a contract</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.ForRule(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>The organisation's approved wordings for a Harvey rule, in the given language first</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Create(SignFlow.Api.Controllers.V1.CreateClauseRequest,System.Threading.CancellationToken)">
-            <summary>Add a clause to the library (created as a draft)</summary>
+            <summary>Add a clause with its first wording, as a draft; from a finding, linked to its rule</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdateClauseRequest,System.Threading.CancellationToken)">
-            <summary>Update clause wording or metadata (bumps the version when the wording changes)</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Describe(System.Guid,SignFlow.Api.Controllers.V1.DescribeClauseRequest,System.Threading.CancellationToken)">
+            <summary>Change what describes a clause (title, category, guidance, risk, family); not its wording</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.SetStatus(System.Guid,SignFlow.Api.Controllers.V1.SetClauseStatusRequest,System.Threading.CancellationToken)">
-            <summary>Approve or deprecate a clause (administrators only)</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Redraft(System.Guid,SignFlow.Api.Controllers.V1.RedraftClauseRequest,System.Threading.CancellationToken)">
+            <summary>New wording: rewrites the open draft, or drafts the next version (the approved one stays in use)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Approve(System.Guid,System.Int32,System.Threading.CancellationToken)">
+            <summary>Approve a draft wording (a manager or administrator other than its author)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Deprecate(System.Guid,System.Int32,System.Threading.CancellationToken)">
+            <summary>Withdraw a wording: still readable and cited, never offered again</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClausesController.LinkRules(System.Guid,SignFlow.Api.Controllers.V1.LinkRulesRequest,System.Threading.CancellationToken)">
+            <summary>The Harvey rules this clause answers</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ClausesController.RecordUsage(System.Guid,System.Threading.CancellationToken)">
             <summary>Record that a clause was inserted into a contract template</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.ClausesController.Delete(System.Guid,System.Threading.CancellationToken)">
-            <summary>Delete a clause that has never been used (administrators only)</summary>
+            <summary>Delete a clause that has never been used (administrators and managers)</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.CreateClauseRequest">
             <summary>Payload to add a clause to the library.</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.CreateClauseRequest.#ctor(System.String,SignFlow.Domain.Enums.ClauseCategory,System.String,System.String,System.String,System.String,System.Nullable{System.Guid})">
+        <member name="M:SignFlow.Api.Controllers.V1.CreateClauseRequest.#ctor(System.String,SignFlow.Domain.Enums.ClauseCategory,System.String,System.String,System.String,System.Nullable{SignFlow.Domain.Enums.ClauseRiskLevel},System.Nullable{System.Guid},System.String)">
             <summary>Payload to add a clause to the library.</summary>
         </member>
-        <member name="T:SignFlow.Api.Controllers.V1.UpdateClauseRequest">
-            <summary>Payload to update an existing clause.</summary>
+        <member name="T:SignFlow.Api.Controllers.V1.DescribeClauseRequest">
+            <summary>What describes a clause.</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.UpdateClauseRequest.#ctor(System.String,SignFlow.Domain.Enums.ClauseCategory,System.String,System.String,System.String,System.String,System.Nullable{System.Guid})">
-            <summary>Payload to update an existing clause.</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.DescribeClauseRequest.#ctor(System.String,SignFlow.Domain.Enums.ClauseCategory,System.String,System.Nullable{SignFlow.Domain.Enums.ClauseRiskLevel},System.Nullable{System.Guid})">
+            <summary>What describes a clause.</summary>
         </member>
-        <member name="T:SignFlow.Api.Controllers.V1.SetClauseStatusRequest">
-            <summary>Payload to move a clause through its approval lifecycle.</summary>
+        <member name="T:SignFlow.Api.Controllers.V1.RedraftClauseRequest">
+            <summary>New wording for a clause.</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.SetClauseStatusRequest.#ctor(SignFlow.Domain.Enums.ClauseStatus)">
-            <summary>Payload to move a clause through its approval lifecycle.</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.RedraftClauseRequest.#ctor(System.String,System.String)">
+            <summary>New wording for a clause.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.LinkRulesRequest">
+            <summary>The Harvey rule keys a clause answers.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.LinkRulesRequest.#ctor(System.Collections.Generic.List{System.String})">
+            <summary>The Harvey rule keys a clause answers.</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.CreateClauseResponse">
             <summary>Identifier of the newly created clause.</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.CreateClauseResponse.#ctor(System.Guid)">
             <summary>Identifier of the newly created clause.</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.ClauseVersionResponse">
+            <summary>The number of the wording just written.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.ClauseVersionResponse.#ctor(System.Int32)">
+            <summary>The number of the wording just written.</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.CommentsController">
             <summary>Document comments and threaded discussions (collaboration layer)</summary>
@@ -484,74 +510,6 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.RecipientsController.SetChecklist(System.Guid,System.Guid,SignFlow.Api.Controllers.V1.SetChecklistRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Checklist.Commands.SetChecklistItemsCommand},System.Threading.CancellationToken)">
             <summary>Set the review/approval checklist for one recipient (owner only, draft documents only)</summary>
-        </member>
-        <member name="T:SignFlow.Api.Controllers.V1.RegulatoryWatchController">
-            <summary>
-            The regulatory watch registry — a legal-team-curated list of tracked regulatory texts (TN/EU/
-            sectoral). Curation is restricted to administrators and managers; publishing a text is an
-            administrator-only action and triggers a regulatory alert on contracts already in force.
-            </summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RegulatoryWatch.Queries.GetRegulatoryTextsQuery,System.Collections.Generic.List{SignFlow.Application.Features.RegulatoryWatch.Queries.RegulatoryTextDto}},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RegulatoryWatch.Queries.GetPublishedRegulatoryTextsQuery,System.Collections.Generic.List{SignFlow.Application.Features.RegulatoryWatch.Queries.RegulatoryTextDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.CreateRegulatoryTextCommand,System.Guid},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.UpdateRegulatoryTextCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.SetRegulatoryTextStatusCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.DeleteRegulatoryTextCommand},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RegulatoryWatch.Queries.PreviewRegulatoryArticlesQuery,SignFlow.Application.Common.Services.ArticleSplit},SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.RegulatoryWatch.Queries.GetRegulatoryArticlesQuery,System.Collections.Generic.List{SignFlow.Application.Features.RegulatoryWatch.Queries.RegulatoryArticleDto}},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.SaveRegulatoryArticlesCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.RegulatoryWatch.Commands.VerifyRegulatoryTextCommand})">
-            <summary>
-            The regulatory watch registry — a legal-team-curated list of tracked regulatory texts (TN/EU/
-            sectoral). Curation is restricted to administrators and managers; publishing a text is an
-            administrator-only action and triggers a regulatory alert on contracts already in force.
-            </summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.GetAll(System.String,System.Nullable{SignFlow.Domain.Enums.RegulatoryCategory},System.Nullable{SignFlow.Domain.Enums.RegulatoryJurisdiction},System.String,System.Nullable{SignFlow.Domain.Enums.RegulatoryTextStatus},System.Threading.CancellationToken)">
-            <summary>List every tracked regulatory text, including drafts (administrators and managers)</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.GetPublished(System.String,System.Nullable{SignFlow.Domain.Enums.RegulatoryCategory},System.Nullable{SignFlow.Domain.Enums.RegulatoryJurisdiction},System.String,System.Nullable{System.Guid},System.Threading.CancellationToken)">
-            <summary>List published regulatory texts (any authenticated user)</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.Create(SignFlow.Api.Controllers.V1.CreateRegulatoryTextRequest,System.Threading.CancellationToken)">
-            <summary>Add a regulatory text to the registry (created as a draft)</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdateRegulatoryTextRequest,System.Threading.CancellationToken)">
-            <summary>Update a regulatory text's summary or metadata</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.PreviewArticles(SignFlow.Api.Controllers.V1.PreviewArticlesRequest,System.Threading.CancellationToken)">
-            <summary>Show how pasted law text would be cut into articles. Nothing is saved.</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.GetArticles(System.Guid,System.Threading.CancellationToken)">
-            <summary>The articles of a regulatory text, in reading order</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.SaveArticles(System.Guid,SignFlow.Api.Controllers.V1.SaveArticlesRequest,System.Threading.CancellationToken)">
-            <summary>Replace the articles of a regulatory text. Withdraws any earlier verification.</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.Verify(System.Guid,System.Threading.CancellationToken)">
-            <summary>Attest that the stored articles are the official text (administrators and managers)</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.SetStatus(System.Guid,SignFlow.Api.Controllers.V1.SetRegulatoryTextStatusRequest,System.Threading.CancellationToken)">
-            <summary>Publish or archive a regulatory text (administrators only). Publishing alerts owners of contracts in force.</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RegulatoryWatchController.Delete(System.Guid,System.Threading.CancellationToken)">
-            <summary>Delete a regulatory text that has never been published (administrators only)</summary>
-        </member>
-        <member name="T:SignFlow.Api.Controllers.V1.CreateRegulatoryTextRequest">
-            <summary>Payload to add a regulatory text to the registry.</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.CreateRegulatoryTextRequest.#ctor(System.String,SignFlow.Domain.Enums.RegulatoryCategory,SignFlow.Domain.Enums.RegulatoryJurisdiction,System.String,System.String,System.String,System.String,System.Nullable{System.DateTime},System.Nullable{System.Guid},System.String)">
-            <summary>Payload to add a regulatory text to the registry.</summary>
-        </member>
-        <member name="T:SignFlow.Api.Controllers.V1.UpdateRegulatoryTextRequest">
-            <summary>Payload to update an existing regulatory text.</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.UpdateRegulatoryTextRequest.#ctor(System.String,SignFlow.Domain.Enums.RegulatoryCategory,SignFlow.Domain.Enums.RegulatoryJurisdiction,System.String,System.String,System.String,System.String,System.Nullable{System.DateTime},System.Nullable{System.Guid},System.String)">
-            <summary>Payload to update an existing regulatory text.</summary>
-        </member>
-        <member name="T:SignFlow.Api.Controllers.V1.SetRegulatoryTextStatusRequest">
-            <summary>Payload to move a regulatory text through its publication lifecycle.</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.SetRegulatoryTextStatusRequest.#ctor(SignFlow.Domain.Enums.RegulatoryTextStatus)">
-            <summary>Payload to move a regulatory text through its publication lifecycle.</summary>
-        </member>
-        <member name="T:SignFlow.Api.Controllers.V1.CreateRegulatoryTextResponse">
-            <summary>Identifier of the newly created regulatory text.</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.CreateRegulatoryTextResponse.#ctor(System.Guid)">
-            <summary>Identifier of the newly created regulatory text.</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.ReportsController">
             <summary>Organization-wide reporting and analytics — administrators and managers only</summary>

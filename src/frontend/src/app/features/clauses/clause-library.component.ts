@@ -17,7 +17,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ClauseService } from '../../core/services/clause.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { Clause, ClauseCategory, ClauseStatus, CLAUSE_CATEGORIES } from '../../core/models';
+import { ClauseCategory, ClauseStatus, ClauseVersion, CLAUSE_CATEGORIES, LibraryClause } from '../../core/models';
+import { problemText } from '../../core/utils/problem-text';
 import { ClauseDialogComponent } from './clause-dialog.component';
 
 @Component({
@@ -44,9 +45,8 @@ import { ClauseDialogComponent } from './clause-dialog.component';
 
       <div class="stats-row">
         <div class="stat"><span class="stat-value">{{ clauses().length }}</span><span class="stat-label">{{ 'clauses.stats.total' | translate }}</span></div>
-        <div class="stat"><span class="stat-value approved">{{ countBy('Approved') }}</span><span class="stat-label">{{ 'clauses.status.Approved' | translate }}</span></div>
-        <div class="stat"><span class="stat-value draft">{{ countBy('Draft') }}</span><span class="stat-label">{{ 'clauses.status.Draft' | translate }}</span></div>
-        <div class="stat"><span class="stat-value deprecated">{{ countBy('Deprecated') }}</span><span class="stat-label">{{ 'clauses.status.Deprecated' | translate }}</span></div>
+        <div class="stat"><span class="stat-value approved">{{ inUseCount() }}</span><span class="stat-label">{{ 'clauses.stats.inUse' | translate }}</span></div>
+        <div class="stat"><span class="stat-value draft">{{ waitingCount() }}</span><span class="stat-label">{{ 'clauses.stats.waiting' | translate }}</span></div>
       </div>
 
       <div class="filters">
@@ -97,38 +97,58 @@ import { ClauseDialogComponent } from './clause-dialog.component';
       } @else {
         <div class="clause-grid">
           @for (c of clauses(); track c.id) {
-            <mat-card class="clause-card" [class.deprecated]="c.status === 'Deprecated'">
+            <mat-card class="clause-card" [class.deprecated]="!c.approved && c.latest?.status === 'Deprecated'">
               <div class="clause-card-head">
                 <div class="clause-heading">
                   <span class="clause-title">{{ c.title }}</span>
                   <div class="clause-chips">
                     <span class="chip category">{{ ('clauses.category.' + c.category) | translate }}</span>
-                    <span class="chip lang">{{ c.language | uppercase }}</span>
-                    <span class="chip status" [ngClass]="'status-' + c.status.toLowerCase()">{{ ('clauses.status.' + c.status) | translate }}</span>
+                    @if (shown(c); as v) { <span class="chip lang">{{ v.language | uppercase }}</span> }
+                    @if (c.approved) {
+                      <span class="chip status-approved">{{ 'clauses.inUse' | translate: { version: c.approved.number } }}</span>
+                    }
+                    @if (pending(c); as d) {
+                      <span class="chip status-draft">{{ 'clauses.draftWaiting' | translate: { version: d.number } }}</span>
+                    } @else if (!c.approved) {
+                      <span class="chip status-deprecated">{{ 'clauses.notInUse' | translate }}</span>
+                    }
                     @if (c.riskLevel) {
                       <span class="chip risk" [ngClass]="'risk-' + c.riskLevel.toLowerCase()">{{ ('clauses.risk.' + c.riskLevel) | translate }}</span>
                     }
                   </div>
                 </div>
-                <button mat-icon-button [matMenuTriggerFor]="menu"><mat-icon>more_vert</mat-icon></button>
+                <button mat-icon-button [matMenuTriggerFor]="menu" [attr.aria-label]="'clauses.actions' | translate"><mat-icon>more_vert</mat-icon></button>
                 <mat-menu #menu="matMenu">
                   <button mat-menu-item (click)="openDialog(c)"><mat-icon>edit</mat-icon> {{ 'common.edit' | translate }}</button>
-                  @if (isAdmin()) {
-                    @if (c.status !== 'Approved') {
-                      <button mat-menu-item (click)="setStatus(c, 'Approved')"><mat-icon>verified</mat-icon> {{ 'clauses.approve' | translate }}</button>
+                  @if (canApprove()) {
+                    @if (pending(c); as d) {
+                      <button mat-menu-item (click)="approve(c, d.number)" [disabled]="d.authorId === myId()"
+                              [matTooltip]="d.authorId === myId() ? ('clauses.ownWording' | translate) : ''">
+                        <mat-icon>verified</mat-icon> {{ 'clauses.approveVersion' | translate: { version: d.number } }}
+                      </button>
                     }
-                    @if (c.status !== 'Deprecated') {
-                      <button mat-menu-item (click)="setStatus(c, 'Deprecated')"><mat-icon>archive</mat-icon> {{ 'clauses.deprecate' | translate }}</button>
-                    }
-                    @if (c.status !== 'Draft') {
-                      <button mat-menu-item (click)="setStatus(c, 'Draft')"><mat-icon>undo</mat-icon> {{ 'clauses.revertToDraft' | translate }}</button>
+                    @if (c.approved) {
+                      <button mat-menu-item (click)="deprecate(c, c.approved.number)"><mat-icon>archive</mat-icon> {{ 'clauses.withdrawVersion' | translate: { version: c.approved.number } }}</button>
                     }
                     <button mat-menu-item class="danger" (click)="remove(c)"><mat-icon>delete_outline</mat-icon> {{ 'common.delete' | translate }}</button>
                   }
                 </mat-menu>
               </div>
 
-              <div class="clause-body" [innerHTML]="c.body"></div>
+              @if (shown(c); as v) {
+                <div class="clause-body" [innerHTML]="v.body"></div>
+              }
+
+              @if (pending(c); as d) {
+                @if (c.approved) {
+                  <details class="clause-draft">
+                    <summary>{{ 'clauses.draftWording' | translate: { version: d.number, author: d.authorName ?? '' } }}</summary>
+                    <div class="clause-body" [innerHTML]="d.body"></div>
+                  </details>
+                } @else {
+                  <p class="clause-draft-note">{{ 'clauses.draftBy' | translate: { author: d.authorName ?? '' } }}</p>
+                }
+              }
 
               @if (c.guidance) {
                 <div class="clause-guidance">
@@ -137,8 +157,31 @@ import { ClauseDialogComponent } from './clause-dialog.component';
                 </div>
               }
 
+              @if (c.ruleKeys.length) {
+                <div class="clause-rules" [matTooltip]="'clauses.rulesHint' | translate">
+                  <mat-icon>rule</mat-icon>
+                  @for (k of c.ruleKeys; track k) { <code>{{ k }}</code> }
+                </div>
+              }
+
+              @if (c.versions.length > 1) {
+                <details class="clause-history">
+                  <summary>{{ 'clauses.history' | translate: { count: c.versions.length } }}</summary>
+                  <ul>
+                    @for (v of c.versions; track v.number) {
+                      <li>
+                        <strong>v{{ v.number }}</strong>
+                        <span class="chip" [ngClass]="'status-' + v.status.toLowerCase()">{{ ('clauses.status.' + v.status) | translate }}</span>
+                        <span>{{ v.authorName }}</span>
+                        @if (v.approvedByName) { <span>· {{ 'clauses.approvedBy' | translate: { name: v.approvedByName } }}</span> }
+                        <span class="muted">{{ (v.approvedAt ?? v.createdAt) | date:'d MMM y' }}</span>
+                      </li>
+                    }
+                  </ul>
+                </details>
+              }
+
               <div class="clause-footer">
-                <span [matTooltip]="'clauses.versionTooltip' | translate">v{{ c.version }}</span>
                 <span [matTooltip]="'clauses.usageTooltip' | translate">{{ 'clauses.usedTimes' | translate: { count: c.usageCount } }}</span>
                 @if (c.requestTypeName) {
                   <span class="scope-tag">{{ c.requestTypeName }}</span>
@@ -162,8 +205,12 @@ export class ClauseLibraryComponent implements OnInit {
 
   readonly categories = CLAUSE_CATEGORIES;
   readonly loading = signal(true);
-  readonly clauses = signal<Clause[]>([]);
-  readonly isAdmin = computed(() => this.auth.isAdmin());
+  readonly clauses = signal<LibraryClause[]>([]);
+  /** Approving wording is for managers and administrators, never the wording's author (R-M9-2). */
+  readonly canApprove = computed(() => this.auth.isManager());
+  readonly myId = computed(() => this.auth.user()?.id ?? '');
+  readonly inUseCount = computed(() => this.clauses().filter(c => !!c.approved).length);
+  readonly waitingCount = computed(() => this.clauses().filter(c => !!this.pending(c)).length);
 
   search = '';
   categoryFilter: ClauseCategory | null = null;
@@ -174,8 +221,15 @@ export class ClauseLibraryComponent implements OnInit {
     this.load();
   }
 
-  countBy(status: ClauseStatus): number {
-    return this.clauses().filter(c => c.status === status).length;
+  /** The wording a reader sees first: the one in use, else the newest. */
+  shown(c: LibraryClause): ClauseVersion | null {
+    return c.approved ?? c.latest ?? c.versions[0] ?? null;
+  }
+
+  /** A draft waiting for approval. */
+  pending(c: LibraryClause): ClauseVersion | null {
+    const latest = c.latest ?? c.versions[0];
+    return latest?.status === 'Draft' ? latest : null;
   }
 
   load(): void {
@@ -194,19 +248,31 @@ export class ClauseLibraryComponent implements OnInit {
     });
   }
 
-  openDialog(clause: Clause | null): void {
+  openDialog(clause: LibraryClause | null): void {
     this.dialog.open(ClauseDialogComponent, { data: { clause }, width: '720px', maxWidth: '95vw' })
       .afterClosed().subscribe(saved => { if (saved) this.load(); });
   }
 
-  setStatus(clause: Clause, status: ClauseStatus): void {
-    this.service.setStatus(clause.id, status).subscribe({
-      next: () => this.load(),
-      error: err => this.snack.open(err.error?.detail ?? this.translate.instant('clauses.statusFailed'), 'OK', { duration: 4000 })
+  approve(clause: LibraryClause, number: number): void {
+    this.service.approve(clause.id, number).subscribe({
+      next: () => { this.snack.open(this.translate.instant('clauses.approved', { version: number }), 'OK', { duration: 3000 }); this.load(); },
+      error: err => this.snack.open(problemText(this.translate, err, 'clauses.statusFailed'), 'OK', { duration: 5000 })
     });
   }
 
-  remove(clause: Clause): void {
+  deprecate(clause: LibraryClause, number: number): void {
+    this.confirmService.confirm({
+      message: this.translate.instant('clauses.confirmWithdraw', { title: clause.title, version: number })
+    }).subscribe(ok => {
+      if (!ok) return;
+      this.service.deprecate(clause.id, number).subscribe({
+        next: () => this.load(),
+        error: err => this.snack.open(problemText(this.translate, err, 'clauses.statusFailed'), 'OK', { duration: 5000 })
+      });
+    });
+  }
+
+  remove(clause: LibraryClause): void {
     this.confirmService.confirm({
       message: this.translate.instant('clauses.confirmDelete', { title: clause.title })
     }).subscribe(ok => {

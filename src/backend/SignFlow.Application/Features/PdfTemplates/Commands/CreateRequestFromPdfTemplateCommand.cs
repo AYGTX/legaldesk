@@ -157,7 +157,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         else
         {
             var annexHtml = PdfClauseAnnex.BuildHtml(
-                [.. annexClauses.Select(c => new PdfClauseAnnex.AnnexClause(c.Title, c.Body, c.Language))],
+                [.. annexClauses.Select(c => new PdfClauseAnnex.AnnexClause(c.Title, c.Approved!.Body, c.Approved.Language))],
                 command.FilledValues,
                 template.Fields.ToDictionary(f => f.FieldKey, f => Enum.Parse<HtmlTemplateFieldType>(f.Type.ToString())));
 
@@ -288,7 +288,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
             "system",
             $"Request '{title}' created from PDF template '{template.Name}'"
                 + (routing is null ? "" : $" following the workflow '{routing.PresetName}'")
-                + (annexClauses.Count == 0 ? "" : $", with {annexClauses.Count} annexed clause(s): {string.Join("; ", annexClauses.Select(c => $"{c.Title} v{c.Version}"))}")
+                + (annexClauses.Count == 0 ? "" : $", with {annexClauses.Count} annexed clause(s): {string.Join("; ", annexClauses.Select(c => $"{c.Title} v{c.Approved!.Number}"))}")
                 + (command.StartImmediately ? $" and sent to {firstApproverEmail}" : ", waiting for the pre-flight review before it is sent"),
             initiatorId,
             actorEmail: currentUser.UserEmail,
@@ -307,14 +307,15 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         var ids = fixedIds.Concat(requestedIds).ToList();
         if (ids.Count == 0) return [];
 
-        var found = await db.Clauses.Where(c => ids.Contains(c.Id)).ToListAsync(ct);
+        var found = await db.Clauses.Include(c => c.Versions).Where(c => ids.Contains(c.Id)).ToListAsync(ct);
 
-        // A clause the template always carries stays even if it was deprecated since; one the requester picks must be approved.
-        var unusable = requestedIds.Where(id => found.FirstOrDefault(c => c.Id == id) is not { Status: ClauseStatus.Approved }).ToList();
+        // Only an approved wording travels (R-M9-2); a clause the requester picks must have one.
+        var unusable = requestedIds.Where(id => found.FirstOrDefault(c => c.Id == id)?.Approved is null).ToList();
         if (unusable.Count > 0)
             throw new Common.Exceptions.ValidationException("Only approved clauses from the library can be added to a contract.");
 
-        return [.. ids.Select(id => found.FirstOrDefault(c => c.Id == id)).OfType<Clause>()];
+        // A clause the template carries whose wording was withdrawn since, with nothing approved in its place, is left out.
+        return [.. ids.Select(id => found.FirstOrDefault(c => c.Id == id)).OfType<Clause>().Where(c => c.Approved is not null)];
     }
 
     private async Task<List<(string Name, string Email, string? Company)>> ResolveApproversAsync(

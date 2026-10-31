@@ -32,8 +32,8 @@ public interface IApplicationDbContext
     DbSet<PdfTemplate> PdfTemplates { get; }
     DbSet<PdfTemplateField> PdfTemplateFields { get; }
     DbSet<Clause> Clauses { get; }
-    DbSet<RegulatoryText> RegulatoryTexts { get; }
-    DbSet<RegulatoryArticle> RegulatoryArticles { get; }
+    DbSet<ClauseVersion> ClauseVersions { get; }
+    DbSet<ClauseRuleLink> ClauseRuleLinks { get; }
     DbSet<DocumentReadinessItem> DocumentReadinessItems { get; }
     DbSet<ReviewRun> ReviewRuns { get; }
     DbSet<SigningOtp> SigningOtps { get; }

@@ -183,7 +183,6 @@ public class DemoContractSeedingTests : IAsyncLifetime
         Assert.Empty(await db.Documents.ToListAsync());
         // The reference data every install needs is still seeded.
         Assert.NotEmpty(await db.RequestTypes.ToListAsync());
-        Assert.NotEmpty(await db.RegulatoryTexts.ToListAsync());
     }
 
     [Fact]

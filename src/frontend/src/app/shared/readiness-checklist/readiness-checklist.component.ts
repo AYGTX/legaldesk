@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ClauseDialogComponent, ClauseDialogData } from '../../features/clauses/clause-dialog.component';
+import { ClauseService } from '../../core/services/clause.service';
+import { Clause } from '../../core/models';
 import {
   ClauseCategory, Review, ReviewItem, ReviewItemStatus, RISK_SEVERITY_ORDER
 } from '../../core/models';
@@ -135,6 +137,21 @@ type Decision = 'Accepted' | 'NotApplicable';
                   <p>{{ item.recommendedAction }}</p>
                 </div>
               }
+              <!-- The organisation's own approved wording for this rule comes first (R-M9-3). -->
+              @for (lib of libraryFor(item); track lib.id) {
+                <div class="item-block library-clause">
+                  <span class="item-block-label">
+                    <mat-icon inline>menu_book</mat-icon>
+                    {{ 'shared.review.libraryClause' | translate: { title: lib.title, version: lib.version } }}
+                  </span>
+                  <div class="proposed-language library-body" [innerHTML]="lib.body"></div>
+                  <div class="inline-actions">
+                    <button mat-stroked-button (click)="copyLanguage(plainText(lib.body))">
+                      <mat-icon>content_copy</mat-icon> {{ 'documents.detail.analysis.copy' | translate }}
+                    </button>
+                  </div>
+                </div>
+              }
               @if (item.proposedLanguage) {
                 <div class="item-block">
                   <span class="item-block-label">{{ 'shared.review.modelClause' | translate }}</span>
@@ -143,7 +160,8 @@ type Decision = 'Accepted' | 'NotApplicable';
                     <button mat-stroked-button (click)="copyLanguage(item.proposedLanguage!)">
                       <mat-icon>content_copy</mat-icon> {{ 'documents.detail.analysis.copy' | translate }}
                     </button>
-                    <button mat-stroked-button (click)="addToLibrary(item)">
+                    <button mat-stroked-button (click)="addToLibrary(item)" [disabled]="libraryFor(item).length > 0"
+                            [matTooltip]="libraryFor(item).length ? ('shared.review.alreadyInLibrary' | translate) : ''">
                       <mat-icon>library_add</mat-icon> {{ 'documents.detail.analysis.addToLibrary' | translate }}
                     </button>
                   </div>
@@ -302,6 +320,34 @@ export class ReadinessChecklistComponent {
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
+  private readonly clauses = inject(ClauseService);
+
+  /** Approved library clauses by rule key, fetched once per rule. */
+  private readonly library = signal<Record<string, Clause[]>>({});
+
+  constructor() {
+    effect(() => {
+      const keys = [...new Set([...this.items(), ...this.fixedItems()].map(i => i.ruleKey).filter((k): k is string => !!k))];
+      const known = this.library();
+      for (const key of keys.filter(k => !(k in known))) {
+        this.library.update(m => ({ ...m, [key]: [] }));
+        this.clauses.forRule(key, this.translate.getCurrentLang() ?? undefined).subscribe({
+          next: list => this.library.update(m => ({ ...m, [key]: list.slice(0, 2) })),
+          error: () => {}
+        });
+      }
+    });
+  }
+
+  libraryFor(item: ReviewItem): Clause[] {
+    return item.ruleKey ? this.library()[item.ruleKey] ?? [] : [];
+  }
+
+  plainText(html: string): string {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return (div.innerText || div.textContent || '').trim();
+  }
 
   /** Accepting a critical finding, or calling it not applicable, is a manager's call; the API enforces the same rule. */
   private readonly isManager = computed(() => {
@@ -381,7 +427,10 @@ export class ReadinessChecklistComponent {
           title: item.title,
           body: item.proposedLanguage ?? '',
           category: CATEGORY_KEYWORDS.find(([pattern]) => pattern.test(item.title))?.[1] ?? 'Other',
-          riskLevel: item.severity === 'Critical' ? 'High' : item.severity
+          riskLevel: item.severity === 'Critical' ? 'High' : item.severity,
+          // A draft linked to the finding's rule (R-M9-4), in the reader's language.
+          ruleKey: item.ruleKey ?? null,
+          language: this.translate.getCurrentLang() === 'en' ? 'en' : 'fr'
         }
       } as ClauseDialogData
     });

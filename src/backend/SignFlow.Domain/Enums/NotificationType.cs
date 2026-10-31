@@ -12,6 +12,6 @@ public enum NotificationType
     CommentMention = 7,
     ChangesRequested = 8,
     ObligationDue = 9,
-    RegulatoryAlert = 10,
+    // 10 was RegulatoryAlert: the regulatory watch was retired (R-M9-6); the number is not reused.
     ContractTermAlert = 11
 }

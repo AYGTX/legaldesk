@@ -41,12 +41,9 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Status = 404,
                 Detail = nfe.Message
             }),
-            ForbiddenAccessException fae => (HttpStatusCode.Forbidden, new ProblemDetails
-            {
-                Title = "Forbidden",
-                Status = 403,
-                Detail = fae.Message
-            }),
+            ForbiddenAccessException fae => (HttpStatusCode.Forbidden, fae.Code is null
+                ? new ProblemDetails { Title = "Forbidden", Status = 403, Detail = fae.Message }
+                : new ProblemDetails { Title = "Forbidden", Status = 403, Detail = fae.Message, Extensions = { ["code"] = fae.Code } }),
             UnauthorizedAccessException uae => (HttpStatusCode.Unauthorized, new ProblemDetails
             {
                 Title = "Unauthorized",

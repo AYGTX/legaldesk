@@ -87,7 +87,8 @@ public class CreateHtmlTemplateCommandHandler(
 
         var template = HtmlTemplate.Create(
             command.Name,
-            command.HtmlContent,
+            // Cleaned on save (R-M6-3): what is stored never runs in a reader's browser or makes the renderer fetch a URL.
+            Common.Services.SafeHtml.Clean(command.HtmlContent),
             createdById,
             command.Description,
             command.DefaultApproverId,

@@ -4,7 +4,7 @@ namespace SignFlow.Application.Common.Services;
 
 /// <summary>
 /// Which language a contract is written in, from its most common function words. Used to compare a contract only
-/// with the regulatory texts written in that language: the registry holds each law once per language, and an
+/// with the texts written in that language, and an
 /// English entry's keywords can never match a French contract, so without this every law reports a false gap.
 /// </summary>
 public static class ContractLanguage

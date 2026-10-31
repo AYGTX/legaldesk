@@ -19,8 +19,6 @@ public static class Permissions
     public const string EditClauses = "clauses.edit";
     public const string ApproveClauses = "clauses.approve";
     public const string ManageTemplates = "templates.manage";
-    public const string EditRegulatoryTexts = "regulatory.edit";
-    public const string PublishRegulatoryTexts = "regulatory.publish";
     public const string ManageRequestTypes = "requestTypes.manage";
     public const string ViewWorkflowPresets = "presets.view";
     public const string ManageWorkflowPresets = "presets.manage";
@@ -40,10 +38,8 @@ public static class Permissions
         [ReopenContracts] = [Administrator],
         [AcceptCriticalRisks] = [Administrator, Manager],
         [EditClauses] = [Administrator, Manager],
-        [ApproveClauses] = [Administrator],
+        [ApproveClauses] = [Administrator, Manager],
         [ManageTemplates] = [Administrator, Manager],
-        [EditRegulatoryTexts] = [Administrator, Manager],
-        [PublishRegulatoryTexts] = [Administrator],
         [ManageRequestTypes] = [Administrator],
         [ViewWorkflowPresets] = [Administrator, Manager],
         [ManageWorkflowPresets] = [Administrator],

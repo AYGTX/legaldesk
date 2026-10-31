@@ -9,7 +9,7 @@ namespace SignFlow.IntegrationTests.Scenarios;
 
 /// <summary>
 /// A deployment can switch the three built-in demo accounts off and list its own people instead. The reference
-/// data (clause library, regulatory registry) must still be seeded, attributed to the first real administrator.
+/// data (clause library) must still be seeded, attributed to the first real administrator.
 /// </summary>
 public class ConfiguredUsersSeedingTests : IAsyncLifetime
 {
@@ -56,7 +56,6 @@ public class ConfiguredUsersSeedingTests : IAsyncLifetime
         var boss = await _db.Users.SingleAsync(u => u.Email == "boss@x.tn");
         Assert.NotEmpty(_db.Clauses);
         Assert.All(_db.Clauses, c => Assert.Equal(boss.Id, c.CreatedById));
-        Assert.NotEmpty(_db.RegulatoryTexts);
     }
 
     [Fact]

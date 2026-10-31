@@ -1,6 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -275,7 +274,6 @@ export class NewRequestComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
-  private readonly sanitizer = inject(DomSanitizer);
   readonly formatSla = formatSla;
 
   step = signal<Step>('pick');
@@ -341,11 +339,12 @@ export class NewRequestComponent implements OnInit {
   /**
    * Live-rendered preview of the template with current field values substituted — mirrors the
    * signing-page rendering (GetSigningSessionQuery). Unfilled fields and signature placeholders
-   * are shown as highlighted markers so the initiator can see where they'll land.
+   * are shown as highlighted markers so the initiator can see where they'll land. Angular's sanitiser always runs on
+   * it (R-M6-3): a template is cleaned when saved, and this page never trusts it more than that.
    */
-  previewHtml(): SafeHtml {
+  previewHtml(): string {
     const t = this.selectedTemplate();
-    if (!t) return this.sanitizer.bypassSecurityTrustHtml('');
+    if (!t) return '';
 
     const html = t.htmlContent.replace(/\{\{(\w+)\}\}/g, (match, key: string) => {
       const field = t.fields.find(f => f.fieldKey === key);
@@ -358,7 +357,7 @@ export class NewRequestComponent implements OnInit {
       return `<span class="ph-empty">${this.escapeHtml(label)}</span>`;
     });
 
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    return html;
   }
 
   /** Field values as text — a type="number" input stores a JS number, not a string. */
