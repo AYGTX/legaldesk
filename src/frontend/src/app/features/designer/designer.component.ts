@@ -670,7 +670,14 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
           email: r.email,
           order: r.order ?? i + 1,
           approvalType: r.approvalType ?? ('Signature' as ApprovalType),
-          roleLabel: r.roleLabel
+          roleLabel: r.roleLabel,
+          stageRule: r.stageRule,
+          poolTeamId: r.poolTeamId,
+          poolRole: r.poolRole,
+          dueInWorkingDays: r.dueInWorkingDays,
+          reminderEveryDays: r.reminderEveryDays,
+          escalateAfterDays: r.escalateAfterDays,
+          escalationEmail: r.escalationEmail
         }));
         this.recipients.set(recipientList);
 

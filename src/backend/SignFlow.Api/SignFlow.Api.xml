@@ -172,6 +172,9 @@
         <member name="M:SignFlow.Api.Controllers.V1.CommentsController.GetComments(System.Guid,System.Threading.CancellationToken)">
             <summary>List all comments on a document (owner, admin, or recipient)</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CommentsController.GetMentionables(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Comments.Queries.GetMentionablesQuery,System.Collections.Generic.List{SignFlow.Application.Features.Comments.Queries.MentionableDto}},System.Threading.CancellationToken)">
+            <summary>The people a comment on this document can mention: members of the organisation and its participants</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.CommentsController.AddComment(System.Guid,SignFlow.Api.Controllers.V1.AddCommentRequest,System.Threading.CancellationToken)">
             <summary>Add a comment or a reply to a document</summary>
         </member>
@@ -739,6 +742,9 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.VacationsController.GetMyVacations(System.Threading.CancellationToken)">
             <summary>List the current user's scheduled vacations</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VacationsController.GetStandInCandidates(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Vacations.Queries.GetStandInCandidatesQuery,System.Collections.Generic.List{SignFlow.Application.Features.Vacations.Queries.StandInCandidateDto}},System.Threading.CancellationToken)">
+            <summary>The colleagues who can be named to act while the current user is away</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.VacationsController.CheckAvailability(System.String,System.Threading.CancellationToken)">
             <summary>Check whether an email belongs to a user currently on vacation</summary>

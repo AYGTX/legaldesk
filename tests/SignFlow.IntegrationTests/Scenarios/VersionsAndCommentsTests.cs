@@ -196,6 +196,29 @@ public class VersionsAndCommentsTests
         Assert.Equal(["Contrat & annexes", "Article 1 – Objet", "", "Le prix est < 10 000 TND."], paragraphs);
     }
 
+    [Fact]
+    public async Task The_mention_list_holds_colleagues_and_named_participants_but_not_a_team_address()
+    {
+        using var f = await FixtureAsync();
+        var (document, ali) = await ContractAsync(f);
+        var sami = await AddUserAsync(f, "Sami", "sami@legaldesk.tn");
+        var pool = Recipient.Create(document.Id, "Legal", Recipient.PoolAddress, 2, ApprovalType.Approval);
+        f.Db.Recipients.Add(pool);
+        await f.Db.SaveChangesAsync();
+
+        var list = await new GetMentionablesQueryHandler(f.Db, f.GetHandler<ICurrentUserService>())
+            .HandleAsync(new GetMentionablesQuery(document.Id));
+
+        Assert.Contains(list, m => m.Id == sami.Id && !m.IsParticipant);
+        Assert.Contains(list, m => m.Id == ali.Id && m.IsParticipant);
+        Assert.DoesNotContain(list, m => m.Id == pool.Id);
+        Assert.DoesNotContain(list, m => m.Id == OwnerId); // not oneself
+
+        var standIns = await new SignFlow.Application.Features.Vacations.Queries.GetStandInCandidatesQueryHandler(f.Db, f.GetHandler<ICurrentUserService>())
+            .HandleAsync(new SignFlow.Application.Features.Vacations.Queries.GetStandInCandidatesQuery());
+        Assert.Equal([sami.Id], standIns.Select(c => c.Id));
+    }
+
     private sealed class FakeConverter : IDocxConverter
     {
         public int Calls { get; private set; }

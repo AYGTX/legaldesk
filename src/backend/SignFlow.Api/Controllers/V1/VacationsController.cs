@@ -27,6 +27,16 @@ public class VacationsController(
         return Ok(result);
     }
 
+    /// <summary>The colleagues who can be named to act while the current user is away</summary>
+    [HttpGet("stand-ins")]
+    [ProducesResponseType(typeof(List<StandInCandidateDto>), 200)]
+    public async Task<ActionResult<List<StandInCandidateDto>>> GetStandInCandidates(
+        [FromServices] IQueryHandler<GetStandInCandidatesQuery, List<StandInCandidateDto>> candidatesHandler,
+        CancellationToken ct)
+    {
+        return Ok(await candidatesHandler.HandleAsync(new GetStandInCandidatesQuery(), ct));
+    }
+
     /// <summary>Check whether an email belongs to a user currently on vacation</summary>
     [HttpGet("availability")]
     [ProducesResponseType(typeof(RecipientAvailabilityDto), 200)]

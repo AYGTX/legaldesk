@@ -115,7 +115,24 @@ export interface RecipientInfo {
   declineReason?: string;
   /** Review/Approval prerequisites the recipient must check off before approving. */
   checklistItems?: ChecklistItemInfo[];
+  /** All: the stage waits for everyone on it. Any: the first answer closes the stage (R-M4-2). */
+  stageRule?: StageRule;
+  /** A team step: any active member of the team acts for it (R-M4-3). */
+  poolTeamId?: string | null;
+  poolRole?: string | null;
+  /** Due this many working days after the step opens (weekends and holidays skipped). */
+  dueInWorkingDays?: number | null;
+  /** Reminder interval while the step is open; 0 turns reminders off. */
+  reminderEveryDays?: number;
+  /** After this many days the escalation contact (else the owner) is told. */
+  escalateAfterDays?: number | null;
+  escalationEmail?: string | null;
+  /** A stand-in: the participant this person acts for. */
+  delegatedFromRecipientId?: string | null;
+  company?: string | null;
 }
+
+export type StageRule = 'All' | 'Any';
 
 export interface ChecklistItemInfo {
   id: string;
@@ -234,18 +251,48 @@ export interface RecipientInputDto {
   company?: string;
   /** Free-text participant label (e.g. "Legal team") — display only, capabilities come from approvalType. */
   roleLabel?: string;
+  /** All: the stage waits for everyone on it. Any: the first answer closes the stage (R-M4-2). */
+  stageRule?: StageRule;
+  /** A team step: any active member of the team acts for it (R-M4-3). */
+  poolTeamId?: string | null;
+  poolRole?: string | null;
+  /** Due this many working days after the step opens (weekends and holidays skipped). */
+  dueInWorkingDays?: number | null;
+  /** Reminder interval while the step is open; 0 turns reminders off. */
+  reminderEveryDays?: number;
+  /** After this many days the escalation contact (else the owner) is told. */
+  escalateAfterDays?: number | null;
+  escalationEmail?: string | null;
 }
 
 
-/** One line of a PDF page replaced in the browser editor. PDF points, origin top-left (PDF.js at scale 1). */
-export interface PdfTextEdit {
-  page: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  fontSize: number;
-  text: string;
+export type RoundOutcome = 'Open' | 'Completed' | 'Declined' | 'ChangesRequested' | 'Superseded';
+
+/** One round of the circuit (R-M7-2): the version it asked people to act on, and what each step did. */
+export interface ContractRound {
+  id: string;
+  number: number;
+  versionNumber: number;
+  openedAt: string;
+  closedAt?: string | null;
+  outcome: RoundOutcome;
+  steps: RoundStep[];
+}
+
+export interface RoundStep {
+  order: number;
+  name: string;
+  approvalType: string;
+  stageRule: 'All' | 'Any';
+  status: string;
+  openedAt?: string | null;
+  dueAt?: string | null;
+  completedAt?: string | null;
+  declineReason?: string | null;
+  /** For a team or role step, the member who acted. */
+  actedByName?: string | null;
+  handedOver: boolean;
+  standsIn: boolean;
 }
 
 /** One answer that differs between two versions of a template contract. */

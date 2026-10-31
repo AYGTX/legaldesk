@@ -75,7 +75,6 @@
     "resolve": {
       "fixTitle": "Fix what you can",
       "fixHint": "Change the contract, then the review runs again on the new version.",
-      "editText": "Edit the text in the browser",
       "uploadFix": "Upload a corrected file",
       "rerun": "Run the review again",
       "fixUploaded": "Corrected file uploaded.",
@@ -118,6 +117,28 @@
         "ViewOnly": "Views only",
         "Stamp": "Stamps",
         "Reject": "Reviews"
+      },
+      "teams": "Teams",
+      "teamOption": "Team: {{name}}",
+      "teamHint": "Every member of the team is notified; the first one to act decides for the team.",
+      "teamViewOnly": "A team acts on the contract: choose review, approval or signature.",
+      "circuit": {
+        "show": "Due date, reminders, escalation",
+        "hide": "Hide settings",
+        "stageRule": "When several people act at the same time",
+        "ruleAll": "Everyone must answer",
+        "ruleAny": "The first answer is enough",
+        "due": "Due in (working days)",
+        "noDue": "No due date",
+        "reminder": "Reminder every (days, 0 = none)",
+        "escalateAfter": "Escalate after (days)",
+        "never": "Never",
+        "escalateTo": "Escalate to",
+        "escalateToOwner": "The contract owner",
+        "summaryAny": "first answer is enough",
+        "summaryDue": "due in {{days}} working days",
+        "summaryNoReminder": "no reminders",
+        "summaryEscalate": "escalation after {{days}} days"
       }
     },
     "send": {
@@ -188,7 +209,8 @@
       "clauses": "Clause Library",
       "regulatoryWatch": "Regulatory Watch",
       "systemSettings": "System Settings",
-      "reviewRules": "Review rules"
+      "reviewRules": "Review rules",
+      "teams": "Teams"
     },
     "htmlTemplates": {
       "title": "Contract Templates",
@@ -279,7 +301,8 @@
       "kind": {
         "User": "Person",
         "Role": "Role",
-        "Department": "Department"
+        "Department": "Department",
+        "Team": "Team"
       },
       "exactlyOne": "A role or department is looked up when the request is created and must match exactly one active person, otherwise the request is refused. Name the person instead if several people share it.",
       "onlyWhen": "Only when",
@@ -367,6 +390,36 @@
       "notInService": "no longer in service",
       "saved": "Saved. It applies to the next review.",
       "saveFailed": "Could not save. Please try again."
+    },
+    "teams": {
+      "title": "Teams",
+      "hint": "A team can be given a step of a circuit: every member is notified, and the first one to act decides for the team.",
+      "new": "New team",
+      "name": "Name",
+      "description": "Description",
+      "members": "Members",
+      "empty": "No team yet.",
+      "noActiveMember": "No active member: a step given to this team could not be acted on.",
+      "memberCount": "{{count}} member(s)",
+      "nameRequired": "Give the team a name.",
+      "saved": "Team saved.",
+      "saveFailed": "The team could not be saved.",
+      "deleteTitle": "Delete team",
+      "deleteMessage": "Delete the team \"{{name}}\"?",
+      "inUse": "\"{{name}}\" is used by a workflow or a contract in progress, so it cannot be deleted.",
+      "deleteFailed": "The team could not be deleted."
+    },
+    "holidays": {
+      "title": "Days off",
+      "hint": "Due dates count working days only: weekends and these days are skipped. Tunisia's fixed public holidays are already here; add the holidays whose date changes each year.",
+      "date": "Date",
+      "name": "Name",
+      "everyYear": "Every year",
+      "add": "Add",
+      "yearly": "Every year",
+      "once": "This date only",
+      "addFailed": "The day could not be added.",
+      "deleteFailed": "The day could not be removed."
     }
   },
   "auth": {
@@ -823,36 +876,7 @@
         "hint": "Look through the contract below — details, participants, history — then continue when you are ready."
       },
       "editText": {
-        "recs": {
-          "title": "Recommendations",
-          "hint": "Click a line in the PDF to choose where to write, then click a piece of the proposed wording to put it there.",
-          "selected": "Selected line:",
-          "none": "No line selected: click a line in the PDF first.",
-          "why": "Why it matters",
-          "action": "Recommended action",
-          "proposed": "Proposed wording",
-          "copy": "Copy",
-          "copied": "Wording copied.",
-          "use": "Put this in the selected line",
-          "segmentTip": "Each piece fits on one line. Click one to replace the selected line with it."
-        },
-        "button": "Edit text",
-        "title": "Edit contract text",
-        "hint": "Click a line to change it. Edited lines turn amber; nothing is saved until you save.",
-        "changes": "{{count}} edited",
-        "page": "Page {{n}} of {{total}}",
-        "loading": "Loading the PDF…",
-        "noText": "This page has no editable text — it may be a scanned image.",
-        "save": "Save as new version",
-        "saving": "Saving…",
-        "cancel": "Cancel",
-        "revert": "Revert this line",
-        "undo": "Undo (Ctrl+Z)",
-        "redo": "Redo (Ctrl+Y)",
-        "saved": "Version {{version}} saved with your edits.",
-        "failed": "Could not save the edits",
-        "loadFailed": "Could not open the PDF for editing",
-        "limits": "Text does not reflow, so a longer line is shrunk to fit. The original text stays hidden in the previous version."
+        "cancel": "Cancel"
       },
       "revisionUploaded": "Revision v{{version}} uploaded. Review the fields, then re-send the contract.",
       "revisionFailed": "Failed to upload revision",
@@ -925,7 +949,9 @@
         "changesOnly": "Changes only",
         "failed": "The comparison could not be produced.",
         "downloadVersion": "Download v{{version}}",
-        "downloadFailed": "That version could not be downloaded."
+        "downloadFailed": "That version could not be downloaded.",
+        "moved": "moved",
+        "movedHere": "Moved here"
       },
       "severityPossible": "To review — possible risks",
       "chat": {
@@ -1025,6 +1051,38 @@
       "onlyPdf": "Only PDF files are supported",
       "fileTooLarge": "File size must be under 50 MB",
       "uploadFailed": "Upload failed. Please try again."
+    },
+    "word": {
+      "download": "Download as Word",
+      "hint": "Edit the contract in Word, then upload the file with \"Upload revision\": it becomes the next version.",
+      "failed": "The Word file could not be prepared."
+    },
+    "rounds": {
+      "title": "Rounds",
+      "round": "Round {{number}} · version {{version}}",
+      "outcome": {
+        "Open": "In progress",
+        "Completed": "Completed",
+        "Declined": "Declined",
+        "ChangesRequested": "Changes requested",
+        "Superseded": "Replaced by a revision"
+      },
+      "actedBy": "by {{name}}",
+      "standsIn": "stand-in",
+      "anyRule": "first answer closes the stage",
+      "handedOver": "Handed over",
+      "due": "due {{date}}",
+      "status": {
+        "Pending": "Waiting",
+        "InProgress": "Their turn",
+        "Completed": "Done",
+        "Rejected": "Declined",
+        "Skipped": "Not needed",
+        "Delegated": "Handed over",
+        "Escalated": "Escalated",
+        "Expired": "Expired",
+        "ChangesRequested": "Changes requested"
+      }
     }
   },
   "designer": {
@@ -1348,7 +1406,11 @@
       "scheduleFailed": "Failed to schedule vacation",
       "cancelled": "Vacation cancelled",
       "cancelFailed": "Failed to cancel"
-    }
+    },
+    "standIn": "Who acts for you while you are away",
+    "noStandIn": "Nobody: I cannot be added to a circuit during this time",
+    "standInHint": "Steps that open for you while you are away go to this colleague.",
+    "standInIs": "{{name}} acts for you"
   },
   "requests": {
     "title": "My Requests",
@@ -1458,7 +1520,17 @@
     "goToPage": "Jump to page {{page}}",
     "loadFailed": "Couldn't load comments",
     "postFailed": "Couldn't post your comment",
-    "actionFailed": "Something went wrong — please try again"
+    "actionFailed": "Something went wrong — please try again",
+    "internal": "Internal note",
+    "internalHint": "Only your organisation sees internal notes. Participants never see them.",
+    "shared": "Shared with participants",
+    "sharedHint": "The contract's participants see this thread and can answer it.",
+    "visibilityLabel": "Who sees this comment",
+    "internalPlaceholder": "Write an internal note…",
+    "mention": "Mention…",
+    "mentionHint": "The people you mention are notified.",
+    "unmention": "Remove {{name}}",
+    "participantTag": "participant"
   },
   "audit": {
     "system": "System",
@@ -2033,7 +2105,8 @@
     "refused": {
       "link": {
         "invalid": "This signing link is not valid. Use the most recent e-mail you received.",
-        "expired": "This signing link has expired. Ask the sender for a new one."
+        "expired": "This signing link has expired. Ask the sender for a new one.",
+        "delegated": "You handed this step to someone else, so this link no longer works."
       },
       "session": {
         "required": "Confirm your e-mail address to continue.",
@@ -2054,6 +2127,24 @@
         "expired": "This code is no longer valid. Ask for a new one.",
         "too_soon": "A code was just sent. Wait a minute before asking for another one.",
         "too_many": "Too many codes were asked for. Try again in an hour."
+      }
+    },
+    "delegate": {
+      "button": "Hand over",
+      "title": "Hand over your step",
+      "hint": "Someone else will act in your place. They receive their own link; this one will stop working.",
+      "name": "Their name",
+      "email": "Their e-mail",
+      "note": "Why (they and the sender will see it)",
+      "submit": "Hand over",
+      "self": "Choose someone other than yourself.",
+      "failed": "The step could not be handed over.",
+      "doneTitle": "Step handed over",
+      "done": "{{name}} has received a link and will act in your place. You have nothing more to do.",
+      "errors": {
+        "delegate": {
+          "pool": "This step is shared by a team; any member can act, so it is not handed over."
+        }
       }
     }
   },
@@ -2504,7 +2595,6 @@
       "saveFailed": "Failed to save PDF form",
       "detectFields": "Detect fields",
       "textSaved": "Template text saved. New requests will use the edited PDF; requests already created keep their copy.",
-      "editTextHint": "Click a line of the PDF to rewrite it. The fields you placed stay where they are.",
       "detectFieldsHint": "Finds the blanks, checkboxes and signatures of this contract and proposes them as fields. You review them, then save.",
       "detecting": "Detecting fields…",
       "detected": "{{count}} fields proposed — check them, then save",
@@ -2686,7 +2776,6 @@
       "title": "Next steps",
       "promote": "Send to validation circuit",
       "blockedHint": "Resolve or dismiss the critical issues first.",
-      "editText": "Edit the text with the recommendations",
       "uploadRevision": "Upload a corrected version",
       "uploading": "Uploading…",
       "revisionUploaded": "Revision uploaded — re-analysing.",
@@ -2743,5 +2832,24 @@
     "differs": "« {{name}} » is not the sealed contract: it differs from it, or it is another file.",
     "unknown": "No sealed contract has this code.",
     "what": "LegalDesk contracts are sealed by the organisation that sent them, with a timestamp, once everyone has signed. The last page lists who signed, when, and how each person proved their e-mail address. This is an advanced electronic signature, not a qualified one."
+  },
+  "errors": {
+    "revision": {
+      "docx_unavailable": "Word files cannot be converted on this server yet. Save the file as PDF in Word and upload the PDF.",
+      "docx_failed": "This Word file could not be read. Save it again in Word, or upload a PDF.",
+      "docx_template": "This contract was built from a template: change its answers instead.",
+      "docx_no_text": "This contract has no readable text to put in a Word file."
+    },
+    "circuit": {
+      "poolEmpty": "\"{{team}}\" has no active member, so nobody could act for it. Add members in Administration > Teams."
+    },
+    "preset": {
+      "step": {
+        "poolEmpty": "Step {{step}} of the workflow is given to \"{{team}}\", which has no active member. Ask an administrator to add members to the team."
+      }
+    },
+    "team": {
+      "inUse": "This team is used by a workflow or a contract in progress, so it cannot be deleted."
+    }
   }
 }

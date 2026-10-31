@@ -14,6 +14,8 @@ import { Observable } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { WorkflowPresetService } from '../../core/services/workflow-preset.service';
 import { UserService } from '../../core/services/user.service';
+import { TeamService } from '../../core/services/team.service';
+import { TeamDto } from '../../core/models/team.models';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { UserDto } from '../../core/models';
 import { WorkflowType } from '../../core/models/document.models';
@@ -27,7 +29,7 @@ interface StepDraft {
   kind: PresetApproverKind;
   userId: string;
   roleName: string;
-  department: string;
+  teamId: string;
   conditional: boolean;
   conditionFieldKey: string;
   conditionOperator: string;
@@ -37,13 +39,13 @@ interface StepDraft {
 const OPERATORS = ['', '==', '!=', '>', '>=', '<', '<='];
 
 const emptyStep = (): StepDraft => ({
-  stage: 1, label: '', kind: 'User', userId: '', roleName: '', department: '',
+  stage: 1, label: '', kind: 'User', userId: '', roleName: '', teamId: '',
   conditional: false, conditionFieldKey: '', conditionOperator: '', conditionValue: ''
 });
 
 /**
  * The administrator's workflow library: named approval paths that templates follow, set up once and changed in one
- * place. A step names a person, or a role or department that is looked up when a request is created.
+ * place. A step names a person, a role, or a team whose members share it (any one of them acts).
  */
 @Component({
   selector: 'sf-workflow-presets',
@@ -139,7 +141,7 @@ const emptyStep = (): StepDraft => ({
                     <mat-select [(ngModel)]="s.kind">
                       <mat-option value="User">{{ 'admin.workflows.kind.User' | translate }}</mat-option>
                       <mat-option value="Role">{{ 'admin.workflows.kind.Role' | translate }}</mat-option>
-                      <mat-option value="Department">{{ 'admin.workflows.kind.Department' | translate }}</mat-option>
+                      <mat-option value="Team">{{ 'admin.workflows.kind.Team' | translate }}</mat-option>
                     </mat-select>
                   </mat-form-field>
                   @switch (s.kind) {
@@ -161,9 +163,9 @@ const emptyStep = (): StepDraft => ({
                     }
                     @default {
                       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
-                        <mat-label>{{ 'admin.workflows.kind.Department' | translate }}</mat-label>
-                        <mat-select [(ngModel)]="s.department">
-                          @for (d of departments(); track d) { <mat-option [value]="d">{{ d }}</mat-option> }
+                        <mat-label>{{ 'admin.workflows.kind.Team' | translate }}</mat-label>
+                        <mat-select [(ngModel)]="s.teamId">
+                          @for (t of teams(); track t.id) { <mat-option [value]="t.id">{{ t.name }}</mat-option> }
                         </mat-select>
                       </mat-form-field>
                     }
@@ -337,6 +339,7 @@ const emptyStep = (): StepDraft => ({
 export class WorkflowPresetsComponent implements OnInit {
   private readonly svc = inject(WorkflowPresetService);
   private readonly userSvc = inject(UserService);
+  private readonly teamSvc = inject(TeamService);
   private readonly confirm = inject(ConfirmService);
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
@@ -353,8 +356,7 @@ export class WorkflowPresetsComponent implements OnInit {
   });
   users = signal<UserDto[]>([]);
   roles = signal<string[]>([]);
-  readonly departments = computed(() =>
-    [...new Set(this.users().map(u => u.department?.trim()).filter((d): d is string => !!d))].sort());
+  teams = signal<TeamDto[]>([]);
   loading = signal(true);
   saving = signal(false);
   error = signal('');
@@ -371,6 +373,7 @@ export class WorkflowPresetsComponent implements OnInit {
     this.load();
     this.userSvc.getUsers({ pageSize: 200 }).subscribe(r => this.users.set(r.items.filter(u => u.isActive)));
     this.userSvc.getRoles().subscribe(r => this.roles.set(r.filter(x => x !== 'ExternalSigner')));
+    this.teamSvc.getTeams().subscribe(t => this.teams.set(t));
   }
 
   private load(): void {
@@ -381,11 +384,11 @@ export class WorkflowPresetsComponent implements OnInit {
     });
   }
 
-  who(s: { kind: PresetApproverKind; userName?: string; roleName?: string; department?: string }): string {
+  who(s: { kind: PresetApproverKind; userName?: string; roleName?: string; teamName?: string }): string {
     switch (s.kind) {
       case 'User': return s.userName ?? '?';
       case 'Role': return `${this.translate.instant('admin.workflows.kind.Role')}: ${s.roleName}`;
-      default: return `${this.translate.instant('admin.workflows.kind.Department')}: ${s.department}`;
+      default: return `${this.translate.instant('admin.workflows.kind.Team')}: ${s.teamName ?? '?'}`;
     }
   }
 
@@ -409,7 +412,7 @@ export class WorkflowPresetsComponent implements OnInit {
     this.workflowType.set(p.workflowType);
     this.steps.set(p.steps.map(s => ({
       stage: s.stage, label: s.label ?? '', kind: s.kind,
-      userId: s.userId ?? '', roleName: s.roleName ?? '', department: s.department ?? '',
+      userId: s.userId ?? '', roleName: s.roleName ?? '', teamId: s.teamId ?? '',
       conditional: !!s.conditionFieldKey,
       conditionFieldKey: s.conditionFieldKey ?? '', conditionOperator: s.conditionOperator ?? '', conditionValue: s.conditionValue ?? ''
     })));
@@ -472,7 +475,10 @@ export class WorkflowPresetsComponent implements OnInit {
     switch (s.kind) {
       case 'User': return this.users().find(u => u.id === s.userId)?.fullName ?? '—';
       case 'Role': return s.roleName ? `${this.translate.instant('admin.workflows.kind.Role')}: ${s.roleName}` : '—';
-      default: return s.department ? `${this.translate.instant('admin.workflows.kind.Department')}: ${s.department}` : '—';
+      default: {
+        const team = this.teams().find(t => t.id === s.teamId);
+        return team ? `${this.translate.instant('admin.workflows.kind.Team')}: ${team.name}` : '—';
+      }
     }
   }
 
@@ -500,7 +506,7 @@ export class WorkflowPresetsComponent implements OnInit {
         kind: s.kind,
         userId: s.kind === 'User' ? s.userId || undefined : undefined,
         roleName: s.kind === 'Role' ? s.roleName || undefined : undefined,
-        department: s.kind === 'Department' ? s.department || undefined : undefined,
+        teamId: s.kind === 'Team' ? s.teamId || undefined : undefined,
         conditionFieldKey: s.conditional ? s.conditionFieldKey.trim() || undefined : undefined,
         conditionOperator: s.conditional && s.conditionFieldKey.trim() ? s.conditionOperator || undefined : undefined,
         conditionValue: s.conditional && s.conditionOperator ? s.conditionValue.trim() || undefined : undefined

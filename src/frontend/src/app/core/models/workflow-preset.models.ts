@@ -1,15 +1,16 @@
 import { WorkflowType } from './document.models';
 
-export type PresetApproverKind = 'User' | 'Role' | 'Department';
+/** Team: any member of the team acts for the step (R-M4-3). */
+export type PresetApproverKind = 'User' | 'Role' | 'Team';
 
-/** A step as the admin screen edits and sends it. Which of userId / roleName / department counts depends on `kind`. */
+/** A step as the admin screen edits and sends it. Which of userId / roleName / teamId counts depends on `kind`. */
 export interface WorkflowPresetStepInput {
   stage: number;
   label?: string;
   kind: PresetApproverKind;
   userId?: string;
   roleName?: string;
-  department?: string;
+  teamId?: string;
   conditionFieldKey?: string;
   /** One of ==, !=, >, >=, <, <=; absent means "the field is filled in / ticked". */
   conditionOperator?: string;
@@ -19,6 +20,7 @@ export interface WorkflowPresetStepInput {
 export interface WorkflowPresetStepDto extends WorkflowPresetStepInput {
   order: number;
   userName?: string;
+  teamName?: string;
 }
 
 export interface WorkflowPresetDto {

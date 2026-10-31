@@ -173,6 +173,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<ResolveCommentCommand>, ResolveCommentCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteCommentCommand>, DeleteCommentCommandHandler>();
         services.AddScoped<IQueryHandler<GetDocumentCommentsQuery, List<CommentDto>>, GetDocumentCommentsQueryHandler>();
+        services.AddScoped<IQueryHandler<GetMentionablesQuery, List<MentionableDto>>, GetMentionablesQueryHandler>();
         services.AddScoped<IQueryHandler<GetSigningCommentsQuery, List<CommentDto>>, GetSigningCommentsQueryHandler>();
 
         // My Requests (personal workflow tracking)
@@ -210,6 +211,7 @@ public static class ApplicationServiceExtensions
 
         // Vacations
         services.AddScoped<IQueryHandler<GetMyVacationsQuery, List<VacationDto>>, GetMyVacationsQueryHandler>();
+        services.AddScoped<IQueryHandler<GetStandInCandidatesQuery, List<StandInCandidateDto>>, GetStandInCandidatesQueryHandler>();
         services.AddScoped<IQueryHandler<CheckRecipientAvailabilityQuery, RecipientAvailabilityDto>, CheckRecipientAvailabilityQueryHandler>();
         services.AddScoped<ICommandHandler<ScheduleVacationCommand, VacationDto>, ScheduleVacationCommandHandler>();
         services.AddScoped<ICommandHandler<CancelVacationCommand>, CancelVacationCommandHandler>();

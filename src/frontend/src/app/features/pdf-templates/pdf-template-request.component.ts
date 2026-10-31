@@ -28,6 +28,7 @@ import { ApproverPickerComponent } from '../../shared/approver-picker/approver-p
 import { RequestStepperComponent } from '../../shared/request-stepper/request-stepper.component';
 import { RequestSuccessComponent } from '../../shared/request-success/request-success.component';
 import { formatSla } from '../../core/utils/sla';
+import { problemText } from '../../core/utils/problem-text';
 
 @Component({
   selector: 'sf-pdf-template-request',
@@ -535,11 +536,10 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
         this.submitting.set(false);
         this.router.navigate(['/contracts/review'], { queryParams: { documentId: res.documentId } });
       },
-      error: (err: { error?: { detail?: string; errors?: Record<string, string[]> } }) => {
+      error: (err: unknown) => {
         this.submitting.set(false);
-        const msg = err.error?.errors ? Object.values(err.error.errors).flat().join(' ')
-          : err.error?.detail ?? this.translate.instant('pdfTemplates.request.sendFailed');
-        this.snack.open(msg, 'OK', { duration: 6000 });
+        // A team step with nobody in it is named, so the admin knows which team to fill (preset.step.poolEmpty).
+        this.snack.open(problemText(this.translate, err, 'pdfTemplates.request.sendFailed'), 'OK', { duration: 6000 });
       }
     });
   }

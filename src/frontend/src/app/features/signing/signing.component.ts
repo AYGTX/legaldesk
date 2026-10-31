@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { DelegateDialogComponent, DelegateDialogData } from './delegate-dialog.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatStepperModule } from '@angular/material/stepper';
@@ -85,6 +86,11 @@ import { environment } from '../../../environments/environment';
               @if (isNonSigner()) {
                 <button mat-stroked-button class="request-changes-btn" (click)="openRequestChangesDialog()">
                   <mat-icon>published_with_changes</mat-icon> {{ 'signing.topbar.requestChanges' | translate }}
+                </button>
+              }
+              @if (canDelegate()) {
+                <button mat-stroked-button (click)="openDelegateDialog()">
+                  <mat-icon>forward_to_inbox</mat-icon> {{ 'signing.delegate.button' | translate }}
                 </button>
               }
               <button mat-stroked-button color="warn" (click)="openRejectDialog()">
@@ -230,6 +236,11 @@ import { environment } from '../../../environments/environment';
                   @if (isNonSigner()) {
                     <button mat-stroked-button class="request-changes-btn" (click)="openRequestChangesDialog()">
                       <mat-icon>published_with_changes</mat-icon> {{ 'signing.topbar.requestChanges' | translate }}
+                    </button>
+                  }
+                  @if (canDelegate()) {
+                    <button mat-stroked-button (click)="openDelegateDialog()">
+                      <mat-icon>forward_to_inbox</mat-icon> {{ 'signing.delegate.button' | translate }}
                     </button>
                   }
                   <button mat-stroked-button color="warn" (click)="openRejectDialog()">
@@ -413,6 +424,11 @@ import { environment } from '../../../environments/environment';
                     <mat-icon>published_with_changes</mat-icon> {{ 'signing.topbar.requestChanges' | translate }}
                   </button>
                 }
+                @if (canDelegate()) {
+                  <button mat-stroked-button (click)="openDelegateDialog()">
+                    <mat-icon>forward_to_inbox</mat-icon> {{ 'signing.delegate.button' | translate }}
+                  </button>
+                }
                 <button mat-stroked-button color="warn" (click)="openRejectDialog()">
                   <mat-icon>cancel</mat-icon> {{ 'signing.topbar.decline' | translate }}
                 </button>
@@ -545,6 +561,12 @@ import { environment } from '../../../environments/environment';
             </div>
           </div>
         }
+      } @else if (handedOver(); as name) {
+        <div class="status-screen">
+          <mat-icon>forward_to_inbox</mat-icon>
+          <h2>{{ 'signing.delegate.doneTitle' | translate }}</h2>
+          <p>{{ 'signing.delegate.done' | translate: { name: name } }}</p>
+        </div>
       } @else if (error()) {
         <div class="status-screen error">
           <mat-icon>error_outline</mat-icon>
@@ -577,6 +599,8 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly pdfLoading = signal(true);
   readonly session = signal<SigningSession | null>(null);
   readonly error = signal<string | null>(null);
+  /** The step was handed over: who has it now. */
+  readonly handedOver = signal<string | null>(null);
   readonly currentFieldId = signal<string | null>(null);
   readonly finishing = signal(false);
   readonly reviewMode = signal(false);
@@ -1134,6 +1158,26 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   finish(): void {
     // Kept for compatibility — entering review mode replaces the old instant-finish flow.
     this.reviewMode.set(true);
+  }
+
+  /** A team step is shared by its members already; a viewer has no step to hand over. */
+  canDelegate(): boolean {
+    const r = this.session()?.recipient;
+    return !!r && r.approvalType !== 'ViewOnly' && r.email !== 'pool@legaldesk.invalid';
+  }
+
+  openDelegateDialog(): void {
+    const s = this.session();
+    if (!s) return;
+    this.dialog.open(DelegateDialogComponent, {
+      data: { token: this.token, ownEmail: s.recipient.email } satisfies DelegateDialogData,
+      width: '520px', maxWidth: '96vw'
+    }).afterClosed().subscribe((result?: { name: string }) => {
+      if (!result) return;
+      // This link no longer acts: say so plainly instead of leaving buttons that would be refused.
+      this.session.set(null);
+      this.handedOver.set(result.name);
+    });
   }
 
   openRequestChangesDialog(): void {

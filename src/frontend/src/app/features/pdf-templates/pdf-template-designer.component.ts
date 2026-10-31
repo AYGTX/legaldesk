@@ -17,7 +17,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ScanOverlayComponent } from '../../shared/scan-overlay/scan-overlay.component';
-import { PdfTextEditorDialogComponent, PdfTextEditorDialogData } from '../documents/pdf-text-editor-dialog.component';
 import { ClausePickerDialogComponent } from '../clauses/clause-picker-dialog.component';
 import { firstValueFrom, switchMap } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -100,11 +99,6 @@ const CANVAS_SCALE = 1.5;
             <button mat-icon-button (click)="nextPage()" [disabled]="currentPage() >= pageCount()"><mat-icon>chevron_right</mat-icon></button>
           </div>
         }
-
-        <button mat-stroked-button [disabled]="!doc()" (click)="editText()"
-                [matTooltip]="'pdfTemplates.designer.editTextHint' | translate">
-          <mat-icon>edit_note</mat-icon> {{ 'documents.detail.editText.button' | translate }}
-        </button>
 
         <button mat-stroked-button class="detect-btn" [disabled]="detecting() || !doc()" (click)="detectFields()"
                 [matTooltip]="'pdfTemplates.designer.detectFieldsHint' | translate">
@@ -924,20 +918,6 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
    * relabels or deletes them like any other field, and nothing is stored until Save. A proposal that overlaps a field
    * already placed is skipped, so running it twice, or after placing fields by hand, adds nothing twice.
    */
-  /** Click-to-edit view of the template's PDF text; after a save the page is redrawn from the edited file. */
-  editText(): void {
-    this.dialog.open(PdfTextEditorDialogComponent, {
-      data: { documentId: this.templateId, documentTitle: this.name, target: 'template' } satisfies PdfTextEditorDialogData,
-      width: '1000px',
-      maxWidth: '96vw',
-      disableClose: true
-    }).afterClosed().subscribe(result => {
-      if (!result) return;
-      this.pdfLoading.set(true);
-      this.loadPdf();
-    });
-  }
-
   detectFields(): void {
     this.detecting.set(true);
     this.svc.stream(this.templateId).pipe(switchMap(blob => this.svc.detectFields(blob))).subscribe({

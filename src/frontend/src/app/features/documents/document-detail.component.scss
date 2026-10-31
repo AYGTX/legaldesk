@@ -363,3 +363,23 @@
 .fp-total { color: var(--g-text-3); font-size: 14px; }
 .fp-bar { height: 6px; border-radius: 99px; background: var(--g-surface-variant); margin: 8px 0 14px; overflow: hidden; }
 .fp-fill { height: 100%; background: var(--g-green); border-radius: 99px; }
+
+.rounds-card { margin-bottom: 16px; }
+.rounds-title { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 15px; }
+.round { padding: 10px 0; border-top: 1px solid #eef1f5; }
+.round:first-of-type { border-top: 0; }
+.round-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.round-outcome { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; background: #eef1f5; color: #4a5566; }
+.round-outcome[data-outcome='Open'] { background: #e8f0fe; color: #1a56c4; }
+.round-outcome[data-outcome='Completed'] { background: #e6f4ea; color: #137333; }
+.round-outcome[data-outcome='Declined'] { background: #fce8e6; color: #c5221f; }
+.round-outcome[data-outcome='ChangesRequested'] { background: #fef7e0; color: #b06000; }
+.round-steps { list-style: none; margin: 6px 0 0; padding: 0; }
+.round-steps li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 3px 0; font-size: 13px; }
+.round-steps .step-order { min-width: 18px; color: #6b7686; }
+.round-steps .step-name { flex: 1; min-width: 140px; }
+.round-steps .step-status { font-weight: 600; font-size: 12px; }
+.round-steps .step-status[data-status='Completed'] { color: #137333; }
+.round-steps .step-status[data-status='Rejected'], .round-steps .step-status[data-status='ChangesRequested'] { color: #b06000; }
+.round-steps .step-reason { flex-basis: 100%; margin: 0 0 0 24px; color: #4a5566; font-style: italic; }
+.round-steps .muted, .round-head .muted { color: #6b7686; font-size: 12px; }

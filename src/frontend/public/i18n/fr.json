@@ -75,7 +75,6 @@
     "resolve": {
       "fixTitle": "Corrigez ce que vous pouvez",
       "fixHint": "Modifiez le contrat : la revue est relancée sur la nouvelle version.",
-      "editText": "Modifier le texte dans le navigateur",
       "uploadFix": "Importer un fichier corrigé",
       "rerun": "Relancer la revue",
       "fixUploaded": "Fichier corrigé importé.",
@@ -118,6 +117,28 @@
         "ViewOnly": "Consulte seulement",
         "Stamp": "Appose le cachet",
         "Reject": "Relit"
+      },
+      "teams": "Équipes",
+      "teamOption": "Équipe : {{name}}",
+      "teamHint": "Chaque membre de l'équipe est prévenu ; le premier qui agit décide pour l'équipe.",
+      "teamViewOnly": "Une équipe agit sur le contrat : choisissez relecture, approbation ou signature.",
+      "circuit": {
+        "show": "Échéance, relances, escalade",
+        "hide": "Masquer les réglages",
+        "stageRule": "Quand plusieurs personnes agissent en même temps",
+        "ruleAll": "Tout le monde doit répondre",
+        "ruleAny": "La première réponse suffit",
+        "due": "Échéance (jours ouvrés)",
+        "noDue": "Pas d'échéance",
+        "reminder": "Relance tous les (jours, 0 = aucune)",
+        "escalateAfter": "Escalade après (jours)",
+        "never": "Jamais",
+        "escalateTo": "Escalader vers",
+        "escalateToOwner": "Le responsable du contrat",
+        "summaryAny": "la première réponse suffit",
+        "summaryDue": "échéance {{days}} jours ouvrés",
+        "summaryNoReminder": "pas de relance",
+        "summaryEscalate": "escalade après {{days}} jours"
       }
     },
     "send": {
@@ -188,7 +209,8 @@
       "clauses": "Bibliothèque de clauses",
       "regulatoryWatch": "Veille réglementaire",
       "systemSettings": "Paramètres système",
-      "reviewRules": "Règles de revue"
+      "reviewRules": "Règles de revue",
+      "teams": "Équipes"
     },
     "htmlTemplates": {
       "title": "Modèles de contrats",
@@ -279,7 +301,8 @@
       "kind": {
         "User": "Personne",
         "Role": "Rôle",
-        "Department": "Service"
+        "Department": "Service",
+        "Team": "Équipe"
       },
       "exactlyOne": "Un rôle ou un service est recherché à la création de la demande et doit correspondre à une seule personne active, sinon la demande est refusée. Nommez plutôt la personne si plusieurs la partagent.",
       "onlyWhen": "Seulement si",
@@ -367,6 +390,36 @@
       "notInService": "plus en service",
       "saved": "Enregistré. Cela vaut pour la prochaine revue.",
       "saveFailed": "Enregistrement impossible. Réessayez."
+    },
+    "teams": {
+      "title": "Équipes",
+      "hint": "Une équipe peut recevoir une étape d'un circuit : chaque membre est prévenu, et le premier qui agit décide pour l'équipe.",
+      "new": "Nouvelle équipe",
+      "name": "Nom",
+      "description": "Description",
+      "members": "Membres",
+      "empty": "Aucune équipe pour l'instant.",
+      "noActiveMember": "Aucun membre actif : une étape confiée à cette équipe ne pourrait pas être traitée.",
+      "memberCount": "{{count}} membre(s)",
+      "nameRequired": "Donnez un nom à l'équipe.",
+      "saved": "Équipe enregistrée.",
+      "saveFailed": "L'équipe n'a pas pu être enregistrée.",
+      "deleteTitle": "Supprimer l'équipe",
+      "deleteMessage": "Supprimer l'équipe « {{name}} » ?",
+      "inUse": "« {{name}} » est utilisée par un circuit type ou un contrat en cours : elle ne peut pas être supprimée.",
+      "deleteFailed": "L'équipe n'a pas pu être supprimée."
+    },
+    "holidays": {
+      "title": "Jours chômés",
+      "hint": "Les échéances se comptent en jours ouvrés : les week-ends et ces jours sont sautés. Les fêtes nationales tunisiennes à date fixe sont déjà là ; ajoutez les fêtes dont la date change chaque année.",
+      "date": "Date",
+      "name": "Nom",
+      "everyYear": "Chaque année",
+      "add": "Ajouter",
+      "yearly": "Chaque année",
+      "once": "Cette date seulement",
+      "addFailed": "Le jour n'a pas pu être ajouté.",
+      "deleteFailed": "Le jour n'a pas pu être retiré."
     }
   },
   "auth": {
@@ -823,36 +876,7 @@
         "hint": "Parcourez le contrat ci-dessous — détails, participants, historique — puis continuez quand vous êtes prêt."
       },
       "editText": {
-        "recs": {
-          "title": "Recommandations",
-          "hint": "Cliquez sur une ligne du PDF pour choisir où écrire, puis sur un morceau de la formulation proposée pour l'y placer.",
-          "selected": "Ligne sélectionnée :",
-          "none": "Aucune ligne sélectionnée : cliquez d'abord sur une ligne du PDF.",
-          "why": "Pourquoi c'est important",
-          "action": "Action recommandée",
-          "proposed": "Formulation proposée",
-          "copy": "Copier",
-          "copied": "Formulation copiée.",
-          "use": "Placer ceci dans la ligne sélectionnée",
-          "segmentTip": "Chaque morceau tient sur une ligne. Cliquez sur l'un d'eux pour remplacer la ligne sélectionnée."
-        },
-        "button": "Modifier le texte",
-        "title": "Modifier le texte du contrat",
-        "hint": "Cliquez sur une ligne pour la modifier. Les lignes modifiées passent en orange ; rien n'est enregistré avant la sauvegarde.",
-        "changes": "{{count}} modifiée(s)",
-        "page": "Page {{n}} sur {{total}}",
-        "loading": "Chargement du PDF…",
-        "noText": "Cette page ne contient aucun texte modifiable — il peut s'agir d'une image numérisée.",
-        "save": "Enregistrer comme nouvelle version",
-        "saving": "Enregistrement…",
-        "cancel": "Annuler",
-        "revert": "Annuler la modification de cette ligne",
-        "undo": "Annuler (Ctrl+Z)",
-        "redo": "Rétablir (Ctrl+Y)",
-        "saved": "Version {{version}} enregistrée avec vos modifications.",
-        "failed": "Impossible d'enregistrer les modifications",
-        "loadFailed": "Impossible d'ouvrir le PDF pour modification",
-        "limits": "Le texte ne se réorganise pas : une ligne plus longue est réduite pour tenir. Le texte d'origine reste dans la version précédente."
+        "cancel": "Annuler"
       },
       "revisionUploaded": "Révision v{{version}} importée. Vérifiez les champs, puis renvoyez le contrat.",
       "revisionFailed": "Échec de l'import de la révision",
@@ -925,7 +949,9 @@
         "changesOnly": "Modifications uniquement",
         "failed": "La comparaison n’a pas pu être produite.",
         "downloadVersion": "Télécharger la v{{version}}",
-        "downloadFailed": "Cette version n’a pas pu être téléchargée."
+        "downloadFailed": "Cette version n’a pas pu être téléchargée.",
+        "moved": "déplacée(s)",
+        "movedHere": "Déplacée ici"
       },
       "severityPossible": "À valider — risques possibles",
       "chat": {
@@ -1025,6 +1051,38 @@
       "onlyPdf": "Seuls les fichiers PDF sont pris en charge",
       "fileTooLarge": "La taille du fichier doit être inférieure à 50 Mo",
       "uploadFailed": "Échec de l'importation. Veuillez réessayer."
+    },
+    "word": {
+      "download": "Télécharger en Word",
+      "hint": "Modifiez le contrat dans Word, puis importez le fichier avec « Importer la révision » : il devient la version suivante.",
+      "failed": "Le fichier Word n'a pas pu être préparé."
+    },
+    "rounds": {
+      "title": "Tours",
+      "round": "Tour {{number}} · version {{version}}",
+      "outcome": {
+        "Open": "En cours",
+        "Completed": "Terminé",
+        "Declined": "Refusé",
+        "ChangesRequested": "Modifications demandées",
+        "Superseded": "Remplacé par une révision"
+      },
+      "actedBy": "par {{name}}",
+      "standsIn": "remplaçant",
+      "anyRule": "la première réponse clôt l’étape",
+      "handedOver": "Transmis",
+      "due": "échéance {{date}}",
+      "status": {
+        "Pending": "En attente",
+        "InProgress": "À son tour",
+        "Completed": "Fait",
+        "Rejected": "Refusé",
+        "Skipped": "Plus nécessaire",
+        "Delegated": "Transmis",
+        "Escalated": "Escaladé",
+        "Expired": "Expiré",
+        "ChangesRequested": "Modifications demandées"
+      }
     }
   },
   "designer": {
@@ -1348,7 +1406,11 @@
       "scheduleFailed": "Échec de la planification du congé",
       "cancelled": "Congé annulé",
       "cancelFailed": "Échec de l'annulation"
-    }
+    },
+    "standIn": "Qui agit pour vous pendant votre absence",
+    "noStandIn": "Personne : je ne peux pas être ajouté à un circuit pendant cette période",
+    "standInHint": "Les étapes qui vous reviennent pendant votre absence vont à ce collègue.",
+    "standInIs": "{{name}} agit pour vous"
   },
   "requests": {
     "title": "Mes demandes",
@@ -1458,7 +1520,17 @@
     "goToPage": "Aller à la page {{page}}",
     "loadFailed": "Impossible de charger les commentaires",
     "postFailed": "Impossible de publier votre commentaire",
-    "actionFailed": "Une erreur s'est produite — veuillez réessayer"
+    "actionFailed": "Une erreur s'est produite — veuillez réessayer",
+    "internal": "Note interne",
+    "internalHint": "Seule votre organisation voit les notes internes. Les participants ne les voient jamais.",
+    "shared": "Partagé avec les participants",
+    "sharedHint": "Les participants du contrat voient cette discussion et peuvent y répondre.",
+    "visibilityLabel": "Qui voit ce commentaire",
+    "internalPlaceholder": "Écrire une note interne…",
+    "mention": "Mentionner…",
+    "mentionHint": "Les personnes mentionnées sont prévenues.",
+    "unmention": "Retirer {{name}}",
+    "participantTag": "participant"
   },
   "audit": {
     "system": "Système",
@@ -2033,7 +2105,8 @@
     "refused": {
       "link": {
         "invalid": "Ce lien de signature n'est pas valide. Utilisez l'e-mail le plus récent que vous avez reçu.",
-        "expired": "Ce lien de signature a expiré. Demandez-en un nouveau à l'expéditeur."
+        "expired": "Ce lien de signature a expiré. Demandez-en un nouveau à l'expéditeur.",
+        "delegated": "Vous avez transmis cette étape à quelqu'un d'autre : ce lien ne fonctionne plus."
       },
       "session": {
         "required": "Confirmez votre adresse e-mail pour continuer.",
@@ -2054,6 +2127,24 @@
         "expired": "Ce code n'est plus valable. Demandez-en un nouveau.",
         "too_soon": "Un code vient d'être envoyé. Attendez une minute avant d'en demander un autre.",
         "too_many": "Trop de codes ont été demandés. Réessayez dans une heure."
+      }
+    },
+    "delegate": {
+      "button": "Transmettre",
+      "title": "Transmettre votre étape",
+      "hint": "Une autre personne agira à votre place. Elle reçoit son propre lien ; celui-ci cessera de fonctionner.",
+      "name": "Son nom",
+      "email": "Son e-mail",
+      "note": "Pourquoi (elle et l'expéditeur le verront)",
+      "submit": "Transmettre",
+      "self": "Choisissez quelqu'un d'autre que vous.",
+      "failed": "L'étape n'a pas pu être transmise.",
+      "doneTitle": "Étape transmise",
+      "done": "{{name}} a reçu un lien et agira à votre place. Vous n'avez plus rien à faire.",
+      "errors": {
+        "delegate": {
+          "pool": "Cette étape est partagée par une équipe : n'importe quel membre peut agir, elle ne se transmet pas."
+        }
       }
     }
   },
@@ -2504,7 +2595,6 @@
       "saveFailed": "Échec de l'enregistrement du formulaire PDF",
       "detectFields": "Détecter les champs",
       "textSaved": "Texte du modèle enregistré. Les nouvelles demandes utiliseront le PDF modifié ; les demandes déjà créées gardent leur copie.",
-      "editTextHint": "Cliquez sur une ligne du PDF pour la réécrire. Les champs placés ne bougent pas.",
       "detectFieldsHint": "Repère les zones à remplir, cases à cocher et signatures de ce contrat et les propose comme champs. Vous les vérifiez, puis vous enregistrez.",
       "detecting": "Détection des champs…",
       "detected": "{{count}} champs proposés — vérifiez-les, puis enregistrez",
@@ -2686,7 +2776,6 @@
       "title": "Étapes suivantes",
       "promote": "Envoyer en circuit de validation",
       "blockedHint": "Traitez ou écartez d’abord les points critiques.",
-      "editText": "Modifier le texte avec les recommandations",
       "uploadRevision": "Téléverser une version corrigée",
       "uploading": "Téléversement…",
       "revisionUploaded": "Version corrigée téléversée — nouvelle analyse en cours.",
@@ -2743,5 +2832,24 @@
     "differs": "« {{name}} » n'est pas le contrat scellé : il en diffère, ou c'est un autre fichier.",
     "unknown": "Aucun contrat scellé ne porte ce code.",
     "what": "Les contrats LegalDesk sont scellés par l'organisation qui les a envoyés, avec un horodatage, une fois que tous ont signé. La dernière page indique qui a signé, quand, et comment chacun a prouvé son adresse e-mail. Il s'agit d'une signature électronique avancée, pas d'une signature qualifiée."
+  },
+  "errors": {
+    "revision": {
+      "docx_unavailable": "Les fichiers Word ne peuvent pas encore être convertis sur ce serveur. Enregistrez le fichier en PDF dans Word et importez le PDF.",
+      "docx_failed": "Ce fichier Word n'a pas pu être lu. Enregistrez-le de nouveau dans Word, ou importez un PDF.",
+      "docx_template": "Ce contrat a été créé à partir d’un modèle : modifiez plutôt ses réponses.",
+      "docx_no_text": "Ce contrat n'a pas de texte lisible à mettre dans un fichier Word."
+    },
+    "circuit": {
+      "poolEmpty": "« {{team}} » n'a aucun membre actif : personne ne pourrait agir pour elle. Ajoutez des membres dans Administration > Équipes."
+    },
+    "preset": {
+      "step": {
+        "poolEmpty": "L'étape {{step}} du circuit type est confiée à « {{team}} », qui n'a aucun membre actif. Demandez à un administrateur d'ajouter des membres à l'équipe."
+      }
+    },
+    "team": {
+      "inUse": "Cette équipe est utilisée par un circuit type ou un contrat en cours : elle ne peut pas être supprimée."
+    }
   }
 }

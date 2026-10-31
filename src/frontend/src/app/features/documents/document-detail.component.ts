@@ -18,7 +18,7 @@ import { DocumentService } from '../../core/services/document.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { HubService } from '../../core/services/hub.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { DocumentDetail, WorkflowParticipant, AiSummaryDto, Review } from '../../core/models';
+import { DocumentDetail, WorkflowParticipant, AiSummaryDto, Review, ContractRound } from '../../core/models';
 import { ReviewService } from '../../core/services/review.service';
 import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
@@ -26,7 +26,8 @@ import { ContractChatPanelComponent } from './contract-chat-panel.component';
 import { ContractTermPanelComponent } from './contract-term-panel.component';
 import { ContractLifecycleAiPanelComponent } from './contract-lifecycle-ai-panel.component';
 import { VersionCompareDialogComponent, VersionCompareDialogData } from './version-compare-dialog.component';
-import { PdfTextEditorDialogComponent, PdfTextEditorDialogData } from './pdf-text-editor-dialog.component';
+import { saveBlob, safeFileName } from '../../core/utils/save-blob';
+import { problemText } from '../../core/utils/problem-text';
 import { TemplateRevisionDialogComponent, TemplateRevisionDialogData } from './template-revision-dialog.component';
 import { remainingTime, RemainingTime } from '../../core/utils/sla';
 
@@ -96,8 +97,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 </a>
               }
               @if (canEditText()) {
-                <button mat-stroked-button (click)="editText()">
-                  <mat-icon>edit_note</mat-icon> {{ 'documents.detail.editText.button' | translate }}
+                <button mat-stroked-button (click)="downloadWord()"
+                        [matTooltip]="'documents.word.hint' | translate">
+                  <mat-icon>description</mat-icon> {{ 'documents.word.download' | translate }}
                 </button>
               }
               <button mat-stroked-button [routerLink]="['/contracts', doc()!.id, 'designer']">
@@ -231,12 +233,13 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                 <input class="note-input" #noteInput
                        [placeholder]="'documents.detail.changeNotePlaceholder' | translate"
                        [disabled]="uploadingRevision()" />
-                <input type="file" accept="application/pdf" hidden #revisionInput
+                <input type="file" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden #revisionInput
                        (change)="onRevisionFile($event, noteInput.value)" />
                 @if (canEditText()) {
-                  <button mat-stroked-button (click)="editText()" [disabled]="uploadingRevision()">
-                    <mat-icon>edit_note</mat-icon> {{ 'documents.detail.editText.button' | translate }}
-                  </button>
+                  <button mat-stroked-button [disabled]="uploadingRevision()" (click)="downloadWord()"
+                        [matTooltip]="'documents.word.hint' | translate">
+                  <mat-icon>description</mat-icon> {{ 'documents.word.download' | translate }}
+                </button>
                 }
                 <button mat-flat-button class="crb-upload-btn" (click)="revisionInput.click()" [disabled]="uploadingRevision()">
                   <mat-icon>upload_file</mat-icon>
@@ -539,10 +542,48 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               </mat-card-content>
             </mat-card>
 
+            <!-- Every round of the circuit: what each version was sent for, and what each step did (R-M7-2) -->
+            @if (rounds().length) {
+              <mat-card class="rounds-card">
+                <mat-card-content>
+                  <h3 class="rounds-title"><mat-icon>history</mat-icon> {{ 'documents.rounds.title' | translate }}</h3>
+                  @for (round of rounds(); track round.id) {
+                    <div class="round" [class.round-open]="round.outcome === 'Open'">
+                      <div class="round-head">
+                        <strong>{{ 'documents.rounds.round' | translate: { number: round.number, version: round.versionNumber } }}</strong>
+                        <span class="round-outcome" [attr.data-outcome]="round.outcome">{{ ('documents.rounds.outcome.' + round.outcome) | translate }}</span>
+                        <span class="muted">{{ round.openedAt | date:'d MMM y, HH:mm' }}@if (round.closedAt) { → {{ round.closedAt | date:'d MMM y, HH:mm' }} }</span>
+                      </div>
+                      <ul class="round-steps">
+                        @for (step of round.steps; track $index) {
+                          <li>
+                            <span class="step-order">{{ step.order }}</span>
+                            <span class="step-name">
+                              {{ step.name }}
+                              @if (step.actedByName) { <span class="muted">({{ 'documents.rounds.actedBy' | translate: { name: step.actedByName } }})</span> }
+                              @if (step.standsIn) { <span class="muted">· {{ 'documents.rounds.standsIn' | translate }}</span> }
+                              @if (step.stageRule === 'Any') { <span class="muted">· {{ 'documents.rounds.anyRule' | translate }}</span> }
+                            </span>
+                            <span class="step-status" [attr.data-status]="step.status">
+                              {{ (step.handedOver ? 'documents.rounds.handedOver' : 'documents.rounds.status.' + step.status) | translate }}
+                            </span>
+                            @if (step.completedAt) { <span class="muted">{{ step.completedAt | date:'d MMM, HH:mm' }}</span> }
+                            @else if (step.dueAt && step.status === 'InProgress') { <span class="muted">{{ 'documents.rounds.due' | translate: { date: (step.dueAt | date:'d MMM, HH:mm') } }}</span> }
+                            @if (step.declineReason) { <p class="step-reason">« {{ step.declineReason }} »</p> }
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </mat-card-content>
+              </mat-card>
+            }
+
             <!-- Comments / discussion -->
             <mat-card class="comments-card">
               <mat-card-content>
                 <sf-comments-panel [documentId]="doc()!.id" [canModerate]="canModerate()"
+                                    [canWriteInternal]="canModerate()"
                                     [pageCount]="doc()!.pageCount"></sf-comments-panel>
               </mat-card-content>
             </mat-card>
@@ -730,6 +771,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
 
   readonly loading = signal(true);
   readonly doc = signal<DocumentDetail | null>(null);
+  readonly rounds = signal<ContractRound[]>([]);
   readonly error = signal<string | null>(null);
   readonly sending = signal(false);
   readonly summary = signal<AiSummaryDto | null>(null);
@@ -944,7 +986,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.uploadingRevision.set(false);
-        this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.revisionFailed'), 'OK', { duration: 6000 });
+        this.snack.open(problemText(this.translate, err, 'documents.detail.revisionFailed'), 'OK', { duration: 6000 });
       }
     });
   }
@@ -1129,6 +1171,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
           this.summary.set({ summary: doc.aiSummary, generatedAt: doc.aiSummaryGeneratedAt });
         }
         this.loadReadiness();
+        this.documentService.getRounds(this.documentId).subscribe({ next: r => this.rounds.set(r), error: () => this.rounds.set([]) });
       },
       error: () => { this.error.set(this.translate.instant('documents.detail.notFound')); this.loading.set(false); }
     });
@@ -1272,17 +1315,13 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  editText(): void {
-    const detail = this.doc();
-    if (!detail) return;
-
-    this.dialog.open(PdfTextEditorDialogComponent, {
-      data: { documentId: this.documentId, documentTitle: detail.title } satisfies PdfTextEditorDialogData,
-      width: '1000px',
-      maxWidth: '96vw',
-      disableClose: true
-    }).afterClosed().subscribe(result => {
-      if (result) this.load();
+  /** The current version as a Word file; edited, it comes back through "Upload revision" as the next version. */
+  downloadWord(): void {
+    const id = this.documentId;
+    if (!id) return;
+    this.documentService.downloadDocx(id).subscribe({
+      next: blob => saveBlob(blob, `${safeFileName(this.doc()?.title ?? '')}.docx`),
+      error: () => this.snack.open(this.translate.instant('documents.word.failed'), 'OK', { duration: 6000 })
     });
   }
 

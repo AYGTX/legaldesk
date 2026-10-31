@@ -21,6 +21,7 @@ import { ApproverPickerComponent } from '../../shared/approver-picker/approver-p
 import { RequestStepperComponent } from '../../shared/request-stepper/request-stepper.component';
 import { RequestSuccessComponent } from '../../shared/request-success/request-success.component';
 import { formatSla } from '../../core/utils/sla';
+import { problemText } from '../../core/utils/problem-text';
 
 type Step = 'pick' | 'fill' | 'done';
 
@@ -514,9 +515,9 @@ export class NewRequestComponent implements OnInit {
           error: () => {} // non-critical: the done screen still works without the link list
         });
       },
-      error: () => {
+      error: (err: unknown) => {
         this.submitting.set(false);
-        this.snack.open(this.translate.instant('requests.new.submitFailed'), 'OK', { duration: 3000 });
+        this.snack.open(problemText(this.translate, err, 'requests.new.submitFailed'), 'OK', { duration: 6000 });
       }
     });
   }

@@ -30,6 +30,18 @@ public class CommentsController(
         return Ok(result);
     }
 
+    /// <summary>The people a comment on this document can mention: members of the organisation and its participants</summary>
+    [HttpGet("documents/{documentId:guid}/mentionables")]
+    [ProducesResponseType(typeof(List<MentionableDto>), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    public async Task<ActionResult<List<MentionableDto>>> GetMentionables(
+        [FromRoute] Guid documentId,
+        [FromServices] IQueryHandler<GetMentionablesQuery, List<MentionableDto>> mentionablesHandler,
+        CancellationToken ct)
+    {
+        return Ok(await mentionablesHandler.HandleAsync(new GetMentionablesQuery(documentId), ct));
+    }
+
     /// <summary>Add a comment or a reply to a document</summary>
     [HttpPost("documents/{documentId:guid}/comments")]
     [ProducesResponseType(typeof(CommentDto), 201)]

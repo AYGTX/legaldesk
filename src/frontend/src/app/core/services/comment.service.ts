@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { AddCommentRequest, CommentDto } from '../models';
+import { AddCommentRequest, CommentDto, Mentionable } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class CommentService {
@@ -14,6 +14,11 @@ export class CommentService {
 
   addForDocument(documentId: string, request: AddCommentRequest): Observable<CommentDto> {
     return this.api.post<CommentDto>(`/v1/documents/${documentId}/comments`, request);
+  }
+
+  /** Who a comment on this contract can mention. */
+  getMentionables(documentId: string): Observable<Mentionable[]> {
+    return this.api.get<Mentionable[]>(`/v1/documents/${documentId}/mentionables`);
   }
 
   resolve(commentId: string, resolved: boolean): Observable<void> {

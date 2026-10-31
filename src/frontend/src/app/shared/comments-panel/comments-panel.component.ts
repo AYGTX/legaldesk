@@ -11,7 +11,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { CommentService } from '../../core/services/comment.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { HubService } from '../../core/services/hub.service';
-import { AddCommentRequest, CommentDto } from '../../core/models';
+import { AddCommentRequest, CommentDto, CommentVisibility, Mentionable } from '../../core/models';
 import { resolveFileUrl } from '../../core/utils/file-url';
 
 /**
@@ -49,7 +49,7 @@ import { resolveFileUrl } from '../../core/utils/file-url';
         }
 
         @for (c of topLevel(); track c.id) {
-          <div class="cp-thread" [class.cp-resolved]="c.isResolved">
+          <div class="cp-thread" [class.cp-resolved]="c.isResolved" [class.cp-internal]="c.visibility === 'Internal'">
             <div class="cp-comment">
               @if (avatarOf(c); as url) {
                 <img class="cp-avatar-img" [src]="url" alt="" />
@@ -59,6 +59,14 @@ import { resolveFileUrl } from '../../core/utils/file-url';
               <div class="cp-body">
                 <div class="cp-meta">
                   <span class="cp-author">{{ displayNameOf(c) }}</span>
+                  @if (c.visibility === 'Internal') {
+                    <span class="cp-internal-chip" [matTooltip]="'comments.internalHint' | translate">
+                      <mat-icon>lock</mat-icon>{{ 'comments.internal' | translate }}
+                    </span>
+                  }
+                  @if (c.versionNumber) {
+                    <span class="cp-version-chip">v{{ c.versionNumber }}</span>
+                  }
                   @if (c.page) {
                     <button type="button" class="cp-page-chip" [matTooltip]="'comments.goToPage' | translate: { page: c.page }"
                             (click)="pageJump.emit(c.page!)">
@@ -122,10 +130,48 @@ import { resolveFileUrl } from '../../core/utils/file-url';
           </div>
         }
 
-        <div class="cp-composer">
+        <div class="cp-composer" [class.cp-composer-internal]="visibility() === 'Internal'">
+          @if (canWriteInternal()) {
+            <div class="cp-visibility" role="radiogroup" [attr.aria-label]="'comments.visibilityLabel' | translate">
+              <button type="button" role="radio" [attr.aria-checked]="visibility() === 'Internal'"
+                      [class.cp-on]="visibility() === 'Internal'" (click)="setVisibility('Internal')">
+                <mat-icon>lock</mat-icon> {{ 'comments.internal' | translate }}
+              </button>
+              <button type="button" role="radio" [attr.aria-checked]="visibility() === 'Participants'"
+                      [class.cp-on]="visibility() === 'Participants'" (click)="setVisibility('Participants')">
+                <mat-icon>group</mat-icon> {{ 'comments.shared' | translate }}
+              </button>
+            </div>
+            <p class="cp-visibility-hint">
+              {{ (visibility() === 'Internal' ? 'comments.internalHint' : 'comments.sharedHint') | translate }}
+            </p>
+          }
           <textarea [(ngModel)]="draft" rows="3" maxlength="4000"
-                    [placeholder]="'comments.placeholder' | translate"></textarea>
+                    [placeholder]="(visibility() === 'Internal' ? 'comments.internalPlaceholder' : 'comments.placeholder') | translate"></textarea>
+          @if (mentioned().length) {
+            <div class="cp-mentions">
+              @for (m of mentioned(); track m.id) {
+                <span class="cp-mention-chip">
+                  {{ '@' }}{{ m.name }}
+                  <button type="button" (click)="unmention(m.id)" [attr.aria-label]="'comments.unmention' | translate: { name: m.name }">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </span>
+              }
+            </div>
+          }
           <div class="cp-composer-actions">
+            @if (documentId() && offerable().length) {
+              <label class="cp-page-select" [matTooltip]="'comments.mentionHint' | translate">
+                <mat-icon>alternate_email</mat-icon>
+                <select [ngModel]="null" (ngModelChange)="mention($event)">
+                  <option [ngValue]="null">{{ 'comments.mention' | translate }}</option>
+                  @for (m of offerable(); track m.id) {
+                    <option [ngValue]="m.id">{{ m.name }}{{ m.isParticipant ? ' · ' + ('comments.participantTag' | translate) : '' }}</option>
+                  }
+                </select>
+              </label>
+            }
             @if (pageCount(); as pc) {
               <label class="cp-page-select" [matTooltip]="'comments.attachPage' | translate">
                 <mat-icon>bookmark_border</mat-icon>
@@ -146,6 +192,30 @@ import { resolveFileUrl } from '../../core/utils/file-url';
     </div>
   `,
   styles: [`
+    .cp-internal-chip, .cp-version-chip {
+      display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 600;
+      padding: 1px 6px; border-radius: 10px;
+    }
+    .cp-internal-chip { background: #fff4e5; color: #8a4b00; }
+    .cp-internal-chip mat-icon { font-size: 12px; width: 12px; height: 12px; }
+    .cp-version-chip { background: #eef1f5; color: #4a5566; }
+    .cp-thread.cp-internal { border-left: 3px solid #f0b35b; padding-left: 8px; }
+    .cp-composer-internal textarea { background: #fffaf2; }
+    .cp-visibility { display: inline-flex; border: 1px solid #c7d0dc; border-radius: 8px; overflow: hidden; margin-bottom: 4px; }
+    .cp-visibility button {
+      display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; padding: 4px 10px;
+      font: inherit; font-size: 12px; cursor: pointer; color: #4a5566;
+    }
+    .cp-visibility button mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .cp-visibility button.cp-on { background: #1a3a5c; color: #fff; }
+    .cp-visibility-hint { margin: 0 0 6px; font-size: 12px; color: #5f6b7a; }
+    .cp-mentions { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+    .cp-mention-chip {
+      display: inline-flex; align-items: center; gap: 2px; background: #e8f0fe; color: #1a56c4;
+      border-radius: 12px; padding: 1px 4px 1px 8px; font-size: 12px;
+    }
+    .cp-mention-chip button { border: 0; background: transparent; cursor: pointer; padding: 0; display: inline-flex; color: inherit; }
+    .cp-mention-chip mat-icon { font-size: 14px; width: 14px; height: 14px; }
     .cp-root { display: flex; flex-direction: column; gap: 12px; }
     .cp-header { display: flex; align-items: center; gap: 8px; font-weight: 500; }
     .cp-header mat-icon { color: #5f6368; }
@@ -191,6 +261,8 @@ export class CommentsPanelComponent implements OnInit {
   readonly token = input<string | null>(null);
   /** Owner/admin viewers may resolve/delete any thread (authenticated mode only). */
   readonly canModerate = input(false);
+  /** The organisation's side (owner, admin) may write internal notes that participants never see (R-M7-1). */
+  readonly canWriteInternal = input(false);
   /** Total page count of the document — enables the "bookmark to page" picker in the composer. */
   readonly pageCount = input<number | null>(null);
   /** Page the host is currently showing (e.g. the field/page in view) — pre-selects the picker. */
@@ -216,6 +288,21 @@ export class CommentsPanelComponent implements OnInit {
 
   readonly topLevel = computed(() => this.comments().filter(c => !c.parentCommentId));
 
+  /** A new thread from the organisation's side starts internal; a participant's is always shared. */
+  readonly visibility = signal<CommentVisibility>('Internal');
+  private readonly mentionables = signal<Mentionable[]>([]);
+  private readonly mentionIds = signal<string[]>([]);
+  readonly mentioned = computed(() => this.mentionIds()
+    .map(id => this.mentionables().find(m => m.id === id))
+    .filter((m): m is Mentionable => !!m));
+  /** A participant is never offered for an internal note: they could not read it. */
+  readonly offerable = computed(() => this.mentionables().filter(m =>
+    !this.mentionIds().includes(m.id) && !(m.isParticipant && this.effectiveVisibility() === 'Internal')));
+
+  private effectiveVisibility(): CommentVisibility {
+    return this.canWriteInternal() ? this.visibility() : 'Participants';
+  }
+
   constructor() {
     effect(() => {
       const page = this.currentPage();
@@ -230,6 +317,31 @@ export class CommentsPanelComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    const docId = this.documentId();
+    if (docId) {
+      this.commentService.getMentionables(docId).subscribe({
+        next: list => this.mentionables.set(list),
+        error: () => this.mentionables.set([])
+      });
+    }
+  }
+
+  setVisibility(visibility: CommentVisibility): void {
+    this.visibility.set(visibility);
+    // Participants picked for a shared thread cannot follow it into an internal note.
+    if (visibility === 'Internal') {
+      const participants = new Set(this.mentionables().filter(m => m.isParticipant).map(m => m.id));
+      this.mentionIds.update(ids => ids.filter(id => !participants.has(id)));
+    }
+  }
+
+  mention(id: string | null): void {
+    if (id && !this.mentionIds().includes(id) && this.mentionIds().length < 20)
+      this.mentionIds.update(ids => [...ids, id]);
+  }
+
+  unmention(id: string): void {
+    this.mentionIds.update(ids => ids.filter(m => m !== id));
   }
 
   repliesFor(parentId: string): CommentDto[] {
@@ -273,8 +385,14 @@ export class CommentsPanelComponent implements OnInit {
   }
 
   post(): void {
-    this.submit({ content: this.draft.trim(), page: this.commentPage }, () => {
+    this.submit({
+      content: this.draft.trim(),
+      page: this.commentPage,
+      visibility: this.effectiveVisibility(),
+      mentionIds: this.mentionIds()
+    }, () => {
       this.draft = '';
+      this.mentionIds.set([]);
       this.commentPage = this.currentPage();
     });
   }

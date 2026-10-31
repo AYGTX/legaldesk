@@ -90,6 +90,11 @@ export class SigningService {
     return this.api.post<void>(`/v1/sign/${token}/decline`, { reason });
   }
 
+  /** Hands this participant's step to someone else (R-M4-5); this link stops working, theirs is e-mailed. */
+  delegate(token: string, request: { name: string; email: string; note: string }): Observable<{ recipientId: string; name: string; email: string }> {
+    return this.api.post(`/v1/sign/${token}/delegate`, request);
+  }
+
   /** Reviewers/approvers only — pauses the workflow for a revision instead of rejecting it. */
   requestChanges(token: string, reason: string): Observable<void> {
     return this.api.post<void>(`/v1/sign/${token}/request-changes`, { reason });

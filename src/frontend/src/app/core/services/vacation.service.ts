@@ -11,6 +11,11 @@ export class VacationService {
     return this.api.get<Vacation[]>('/v1/vacations');
   }
 
+  /** Colleagues who can be named to act while the user is away. */
+  getStandInCandidates(): Observable<{ id: string; name: string; email: string }[]> {
+    return this.api.get<{ id: string; name: string; email: string }[]>('/v1/vacations/stand-ins');
+  }
+
   schedule(request: ScheduleVacationRequest): Observable<Vacation> {
     return this.api.post<Vacation>('/v1/vacations', request);
   }

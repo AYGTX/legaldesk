@@ -24,6 +24,11 @@ export const adminRoutes: Routes = [
     title: 'Workflows — LegalDesk'
   },
   {
+    path: 'teams',
+    loadComponent: () => import('./teams.component').then(m => m.TeamsComponent),
+    title: 'Teams — LegalDesk'
+  },
+  {
     path: 'review-rules',
     loadComponent: () => import('./review-settings.component').then(m => m.ReviewSettingsComponent),
     title: 'Review rules — LegalDesk'

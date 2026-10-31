@@ -6,7 +6,6 @@ import {
   PdfTemplateDto, PdfTemplateDetailDto, CreatePdfTemplateResult,
   UpdatePdfTemplateRequest, SubmitPdfTemplateRequest, DetectedFormFields
 } from '../models/pdf-template.models';
-import { PdfTextEdit } from '../models/document.models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -54,11 +53,6 @@ export class PdfTemplateService {
     const form = new FormData();
     form.append('file', file, 'contract.pdf');
     return this.api.upload<DetectedFormFields>('/v1/pdf-templates/detect-fields', form);
-  }
-
-  /** Applies in-browser text edits to the template's PDF. Requests already created keep their own copy. */
-  editPdf(id: string, edits: PdfTextEdit[]): Observable<{ templateId: string; pageCount: number }> {
-    return this.api.post(`/v1/pdf-templates/${id}/edit-pdf`, { edits });
   }
 
   /** Absolute stream URL (rarely needed; prefer stream() blob for authenticated rendering). */

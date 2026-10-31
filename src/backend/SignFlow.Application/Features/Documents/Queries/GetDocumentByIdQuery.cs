@@ -65,7 +65,11 @@ public record DocumentDetailDto(
     List<TemplateRevisionDto>? TemplateRevisions = null);
 
 public record OwnerDto(Guid Id, string FullName, string Email, string? AvatarUrl);
-public record RecipientDto(Guid Id, string Name, string Email, int Order, ApprovalType ApprovalType, WorkflowStepStatus Status, DateTime? SignedAt, DateTime? ViewedAt, string? RoleLabel = null, string? DeclineReason = null, List<ChecklistItemDto>? ChecklistItems = null);
+/// <summary>A participant of the circuit, with its settings (M4): stage rule, team or role pool, due date, reminders,
+/// escalation. A stand-in carries the participant they act for.</summary>
+public record RecipientDto(Guid Id, string Name, string Email, int Order, ApprovalType ApprovalType, WorkflowStepStatus Status, DateTime? SignedAt, DateTime? ViewedAt, string? RoleLabel = null, string? DeclineReason = null, List<ChecklistItemDto>? ChecklistItems = null,
+    StageRule StageRule = StageRule.All, Guid? PoolTeamId = null, string? PoolRole = null, int? DueInWorkingDays = null, int ReminderEveryDays = 3,
+    int? EscalateAfterDays = null, string? EscalationEmail = null, Guid? DelegatedFromRecipientId = null, string? Company = null);
 public record ChecklistItemDto(Guid Id, string Text, int Order, bool IsChecked);
 /// <summary>
 /// What changed between two versions of a template contract: the answers that differ, with who changed them and why.
@@ -152,10 +156,14 @@ public class GetDocumentByIdQueryHandler(
             document.TermConfirmed,
             document.HideRecipientIdentities,
             new OwnerDto(document.Owner.Id, document.Owner.FullName, document.Owner.Email!, document.Owner.AvatarUrl),
+            // Retired participants are history: the rounds keep what they did.
             document.Recipients
+                .Where(r => r.RetiredAt == null)
                 .OrderBy(r => r.Order)
                 .Select(r => new RecipientDto(r.Id, r.Name, r.Email, r.Order, r.ApprovalType, r.Status, r.SignedAt, r.ViewedAt, r.RoleLabel, r.DeclineReason,
-                    r.ChecklistItems.OrderBy(c => c.Order).Select(c => new ChecklistItemDto(c.Id, c.Text, c.Order, c.IsChecked)).ToList()))
+                    r.ChecklistItems.OrderBy(c => c.Order).Select(c => new ChecklistItemDto(c.Id, c.Text, c.Order, c.IsChecked)).ToList(),
+                    r.StageRule, r.PoolTeamId, r.PoolRole, r.DueInWorkingDays, r.ReminderEveryDays, r.EscalateAfterDays, r.EscalationEmail,
+                    r.DelegatedFromRecipientId, r.Company))
                 .ToList(),
             document.SignatureFields
                 .Select(f => new SignatureFieldDto(f.Id, f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height, f.Rotation, f.RecipientId, f.Label, f.Placeholder, f.IsRequired, f.IsSigned, f.SignedAt, f.FontFamily, f.FontSize, f.FontColor, f.BackgroundColor, f.BorderColor, f.Options, f.DefaultValue, f.ValidationRule, f.IsReadOnly, f.Tooltip, f.GroupName))

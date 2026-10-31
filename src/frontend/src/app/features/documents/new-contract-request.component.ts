@@ -4,7 +4,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialog } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -12,9 +11,11 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
 import { UserService } from '../../core/services/user.service';
+import { TeamService } from '../../core/services/team.service';
+import { TeamDto } from '../../core/models/team.models';
 import { formatSla } from '../../core/utils/sla';
 import {
-  ApprovalType, DocumentDetail, FieldDto, Review, RecipientInputDto, RequestType, UserDto, WorkflowType
+  ApprovalType, DocumentDetail, FieldDto, Review, RecipientInputDto, RequestType, StageRule, UserDto, WorkflowType
 } from '../../core/models';
 import { RequestStepperComponent } from '../../shared/request-stepper/request-stepper.component';
 import { ReadinessVerdictComponent } from '../../shared/readiness-verdict/readiness-verdict.component';
@@ -24,22 +25,36 @@ import { StageLanesComponent } from '../../shared/stage-lanes/stage-lanes.compon
 import { normalizeStages } from '../../shared/stage-lanes/stage-lanes.util';
 import { WorkflowTypeToggleComponent } from '../../shared/workflow-type-toggle/workflow-type-toggle.component';
 import { PdfPreviewComponent, PreviewBox, PreviewPageSize } from '../../shared/pdf-preview/pdf-preview.component';
-import { PdfTextEditorDialogComponent, PdfTextEditorDialogData } from './pdf-text-editor-dialog.component';
+import { saveBlob, safeFileName } from '../../core/utils/save-blob';
+import { problemText } from '../../core/utils/problem-text';
 
 /** 0 request · 1 AI review · 2 resolve · 3 participants · 4 send · 5 sent */
 type Step = 0 | 1 | 2 | 3 | 4 | 5;
 type ReviewState = 'idle' | 'running' | 'done' | 'failed';
 
 interface Participant {
-  kind: 'user' | 'external';
+  /** Kept across saves, so a participant who already acted keeps their history (R-M7-2). */
+  id?: string;
+  kind: 'user' | 'external' | 'team';
   userId: string;
+  /** A team step: any member acts for the team (R-M4-3). */
+  teamId: string;
   name: string;
   email: string;
   approvalType: ApprovalType;
   roleLabel: string;
   /** Stage number in a staged workflow: people on the same stage act at the same time. */
   stage: number;
+  stageRule: StageRule;
+  dueInWorkingDays: number | null;
+  reminderEveryDays: number;
+  escalateAfterDays: number | null;
+  escalationEmail: string;
+  /** The settings row is open. */
+  more?: boolean;
 }
+
+const TEAM = 'team:';
 
 const EXTERNAL = '__external';
 const ROLES: ApprovalType[] = ['Signature', 'Approval', 'Review', 'ViewOnly'];
@@ -182,13 +197,14 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
               <div class="nc-card fix-card">
                 <h3>{{ 'newContractRequest.resolve.fixTitle' | translate }}</h3>
                 <p class="hint">{{ 'newContractRequest.resolve.fixHint' | translate }}</p>
-                <button mat-stroked-button (click)="editText()" [disabled]="busy()">
-                  <mat-icon>edit_note</mat-icon> {{ 'newContractRequest.resolve.editText' | translate }}
+<button mat-stroked-button [disabled]="busy()" (click)="downloadWord()"
+                        [matTooltip]="'documents.word.hint' | translate">
+                  <mat-icon>description</mat-icon> {{ 'documents.word.download' | translate }}
                 </button>
                 <button mat-stroked-button (click)="fixInput.click()" [disabled]="busy()">
                   <mat-icon>upload_file</mat-icon> {{ 'newContractRequest.resolve.uploadFix' | translate }}
                 </button>
-                <input #fixInput type="file" accept="application/pdf" hidden (change)="onFixFile($event)" />
+                <input #fixInput type="file" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden (change)="onFixFile($event)" />
                 <button mat-stroked-button (click)="runReview(true)" [disabled]="busy()">
                   <mat-icon>refresh</mat-icon> {{ 'newContractRequest.resolve.rerun' | translate }}
                 </button>
@@ -234,9 +250,14 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
             <ng-template #personFields let-p>
               <div class="person-fields">
                 <div class="person-row">
-                  <select class="nc-input" [ngModel]="p.kind === 'external' ? EXTERNAL : p.userId" (ngModelChange)="pickUser(p, $event)">
+                  <select class="nc-input" [ngModel]="p.kind === 'external' ? EXTERNAL : p.kind === 'team' ? TEAM + p.teamId : p.userId" (ngModelChange)="pickUser(p, $event)">
                     <option value="">{{ 'newContractRequest.people.pick' | translate }}</option>
                     @for (u of users(); track u.id) { <option [value]="u.id">{{ u.fullName }} — {{ u.email }}</option> }
+                    @if (teams().length) {
+                      <optgroup [label]="'newContractRequest.people.teams' | translate">
+                        @for (t of teams(); track t.id) { <option [value]="TEAM + t.id">{{ 'newContractRequest.people.teamOption' | translate: { name: t.name } }}</option> }
+                      </optgroup>
+                    }
                     <option [value]="EXTERNAL">{{ 'newContractRequest.people.external' | translate }}</option>
                   </select>
                   <select class="nc-input role" [(ngModel)]="p.approvalType">
@@ -249,7 +270,49 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
                     <input class="nc-input" type="email" [(ngModel)]="p.email" [placeholder]="'newContractRequest.people.email' | translate" />
                   </div>
                 }
+                @if (p.kind === 'team') {
+                  <p class="hint team-hint"><mat-icon>groups</mat-icon> {{ 'newContractRequest.people.teamHint' | translate }}</p>
+                }
                 <input class="nc-input" type="text" [(ngModel)]="p.roleLabel" [placeholder]="'newContractRequest.people.roleLabel' | translate" />
+                <button type="button" class="more-toggle" (click)="p.more = !p.more" [attr.aria-expanded]="!!p.more">
+                  <mat-icon>{{ p.more ? 'expand_less' : 'tune' }}</mat-icon>
+                  {{ (p.more ? 'newContractRequest.people.circuit.hide' : 'newContractRequest.people.circuit.show') | translate }}
+                  @if (!p.more && circuitSummary(p); as summary) { <span class="muted">· {{ summary }}</span> }
+                </button>
+                @if (p.more) {
+                  <div class="circuit-row">
+                    @if (workflowType !== 'Sequential') {
+                      <label class="circuit-field wide">
+                        <span>{{ 'newContractRequest.people.circuit.stageRule' | translate }}</span>
+                        <select class="nc-input" [ngModel]="p.stageRule" (ngModelChange)="setStageRule(p, $event)">
+                          <option value="All">{{ 'newContractRequest.people.circuit.ruleAll' | translate }}</option>
+                          <option value="Any">{{ 'newContractRequest.people.circuit.ruleAny' | translate }}</option>
+                        </select>
+                      </label>
+                    }
+                    <label class="circuit-field">
+                      <span>{{ 'newContractRequest.people.circuit.due' | translate }}</span>
+                      <input class="nc-input" type="number" min="1" max="60" [(ngModel)]="p.dueInWorkingDays"
+                             [placeholder]="'newContractRequest.people.circuit.noDue' | translate" />
+                    </label>
+                    <label class="circuit-field">
+                      <span>{{ 'newContractRequest.people.circuit.reminder' | translate }}</span>
+                      <input class="nc-input" type="number" min="0" max="30" [(ngModel)]="p.reminderEveryDays" />
+                    </label>
+                    <label class="circuit-field">
+                      <span>{{ 'newContractRequest.people.circuit.escalateAfter' | translate }}</span>
+                      <input class="nc-input" type="number" min="1" max="90" [(ngModel)]="p.escalateAfterDays"
+                             [placeholder]="'newContractRequest.people.circuit.never' | translate" />
+                    </label>
+                    @if (p.escalateAfterDays) {
+                      <label class="circuit-field wide">
+                        <span>{{ 'newContractRequest.people.circuit.escalateTo' | translate }}</span>
+                        <input class="nc-input" type="email" [(ngModel)]="p.escalationEmail"
+                               [placeholder]="'newContractRequest.people.circuit.escalateToOwner' | translate" />
+                      </label>
+                    }
+                  </div>
+                }
               </div>
             </ng-template>
 
@@ -407,6 +470,15 @@ function signatureBox(index: number, size: PreviewPageSize): { x: number; y: num
     .person-order { flex: 0 0 24px; height: 24px; border-radius: 50%; background: #e8f0fe; color: #174ea6; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; margin-top: 6px; }
     .person-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .person-row { display: flex; gap: 6px; } .person-row .role { max-width: 170px; }
+    .team-hint { display: flex; align-items: center; gap: 4px; margin: 0; }
+    .team-hint mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .more-toggle { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; padding: 2px 0; color: #1a56c4; font: inherit; font-size: 13px; cursor: pointer; }
+    .more-toggle mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .more-toggle .muted { color: #6b7686; }
+    .circuit-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 8px; border-radius: 8px; background: #f6f8fb; }
+    .circuit-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #4a5566; }
+    .circuit-field.wide { grid-column: 1 / -1; }
+    @media (max-width: 600px) { .circuit-row { grid-template-columns: 1fr 1fr; } }
     .person-actions { display: flex; }
     .nc-warn { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #fef7e0; color: #b06000; font-size: 13px; }
     .nc-warn mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
@@ -425,9 +497,9 @@ export class NewContractRequestComponent implements OnInit {
   private readonly documents = inject(DocumentService);
   private readonly requestTypeService = inject(RequestTypeService);
   private readonly userService = inject(UserService);
+  private readonly teamService = inject(TeamService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
@@ -443,6 +515,8 @@ export class NewContractRequestComponent implements OnInit {
   readonly review = signal<ReviewState>('idle');
   readonly requestTypes = signal<RequestType[]>([]);
   readonly users = signal<UserDto[]>([]);
+  readonly teams = signal<TeamDto[]>([]);
+  readonly TEAM = TEAM;
 
   readonly file = signal<File | null>(null);
   readonly isDragOver = signal(false);
@@ -501,6 +575,7 @@ export class NewContractRequestComponent implements OnInit {
   ngOnInit(): void {
     this.requestTypeService.getActive().subscribe({ next: t => this.requestTypes.set(t), error: () => {} });
     this.userService.getUsers({ pageSize: 200 }).subscribe({ next: r => this.users.set(r.items.filter(u => u.isActive)), error: () => {} });
+    this.teamService.getTeams().subscribe({ next: t => this.teams.set(t), error: () => {} });
 
     const existing = this.route.snapshot.queryParamMap.get('documentId');
     if (existing) this.resume(existing);
@@ -573,7 +648,7 @@ export class NewContractRequestComponent implements OnInit {
       },
       error: err => {
         this.busy.set(false);
-        this.error.set(err.error?.detail ?? this.translate.instant('newContractRequest.uploadFailed'));
+        this.error.set(problemText(this.translate, err, 'newContractRequest.uploadFailed'));
       }
     });
   }
@@ -611,15 +686,13 @@ export class NewContractRequestComponent implements OnInit {
 
   // ---------------------------------------------------------------- 3 · resolve
 
-  editText(): void {
+  /** The current version as a Word file; edited, it comes back through "Upload revision" as the next version. */
+  downloadWord(): void {
     const id = this.documentId();
     if (!id) return;
-    this.dialog.open(PdfTextEditorDialogComponent, {
-      data: { documentId: id, documentTitle: this.title || (this.doc()?.title ?? '') } satisfies PdfTextEditorDialogData,
-      width: '1000px', maxWidth: '96vw', disableClose: true
-    }).afterClosed().subscribe(result => {
-      // A new version clears the old verdict, so the review runs again on what was just changed.
-      if (result) this.runReview(true);
+    this.documents.downloadDocx(id).subscribe({
+      next: blob => saveBlob(blob, `${safeFileName(this.title || (this.doc()?.title ?? ''))}.docx`),
+      error: () => this.snack.open(this.translate.instant('documents.word.failed'), 'OK', { duration: 6000 })
     });
   }
 
@@ -647,7 +720,10 @@ export class NewContractRequestComponent implements OnInit {
   // ---------------------------------------------------------------- 4 · participants
 
   private blankParticipant(): Participant {
-    return { kind: 'user', userId: '', name: '', email: '', approvalType: 'Signature', roleLabel: '', stage: 1 };
+    return {
+      kind: 'user', userId: '', teamId: '', name: '', email: '', approvalType: 'Signature', roleLabel: '', stage: 1,
+      stageRule: 'All', dueInWorkingDays: null, reminderEveryDays: 3, escalateAfterDays: null, escalationEmail: ''
+    };
   }
 
   /** Who has to act before whom: the people who check go first, the people who sign go last. */
@@ -698,6 +774,22 @@ export class NewContractRequestComponent implements OnInit {
     this.participants = normalizeStages(this.participants);
   }
 
+  /** One stage, one rule: changing it for a person changes it for everyone acting at the same time. */
+  setStageRule(p: Participant, rule: StageRule): void {
+    for (const other of this.participants)
+      if (this.workflowType === 'Parallel' || other.stage === p.stage) other.stageRule = rule;
+  }
+
+  /** The settings that differ from the defaults, in a few words, shown while the settings row is closed. */
+  circuitSummary(p: Participant): string {
+    const parts: string[] = [];
+    if (this.workflowType !== 'Sequential' && p.stageRule === 'Any') parts.push(this.translate.instant('newContractRequest.people.circuit.summaryAny'));
+    if (p.dueInWorkingDays) parts.push(this.translate.instant('newContractRequest.people.circuit.summaryDue', { days: p.dueInWorkingDays }));
+    if (+p.reminderEveryDays === 0) parts.push(this.translate.instant('newContractRequest.people.circuit.summaryNoReminder'));
+    if (p.escalateAfterDays) parts.push(this.translate.instant('newContractRequest.people.circuit.summaryEscalate', { days: p.escalateAfterDays }));
+    return parts.join(' · ');
+  }
+
   hasSigner(): boolean {
     return this.participants.some(p => p.approvalType === 'Signature');
   }
@@ -734,10 +826,18 @@ export class NewContractRequestComponent implements OnInit {
 
   pickUser(p: Participant, value: string): void {
     if (value === EXTERNAL) {
-      p.kind = 'external'; p.userId = ''; p.name = ''; p.email = '';
+      p.kind = 'external'; p.userId = ''; p.teamId = ''; p.name = ''; p.email = '';
+      return;
+    }
+    if (value.startsWith(TEAM)) {
+      const team = this.teams().find(t => t.id === value.slice(TEAM.length));
+      p.kind = 'team'; p.userId = ''; p.teamId = team?.id ?? ''; p.name = team?.name ?? ''; p.email = '';
+      // A team acts on the contract; it does not only watch it.
+      if (p.approvalType === 'ViewOnly') p.approvalType = 'Approval';
       return;
     }
     p.kind = 'user';
+    p.teamId = '';
     p.userId = value;
     const user = this.users().find(u => u.id === value);
     p.name = user?.fullName ?? '';
@@ -747,6 +847,11 @@ export class NewContractRequestComponent implements OnInit {
   private participantsProblem(): string | null {
     const emails = new Set<string>();
     for (const p of this.participants) {
+      if (p.kind === 'team') {
+        if (!p.teamId) return this.translate.instant('newContractRequest.people.incomplete');
+        if (p.approvalType === 'ViewOnly') return this.translate.instant('newContractRequest.people.teamViewOnly');
+        continue;
+      }
       if (!p.name.trim() || !p.email.trim()) return this.translate.instant('newContractRequest.people.incomplete');
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email.trim())) return this.translate.instant('newContractRequest.people.badEmail', { email: p.email });
       const key = p.email.trim().toLowerCase();
@@ -765,11 +870,18 @@ export class NewContractRequestComponent implements OnInit {
     this.busy.set(true);
     this.error.set(null);
     const recipients: RecipientInputDto[] = this.participants.map((p, i) => ({
+      id: p.id,
       name: p.name.trim(),
-      email: p.email.trim(),
+      email: p.kind === 'team' ? '' : p.email.trim(),
       order: this.workflowType === 'Parallel' ? 1 : this.workflowType === 'Mixed' ? p.stage : i + 1,
       approvalType: p.approvalType,
-      roleLabel: p.roleLabel.trim() || undefined
+      roleLabel: p.roleLabel.trim() || undefined,
+      stageRule: this.workflowType === 'Sequential' ? 'All' : p.stageRule,
+      poolTeamId: p.kind === 'team' ? p.teamId : null,
+      dueInWorkingDays: p.dueInWorkingDays || null,
+      reminderEveryDays: Math.max(0, Math.min(30, +p.reminderEveryDays || 0)),
+      escalateAfterDays: p.escalateAfterDays || null,
+      escalationEmail: p.escalateAfterDays && p.escalationEmail.trim() ? p.escalationEmail.trim() : null
     }));
 
     this.documents.saveRecipients(id, this.workflowType, recipients).subscribe({
@@ -815,9 +927,9 @@ export class NewContractRequestComponent implements OnInit {
     });
   }
 
-  private failSave(err?: { error?: { detail?: string } }): void {
+  private failSave(err?: unknown): void {
     this.busy.set(false);
-    this.error.set(err?.error?.detail ?? this.translate.instant('newContractRequest.people.saveFailed'));
+    this.error.set(problemText(this.translate, err, 'newContractRequest.people.saveFailed'));
   }
 
   // ---------------------------------------------------------------- 5 · send
@@ -856,11 +968,17 @@ export class NewContractRequestComponent implements OnInit {
         this.workflowType = detail.workflowType;
 
         if (detail.recipients.length > 0) {
-          this.participants = detail.recipients.map(r => {
-            const known = this.users().find(u => u.email.toLowerCase() === r.email.toLowerCase());
+          // A stand-in is part of the running round, not of the circuit the owner edits.
+          this.participants = detail.recipients.filter(r => !r.delegatedFromRecipientId).map(r => {
+            const known = r.poolTeamId ? undefined : this.users().find(u => u.email.toLowerCase() === r.email.toLowerCase());
             return {
-              kind: known ? 'user' : 'external', userId: known?.id ?? '', name: r.name, email: r.email,
-              approvalType: r.approvalType, roleLabel: r.roleLabel ?? '', stage: r.order
+              id: r.id,
+              kind: r.poolTeamId ? 'team' : known ? 'user' : 'external', userId: known?.id ?? '', teamId: r.poolTeamId ?? '',
+              name: r.name, email: r.poolTeamId ? '' : r.email,
+              approvalType: r.approvalType, roleLabel: r.roleLabel ?? '', stage: r.order,
+              stageRule: r.stageRule ?? 'All', dueInWorkingDays: r.dueInWorkingDays ?? null,
+              reminderEveryDays: r.reminderEveryDays ?? 3, escalateAfterDays: r.escalateAfterDays ?? null,
+              escalationEmail: r.escalationEmail ?? ''
             } as Participant;
           });
           if (this.workflowType === 'Mixed') this.normalizeStages();

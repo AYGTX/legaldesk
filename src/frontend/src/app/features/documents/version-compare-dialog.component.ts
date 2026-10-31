@@ -87,10 +87,13 @@ export interface VersionCompareDialogData {
           <span class="stat added"><strong>{{ r.addedCount }}</strong> {{ 'documents.detail.compare.added' | translate }}</span>
           <span class="stat removed"><strong>{{ r.removedCount }}</strong> {{ 'documents.detail.compare.removed' | translate }}</span>
           <span class="stat modified"><strong>{{ r.modifiedCount }}</strong> {{ 'documents.detail.compare.modified' | translate }}</span>
+          @if (r.movedCount) {
+            <span class="stat moved"><strong>{{ r.movedCount }}</strong> {{ 'documents.detail.compare.moved' | translate }}</span>
+          }
           <span class="stat unchanged"><strong>{{ r.unchangedCount }}</strong> {{ 'documents.detail.compare.unchanged' | translate }}</span>
         </div>
 
-        @if (r.addedCount + r.removedCount + r.modifiedCount === 0) {
+        @if (r.addedCount + r.removedCount + r.modifiedCount + (r.movedCount ?? 0) === 0) {
           <div class="compare-empty">
             <mat-icon>check_circle</mat-icon>
             <span>{{ 'documents.detail.compare.noChanges' | translate }}</span>
@@ -105,13 +108,18 @@ export interface VersionCompareDialogData {
           @for (clause of visibleClauses(); track $index) {
             <div class="clause" [class.added]="clause.change === 'Added'"
                  [class.removed]="clause.change === 'Removed'"
-                 [class.modified]="clause.change === 'Modified'">
+                 [class.modified]="clause.change === 'Modified'"
+                 [class.moved]="clause.change === 'Moved'">
+
+              @if (clause.change === 'Moved') {
+                <span class="moved-tag"><mat-icon>swap_vert</mat-icon> {{ 'documents.detail.compare.movedHere' | translate }}</span>
+              }
 
               @if (clause.change === 'Unchanged') {
                 <p class="clause-text unchanged-text">{{ clause.currentText }}</p>
               }
 
-              @if (clause.change === 'Removed' || clause.change === 'Modified') {
+              @if (clause.change === 'Removed' || clause.change === 'Modified' || clause.change === 'Moved') {
                 <p class="clause-text side-previous">
                   <span class="side-tag">v{{ result()!.fromVersion }}</span>
                   @for (w of clause.previousWords; track $index) {
@@ -120,7 +128,7 @@ export interface VersionCompareDialogData {
                 </p>
               }
 
-              @if (clause.change === 'Added' || clause.change === 'Modified') {
+              @if (clause.change === 'Added' || clause.change === 'Modified' || clause.change === 'Moved') {
                 <p class="clause-text side-current">
                   <span class="side-tag">v{{ result()!.toVersion }}</span>
                   @for (w of clause.currentWords; track $index) {
@@ -157,6 +165,7 @@ export interface VersionCompareDialogData {
     .stat.removed { background: #fce8e6; color: #c5221f; }
     .stat.modified { background: #fef7e0; color: #b06000; }
     .stat.unchanged { background: #f1f3f4; color: #5f6368; }
+    .stat.moved { background: #e8f0fe; color: #1a56c4; }
 
     .compare-empty {
       display: flex; align-items: center; gap: 8px; margin: 16px 0;
@@ -170,6 +179,9 @@ export interface VersionCompareDialogData {
     .clause.added { border-left-color: #34a853; background: #f2fbf4; }
     .clause.removed { border-left-color: #ea4335; background: #fdf4f3; }
     .clause.modified { border-left-color: #f9ab00; background: #fffbf0; }
+    .clause.moved { border-left-color: #4a7fe0; background: #f3f7ff; }
+    .moved-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #1a56c4; }
+    .moved-tag mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
     .clause-text { margin: 2px 0; font-size: 14px; line-height: 1.6; }
     .unchanged-text { color: #80868b; }

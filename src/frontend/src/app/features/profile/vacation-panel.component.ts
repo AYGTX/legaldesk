@@ -4,6 +4,7 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -29,7 +30,7 @@ function dateRangeValid(control: AbstractControl): ValidationErrors | null {
   providers: [provideNativeDateAdapter()],
   imports: [
     CommonModule, ReactiveFormsModule,
-    MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule,
+    MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule,
     MatIconModule, MatDatepickerModule, MatProgressSpinnerModule, MatSnackBarModule,
     MatTooltipModule, TranslatePipe
   ],
@@ -61,6 +62,14 @@ function dateRangeValid(control: AbstractControl): ValidationErrors | null {
               <mat-datepicker #endPicker></mat-datepicker>
             </mat-form-field>
           </div>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>{{ 'vacation.standIn' | translate }}</mat-label>
+            <mat-select formControlName="delegateUserId">
+              <mat-option [value]="null">{{ 'vacation.noStandIn' | translate }}</mat-option>
+              @for (c of standIns(); track c.id) { <mat-option [value]="c.id">{{ c.name }} ({{ c.email }})</mat-option> }
+            </mat-select>
+            <mat-hint>{{ 'vacation.standInHint' | translate }}</mat-hint>
+          </mat-form-field>
           <mat-form-field appearance="outline" class="full">
             <mat-label>{{ 'vacation.note' | translate }}</mat-label>
             <input matInput formControlName="note" [placeholder]="'vacation.notePlaceholder' | translate" maxlength="500" />
@@ -96,6 +105,9 @@ function dateRangeValid(control: AbstractControl): ValidationErrors | null {
                   {{ v.startDate | date:'MMM d, y' }} – {{ v.endDate | date:'MMM d, y' }}
                   @if (v.isActive) { <span class="active-badge">{{ 'vacation.onVacationNow' | translate }}</span> }
                 </span>
+                @if (v.delegateName) {
+                  <span class="vacation-note"><mat-icon inline>forward_to_inbox</mat-icon> {{ 'vacation.standInIs' | translate: { name: v.delegateName } }}</span>
+                }
                 @if (v.note) { <span class="vacation-note">{{ v.note }}</span> }
               </div>
               <button mat-icon-button (click)="cancel(v)" [matTooltip]="'common.cancel' | translate" [disabled]="cancelling() === v.id">
@@ -126,11 +138,15 @@ export class VacationPanelComponent implements OnInit {
   readonly form = this.fb.group({
     startDate: [null as Date | null, Validators.required],
     endDate: [null as Date | null, Validators.required],
-    note: ['']
+    note: [''],
+    delegateUserId: [null as string | null]
   }, { validators: dateRangeValid });
+
+  readonly standIns = signal<{ id: string; name: string; email: string }[]>([]);
 
   ngOnInit(): void {
     this.load();
+    this.vacationService.getStandInCandidates().subscribe({ next: c => this.standIns.set(c), error: () => {} });
   }
 
   load(): void {
@@ -149,7 +165,8 @@ export class VacationPanelComponent implements OnInit {
     this.vacationService.schedule({
       startDate: this.toIso(v.startDate!),
       endDate: this.toIso(v.endDate!),
-      note: v.note || undefined
+      note: v.note || undefined,
+      delegateUserId: v.delegateUserId || null
     }).subscribe({
       next: () => {
         this.saving.set(false);

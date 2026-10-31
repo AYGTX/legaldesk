@@ -6,7 +6,7 @@ import { ApiService } from './api.service';
 import {
   DocumentDetail, DocumentSummary, DashboardData,
   FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto,
-  Review, ReviewRun, ReviewItemStatus, ReviewRuleSetting, RiskSeverity, ContractTermUpdate, VersionComparison, PdfTextEdit, TemplateRevisionForm
+  Review, ReviewRun, ReviewItemStatus, ReviewRuleSetting, RiskSeverity, ContractTermUpdate, VersionComparison, TemplateRevisionForm, ContractRound
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -65,9 +65,14 @@ export class DocumentService {
     return this.api.post(`/v1/documents/${id}/revise-answers`, { filledValues, changeNote: changeNote?.trim() || null });
   }
 
-  /** Applies in-browser text edits to the stored PDF and saves the result as a new version. */
-  editPdf(id: string, edits: PdfTextEdit[], changeNote?: string): Observable<{ documentId: string; version: number; pageCount: number }> {
-    return this.api.post(`/v1/documents/${id}/edit-pdf`, { edits, changeNote: changeNote?.trim() || null });
+  /** The current version as a Word file: edited in Word, it is uploaded back as the next version (R-M7-3). */
+  downloadDocx(id: string): Observable<Blob> {
+    return this.api.download(`/v1/documents/${id}/docx`);
+  }
+
+  /** Every round of the circuit, newest first (R-M7-2). */
+  getRounds(id: string): Observable<ContractRound[]> {
+    return this.api.get<ContractRound[]>(`/v1/documents/${id}/rounds`);
   }
 
   /** Admin: reopen an expired request, restarting its SLA clock. */

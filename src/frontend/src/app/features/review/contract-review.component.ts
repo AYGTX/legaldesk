@@ -17,8 +17,8 @@ import { ConfirmService } from '../../core/services/confirm.service';
 import { RequestTypeService } from '../../core/services/request-type.service';
 import { Review, ReviewItem, RequestType } from '../../core/models';
 import { ReviewService } from '../../core/services/review.service';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { PdfEditorRecommendation, PdfTextEditorDialogComponent, PdfTextEditorDialogData } from '../documents/pdf-text-editor-dialog.component';
+import { saveBlob, safeFileName } from '../../core/utils/save-blob';
+import { problemText } from '../../core/utils/problem-text';
 import { ReadinessVerdictComponent } from '../../shared/readiness-verdict/readiness-verdict.component';
 import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
 
@@ -38,7 +38,7 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
   imports: [
     CommonModule, RouterLink, ReactiveFormsModule,
     MatCardModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule,
-    MatProgressBarModule, MatSelectModule, MatTooltipModule, MatSnackBarModule, MatDialogModule,
+    MatProgressBarModule, MatSelectModule, MatTooltipModule, MatSnackBarModule,
     ReadinessVerdictComponent, ReadinessChecklistComponent, TranslatePipe
   ],
   template: `
@@ -217,11 +217,12 @@ type ReviewStage = 'drop' | 'analysing' | 'verdict';
                     <mat-icon>upload_file</mat-icon>
                     {{ (uploadingRevision() ? 'review.next.uploading' : 'review.next.uploadRevision') | translate }}
                   </button>
-                  <input type="file" accept="application/pdf" hidden #revisionInput
+                  <input type="file" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden #revisionInput
                          (change)="onRevisionFile($event)" />
 
-                  <button mat-stroked-button class="next-btn" (click)="editText(r.items)">
-                    <mat-icon>edit_note</mat-icon> {{ 'review.next.editText' | translate }}
+                  <button mat-stroked-button class="next-btn" (click)="downloadWord()"
+                          [matTooltip]="'documents.word.hint' | translate">
+                    <mat-icon>description</mat-icon> {{ 'documents.word.download' | translate }}
                   </button>
 
                   <button mat-stroked-button class="next-btn" (click)="rerun()" [disabled]="rerunning()">
@@ -252,7 +253,6 @@ export class ContractReviewComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly translate = inject(TranslateService);
   private readonly snack = inject(MatSnackBar);
-  private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly reviews = inject(ReviewService);
@@ -408,34 +408,18 @@ export class ContractReviewComponent implements OnInit {
       },
       error: err => {
         this.uploadingRevision.set(false);
-        this.error.set(err.error?.detail ?? this.translate.instant('review.failed'));
+        this.error.set(problemText(this.translate, err, 'review.failed'));
       }
     });
   }
 
-  /**
-   * Opens the click-to-edit view of the contract with the open findings beside it. A save creates a new version
-   * of the contract, so the review is run again against it.
-   */
-  editText(items: ReviewItem[]): void {
-    const recommendations: PdfEditorRecommendation[] = items
-      .filter(i => i.status === 'Open')
-      .map(i => ({
-        id: i.id, severity: i.severity, title: i.clauseReference ? `${i.title} · ${i.clauseReference}` : i.title, detail: i.detail,
-        whyItMatters: i.articles.length ? i.articles.map(a => `${a.citation} : « ${a.quote} »`).join('\n') : i.whyItMatters ?? undefined,
-        recommendedAction: i.recommendedAction ?? undefined, proposedLanguage: i.proposedLanguage ?? undefined
-      }));
-    this.dialog.open(PdfTextEditorDialogComponent, {
-      data: {
-        documentId: this.documentId()!,
-        documentTitle: this.form.value.title ?? '',
-        recommendations
-      } satisfies PdfTextEditorDialogData,
-      width: '1360px',
-      maxWidth: '98vw',
-      disableClose: true
-    }).afterClosed().subscribe(result => {
-      if (result) this.rerun();
+  /** The current version as a Word file; edited, it comes back through "Upload revision" as the next version. */
+  downloadWord(): void {
+    const id = this.documentId();
+    if (!id) return;
+    this.documentService.downloadDocx(id).subscribe({
+      next: blob => saveBlob(blob, `${safeFileName(this.form.value.title ?? '')}.docx`),
+      error: () => this.snack.open(this.translate.instant('documents.word.failed'), 'OK', { duration: 6000 })
     });
   }
 
