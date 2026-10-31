@@ -283,7 +283,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               <strong>{{ 'documents.detail.myAction.title' | translate }}</strong>
               <span>{{ 'documents.detail.myAction.hint' | translate }}</span>
             </div>
-            <button mat-flat-button color="primary" (click)="continueToAction(action.token)">
+            <button mat-flat-button color="primary" (click)="continueToAction(action.recipientId)">
               <mat-icon>{{ action.icon }}</mat-icon> {{ action.labelKey | translate }}
             </button>
           </div>
@@ -489,9 +489,10 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     @if (r.signedAt) {
                       <span class="recipient-time">{{ r.signedAt | date:'MMM d' }}</span>
                     }
-                    @if (r.secureToken) {
-                      <button mat-icon-button class="copy-link-btn" (click)="copyLink(r.secureToken)" [matTooltip]="'documents.detail.copySigningLink' | translate">
-                        <mat-icon>link</mat-icon>
+                    @if ((isOwner() || auth.isAdmin()) && doc()!.status === 'InProgress' && (r.status === 'Pending' || r.status === 'InProgress')) {
+                      <!-- Links are never shown (R-M5-1): a new one goes to the participant by e-mail. -->
+                      <button mat-icon-button class="copy-link-btn" (click)="resendLink(r.id, r.name)" [matTooltip]="'documents.detail.resendLink' | translate">
+                        <mat-icon>forward_to_inbox</mat-icon>
                       </button>
                     }
                   </div>
@@ -993,7 +994,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     if (!d || !email) return null;
     if (!['InProgress', 'Pending', 'WaitingForOthers'].includes(d.status)) return null;
 
-    const me = d.recipients.find(r => r.email.toLowerCase() === email && r.secureToken);
+    const me = d.recipients.find(r => r.email.toLowerCase() === email);
     if (!me) return null;
 
     const myTurn = d.workflow?.steps?.length
@@ -1002,19 +1003,20 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     if (!myTurn || !['Pending', 'InProgress'].includes(me.status)) return null;
 
     const action = DocumentDetailComponent.ACTIONS[me.approvalType] ?? DocumentDetailComponent.ACTIONS['Signature'];
-    return { ...action, token: me.secureToken };
+    return { ...action, recipientId: me.id };
   };
 
-  continueToAction(token: string): void {
-    this.router.navigate(['/sign', token]);
+  /** The signed-in participant acts through their account: no e-mailed code needed. */
+  continueToAction(recipientId: string): void {
+    this.router.navigate(['/sign', 'session'], { queryParams: { r: recipientId } });
   }
 
-  copyLink(secureToken: string): void {
-    const url = `${window.location.origin}/sign/${secureToken}`;
-    navigator.clipboard.writeText(url).then(
-      () => this.snack.open(this.translate.instant('documents.detail.linkCopied'), 'OK', { duration: 2500 }),
-      () => this.snack.open(this.translate.instant('documents.detail.linkCopyFailed'), 'OK', { duration: 3000 })
-    );
+  /** A new link by e-mail; the participant's previous link stops working. */
+  resendLink(recipientId: string, name: string): void {
+    this.documentService.resendLink(this.documentId, recipientId).subscribe({
+      next: () => this.snack.open(this.translate.instant('documents.detail.linkResent', { name }), 'OK', { duration: 3500 }),
+      error: err => this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.linkResendFailed'), 'OK', { duration: 4000 })
+    });
   }
 
   reopen(): void {

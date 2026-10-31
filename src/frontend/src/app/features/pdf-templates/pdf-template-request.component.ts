@@ -440,7 +440,9 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
     });
 
     this.svc.getById(this.templateId).subscribe({
-      next: t => {
+      next: raw => {
+        // Points from the API; the preview draws at 1.5 pixels per point (R-M3-1).
+        const t = { ...raw, fields: raw.fields.map(f => ({ ...f, x: f.x * 1.5, y: f.y * 1.5, width: f.width * 1.5, height: f.height * 1.5 })) };
         this.template.set(t);
         this.prefillAutoFillFields(t.fields);
         this.approvers = this.approverSlots().map(() => createEmptyApproverEntry());

@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, OnDestroy, inject, signal, computed,
+  Component, OnInit, OnDestroy, inject, signal, computed, effect,
   ViewChild, ElementRef, AfterViewInit
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -17,10 +17,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { SigningService } from '../../core/services/signing.service';
+import { ACCOUNT_SESSION, SigningService } from '../../core/services/signing.service';
 import { ReviewGateComponent } from '../../shared/review-gate/review-gate.component';
 import { ConfirmService } from '../../core/services/confirm.service';
-import { SigningSession, AssignedField, FilledField, SignatureType, ChecklistItemInfo } from '../../core/models';
+import { SigningSession, AssignedField, FilledField, SignatureType, ChecklistItemInfo, SigningIntro } from '../../core/models';
 import { SignatureDialogComponent } from './signature-dialog.component';
 import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/workflow-visualizer.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
@@ -100,7 +100,34 @@ import { environment } from '../../../environments/environment';
         }
       </div>
 
-      @if (loading()) {
+      @if (needsCode()) {
+        <!-- R-M5-3: the link shows what is asked; a 6-digit code sent to the participant opens the contract. -->
+        <div class="status-screen verify-screen">
+          <mat-icon>mark_email_read</mat-icon>
+          <h2>{{ 'signing.verify.title' | translate }}</h2>
+          @if (intro(); as i) {
+            <p>{{ 'signing.verify.intro' | translate: { sender: i.senderName, title: i.documentTitle, name: i.participantName } }}</p>
+            <p class="verify-email">{{ 'signing.verify.sentTo' | translate: { email: i.maskedEmail } }}</p>
+          }
+          @if (!codeSent()) {
+            <button mat-flat-button color="primary" (click)="sendCode()" [disabled]="codeBusy()">
+              {{ 'signing.verify.send' | translate }}
+            </button>
+          } @else {
+            <label class="code-label" for="signing-code">{{ 'signing.verify.enter' | translate }}</label>
+            <input id="signing-code" class="code-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+                   [value]="code()" (input)="code.set($any($event.target).value)" (keyup.enter)="verifyCode()" />
+            <div class="verify-actions">
+              <button mat-flat-button color="primary" (click)="verifyCode()" [disabled]="codeBusy() || code().trim().length !== 6">
+                {{ 'signing.verify.confirm' | translate }}
+              </button>
+              <button mat-button (click)="sendCode()" [disabled]="codeBusy()">{{ 'signing.verify.resend' | translate }}</button>
+            </div>
+          }
+          @if (codeError()) { <p class="code-error">{{ codeError() }}</p> }
+          <p class="verify-note">{{ 'signing.verify.note' | translate }}</p>
+        </div>
+      } @else if (loading()) {
         <div class="loading-state"><mat-spinner diameter="48"></mat-spinner><p>{{ 'signing.loadingDocument' | translate }}</p></div>
       } @else if (session()) {
 
@@ -197,10 +224,6 @@ import { environment } from '../../../environments/environment';
                     <p class="notice-text">
                       {{ 'signing.summary.gdprText' | translate }}
                     </p>
-                    <label class="geo-opt-in">
-                      <input type="checkbox" [checked]="geoOptIn()" (change)="toggleGeoOptIn($event)" />
-                      <span>{{ 'signing.summary.geoOptIn' | translate }}</span>
-                    </label>
                   </div>
                 </div>
                 <div class="summary-actions">
@@ -562,8 +585,24 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly summary = signal<string | null>(null);
   readonly summaryLoading = signal(true);
   readonly downloading = signal(false);
-  readonly geoOptIn = signal(false);
-  private resolvedLocation: string | undefined = undefined;
+  // The e-mailed code step (R-M5-3).
+  readonly needsCode = signal(false);
+  readonly intro = signal<SigningIntro | null>(null);
+  readonly codeSent = signal(false);
+  readonly code = signal('');
+  readonly codeBusy = signal(false);
+  readonly codeError = signal<string | null>(null);
+
+  /** This page draws PDFs at 1.5 pixels per point; the API speaks points (R-M3-1). */
+  private static readonly CanvasScale = 1.5;
+
+  constructor() {
+    // A session that ended while the page was open: ask for a new code rather than failing every action.
+    effect(() => {
+      const lost = this.signingService.sessionLost();
+      if (lost && lost.token === this.token) this.showCodeStep();
+    });
+  }
 
   /** Review/Approval participants gate the workflow without filling fields. */
   readonly isNonSigner = computed(() => {
@@ -709,8 +748,27 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.tickInterval = setInterval(() => this.tick.update(v => v + 1), 30000);
     this.token = this.route.snapshot.paramMap.get('token')!;
+
+    // Signed in to LegalDesk as the participant: the account opens the session (no code).
+    const recipientId = this.route.snapshot.queryParamMap.get('r');
+    if (this.token === ACCOUNT_SESSION && recipientId) {
+      this.signingService.openAccountSession(recipientId).subscribe({
+        next: () => this.loadSession(),
+        error: err => this.refused(err)
+      });
+      return;
+    }
+
+    if (this.signingService.sessionSecret(this.token)) this.loadSession();
+    else this.showCodeStep();
+  }
+
+  private loadSession(): void {
+    this.needsCode.set(false);
+    this.loading.set(true);
     this.signingService.getSession(this.token).subscribe({
-      next: s => {
+      next: raw => {
+        const s = this.inCanvasPixels(raw);
         this.session.set(s);
         this.loading.set(false);
         if (!s.isCompleted && !s.isRejected && !s.isExpired && s.isMyTurn) {
@@ -728,30 +786,80 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       },
       error: err => {
-        this.loading.set(false);
-        this.error.set(err.error?.detail ?? this.translate.instant('signing.errors.invalidOrExpiredLink'));
+        const code = err.error?.code as string | undefined;
+        if (code === 'session.required' || code === 'session.expired') this.showCodeStep();
+        else this.refused(err);
       }
     });
   }
 
-  ngOnDestroy(): void {
-    if (this.tickInterval) clearInterval(this.tickInterval);
+  /** Field boxes come in points; this page draws at 1.5 pixels per point. */
+  private inCanvasPixels(s: SigningSession): SigningSession {
+    const k = SigningComponent.CanvasScale;
+    const scaleBox = <T extends { x: number; y: number; width: number; height: number }>(f: T): T =>
+      ({ ...f, x: f.x * k, y: f.y * k, width: f.width * k, height: f.height * k });
+    return { ...s, fields: s.fields.map(scaleBox), filledFields: s.filledFields?.map(scaleBox) };
   }
 
-  toggleGeoOptIn(event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.geoOptIn.set(checked);
-    if (checked) {
-      navigator.geolocation?.getCurrentPosition(
-        pos => {
-          const { latitude, longitude, accuracy } = pos.coords;
-          this.resolvedLocation = `${latitude.toFixed(4)},${longitude.toFixed(4)}~${Math.round(accuracy)}m`;
-        },
-        () => { this.resolvedLocation = undefined; }
-      );
-    } else {
-      this.resolvedLocation = undefined;
+  private showCodeStep(): void {
+    if (this.token === ACCOUNT_SESSION) {
+      this.error.set(this.translate.instant('signing.refused.session.expired'));
+      this.loading.set(false);
+      return;
     }
+    this.session.set(null);
+    this.loading.set(false);
+    this.needsCode.set(true);
+    this.codeSent.set(false);
+    this.code.set('');
+    this.codeError.set(null);
+    if (!this.intro()) {
+      this.signingService.getIntro(this.token).subscribe({
+        next: i => this.intro.set(i),
+        error: err => { this.needsCode.set(false); this.refused(err); }
+      });
+    }
+  }
+
+  sendCode(): void {
+    this.codeBusy.set(true);
+    this.codeError.set(null);
+    this.signingService.sendCode(this.token).subscribe({
+      next: () => { this.codeBusy.set(false); this.codeSent.set(true); },
+      error: err => { this.codeBusy.set(false); this.codeError.set(this.refusalText(err)); if (err.error?.code === 'code.too_soon') this.codeSent.set(true); }
+    });
+  }
+
+  verifyCode(): void {
+    const code = this.code().trim();
+    if (code.length !== 6) return;
+    this.codeBusy.set(true);
+    this.codeError.set(null);
+    this.signingService.verifyCode(this.token, code).subscribe({
+      next: () => { this.codeBusy.set(false); this.loadSession(); },
+      error: err => { this.codeBusy.set(false); this.code.set(''); this.codeError.set(this.refusalText(err)); }
+    });
+  }
+
+  /** The page explains a refusal by its code (R-M5-2); otherwise the server's sentence. */
+  private refusalText(err: { error?: { code?: string; detail?: string } }): string {
+    const code = err.error?.code;
+    if (code) {
+      const key = `signing.refused.${code}`;
+      const text = this.translate.instant(key);
+      if (text !== key) return text;
+    }
+    return err.error?.detail ?? this.translate.instant('signing.errors.invalidOrExpiredLink');
+  }
+
+  private refused(err: { error?: { code?: string; detail?: string } }): void {
+    this.loading.set(false);
+    this.needsCode.set(false);
+    this.error.set(this.refusalText(err));
+  }
+
+  ngOnDestroy(): void {
+    if (this.tickInterval) clearInterval(this.tickInterval);
   }
 
   proceedToSign(): void {
@@ -892,7 +1000,8 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
     if (field.fieldType === 'Signature' || field.fieldType === 'Initials' || field.fieldType === 'Stamp') {
       this.openSignatureDialog(field);
     } else if (field.fieldType === 'Date') {
-      this.signTextualField(field, new Date().toLocaleDateString());
+      // The server writes the date, in the organisation's time zone and format (R-M5-7).
+      this.signTextualField(field, '');
     } else if (field.fieldType === 'Checkbox') {
       this.signTextualField(field, 'true');
     } else if (field.fieldType === 'Radio') {
@@ -909,8 +1018,7 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   private signRadioField(field: AssignedField): void {
     this.signingService.signField(this.token, field.id, {
       signatureType: 'Typed',
-      typedText: 'true',
-      location: this.resolvedLocation
+      typedText: 'true'
     }).subscribe({
       next: res => {
         if (field.groupName) {
@@ -945,8 +1053,7 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
         : 'Drawn';
       this.signingService.signField(this.token, field.id, {
         signatureType,
-        imageBase64: result.dataUrl,
-        location: this.resolvedLocation
+        imageBase64: result.dataUrl
       }).subscribe({
         next: res => this.applyFieldResult(field.id, result.dataUrl, res.allFieldsSigned),
         error: () => this.snackBar.open(
@@ -969,10 +1076,9 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   private signTextualField(field: AssignedField, value: string): void {
     this.signingService.signField(this.token, field.id, {
       signatureType: 'Typed',
-      typedText: value,
-      location: this.resolvedLocation
+      typedText: value
     }).subscribe({
-      next: res => this.applyFieldResult(field.id, value, res.allFieldsSigned),
+      next: res => this.applyFieldResult(field.id, res.signedValue ?? value, res.allFieldsSigned),
       error: () => this.snackBar.open(
         this.translate.instant('signing.errors.saveFieldFailed'),
         this.translate.instant('signing.dismiss'),

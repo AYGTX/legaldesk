@@ -121,11 +121,28 @@ export interface SignFieldRequest {
   imageBase64?: string;
   typedText?: string;
   fontFamily?: string;
-  location?: string;
+}
+
+/** What the e-mailed link shows before the code: nothing of the contract itself. */
+export interface SigningIntro {
+  documentTitle: string;
+  senderName: string;
+  participantName: string;
+  maskedEmail: string;
+  approvalType: string;
+  linkExpiresAt?: string | null;
+}
+
+/** A signing session opened by the e-mailed code or the participant's account (30 minutes, renewed by activity). */
+export interface OpenedSigningSession {
+  secret: string;
+  expiresAt: string;
 }
 
 export interface SignFieldResult {
   signatureId: string;
   allFieldsSigned: boolean;
   documentCompleted: boolean;
+  /** The value kept: for a date field, the server's date (R-M5-7). */
+  signedValue?: string | null;
 }

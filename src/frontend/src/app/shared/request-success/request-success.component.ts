@@ -1,20 +1,20 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslatePipe } from '@ngx-translate/core';
 import { RecipientInfo } from '../../core/models';
 
 /**
- * Post-submit confirmation screen shared by every request-origination flow: checkmark, signing-links
- * card (one row per recipient with a copy-link button), and a caller-supplied actions row via projection —
+ * Post-submit confirmation screen shared by every request-origination flow: checkmark, the participants
+ * (each gets their link by e-mail; links are never shown, R-M5-1), and a caller-supplied actions row via projection —
  * each flow's "next step" differs (submit another vs. back to forms), so that part isn't generalized.
  */
 @Component({
   selector: 'sf-request-success',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatSnackBarModule, TranslatePipe],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe],
   template: `
     <div class="rsu-state">
       <div class="rsu-icon">
@@ -32,9 +32,8 @@ import { RecipientInfo } from '../../core/models';
                 <span class="rsu-link-name">{{ r.name }}</span>
                 <span class="rsu-link-email">{{ r.email }}</span>
               </div>
-              <button mat-stroked-button (click)="copyLink(r.secureToken)">
-                <mat-icon>link</mat-icon> {{ 'shared.requestSuccess.copyLink' | translate }}
-              </button>
+              <!-- Links are never shown (R-M5-1): each participant gets theirs by e-mail when their turn comes. -->
+              <mat-icon class="rsu-mail" [matTooltip]="'shared.requestSuccess.byEmail' | translate">mark_email_unread</mat-icon>
             </div>
           }
         </div>
@@ -58,20 +57,12 @@ import { RecipientInfo } from '../../core/models';
     .rsu-link-row:first-of-type { border-top: none; }
     .rsu-link-info { display: flex; flex-direction: column; min-width: 0; }
     .rsu-link-name { font-size: 13px; font-weight: 500; color: #1f1f1f; }
+    .rsu-mail { color: #5f6368; }
     .rsu-link-email { font-size: 12px; color: #9aa0a6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   `]
 })
 export class RequestSuccessComponent {
-  private readonly snack = inject(MatSnackBar);
-  private readonly translate = inject(TranslateService);
 
   readonly recipients = input<RecipientInfo[]>([]);
 
-  copyLink(secureToken: string): void {
-    const url = `${window.location.origin}/sign/${secureToken}`;
-    navigator.clipboard.writeText(url).then(
-      () => this.snack.open(this.translate.instant('shared.requestSuccess.linkCopied'), 'OK', { duration: 2500 }),
-      () => this.snack.open(this.translate.instant('shared.requestSuccess.linkCopyFailed'), 'OK', { duration: 3000 })
-    );
-  }
 }

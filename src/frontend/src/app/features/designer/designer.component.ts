@@ -28,7 +28,6 @@ import { DocumentService } from '../../core/services/document.service';
 import { VacationService } from '../../core/services/vacation.service';
 import { UserService } from '../../core/services/user.service';
 import { ApprovalType, DocumentDetail, FieldDto, RecipientInputDto, FieldType, UserDto, WorkflowType } from '../../core/models';
-import { PdfTemplateService } from '../../core/services/pdf-template.service';
 import { ScanOverlayComponent } from '../../shared/scan-overlay/scan-overlay.component';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -73,8 +72,12 @@ const FIELD_DEFINITIONS: { type: FieldType; icon: string; label: string; width: 
   { type: 'Dropdown', icon: 'arrow_drop_down_circle', label: 'Dropdown', width: 180, height: 40 },
   { type: 'Radio', icon: 'radio_button_checked', label: 'Radio', width: 140, height: 32 },
   { type: 'Stamp', icon: 'verified', label: 'Stamp', width: 100, height: 100 },
-  { type: 'Attachment', icon: 'attach_file', label: 'Attachment', width: 160, height: 40 }
+  { type: 'MultilineText', icon: 'notes', label: 'Long text', width: 260, height: 90 },
+  { type: 'Number', icon: 'pin', label: 'Number', width: 120, height: 40 }
 ];
+
+/** This page draws PDFs at 1.5 pixels per point; the API speaks points (R-M3-1). */
+const CANVAS_SCALE = 1.5;
 
 @Component({
   selector: 'sf-designer',
@@ -540,12 +543,13 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly documentService = inject(DocumentService);
   private readonly vacationService = inject(VacationService);
-  private readonly pdfTemplateService = inject(PdfTemplateService);
   private readonly userService = inject(UserService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
   private readonly translate = inject(TranslateService);
 
+  /** The layout this page loaded; sent back with a save so a concurrent save is refused (R-M3-4). */
+  private layoutVersion = 0;
   readonly fieldDefs = FIELD_DEFINITIONS;
 
   readonly doc = signal<DocumentDetail | null>(null);
@@ -673,18 +677,19 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
         const validRecipientIds = new Set(recipientList.map(r => r.id).filter((id): id is string => !!id));
         const firstRecipientId = recipientList.sort((a, b) => a.order - b.order)[0]?.id;
 
+        this.layoutVersion = doc.layoutVersion ?? 0;
         const fields: DesignerField[] = doc.fields.map(f => ({
           tempId: uuidv4(),
           id: f.id,
           fieldType: f.fieldType,
           pageNumber: f.page,
-          xPosition: f.x,
-          yPosition: f.y,
-          width: f.width ?? 200,
-          height: f.height ?? 60,
+          xPosition: f.x * CANVAS_SCALE,
+          yPosition: f.y * CANVAS_SCALE,
+          width: (f.width ?? 133) * CANVAS_SCALE,
+          height: (f.height ?? 40) * CANVAS_SCALE,
           isRequired: f.isRequired,
           recipientId: (f.recipientId && validRecipientIds.has(f.recipientId)) ? f.recipientId : firstRecipientId,
-          zIndex: f.zIndex ?? 1,
+          zIndex: 1,
           options: f.options,
           groupName: f.groupName,
           color: '#6366f1',
@@ -1095,8 +1100,11 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   detectFields(): void {
     this.detecting.set(true);
-    this.documentService.stream(this.documentId).pipe(switchMap(blob => this.pdfTemplateService.detectFields(blob))).subscribe({
-      next: result => {
+    // The contract's owner may ask, whatever their role (R-M3-7); proposals come in points.
+    this.documentService.detectContractFields(this.documentId).subscribe({
+      next: points => {
+        const result = { ...points, fields: points.fields.map(f => ({
+          ...f, x: f.x * CANVAS_SCALE, y: f.y * CANVAS_SCALE, width: f.width * CANVAS_SCALE, height: f.height * CANVAS_SCALE })) };
         const existing = this.allFields();
         const recipientId = this.selectedRecipientId() ?? this.recipients()[0]?.id ?? undefined;
         const added: DesignerField[] = [];
@@ -1203,13 +1211,12 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
       id: f.id,
       fieldType: f.fieldType,
       page: f.pageNumber,
-      x: f.xPosition,
-      y: f.yPosition,
-      width: f.width,
-      height: f.height,
+      x: f.xPosition / CANVAS_SCALE,
+      y: f.yPosition / CANVAS_SCALE,
+      width: f.width / CANVAS_SCALE,
+      height: f.height / CANVAS_SCALE,
       isRequired: f.isRequired,
       recipientId: f.recipientId,
-      zIndex: f.zIndex,
       options: f.options,
       groupName: f.groupName,
       label: f.label || undefined
@@ -1223,9 +1230,10 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Recipients must be persisted before fields — fields carry recipientId FK references.
     this.documentService.saveRecipients(this.documentId, wfType, recipients, this.hideRecipientIdentities()).pipe(
-      switchMap(() => this.documentService.saveFields(this.documentId, fields))
+      switchMap(() => this.documentService.saveFields(this.documentId, fields, this.layoutVersion))
     ).subscribe({
-      next: () => {
+      next: saved => {
+        this.layoutVersion = saved.layoutVersion;
         this.saving.set(false);
         this.snackBar.open(
           this.translate.instant('designer.notifications.savedSuccessfully'),
@@ -1233,8 +1241,15 @@ export class DesignerComponent implements OnInit, AfterViewInit, OnDestroy {
           { duration: 3000 }
         );
       },
-      error: (err: { error?: { detail?: string; errors?: Record<string, string[]> } }) => {
+      error: (err: { error?: { code?: string; detail?: string; errors?: Record<string, string[]> } }) => {
         this.saving.set(false);
+        // Someone saved this layout since it was opened (R-M3-4): reload rather than overwrite their work.
+        if (err.error?.code === 'layout.stale') {
+          this.snackBar.open(this.translate.instant('designer.notifications.layoutStale'),
+            this.translate.instant('designer.notifications.reload'), { duration: 10000 })
+            .onAction().subscribe(() => window.location.reload());
+          return;
+        }
         const msg = err.error?.errors
           ? Object.values(err.error.errors).flat().join(' ')
           : err.error?.detail ?? this.translate.instant('designer.notifications.saveFailed');

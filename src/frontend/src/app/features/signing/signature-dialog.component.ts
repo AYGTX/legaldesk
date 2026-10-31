@@ -227,9 +227,24 @@ export class SignatureDialogComponent implements AfterViewInit, OnDestroy {
     if (file && file.type.startsWith('image/')) this.readImageFile(file);
   }
 
+  /**
+   * The server keeps PNG signatures of at most 1200 × 600 (R-M5-6): any image is redrawn as such a PNG here, scaled
+   * down to fit, so a photo or a JPEG scan is accepted.
+   */
   private readImageFile(file: File): void {
     const reader = new FileReader();
-    reader.onload = e => this.uploadedDataUrl.set(e.target?.result as string);
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const ratio = Math.min(1, 1200 / img.width, 600 / img.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * ratio));
+        canvas.height = Math.max(1, Math.round(img.height * ratio));
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        this.uploadedDataUrl.set(canvas.toDataURL('image/png'));
+      };
+      img.src = e.target?.result as string;
+    };
     reader.readAsDataURL(file);
   }
 

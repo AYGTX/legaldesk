@@ -466,7 +466,7 @@ export class DocumentsListComponent implements OnInit {
 
   /** Goes straight to the screen that shows the document itself, with the approve / sign / decline controls. */
   openSigning(r: ReceivedRequest): void {
-    if (r.secureToken && r.isMyTurn) this.router.navigate(['/sign', r.secureToken]);
+    if (r.isMyTurn) this.router.navigate(['/sign', 'session'], { queryParams: { r: r.recipientId } });
     else this.openContract(r);
   }
 

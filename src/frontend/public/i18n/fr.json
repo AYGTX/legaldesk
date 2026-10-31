@@ -983,7 +983,10 @@
           "jurisdiction": "Juridiction"
         },
         "applied": "Appliqué à la durée du contrat (voir l'onglet Synthèse)."
-      }
+      },
+      "resendLink": "Envoyer un nouveau lien de signature par e-mail",
+      "linkResent": "Un nouveau lien a été envoyé à {{name}}. Son ancien lien ne fonctionne plus.",
+      "linkResendFailed": "Le lien n'a pas pu être envoyé. Réessayez."
     },
     "upload": {
       "title": "Importer un contrat",
@@ -1136,7 +1139,9 @@
       "savedSuccessfully": "Enregistré avec succès",
       "saveFailed": "Échec de l'enregistrement",
       "fieldsUnassignedForRole": "Les champs ont été désassignés — ce participant ne signe plus.",
-      "nonSignerNoFields": "Les relecteurs, approbateurs et observateurs ne remplissent pas de champs — sélectionnez d'abord un signataire."
+      "nonSignerNoFields": "Les relecteurs, approbateurs et observateurs ne remplissent pas de champs — sélectionnez d'abord un signataire.",
+      "layoutStale": "Quelqu'un a enregistré cette mise en page après votre ouverture. Rechargez pour voir ses modifications.",
+      "reload": "Recharger"
     }
   },
   "legal": {
@@ -1643,7 +1648,8 @@
       "signingLinks": "Liens de signature",
       "copyLink": "Copier le lien",
       "linkCopied": "Lien de signature copié dans le presse-papiers",
-      "linkCopyFailed": "Échec de la copie du lien"
+      "linkCopyFailed": "Échec de la copie du lien",
+      "byEmail": "Reçoit son lien par e-mail quand vient son tour"
     },
     "notificationBell": {
       "tooltip": "Notifications",
@@ -1933,8 +1939,7 @@
       "proceedToSign": "Passer à la signature",
       "proceedToReview": "Passer à la relecture",
       "gdprTitle": "Avis de traitement des données",
-      "gdprText": "En signant, vous reconnaissez que LegalDesk enregistrera votre signature électronique, la date et l'heure de signature, votre adresse IP, ainsi que cette piste d'audit, aux fins de validité juridique du contrat signé (base légale : art. 6(1)(b) du RGPD — exécution d'un contrat).",
-      "geoOptIn": "J'accepte de partager ma position approximative afin de renforcer la piste d'audit (facultatif — art. 6(1)(a) du RGPD)."
+      "gdprText": "En signant, vous reconnaissez que LegalDesk enregistrera votre signature électronique, l'adresse e-mail que vous avez confirmée et la façon dont vous l'avez fait, la date et l'heure de chaque action, votre adresse IP et votre navigateur, ainsi que cette piste d'audit, aux fins de validité juridique du contrat signé (base légale : art. 6(1)(b) du RGPD — exécution d'un contrat)."
     },
     "status": {
       "completedTitle": "Contrat signé !",
@@ -2014,6 +2019,42 @@
       "dropZone": "Déposez une image ici ou cliquez pour parcourir",
       "uploadedAlt": "Signature importée",
       "apply": "Appliquer {{fieldType}}"
+    },
+    "verify": {
+      "title": "Confirmez votre identité",
+      "intro": "{{sender}} vous demande, {{name}}, d'agir sur « {{title}} ».",
+      "sentTo": "Nous allons envoyer un code à 6 chiffres à {{email}}.",
+      "send": "M'envoyer le code",
+      "enter": "Code reçu par e-mail",
+      "confirm": "Ouvrir le contrat",
+      "resend": "Envoyer un nouveau code",
+      "note": "Le code est valable 10 minutes. Votre adresse confirmée est enregistrée avec chacune de vos actions."
+    },
+    "refused": {
+      "link": {
+        "invalid": "Ce lien de signature n'est pas valide. Utilisez l'e-mail le plus récent que vous avez reçu.",
+        "expired": "Ce lien de signature a expiré. Demandez-en un nouveau à l'expéditeur."
+      },
+      "session": {
+        "required": "Confirmez votre adresse e-mail pour continuer.",
+        "expired": "Votre session est terminée. Rouvrez le lien reçu par e-mail."
+      },
+      "contract": {
+        "expired": "Cette demande a expiré et ne peut plus être signée.",
+        "closed": "Ce contrat n'est pas ouvert à la signature pour le moment."
+      },
+      "participant": {
+        "done": "Vous avez déjà répondu à ce contrat."
+      },
+      "step": {
+        "not_open": "Ce n'est pas encore votre tour : un participant précédent doit d'abord répondre."
+      },
+      "code": {
+        "invalid": "Code incorrect. Vérifiez le dernier e-mail et réessayez.",
+        "expired": "Ce code n'est plus valable. Demandez-en un nouveau.",
+        "too_soon": "Un code vient d'être envoyé. Attendez une minute avant d'en demander un autre.",
+        "too_many": "Trop de codes ont été demandés. Réessayez dans une heure."
+      }
     }
   },
   "htmlTemplateEditor": {
@@ -2691,5 +2732,16 @@
     "autoRenews": "Reconduction tacite",
     "noRenewal": "Non",
     "empty": "Aucun contrat ne correspond à ce filtre."
+  },
+  "verify": {
+    "title": "Vérifier un contrat signé",
+    "code": "Code de vérification",
+    "sealed": "Scellé par {{organisation}} le {{date}}.",
+    "choose": "Choisir le PDF à vérifier",
+    "privacy": "Le fichier est comparé sur notre serveur par son empreinte (SHA-256) et n'est pas conservé.",
+    "matches": "« {{name}} » est bien le contrat scellé, sans modification.",
+    "differs": "« {{name}} » n'est pas le contrat scellé : il en diffère, ou c'est un autre fichier.",
+    "unknown": "Aucun contrat scellé ne porte ce code.",
+    "what": "Les contrats LegalDesk sont scellés par l'organisation qui les a envoyés, avec un horodatage, une fois que tous ont signé. La dernière page indique qui a signé, quand, et comment chacun a prouvé son adresse e-mail. Il s'agit d'une signature électronique avancée, pas d'une signature qualifiée."
   }
 }

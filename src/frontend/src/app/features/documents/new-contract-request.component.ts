@@ -43,18 +43,19 @@ interface Participant {
 
 const EXTERNAL = '__external';
 const ROLES: ApprovalType[] = ['Signature', 'Approval', 'Review', 'ViewOnly'];
-/** Pixel size of an A4 page at the designer's 1.5 scale — used until the real page size is known. */
-const A4_PX: PreviewPageSize = { widthPx: 892.5, heightPx: 1263 };
-const BOX = { height: 90, maxWidth: 300, margin: 60, bottomMargin: 100, rowGap: 30 };
+/** An A4 page in points — used until the real page size is known. */
+const A4: PreviewPageSize = { width: 595.28, height: 841.89 };
+/** Signature boxes, in points (R-M3-1). */
+const BOX = { height: 60, maxWidth: 200, margin: 40, bottomMargin: 67, rowGap: 20 };
 
 /** Where signer number `index` of `count` gets her signature box on a page of the given size: a tidy two-column grid at the foot. */
 function signatureBox(index: number, size: PreviewPageSize): { x: number; y: number; width: number; height: number } {
-    const width = Math.min(BOX.maxWidth, (size.widthPx - BOX.margin * 3) / 2);
+    const width = Math.min(BOX.maxWidth, (size.width - BOX.margin * 3) / 2);
     const col = index % 2;
     const row = Math.floor(index / 2);
     return {
       x: BOX.margin + col * (width + BOX.margin),
-      y: size.heightPx - BOX.bottomMargin - BOX.height - row * (BOX.height + BOX.rowGap),
+      y: size.height - BOX.bottomMargin - BOX.height - row * (BOX.height + BOX.rowGap),
       width,
       height: BOX.height
     };
@@ -451,7 +452,7 @@ export class NewContractRequestComponent implements OnInit {
 
   /** Page sizes reported by the document preview, so signature boxes are laid out on the real page. */
   readonly pageSizes = signal<PreviewPageSize[]>([]);
-  private lastPageSize(): PreviewPageSize { return this.pageSizes().at(-1) ?? A4_PX; }
+  private lastPageSize(): PreviewPageSize { return this.pageSizes().at(-1) ?? A4; }
 
   private boxesKey = '';
   private boxesCache: PreviewBox[] = [];
@@ -797,8 +798,7 @@ export class NewContractRequestComponent implements OnInit {
       ...signatureBox(i, size),
       recipientId: r.id,
       label: r.name,
-      isRequired: true,
-      zIndex: 1
+      isRequired: true
     }));
 
     this.documents.saveFields(id, fields).subscribe({

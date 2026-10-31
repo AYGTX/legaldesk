@@ -4,7 +4,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslatePipe } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 
-/** A labelled rectangle drawn over a page, in the designer's pixel space (PDF points × 1.5). */
+/** A labelled rectangle drawn over a page, in PDF points from the page's top-left as displayed (R-M3-1). */
 export interface PreviewBox {
   page: number;
   x: number;
@@ -14,14 +14,11 @@ export interface PreviewBox {
   label: string;
 }
 
-/** One page's size in the same pixel space, so callers can lay boxes out against the real page, not an assumed A4. */
+/** One page's size in points, so callers can lay boxes out against the real page, not an assumed A4. */
 export interface PreviewPageSize {
-  widthPx: number;
-  heightPx: number;
+  width: number;
+  height: number;
 }
-
-/** The scale the designer renders at; stored field coordinates are in pixels at this scale. */
-const DESIGNER_SCALE = 1.5;
 
 /**
  * Every page of a contract, one under the other, with optional boxes drawn on top — so a step that asks about the
@@ -125,7 +122,7 @@ export class PdfPreviewComponent implements AfterViewInit, OnDestroy {
 
       this.host.nativeElement.appendChild(wrapper);
       this.pages.push({ wrapper, scale });
-      sizes.push({ widthPx: natural.width * DESIGNER_SCALE, heightPx: natural.height * DESIGNER_SCALE });
+      sizes.push({ width: natural.width, height: natural.height });
 
       await page.render({
         canvasContext: canvas.getContext('2d')!,
@@ -146,8 +143,8 @@ export class PdfPreviewComponent implements AfterViewInit, OnDestroy {
     this.pages.forEach(({ wrapper, scale }, index) => {
       wrapper.querySelectorAll('.pp-box').forEach(el => el.remove());
 
-      // Designer pixels are points × 1.5; the preview draws at its own scale.
-      const k = scale / DESIGNER_SCALE;
+      // Boxes are in points; the preview draws at its own scale.
+      const k = scale;
       for (const box of boxes.filter(b => b.page === index + 1)) {
         const el = document.createElement('div');
         el.className = 'pp-box';

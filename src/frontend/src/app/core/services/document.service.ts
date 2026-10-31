@@ -122,8 +122,9 @@ export class DocumentService {
     return this.api.download(`/v1/documents/${id}/stream`);
   }
 
-  saveFields(documentId: string, fields: FieldDto[]): Observable<void> {
-    return this.api.put<void>(`/v1/documents/${documentId}/fields`, fields);
+  /** Replaces the field layout; coordinates in PDF points. A layout saved since `layoutVersion` answers 409 layout.stale. */
+  saveFields(documentId: string, fields: FieldDto[], layoutVersion?: number): Observable<{ layoutVersion: number }> {
+    return this.api.put<{ layoutVersion: number }>(`/v1/documents/${documentId}/fields`, { layoutVersion: layoutVersion ?? null, fields });
   }
 
   saveRecipients(documentId: string, workflowType: WorkflowType, recipients: RecipientInputDto[], hideRecipientIdentities = false): Observable<void> {
@@ -150,6 +151,16 @@ export class DocumentService {
   /** One turn of "ask the contract": answered from the contract's text only, with verified excerpts. */
   askContract(id: string, request: AskContractRequest): Observable<AskContractReply> {
     return this.api.post<AskContractReply>(`/v1/documents/${id}/ask`, request);
+  }
+
+  /** Sends a participant a new signing link by e-mail; their previous link stops working. */
+  resendLink(id: string, recipientId: string): Observable<void> {
+    return this.api.post<void>(`/v1/documents/${id}/recipients/${recipientId}/resend-link`, {});
+  }
+
+  /** Proposes the contract's fields from its PDF (owner); nothing is saved. Coordinates in PDF points. */
+  detectContractFields(id: string): Observable<import('../models').DetectedFormFields> {
+    return this.api.post<import('../models').DetectedFormFields>(`/v1/documents/${id}/detect-fields`, {});
   }
 
   /** Starts Harvey's review of the current version in the background; the result arrives over SignalR. */

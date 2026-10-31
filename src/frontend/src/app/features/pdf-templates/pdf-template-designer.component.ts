@@ -69,6 +69,9 @@ const ROLE_COLORS: Record<PdfFieldFillRole, string> = {
   System: '#e37400'
 };
 
+/** This page draws PDFs at 1.5 pixels per point; the API speaks points (R-M3-1). */
+const CANVAS_SCALE = 1.5;
+
 @Component({
   selector: 'sf-pdf-template-designer',
   standalone: true,
@@ -755,7 +758,8 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
           type: f.type,
           fillRole: f.fillRole,
           page: f.page,
-          x: f.x, y: f.y, width: f.width, height: f.height,
+          // Points from the API; this page draws at 1.5 pixels per point (R-M3-1).
+          x: f.x * CANVAS_SCALE, y: f.y * CANVAS_SCALE, width: f.width * CANVAS_SCALE, height: f.height * CANVAS_SCALE,
           isRequired: f.isRequired,
           autoFillFrom: f.autoFillFrom,
           defaultValue: f.defaultValue,
@@ -949,7 +953,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
           taken.add(key);
           added.push({
             tempId: uuidv4(), fieldKey: key, label: d.label, type: d.type, fillRole: d.fillRole, page: d.page,
-            x: d.x, y: d.y, width: d.width, height: d.height, isRequired: d.isRequired,
+            x: d.x * CANVAS_SCALE, y: d.y * CANVAS_SCALE, width: d.width * CANVAS_SCALE, height: d.height * CANVAS_SCALE, isRequired: d.isRequired,
             autoFillFrom: d.autoFillFrom ?? undefined,
             optionsJson: d.options.length ? JSON.stringify(d.options) : undefined,
             workflowStage: 1
@@ -1075,7 +1079,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       type: f.type,
       fillRole: f.fillRole,
       page: f.page,
-      x: f.x, y: f.y, width: f.width, height: f.height,
+      x: f.x / CANVAS_SCALE, y: f.y / CANVAS_SCALE, width: f.width / CANVAS_SCALE, height: f.height / CANVAS_SCALE,
       isRequired: f.isRequired,
       order: i,
       autoFillFrom: f.autoFillFrom,

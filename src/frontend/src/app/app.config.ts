@@ -8,6 +8,7 @@ import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
+import { signingSessionInterceptor } from './core/interceptors/signing-session.interceptor';
 import { AuthService } from './core/auth/auth.service';
 
 export const appConfig: ApplicationConfig = {
@@ -15,7 +16,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
     provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, signingSessionInterceptor, errorInterceptor])),
     // The access token lives in memory only: on load, the session cookie gives a fresh one before routing starts.
     provideAppInitializer(() => inject(AuthService).restoreSession()),
     provideAnimationsAsync(),

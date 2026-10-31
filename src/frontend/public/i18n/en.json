@@ -983,7 +983,10 @@
           "jurisdiction": "Jurisdiction"
         },
         "applied": "Applied to the contract term (see the Summary tab)."
-      }
+      },
+      "resendLink": "Send a new signing link by e-mail",
+      "linkResent": "A new link was sent to {{name}}. Their previous link no longer works.",
+      "linkResendFailed": "The link could not be sent. Please try again."
     },
     "upload": {
       "title": "Upload Contract",
@@ -1136,7 +1139,9 @@
       "savedSuccessfully": "Saved successfully",
       "saveFailed": "Failed to save",
       "fieldsUnassignedForRole": "Fields were unassigned — this participant no longer signs.",
-      "nonSignerNoFields": "Reviewers, approvers and viewers don't fill fields — select a signatory first."
+      "nonSignerNoFields": "Reviewers, approvers and viewers don't fill fields — select a signatory first.",
+      "layoutStale": "Someone saved this layout after you opened it. Reload to see their changes.",
+      "reload": "Reload"
     }
   },
   "legal": {
@@ -1643,7 +1648,8 @@
       "signingLinks": "Signing links",
       "copyLink": "Copy link",
       "linkCopied": "Signing link copied to clipboard",
-      "linkCopyFailed": "Failed to copy link"
+      "linkCopyFailed": "Failed to copy link",
+      "byEmail": "Gets their link by e-mail when it is their turn"
     },
     "notificationBell": {
       "tooltip": "Notifications",
@@ -1933,8 +1939,7 @@
       "proceedToSign": "Proceed to Sign",
       "proceedToReview": "Proceed to Review",
       "gdprTitle": "Data Processing Notice",
-      "gdprText": "By signing, you acknowledge that LegalDesk will record your electronic signature, the date and time of signing, your IP address, and this audit trail for the legal validity of the signed contract (legal basis: Art. 6(1)(b) GDPR — contract performance).",
-      "geoOptIn": "I consent to sharing my approximate location to strengthen the audit trail (optional — Art. 6(1)(a) GDPR)."
+      "gdprText": "By signing, you acknowledge that LegalDesk will record your electronic signature, the e-mail address you confirmed and how, the date and time of each action, your IP address and browser, and this audit trail, for the legal validity of the signed contract (legal basis: Art. 6(1)(b) GDPR — contract performance)."
     },
     "status": {
       "completedTitle": "Contract Signed!",
@@ -2014,6 +2019,42 @@
       "dropZone": "Drop image here or click to browse",
       "uploadedAlt": "Uploaded signature",
       "apply": "Apply {{fieldType}}"
+    },
+    "verify": {
+      "title": "Confirm it is you",
+      "intro": "{{sender}} asks you, {{name}}, to act on « {{title}} ».",
+      "sentTo": "We will send a 6-digit code to {{email}}.",
+      "send": "Send me the code",
+      "enter": "Code received by e-mail",
+      "confirm": "Open the contract",
+      "resend": "Send a new code",
+      "note": "The code is valid 10 minutes. Your confirmed address is recorded with each action you take."
+    },
+    "refused": {
+      "link": {
+        "invalid": "This signing link is not valid. Use the most recent e-mail you received.",
+        "expired": "This signing link has expired. Ask the sender for a new one."
+      },
+      "session": {
+        "required": "Confirm your e-mail address to continue.",
+        "expired": "Your session has ended. Open the link from your e-mail again."
+      },
+      "contract": {
+        "expired": "This request has expired and can no longer be signed.",
+        "closed": "This contract is not open for signing at the moment."
+      },
+      "participant": {
+        "done": "You have already responded to this contract."
+      },
+      "step": {
+        "not_open": "It is not your turn yet: an earlier participant has to respond first."
+      },
+      "code": {
+        "invalid": "Wrong code. Check the last e-mail and try again.",
+        "expired": "This code is no longer valid. Ask for a new one.",
+        "too_soon": "A code was just sent. Wait a minute before asking for another one.",
+        "too_many": "Too many codes were asked for. Try again in an hour."
+      }
     }
   },
   "htmlTemplateEditor": {
@@ -2691,5 +2732,16 @@
     "autoRenews": "Renews automatically",
     "noRenewal": "No",
     "empty": "No contract matches this filter."
+  },
+  "verify": {
+    "title": "Check a signed contract",
+    "code": "Verification code",
+    "sealed": "Sealed by {{organisation}} on {{date}}.",
+    "choose": "Choose the PDF to check",
+    "privacy": "The file is compared on our server through its fingerprint (SHA-256) and is not kept.",
+    "matches": "« {{name}} » is the sealed contract, unchanged.",
+    "differs": "« {{name}} » is not the sealed contract: it differs from it, or it is another file.",
+    "unknown": "No sealed contract has this code.",
+    "what": "LegalDesk contracts are sealed by the organisation that sent them, with a timestamp, once everyone has signed. The last page lists who signed, when, and how each person proved their e-mail address. This is an advanced electronic signature, not a qualified one."
   }
 }

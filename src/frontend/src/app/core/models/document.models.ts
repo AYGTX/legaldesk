@@ -59,6 +59,8 @@ export interface DocumentDetail {
   readinessVerdict: ReadinessVerdict;
   readinessScore?: number;
   riskScore?: number;
+  /** Field layout version, sent back with a save (R-M3-4). */
+  layoutVersion?: number;
   readinessEvaluatedAt?: string;
   obligationDueDate?: string;
   obligationType?: string;
@@ -105,7 +107,6 @@ export interface RecipientInfo {
   order: number;
   approvalType: ApprovalType;
   status: string;
-  secureToken: string;
   signedAt?: string;
   viewedAt?: string;
   /** Free-text participant label (e.g. "Legal team") — display only, capabilities come from approvalType. */
@@ -138,7 +139,6 @@ export interface SignatureFieldInfo {
   isRequired: boolean;
   isSigned: boolean;
   signedAt?: string;
-  zIndex: number;
   fontFamily?: string;
   fontSize?: number;
   fontColor?: string;
@@ -219,8 +219,6 @@ export interface FieldDto {
   isReadOnly?: boolean;
   validationRule?: string;
   options?: string;
-  zIndex: number;
-  visibilityRules?: string;
   groupName?: string;
   tooltip?: string;
   maxLength?: number;

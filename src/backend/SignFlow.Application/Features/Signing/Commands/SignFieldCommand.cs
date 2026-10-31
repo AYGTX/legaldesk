@@ -23,7 +23,8 @@ public record SignFieldCommand(
 /// <summary>How the participant proved who they are, from their signing session (R-M5-5).</summary>
 public record SigningEvidence(string? VerifiedEmail, string? Method, DateTime? VerifiedAt);
 
-public record SignFieldResult(Guid SignatureId, bool AllFieldsSigned, bool DocumentCompleted);
+/// <param name="SignedValue">The value kept: for a date field, the server's date (R-M5-7).</param>
+public record SignFieldResult(Guid SignatureId, bool AllFieldsSigned, bool DocumentCompleted, string? SignedValue = null);
 
 public class SignFieldCommandValidator : AbstractValidator<SignFieldCommand>
 {
@@ -186,7 +187,7 @@ public class SignFieldCommandHandler(
         logger.LogInformation("Field {FieldId} signed by recipient {RecipientId}", field.Id, recipient.Id);
 
         // AdvanceAsync is deferred — the recipient must explicitly approve after reviewing all fields.
-        return new SignFieldResult(signature.Id, allSigned, DocumentCompleted: false);
+        return new SignFieldResult(signature.Id, allSigned, DocumentCompleted: false, SignedValue: value);
     }
 
     private async Task<bool> CheckAllFieldsSigned(Recipient recipient, CancellationToken cancellationToken)

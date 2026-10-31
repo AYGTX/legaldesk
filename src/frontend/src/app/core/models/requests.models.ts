@@ -33,7 +33,8 @@ export interface ReceivedRequest {
   myStatus: WorkflowStepStatus;
   myOrder: number;
   isMyTurn: boolean;
-  secureToken: string;
+  /** Opens the signing page through the signed-in account (no e-mailed link needed). */
+  recipientId: string;
   receivedAt?: string;
   expiresAt?: string;
   signedAt?: string;

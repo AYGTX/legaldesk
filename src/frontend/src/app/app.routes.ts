@@ -142,6 +142,12 @@ export const routes: Routes = [
     ]
   },
   {
+    // Public check of a sealed contract (R-M5-9): no sign-in.
+    path: 'verify/:code',
+    loadComponent: () => import('./features/verify/verify.component').then(m => m.VerifyComponent),
+    title: 'Verify a contract — LegalDesk'
+  },
+  {
     path: 'sign/:token',
     loadComponent: () => import('./features/signing/signing.component').then(m => m.SigningComponent),
     title: 'Sign Contract — LegalDesk'
