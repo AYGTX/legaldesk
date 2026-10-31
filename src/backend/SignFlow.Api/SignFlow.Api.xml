@@ -242,6 +242,12 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Send(System.Guid,SignFlow.Api.Controllers.V1.SendDocumentRequest,System.Threading.CancellationToken)">
             <summary>Send document for signing</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.DetectFields(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.SignatureFields.DetectContractFieldsQuery,SignFlow.Application.Common.Interfaces.DetectedFormFields},System.Threading.CancellationToken)">
+            <summary>Propose the contract's fields from its PDF (owner); nothing is saved (R-M3-7)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.FieldLayoutReport(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.SignatureFields.GetFieldLayoutReportQuery,System.Collections.Generic.List{SignFlow.Application.Features.SignatureFields.FieldOutsidePageDto}},System.Threading.CancellationToken)">
+            <summary>Administrators: fields outside their page after the move to points (R-M3-8)</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.ResendSigningLink(System.Guid,System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.ResendSigningLinkCommand},System.Threading.CancellationToken)">
             <summary>Send a participant a new signing link by e-mail; their previous link stops working (links are never shown)</summary>
         </member>
@@ -304,11 +310,14 @@
         <member name="T:SignFlow.Api.Controllers.V1.FieldsController">
             <summary>Signature field designer endpoints</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.FieldsController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.SignatureFields.Commands.SaveFieldsCommand})">
+        <member name="M:SignFlow.Api.Controllers.V1.FieldsController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.SignatureFields.Commands.SaveFieldsCommand,System.Int32})">
             <summary>Signature field designer endpoints</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.FieldsController.SaveFields(System.Guid,System.Collections.Generic.List{SignFlow.Application.Features.SignatureFields.Commands.FieldDto},System.Threading.CancellationToken)">
-            <summary>Save all signature fields for a document (replaces existing fields)</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.FieldsController.SaveFields(System.Guid,SignFlow.Api.Controllers.V1.SaveFieldsRequest,System.Threading.CancellationToken)">
+            <summary>
+            Save the field layout (replaces it). Coordinates are PDF points from the top-left of the page as displayed.
+            Send the layoutVersion you loaded: a layout saved since answers 409 (code layout.stale).
+            </summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.GdprController">
             <summary>GDPR data-subject rights and consent management</summary>

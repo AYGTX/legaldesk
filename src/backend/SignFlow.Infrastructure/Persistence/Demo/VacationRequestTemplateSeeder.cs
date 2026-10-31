@@ -17,14 +17,13 @@ namespace SignFlow.Infrastructure.Persistence.Demo;
 ///
 /// The form and the field placements come from the same <see cref="Layout"/>, so every field sits
 /// exactly on the box drawn for it. Layout rectangles are in PDF points (top-left origin); stored
-/// field coordinates are PDF.js canvas pixels at scale 1.5 — the model the designer, the signing
-/// page and <c>PdfStampService</c> all share — hence <see cref="RenderScale"/>.
+/// field coordinates are PDF points from the top-left of the page, the model every client and the stamper share
+/// (R-M3-1).
 /// </summary>
 internal static class VacationRequestTemplateSeeder
 {
     public const string TemplateName = "Demande de congé";
     private const string RequestTypeName = "Demande de congé";
-    private const double RenderScale = 1.5;
 
     private const double Margin = 50;
     private const double LabelX = Margin;
@@ -147,10 +146,10 @@ internal static class VacationRequestTemplateSeeder
             context.PdfTemplateFields.Add(PdfTemplateField.Create(
                 template.Id, f.Key, f.Label, f.Type, f.Role,
                 page: 1,
-                x: (float)(BoxX * RenderScale),
-                y: (float)(f.Y * RenderScale),
-                width: (float)(f.Width * RenderScale),
-                height: (float)(f.Height * RenderScale),
+                x: (float)BoxX,
+                y: (float)f.Y,
+                width: (float)f.Width,
+                height: (float)f.Height,
                 isRequired: f.Required,
                 order: i + 1,
                 autoFillFrom: f.AutoFill,
@@ -170,7 +169,7 @@ internal static class VacationRequestTemplateSeeder
         document.Info.Title = TemplateName;
 
         var page = document.AddPage();
-        page.Size = PageSize.A4;
+        page.Size = PdfSharp.PageSize.A4;
 
         const string family = Services.Pdf.AppFontResolver.FamilyName;
         var titleFont = new XFont(family, 18, XFontStyleEx.Bold);

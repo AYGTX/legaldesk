@@ -129,9 +129,9 @@ public class TemplateFieldGapsTests
         const string sentence = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda omega";
         var service = new PdfStampService(storage, NullLogger<PdfStampService>.Instance);
 
-        // 180 × 100 px at the designer's 1.5 scale: a box 120 pt wide — far narrower than the sentence on one line.
+        // A box 120 pt wide (points, R-M3-1): far narrower than the sentence on one line.
         await using var stamped = await service.StampAsync(path,
-            [new StampFieldDto(FieldType.MultilineText, 1, 90, 90, 180, 100, sentence, null)]);
+            [new StampFieldDto(FieldType.MultilineText, 1, 60, 60, 120, 67, sentence, null)]);
 
         stamped.Position = 0;
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(stamped);
@@ -141,8 +141,8 @@ public class TemplateFieldGapsTests
         Assert.Contains("alpha", text);
         Assert.Contains("omega", text);              // the end of the sentence is there: it wrapped, it was not clipped
 
-        // The box is 90 → 270 px wide at the designer's scale, i.e. up to 180 pt from the page edge. Every word sits inside
-        // it, which a single line of this sentence never could.
+        // The box runs from 60 to 180 pt from the page edge. Every word sits inside it, which a single line of this
+        // sentence never could.
         Assert.All(words, w => Assert.True(w.BoundingBox.Right <= 180 + 2, $"'{w.Text}' ends at {w.BoundingBox.Right:0.#} pt"));
         Assert.True(words.Select(w => Math.Round(w.BoundingBox.Bottom)).Distinct().Count() > 1, "expected the words on several lines");
     }

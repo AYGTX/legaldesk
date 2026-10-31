@@ -32,6 +32,15 @@ public class Document : TenantEntity
 
     /// <summary>SHA-256 of the sealed final PDF (R-M5-8): what the public verification page compares uploads with.</summary>
     public string? FinalSha256 { get; private set; }
+
+    /// <summary>Bumped by every saved field layout: a save made from an older layout is refused (R-M3-4).</summary>
+    public int LayoutVersion { get; private set; }
+
+    public void LayoutSaved()
+    {
+        LayoutVersion++;
+        UpdatedAt = DateTime.UtcNow;
+    }
     public DateTime? SealedAt { get; private set; }
     public int Version { get; private set; } = 1;
     public Guid? ParentDocumentId { get; private set; }

@@ -11,15 +11,20 @@ namespace SignFlow.Api.Controllers.V1;
 [Route("api/v{version:apiVersion}/documents/{documentId:guid}/[controller]")]
 [ApiController]
 [Authorize]
-public class FieldsController(ICommandHandler<SaveFieldsCommand> saveHandler) : ControllerBase
+public class FieldsController(ICommandHandler<SaveFieldsCommand, int> saveHandler) : ControllerBase
 {
-    /// <summary>Save all signature fields for a document (replaces existing fields)</summary>
+    /// <summary>
+    /// Save the field layout (replaces it). Coordinates are PDF points from the top-left of the page as displayed.
+    /// Send the layoutVersion you loaded: a layout saved since answers 409 (code layout.stale).
+    /// </summary>
     [HttpPut]
-    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(SaveFieldsResponse), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]
-    public async Task<IActionResult> SaveFields([FromRoute] Guid documentId, [FromBody] List<FieldDto> fields, CancellationToken ct)
-    {
-        await saveHandler.HandleAsync(new SaveFieldsCommand(documentId, fields), ct);
-        return NoContent();
-    }
+    public async Task<ActionResult<SaveFieldsResponse>> SaveFields([FromRoute] Guid documentId, [FromBody] SaveFieldsRequest request, CancellationToken ct)
+        => Ok(new SaveFieldsResponse(await saveHandler.HandleAsync(new SaveFieldsCommand(documentId, request.Fields ?? [], request.LayoutVersion), ct)));
 }
+
+public record SaveFieldsRequest(int? LayoutVersion, List<FieldDto>? Fields);
+
+public record SaveFieldsResponse(int LayoutVersion);

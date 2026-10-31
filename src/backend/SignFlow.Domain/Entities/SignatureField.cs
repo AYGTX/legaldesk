@@ -27,16 +27,12 @@ public class SignatureField : TenantEntity
     public bool IsReadOnly { get; private set; }
     public string? ValidationRule { get; private set; }
     public string? Options { get; private set; }
-    public int ZIndex { get; private set; }
-    public string? VisibilityRules { get; private set; }
     public string? GroupName { get; private set; }
     public bool IsSigned { get; private set; }
     public DateTime? SignedAt { get; private set; }
     public string? SignedValue { get; private set; }
-    public string? FieldName { get; private set; }
     public string? Tooltip { get; private set; }
     public int? MaxLength { get; private set; }
-    public int? MinLength { get; private set; }
 
     /// <summary>
     /// One row per signing act. Usually a single row, but a field re-signed after a
@@ -119,7 +115,6 @@ public class SignatureField : TenantEntity
 
     public void AssignToRecipient(Guid recipientId) => RecipientId = recipientId;
 
-    public void SetZIndex(int zIndex) => ZIndex = zIndex;
     /// <summary>
     /// For a contract built from an HTML template: the key of the signature placeholder this field stands for
     /// (<c>{{legalSignature}}</c>), so the signature can be shown where the template put it. Null for every other field.
@@ -130,5 +125,4 @@ public class SignatureField : TenantEntity
 
     public void SetOptions(string options) => Options = options;
     public void SetGroupName(string groupName) => GroupName = groupName;
-    public void SetVisibilityRules(string rules) => VisibilityRules = rules;
 }

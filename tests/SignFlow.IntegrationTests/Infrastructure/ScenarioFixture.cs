@@ -99,6 +99,8 @@ public sealed class ScenarioFixture : IDisposable
 
         services.AddScoped(sp => new SaveFieldsCommandHandler(
             sp.GetRequiredService<IApplicationDbContext>(),
+            sp.GetRequiredService<IStorageService>(),
+            sp.GetRequiredService<IPdfService>(),
             sp.GetRequiredService<ICurrentUserService>()));
 
         services.AddScoped(sp => new SendDocumentCommandHandler(

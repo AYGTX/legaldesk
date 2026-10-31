@@ -166,7 +166,7 @@ public class ApproveSigningCommandHandler(
             var stampDtos = signedDocFields
                 .Select(f => new StampFieldDto(
                     f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height,
-                    f.SignedValue, f.Signatures.OrderByDescending(s => s.SignedAt).FirstOrDefault()?.ImageUrl))
+                    f.SignedValue, f.Signatures.OrderByDescending(s => s.SignedAt).FirstOrDefault()?.ImageUrl, f.Rotation))
                 .ToList();
 
             var stampedStream = await pdfStamp.StampAsync(recipient.Document.StoragePath, stampDtos, cancellationToken);

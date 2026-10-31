@@ -16,4 +16,8 @@ internal class NullPdfService : IPdfService
     public Task<byte[]> GenerateThumbnailAsync(Stream pdfStream, int page = 1, int width = 300, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<byte>());
     public Task<Stream> EmbedSignaturesAsync(Stream pdfStream, IEnumerable<(SignatureField field, Signature signature)> signedFields, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream());
     public virtual Task<string> ExtractTextAsync(Stream pdfStream, CancellationToken cancellationToken = default) => Task.FromResult(string.Empty);
+
+    /// <summary>Ten A4 portrait pages, unless a test says otherwise.</summary>
+    public IReadOnlyList<PageSize> Pages { get; set; } = [.. Enumerable.Repeat(new PageSize(595.28, 841.89), 10)];
+    public Task<IReadOnlyList<PageSize>> GetPageSizesAsync(Stream pdfStream, CancellationToken cancellationToken = default) => Task.FromResult(Pages);
 }

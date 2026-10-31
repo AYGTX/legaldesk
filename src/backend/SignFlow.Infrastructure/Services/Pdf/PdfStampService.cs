@@ -12,10 +12,6 @@ public class PdfStampService(
     IStorageService storage,
     ILogger<PdfStampService> logger) : IPdfStampService
 {
-    // PDF.js renders at scale=1.5 (canvas pixels per PDF point), so we divide by this
-    // to convert stored canvas-pixel coordinates back to PDF points for drawing.
-    private const double RenderScale = 1.5;
-
     public async Task<Stream> StampAsync(
         string sourcePath,
         IEnumerable<StampFieldDto> fields,
@@ -43,10 +39,17 @@ public class PdfStampService(
 
             using var gfx = XGraphics.FromPdfPage(page);
 
-            double x = field.X / RenderScale;
-            double y = field.Y / RenderScale;
-            double w = field.Width / RenderScale;
-            double h = field.Height / RenderScale;
+            // Fields are in points from the top-left of the page as displayed (R-M3-1). Draw around the box's centre,
+            // turned so the content reads upright on the displayed page, plus the field's own rotation (R-M3-2).
+            var placement = PageGeometry.Place(PageGeometry.Rotation(page.Rotate), page.MediaBox.Width, page.MediaBox.Height,
+                field.X, field.Y, field.Width, field.Height, field.Rotation);
+            gfx.Save();
+            gfx.TranslateTransform(placement.CenterX, placement.CenterY);
+            gfx.RotateTransform(placement.Angle);
+            double w = field.Width;
+            double h = field.Height;
+            double x = -w / 2;
+            double y = -h / 2;
 
             if (!string.IsNullOrEmpty(field.ImageStoragePath))
             {
@@ -66,6 +69,7 @@ public class PdfStampService(
                 if (field.FieldType == FieldType.MultilineText) DrawWrappedText(gfx, field.TextValue, x, y, w, h);
                 else DrawText(gfx, field.TextValue, x, y, w, h);
             }
+            gfx.Restore();
         }
 
         var output = new MemoryStream();
@@ -148,5 +152,34 @@ public class PdfStampService(
         using var buf = new MemoryStream();
         await stream.CopyToAsync(buf, ct);
         return buf.ToArray();
+    }
+}
+
+/// <summary>
+/// From the displayed page (what PDF.js shows, after the page's /Rotate) to the page's own drawing space. /Rotate turns
+/// the page clockwise for display, so a point (x, y) measured from the displayed top-left is, on the unrotated page:
+/// 90° → (y, H − x); 180° → (W − x, H − y); 270° → (W − y, x), with W × H the unrotated page.
+/// </summary>
+public static class PageGeometry
+{
+    public readonly record struct Placement(double CenterX, double CenterY, double Angle);
+
+    public static int Rotation(int rotate) => ((rotate % 360) + 360) % 360 / 90 * 90;
+
+    public static (double X, double Y) ToPage(int rotation, double pageWidth, double pageHeight, double x, double y) => rotation switch
+    {
+        90 => (y, pageHeight - x),
+        180 => (pageWidth - x, pageHeight - y),
+        270 => (pageWidth - y, x),
+        _ => (x, y)
+    };
+
+    /// <param name="fieldRotation">Degrees clockwise on the displayed page (0, 90, 180, 270).</param>
+    public static Placement Place(int rotation, double pageWidth, double pageHeight, double x, double y, double width, double height,
+        double? fieldRotation)
+    {
+        var (cx, cy) = ToPage(rotation, pageWidth, pageHeight, x + width / 2, y + height / 2);
+        // Undo the display rotation so the content reads upright, then apply the field's own.
+        return new Placement(cx, cy, (fieldRotation ?? 0) - rotation);
     }
 }

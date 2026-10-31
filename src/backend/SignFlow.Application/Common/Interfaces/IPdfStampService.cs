@@ -18,4 +18,5 @@ public record StampFieldDto(
     float Width,
     float Height,
     string? TextValue,
-    string? ImageStoragePath);
+    string? ImageStoragePath,
+    float? Rotation = null);

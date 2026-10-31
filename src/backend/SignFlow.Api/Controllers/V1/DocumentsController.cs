@@ -247,6 +247,24 @@ public class DocumentsController(
         return NoContent();
     }
 
+    /// <summary>Propose the contract's fields from its PDF (owner); nothing is saved (R-M3-7)</summary>
+    [HttpPost("{id:guid}/detect-fields")]
+    [ProducesResponseType(typeof(DetectedFormFields), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 503)]
+    public async Task<ActionResult<DetectedFormFields>> DetectFields(
+        [FromRoute] Guid id,
+        [FromServices] IQueryHandler<SignFlow.Application.Features.SignatureFields.DetectContractFieldsQuery, DetectedFormFields> handler,
+        CancellationToken ct)
+        => Ok(await handler.HandleAsync(new SignFlow.Application.Features.SignatureFields.DetectContractFieldsQuery(id), ct));
+
+    /// <summary>Administrators: fields outside their page after the move to points (R-M3-8)</summary>
+    [HttpGet("field-layout-report")]
+    [ProducesResponseType(typeof(List<SignFlow.Application.Features.SignatureFields.FieldOutsidePageDto>), 200)]
+    public async Task<ActionResult<List<SignFlow.Application.Features.SignatureFields.FieldOutsidePageDto>>> FieldLayoutReport(
+        [FromServices] IQueryHandler<SignFlow.Application.Features.SignatureFields.GetFieldLayoutReportQuery, List<SignFlow.Application.Features.SignatureFields.FieldOutsidePageDto>> handler,
+        CancellationToken ct)
+        => Ok(await handler.HandleAsync(new SignFlow.Application.Features.SignatureFields.GetFieldLayoutReportQuery(), ct));
+
     /// <summary>Send a participant a new signing link by e-mail; their previous link stops working (links are never shown)</summary>
     [HttpPost("{id:guid}/recipients/{recipientId:guid}/resend-link")]
     [ProducesResponseType(204)]

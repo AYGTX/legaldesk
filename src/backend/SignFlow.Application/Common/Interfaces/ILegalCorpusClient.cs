@@ -26,7 +26,7 @@ public interface ILegalCorpusClient
 
     /// <summary>
     /// Finds the fields of a contract PDF and proposes a type, label, fill role and auto-fill for each. Coordinates are
-    /// already in the PDF-template model (top-left origin, pixels at 1.5x). Nothing is saved; a person reviews them.
+    /// PDF points from the top-left of the page. Nothing is saved; a person reviews them.
     /// </summary>
     Task<DetectedFormFields> DetectFormFieldsAsync(Stream pdf, string fileName, CancellationToken ct = default);
 }

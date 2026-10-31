@@ -845,6 +845,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
+                    b.Property<int>("LayoutVersion")
+                        .HasColumnType("int");
+
                     b.Property<string>("Message")
                         .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
@@ -2285,10 +2288,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("FieldName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<int>("FieldType")
                         .HasColumnType("int");
 
@@ -2327,9 +2326,6 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<int?>("MaxLength")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MinLength")
                         .HasColumnType("int");
 
                     b.Property<string>("Options")
@@ -2376,10 +2372,6 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("VisibilityRules")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
                     b.Property<float>("Width")
                         .HasColumnType("real");
 
@@ -2388,9 +2380,6 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<float>("Y")
                         .HasColumnType("real");
-
-                    b.Property<int>("ZIndex")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

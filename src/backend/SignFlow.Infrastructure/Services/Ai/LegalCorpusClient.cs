@@ -11,6 +11,9 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
 {
     public const string HttpClientName = "legal-corpus";
 
+    /// <summary>Harvey's field detection measures in pixels at 1.5 per point; LegalDesk stores points (R-M3-1).</summary>
+    private const float HarveyScale = 1.5f;
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -112,7 +115,7 @@ public class LegalCorpusClient(IHttpClientFactory httpFactory, IOptions<LegalCor
         var body = await response.Content.ReadFromJsonAsync<DetectionOut>(Json, ct)
                    ?? throw new InvalidOperationException("Empty response from legal corpus forms/detect.");
         return new DetectedFormFields(body.Pages, body.Model, body.AiUsed, body.Fields
-            .Select(f => new DetectedFormField(f.FieldKey, f.Label, f.Type, f.FillRole, f.Page, f.X, f.Y, f.Width, f.Height,
+            .Select(f => new DetectedFormField(f.FieldKey, f.Label, f.Type, f.FillRole, f.Page, f.X / HarveyScale, f.Y / HarveyScale, f.Width / HarveyScale, f.Height / HarveyScale,
                 f.IsRequired, f.AutoFillFrom, f.Options ?? [], f.Source, f.Confidence)).ToList());
     }
 

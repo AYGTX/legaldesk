@@ -19,10 +19,8 @@ public class SignatureFieldConfiguration : IEntityTypeConfiguration<SignatureFie
         builder.Property(f => f.BackgroundColor).HasMaxLength(20);
         builder.Property(f => f.ValidationRule).HasMaxLength(500);
         builder.Property(f => f.Options).HasMaxLength(5000);
-        builder.Property(f => f.VisibilityRules).HasMaxLength(2000);
         builder.Property(f => f.GroupName).HasMaxLength(100);
         builder.Property(f => f.SignedValue).HasMaxLength(5000);
-        builder.Property(f => f.FieldName).HasMaxLength(100);
         builder.Property(f => f.Tooltip).HasMaxLength(500);
 
         builder.HasOne(f => f.Recipient)

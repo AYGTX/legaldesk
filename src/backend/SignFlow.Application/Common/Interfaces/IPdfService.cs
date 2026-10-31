@@ -15,4 +15,9 @@ public interface IPdfService
     Task<byte[]> GenerateThumbnailAsync(Stream pdfStream, int page = 1, int width = 300, CancellationToken cancellationToken = default);
     Task<Stream> EmbedSignaturesAsync(Stream pdfStream, IEnumerable<(SignatureField field, Signature signature)> signedFields, CancellationToken cancellationToken = default);
     Task<string> ExtractTextAsync(Stream pdfStream, CancellationToken cancellationToken = default);
+
+    /// <summary>Each page's size in points as displayed (after its own /Rotate), in page order (R-M3-1).</summary>
+    Task<IReadOnlyList<PageSize>> GetPageSizesAsync(Stream pdfStream, CancellationToken cancellationToken = default);
 }
+
+public readonly record struct PageSize(double Width, double Height);

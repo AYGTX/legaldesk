@@ -24,6 +24,20 @@ public class PdfPigService(ILogger<PdfPigService> logger) : IPdfService
         }
     }
 
+    public Task<IReadOnlyList<PageSize>> GetPageSizesAsync(Stream pdfStream, CancellationToken cancellationToken = default)
+    {
+        using var doc = PdfDocument.Open(pdfStream, new ParsingOptions { UseLenientParsing = true });
+        var sizes = new List<PageSize>();
+        foreach (var page in doc.GetPages())
+        {
+            // The visible area (CropBox), turned by the page's own rotation: what PDF.js shows.
+            var box = page.CropBox.Bounds;
+            var quarter = ((page.Rotation.Value % 360) + 360) % 360;
+            sizes.Add(quarter is 90 or 270 ? new PageSize(box.Height, box.Width) : new PageSize(box.Width, box.Height));
+        }
+        return Task.FromResult<IReadOnlyList<PageSize>>(sizes);
+    }
+
     public async Task<string> ComputeHashAsync(Stream pdfStream, CancellationToken cancellationToken = default)
     {
         using var sha256 = SHA256.Create();

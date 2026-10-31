@@ -7,6 +7,7 @@ using SignFlow.Application.Features.Auth.Commands;
 using SignFlow.Application.Features.Documents.Commands;
 using SignFlow.Application.Features.Documents.Queries;
 using SignFlow.Application.Features.Reviews;
+using SignFlow.Application.Features.SignatureFields;
 using SignFlow.Application.Features.SignatureFields.Commands;
 using SignFlow.Application.Features.Recipients.Commands;
 using SignFlow.Application.Features.Checklist.Commands;
@@ -120,7 +121,9 @@ public static class ApplicationServiceExtensions
 
 
         // Field command handlers
-        services.AddScoped<ICommandHandler<SaveFieldsCommand>, SaveFieldsCommandHandler>();
+        services.AddScoped<ICommandHandler<SaveFieldsCommand, int>, SaveFieldsCommandHandler>();
+        services.AddScoped<IQueryHandler<GetFieldLayoutReportQuery, List<FieldOutsidePageDto>>, GetFieldLayoutReportQueryHandler>();
+        services.AddScoped<IQueryHandler<DetectContractFieldsQuery, DetectedFormFields>, DetectContractFieldsQueryHandler>();
 
         // Recipient command handlers
         services.AddScoped<ICommandHandler<ManageRecipientsCommand>, ManageRecipientsCommandHandler>();

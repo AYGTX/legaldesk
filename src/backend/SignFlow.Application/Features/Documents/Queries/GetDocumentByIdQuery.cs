@@ -41,6 +41,8 @@ public record DocumentDetailDto(
     int? ReadinessScore,
     int? RiskScore,
     DateTime? ReadinessEvaluatedAt,
+    // The field layout's version: the designer sends it back with a save (R-M3-4).
+    int LayoutVersion,
     DateTime? ObligationDueDate,
     string? ObligationType,
     string? ObligationRationale,
@@ -71,7 +73,7 @@ public record ChecklistItemDto(Guid Id, string Text, int Order, bool IsChecked);
 /// </summary>
 public record TemplateRevisionDto(int FromVersion, int ToVersion, string? ChangeNote, string? ChangedByName, DateTime CreatedAt, List<FieldChange> Changes);
 public record DocumentVersionDto(Guid Id, int VersionNumber, long FileSizeBytes, string? ChangeNote, string? ChangedByName, DateTime CreatedAt);
-public record SignatureFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, Guid? RecipientId, string? Label, string? Placeholder, bool IsRequired, bool IsSigned, DateTime? SignedAt, int ZIndex, string? FontFamily, float? FontSize, string? FontColor, string? BackgroundColor, string? BorderColor, string? Options, string? DefaultValue, string? ValidationRule, bool IsReadOnly, string? Tooltip, string? GroupName = null);
+public record SignatureFieldDto(Guid Id, FieldType FieldType, int Page, float X, float Y, float Width, float Height, float? Rotation, Guid? RecipientId, string? Label, string? Placeholder, bool IsRequired, bool IsSigned, DateTime? SignedAt, string? FontFamily, float? FontSize, string? FontColor, string? BackgroundColor, string? BorderColor, string? Options, string? DefaultValue, string? ValidationRule, bool IsReadOnly, string? Tooltip, string? GroupName = null);
 public record WorkflowDto(Guid Id, WorkflowType Type, WorkflowStepStatus Status, int CurrentStepOrder, List<WorkflowStepDto> Steps);
 public record WorkflowStepDto(Guid Id, int Order, string Name, ApprovalType ApprovalType, WorkflowStepStatus Status, Guid RecipientId, bool IsParallel, DateTime? DueAt, DateTime? CompletedAt);
 
@@ -144,6 +146,7 @@ public class GetDocumentByIdQueryHandler(
             document.ReadinessScore,
             document.RiskScore,
             document.ReadinessEvaluatedAt,
+            document.LayoutVersion,
             document.ObligationDueDate,
             document.ObligationType,
             document.ObligationRationale,
@@ -161,7 +164,7 @@ public class GetDocumentByIdQueryHandler(
                     r.ChecklistItems.OrderBy(c => c.Order).Select(c => new ChecklistItemDto(c.Id, c.Text, c.Order, c.IsChecked)).ToList()))
                 .ToList(),
             document.SignatureFields
-                .Select(f => new SignatureFieldDto(f.Id, f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height, f.Rotation, f.RecipientId, f.Label, f.Placeholder, f.IsRequired, f.IsSigned, f.SignedAt, f.ZIndex, f.FontFamily, f.FontSize, f.FontColor, f.BackgroundColor, f.BorderColor, f.Options, f.DefaultValue, f.ValidationRule, f.IsReadOnly, f.Tooltip, f.GroupName))
+                .Select(f => new SignatureFieldDto(f.Id, f.FieldType, f.Page, f.X, f.Y, f.Width, f.Height, f.Rotation, f.RecipientId, f.Label, f.Placeholder, f.IsRequired, f.IsSigned, f.SignedAt, f.FontFamily, f.FontSize, f.FontColor, f.BackgroundColor, f.BorderColor, f.Options, f.DefaultValue, f.ValidationRule, f.IsReadOnly, f.Tooltip, f.GroupName))
                 .ToList(),
             document.Workflow is null ? null : new WorkflowDto(
                 document.Workflow.Id,
