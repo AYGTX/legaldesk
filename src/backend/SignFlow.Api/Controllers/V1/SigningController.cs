@@ -165,7 +165,7 @@ public class SigningController(
     {
         var context = await Gate(token, SigningNeed.View, ct);
         var result = await addCommentHandler.HandleAsync(new AddSigningCommentCommand(
-            context.Recipient.Id, request.Content, request.ParentCommentId, request.Page, request.X, request.Y, Ip), ct);
+            context.Recipient.Id, request.Content, request.ParentCommentId, request.Page, request.X, request.Y, Ip, request.MentionIds), ct);
         return StatusCode(201, result);
     }
 
@@ -234,4 +234,4 @@ public record DelegateRequest(string Name, string Email, string Note);
 public record ToggleChecklistItemRequest(bool Checked);
 
 /// <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
-public record AddSigningCommentRequest(string Content, Guid? ParentCommentId, int? Page, float? X, float? Y);
+public record AddSigningCommentRequest(string Content, Guid? ParentCommentId, int? Page, float? X, float? Y, List<Guid>? MentionIds = null);

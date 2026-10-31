@@ -574,6 +574,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("IsResolved")
                         .HasColumnType("bit");
 
+                    b.Property<string>("MentionIds")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("OrganisationId")
                         .HasColumnType("uniqueidentifier");
 
@@ -594,6 +597,12 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("int");
 
                     b.Property<float?>("X")
                         .HasColumnType("real");
@@ -1192,6 +1201,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("FileSha256")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<long>("FileSizeBytes")
                         .HasColumnType("bigint");
 
@@ -1204,9 +1216,18 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("OrganisationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("RoundId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("StoragePath")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TextSha256")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("TextSource")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");

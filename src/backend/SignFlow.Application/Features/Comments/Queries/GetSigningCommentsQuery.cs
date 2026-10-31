@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Domain.Enums;
 
 namespace SignFlow.Application.Features.Comments.Queries;
 
@@ -20,7 +21,7 @@ public class GetSigningCommentsQueryHandler(
         var document = recipient.Document;
 
         var rows = await (
-                from c in db.Comments
+                from c in db.Comments.Where(x => x.Visibility == CommentVisibility.Participants)
                 where c.DocumentId == document.Id && !c.IsDeleted
                 join u in db.Users on c.UserId equals u.Id into users
                 from u in users.DefaultIfEmpty()

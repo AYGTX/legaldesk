@@ -2,11 +2,14 @@ using System.Collections.Concurrent;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Security;
+using SignFlow.Infrastructure.Services.Auth;
 
 namespace SignFlow.Infrastructure.Services.SignalR;
 
 [Authorize]
-public class SignFlowHub : Hub
+public class SignFlowHub(IApplicationDbContext db, ITenantContext tenant, IPlatformQueries platform) : Hub
 {
     /// <summary>One entry per connection currently viewing a document (a user with two tabs open is two entries, deduped on broadcast).</summary>
     private sealed record PresenceEntry(string UserId, string Name);
@@ -22,6 +25,10 @@ public class SignFlowHub : Hub
 
     public async Task JoinDocumentGroup(string documentId)
     {
+        // Only someone who may open the contract joins its group (R-M7-7): the same rule as GET documents/{id}.
+        if (!Guid.TryParse(documentId, out var id) || !await CanReadAsync(id))
+            throw new HubException("document.forbidden");
+
         await Groups.AddToGroupAsync(Context.ConnectionId, $"document-{documentId}");
 
         var userId = Context.UserIdentifier ?? string.Empty;
@@ -62,6 +69,19 @@ public class SignFlowHub : Hub
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    /// <summary>A hub call runs in its own scope, outside the request that set the organisation: set it again here.</summary>
+    private async Task<bool> CanReadAsync(Guid documentId)
+    {
+        var user = new ClaimsCurrentUser(Context.User);
+        var organisationId = Guid.TryParse(Context.User?.FindFirstValue(TokenService.TenantClaimType), out var fromClaim) && fromClaim != Guid.Empty
+            ? fromClaim
+            : user.UserId is { } userId ? await platform.OrganisationOfUserAsync(userId, Context.ConnectionAborted) : null;
+        if (organisationId is null) return false;
+
+        using (tenant.BeginScope(organisationId.Value))
+            return await DocumentReadAccess.CanReadAsync(db, user, documentId, Context.ConnectionAborted);
     }
 
     private static void RemoveConnection(string documentId, string connectionId)

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Domain.Entities;
+using SignFlow.Domain.Enums;
 
 namespace SignFlow.Application.Features.Comments.Queries;
 
@@ -28,6 +29,8 @@ public class GetDocumentCommentsQueryHandler(
         var rows = await (
                 from c in db.Comments
                 where c.DocumentId == query.DocumentId && !c.IsDeleted
+                      // Participants never see internal notes (R-M7-1).
+                      && (isPrivileged || c.Visibility == CommentVisibility.Participants)
                 join u in db.Users on c.UserId equals u.Id into users
                 from u in users.DefaultIfEmpty()
                 orderby c.CreatedAt

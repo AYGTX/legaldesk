@@ -82,8 +82,6 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IContractTextProvider, ContractTextProvider>();
         services.AddScoped<IContractReviewService, ContractReviewService>();
         services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
-        services.AddScoped<ICommandHandler<EditDocumentPdfCommand, UploadRevisionResult>, EditDocumentPdfCommandHandler>();
-        services.AddScoped<ICommandHandler<EditPdfTemplateCommand, EditPdfTemplateResult>, EditPdfTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult>, ReviseFromTemplateCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateObligationCommand>, UpdateObligationCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateContractTermCommand>, UpdateContractTermCommandHandler>();
@@ -121,6 +119,8 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IQueryHandler<GetDocumentSummaryQuery, AiDocumentSummaryDto>, GetDocumentSummaryQueryHandler>();
         services.AddScoped<IQueryHandler<GetTemplateRevisionFormQuery, TemplateRevisionFormDto>, GetTemplateRevisionFormQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentVersionFileQuery, DocumentVersionFileDto>, GetDocumentVersionFileQueryHandler>();
+        services.AddScoped<IQueryHandler<GetDocumentDocxQuery, DocumentDocxDto>, GetDocumentDocxQueryHandler>();
+        services.AddScoped<IQueryHandler<GetDocumentRoundsQuery, IReadOnlyList<ContractRoundDto>>, GetDocumentRoundsQueryHandler>();
         services.AddScoped<IQueryHandler<CompareDocumentVersionsQuery, VersionComparisonDto>, CompareDocumentVersionsQueryHandler>();
 
 

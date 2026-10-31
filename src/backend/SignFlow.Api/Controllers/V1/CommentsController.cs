@@ -42,7 +42,8 @@ public class CommentsController(
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         var result = await addHandler.HandleAsync(
-            new AddCommentCommand(documentId, request.Content, request.ParentCommentId, request.Page, request.X, request.Y, ip), ct);
+            new AddCommentCommand(documentId, request.Content, request.ParentCommentId, request.Page, request.X, request.Y, ip,
+                request.Visibility ?? SignFlow.Domain.Enums.CommentVisibility.Internal, request.MentionIds), ct);
         return StatusCode(201, result);
     }
 
@@ -70,7 +71,8 @@ public class CommentsController(
 }
 
 /// <summary>Request body for adding a comment; position fields are optional page-anchoring.</summary>
-public record AddCommentRequest(string Content, Guid? ParentCommentId, int? Page, float? X, float? Y);
+public record AddCommentRequest(string Content, Guid? ParentCommentId, int? Page, float? X, float? Y,
+    SignFlow.Domain.Enums.CommentVisibility? Visibility = null, List<Guid>? MentionIds = null);
 
 /// <summary>Request body for resolving or reopening a comment thread.</summary>
 public record ResolveCommentRequest(bool Resolved);

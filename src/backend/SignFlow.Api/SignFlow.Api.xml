@@ -184,7 +184,7 @@
         <member name="T:SignFlow.Api.Controllers.V1.AddCommentRequest">
             <summary>Request body for adding a comment; position fields are optional page-anchoring.</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AddCommentRequest.#ctor(System.String,System.Nullable{System.Guid},System.Nullable{System.Int32},System.Nullable{System.Single},System.Nullable{System.Single})">
+        <member name="M:SignFlow.Api.Controllers.V1.AddCommentRequest.#ctor(System.String,System.Nullable{System.Guid},System.Nullable{System.Int32},System.Nullable{System.Single},System.Nullable{System.Single},System.Nullable{SignFlow.Domain.Enums.CommentVisibility},System.Collections.Generic.List{System.Guid})">
             <summary>Request body for adding a comment; position fields are optional page-anchoring.</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.ResolveCommentRequest">
@@ -236,9 +236,6 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.ReviseAnswers(System.Guid,SignFlow.Api.Controllers.V1.ReviseAnswersRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.ReviseFromTemplateCommand,SignFlow.Application.Features.Documents.Commands.UploadRevisionResult},System.Threading.CancellationToken)">
             <summary>Revise a template contract by changing its answers — keeps the old version, creates the next one and sends the circuit again</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.EditPdf(System.Guid,SignFlow.Api.Controllers.V1.EditPdfRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.EditDocumentPdfCommand,SignFlow.Application.Features.Documents.Commands.UploadRevisionResult},System.Threading.CancellationToken)">
-            <summary>Edit the text of a PDF contract in the browser — applied to the stored file and saved as a new version</summary>
-        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Send(System.Guid,SignFlow.Api.Controllers.V1.SendDocumentRequest,System.Threading.CancellationToken)">
             <summary>Send document for signing</summary>
         </member>
@@ -285,6 +282,12 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.DownloadVersion(System.Guid,System.Int32,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentVersionFileQuery,SignFlow.Application.Features.Documents.Queries.DocumentVersionFileDto},System.Threading.CancellationToken)">
             <summary>Download a specific version of the contract (as attachment)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetRounds(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentRoundsQuery,System.Collections.Generic.IReadOnlyList{SignFlow.Application.Features.Documents.Queries.ContractRoundDto}},System.Threading.CancellationToken)">
+            <summary>Every round of the circuit, newest first, with each step and how it ended</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.DownloadDocx(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentDocxQuery,SignFlow.Application.Features.Documents.Queries.DocumentDocxDto},System.Threading.CancellationToken)">
+            <summary>The current version as an editable Word file, to be uploaded back as the next version</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.CompareVersions(System.Guid,System.Int32,System.Int32,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.CompareDocumentVersionsQuery,SignFlow.Application.Features.Documents.Queries.VersionComparisonDto},System.Threading.CancellationToken)">
             <summary>Redline two versions of the contract against each other</summary>
@@ -415,9 +418,6 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Update(System.Guid,SignFlow.Api.Controllers.V1.UpdatePdfTemplateRequest,System.Threading.CancellationToken)">
             <summary>Update metadata/workflow config and replace the field set (admin/manager only)</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.EditPdf(System.Guid,SignFlow.Api.Controllers.V1.EditPdfRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.PdfTemplates.Commands.EditPdfTemplateCommand,SignFlow.Application.Features.PdfTemplates.Commands.EditPdfTemplateResult},System.Threading.CancellationToken)">
-            <summary>Edit the text of a template's PDF in the browser (admin/manager only). Requests already created keep their copy.</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.PdfTemplatesController.Delete(System.Guid,System.Threading.CancellationToken)">
             <summary>Soft-delete a template (admin/manager only)</summary>
@@ -695,7 +695,7 @@
         <member name="T:SignFlow.Api.Controllers.V1.AddSigningCommentRequest">
             <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.AddSigningCommentRequest.#ctor(System.String,System.Nullable{System.Guid},System.Nullable{System.Int32},System.Nullable{System.Single},System.Nullable{System.Single})">
+        <member name="M:SignFlow.Api.Controllers.V1.AddSigningCommentRequest.#ctor(System.String,System.Nullable{System.Guid},System.Nullable{System.Int32},System.Nullable{System.Single},System.Nullable{System.Single},System.Collections.Generic.List{System.Guid})">
             <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.TeamsController">

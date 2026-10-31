@@ -217,22 +217,6 @@ public class DocumentsController(
         return Ok(result);
     }
 
-    /// <summary>Edit the text of a PDF contract in the browser — applied to the stored file and saved as a new version</summary>
-    [HttpPost("{id:guid}/edit-pdf")]
-    [ProducesResponseType(typeof(UploadRevisionResult), 200)]
-    [ProducesResponseType(typeof(ProblemDetails), 403)]
-    [ProducesResponseType(typeof(ProblemDetails), 409)]
-    [ProducesResponseType(typeof(ProblemDetails), 422)]
-    public async Task<ActionResult<UploadRevisionResult>> EditPdf(
-        [FromRoute] Guid id,
-        [FromBody] EditPdfRequest request,
-        [FromServices] ICommandHandler<EditDocumentPdfCommand, UploadRevisionResult> editHandler,
-        CancellationToken ct)
-    {
-        var result = await editHandler.HandleAsync(new EditDocumentPdfCommand(id, request.Edits, request.ChangeNote), ct);
-        return Ok(result);
-    }
-
     /// <summary>Send document for signing</summary>
     [HttpPost("{id:guid}/send")]
     [ProducesResponseType(204)]
@@ -442,6 +426,33 @@ public class DocumentsController(
         return File(stream, "application/pdf", file.FileName);
     }
 
+    /// <summary>Every round of the circuit, newest first, with each step and how it ended</summary>
+    [HttpGet("{id:guid}/rounds")]
+    [ProducesResponseType(typeof(IReadOnlyList<ContractRoundDto>), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 403)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<ActionResult<IReadOnlyList<ContractRoundDto>>> GetRounds(
+        [FromRoute] Guid id,
+        [FromServices] IQueryHandler<GetDocumentRoundsQuery, IReadOnlyList<ContractRoundDto>> roundsHandler,
+        CancellationToken ct)
+    {
+        return Ok(await roundsHandler.HandleAsync(new GetDocumentRoundsQuery(id), ct));
+    }
+
+    /// <summary>The current version as an editable Word file, to be uploaded back as the next version</summary>
+    [HttpGet("{id:guid}/docx")]
+    [ProducesResponseType(typeof(FileResult), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<IActionResult> DownloadDocx(
+        [FromRoute] Guid id,
+        [FromServices] IQueryHandler<GetDocumentDocxQuery, DocumentDocxDto> docxHandler,
+        CancellationToken ct)
+    {
+        var file = await docxHandler.HandleAsync(new GetDocumentDocxQuery(id), ct);
+        return File(file.Content, SignFlow.Application.Common.Services.DocxRoundTrip.ContentType, file.FileName);
+    }
+
     /// <summary>Redline two versions of the contract against each other</summary>
     [HttpGet("{id:guid}/versions/compare")]
     [ProducesResponseType(typeof(VersionComparisonDto), 200)]
@@ -491,7 +502,6 @@ public record UpdateContractTermRequest(
     int? NoticePeriodDays);
 
 public record ReviseAnswersRequest(Dictionary<string, string>? FilledValues, string? ChangeNote = null);
-public record EditPdfRequest(List<PdfTextEdit> Edits, string? ChangeNote = null);
 public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);
 
 

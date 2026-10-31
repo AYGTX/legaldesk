@@ -33,11 +33,16 @@ public class UploadRevisionCommandValidator : AbstractValidator<UploadRevisionCo
     {
         RuleFor(x => x.DocumentId).NotEmpty();
         RuleFor(x => x.FileName).NotEmpty().MaximumLength(255)
-            .Must(f => f.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-            .WithMessage("Only PDF files are supported.");
+            .Must(f => f.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) || DocxRoundTrip.IsDocx(f))
+            .WithMessage("Only PDF and Word (.docx) files are supported.");
         RuleFor(x => x.FileSizeBytes).GreaterThan(0).LessThanOrEqualTo(MaxFileSizeBytes)
             .WithMessage("File size must be between 1 byte and 50 MB.");
-        RuleFor(x => x.ContentType).Must(ct => ct == "application/pdf").WithMessage("Content type must be application/pdf.");
+        // Browsers often send a Word file as octet-stream; its contents are checked by the handler.
+        RuleFor(x => x.ContentType)
+            .Must((x, ct) => DocxRoundTrip.IsDocx(x.FileName)
+                ? ct is DocxRoundTrip.ContentType or "application/octet-stream"
+                : ct == "application/pdf")
+            .WithMessage("The content type does not match the file.");
         RuleFor(x => x.ChangeNote).MaximumLength(2000);
     }
 }
@@ -50,7 +55,9 @@ public class UploadRevisionCommandHandler(
     IReviewQueue queue,
     ICurrentUserService currentUser,
     IAuditService auditService,
-    ILogger<UploadRevisionCommandHandler> logger) : ICommandHandler<UploadRevisionCommand, UploadRevisionResult>
+    ILogger<UploadRevisionCommandHandler> logger,
+    IContractTextProvider? texts = null,
+    IDocxConverter? docx = null) : ICommandHandler<UploadRevisionCommand, UploadRevisionResult>
 {
     public async Task<UploadRevisionResult> HandleAsync(UploadRevisionCommand command, CancellationToken cancellationToken = default)
     {
@@ -78,10 +85,27 @@ public class UploadRevisionCommandHandler(
         if (document.PdfTemplateId.HasValue)
             throw new ConflictException("This contract was built from a template: revise its answers instead of uploading a file.");
 
+        // A Word file edited from the downloaded version becomes the PDF of the next one (R-M7-3); the PDF then goes
+        // through the same checks as any upload.
+        var fileName = command.FileName;
+        var fileStream = command.FileStream;
+        var fileSize = command.FileSizeBytes;
+        if (DocxRoundTrip.IsDocx(fileName))
+        {
+            if (!DocxRoundTrip.LooksLikeDocx(fileStream))
+                throw new Common.Exceptions.ValidationException("This file is not a Word document.");
+            if (docx is null)
+                throw new ConflictException("revision.docx_unavailable", "Word files cannot be converted on this server. Upload the revision as a PDF.");
+            fileStream = await docx.ToPdfAsync(fileStream, cancellationToken);
+            fileName = Path.ChangeExtension(fileName, ".pdf");
+            fileSize = fileStream.Length;
+            fileStream.Position = 0;
+        }
+
         // Size, %PDF- signature, readable, not encrypted, virus scan (R-M2-1, R-M2-2).
-        var pageCount = await uploadGuard.EnsureSafeAsync(command.FileStream, command.FileName, cancellationToken);
-        var hash = await pdfService.ComputeHashAsync(command.FileStream, cancellationToken);
-        command.FileStream.Position = 0;
+        var pageCount = await uploadGuard.EnsureSafeAsync(fileStream, fileName, cancellationToken);
+        var hash = await pdfService.ComputeHashAsync(fileStream, cancellationToken);
+        fileStream.Position = 0;
 
         var userId = currentUser.UserId!.Value;
 
@@ -95,10 +119,11 @@ public class UploadRevisionCommandHandler(
             userId,
             command.ChangeNote);
         previousVersion.SetCreatedBy(userId.ToString());
+        await VersionFingerprints.StampAsync(db, previousVersion, document, texts, cancellationToken);
         db.DocumentVersions.Add(previousVersion);
 
         var storagePath = await storage.UploadAsync(
-            command.FileStream, command.FileName, command.ContentType, $"documents/{userId}", cancellationToken);
+            fileStream, fileName, "application/pdf", $"documents/{userId}", cancellationToken);
 
         // Void completion state so every field must be re-signed against the revised file.
         // Signature rows and audit history are kept — voiding is itself an audited event.
@@ -112,7 +137,7 @@ public class UploadRevisionCommandHandler(
             recipient.ResetForRevision();
 
         var oldVersion = document.Version;
-        document.ApplyRevision(command.FileName, storagePath, command.FileSizeBytes, pageCount, hash);
+        document.ApplyRevision(fileName, storagePath, fileSize, pageCount, hash);
         document.MarkIntakePending();
 
         await db.SaveChangesAsync(cancellationToken);

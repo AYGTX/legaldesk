@@ -20,7 +20,8 @@ public record AddSigningCommentCommand(
     int? Page,
     float? X,
     float? Y,
-    string IpAddress) : ICommand<CommentDto>;
+    string IpAddress,
+    List<Guid>? MentionIds = null) : ICommand<CommentDto>;
 
 public class AddSigningCommentCommandValidator : AbstractValidator<AddSigningCommentCommand>
 {
@@ -61,6 +62,9 @@ public class AddSigningCommentCommandHandler(
                 throw new ValidationException("The parent comment belongs to a different document.");
             if (parent.ParentCommentId is not null)
                 throw new ValidationException("Replies can only be added to top-level comments.");
+            // An internal note is invisible to participants: answering it is impossible, not merely hidden (R-M7-1).
+            if (parent.Visibility == CommentVisibility.Internal)
+                throw new NotFoundException(nameof(Comment), command.ParentCommentId.Value);
         }
 
         // If the recipient's email matches a registered account, link the comment to it so
@@ -78,6 +82,12 @@ public class AddSigningCommentCommandHandler(
 
         if (command.Page.HasValue)
             comment.SetPosition(command.Page.Value, command.X ?? 0, command.Y ?? 0);
+        comment.Place(CommentVisibility.Participants, document.Version);
+        if (command.MentionIds is { Count: > 0 })
+        {
+            await db.Recipients.Where(r => r.DocumentId == document.Id).LoadAsync(cancellationToken);
+            comment.Mention(await CommentNotifier.CheckMentionsAsync(db, document, CommentVisibility.Participants, command.MentionIds, cancellationToken));
+        }
 
         db.Comments.Add(comment);
         await db.SaveChangesAsync(cancellationToken);

@@ -1,3 +1,5 @@
+using SignFlow.Domain.Enums;
+
 namespace SignFlow.Domain.Entities;
 
 public class Comment : TenantEntity
@@ -16,6 +18,15 @@ public class Comment : TenantEntity
     public bool IsResolved { get; private set; }
     public string? AuthorName { get; private set; }
 
+    /// <summary>Who reads the thread; a reply has its thread's (R-M7-1).</summary>
+    public CommentVisibility Visibility { get; private set; } = CommentVisibility.Participants;
+
+    /// <summary>The contract version the comment was written on.</summary>
+    public int? VersionNumber { get; private set; }
+
+    /// <summary>The people picked as mentioned: user and participant ids, comma-separated.</summary>
+    public string? MentionIds { get; private set; }
+
     public ICollection<Comment> Replies { get; private set; } = [];
 
     private Comment() { }
@@ -30,6 +41,21 @@ public class Comment : TenantEntity
             ParentCommentId = parentId,
             AuthorName = authorName
         };
+
+    public void Place(CommentVisibility visibility, int versionNumber)
+    {
+        Visibility = visibility;
+        VersionNumber = versionNumber;
+    }
+
+    public void Mention(IEnumerable<Guid> ids)
+    {
+        var list = ids.Distinct().ToList();
+        MentionIds = list.Count == 0 ? null : string.Join(",", list);
+    }
+
+    public IReadOnlyList<Guid> Mentioned =>
+        MentionIds is null ? [] : MentionIds.Split(',').Select(Guid.Parse).ToList();
 
     public void Resolve() => IsResolved = true;
     public void Unresolve() => IsResolved = false;

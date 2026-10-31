@@ -2,10 +2,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 5000
 # Chromium + Liberation Sans for headless PDF generation (PuppeteerSharp); Tesseract (French, English, Arabic) and
-# pdftoppm to read scanned contracts (R-M2-4)
+# pdftoppm to read scanned contracts (R-M2-4); LibreOffice Writer turns Word revisions into PDF (R-M7-3)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         chromium fonts-liberation fontconfig \
         tesseract-ocr tesseract-ocr-fra tesseract-ocr-ara poppler-utils \
+        libreoffice-writer-nogui \
     && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 # Tell PuppeteerSharp to use the system Chromium instead of downloading its own

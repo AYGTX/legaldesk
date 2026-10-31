@@ -138,19 +138,6 @@ public class PdfTemplatesController(
         return NoContent();
     }
 
-    /// <summary>Edit the text of a template's PDF in the browser (admin/manager only). Requests already created keep their copy.</summary>
-    [HttpPost("{id:guid}/edit-pdf")]
-    [RequirePermission(Permissions.ManageTemplates)]
-    [ProducesResponseType(typeof(EditPdfTemplateResult), 200)]
-    [ProducesResponseType(typeof(ProblemDetails), 404)]
-    [ProducesResponseType(typeof(ProblemDetails), 422)]
-    public async Task<ActionResult<EditPdfTemplateResult>> EditPdf(
-        [FromRoute] Guid id,
-        [FromBody] EditPdfRequest request,
-        [FromServices] ICommandHandler<EditPdfTemplateCommand, EditPdfTemplateResult> editHandler,
-        CancellationToken ct)
-        => Ok(await editHandler.HandleAsync(new EditPdfTemplateCommand(id, request.Edits), ct));
-
     /// <summary>Soft-delete a template (admin/manager only)</summary>
     [HttpDelete("{id:guid}")]
     [RequirePermission(Permissions.ManageTemplates)]

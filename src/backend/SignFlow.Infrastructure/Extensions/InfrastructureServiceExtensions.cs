@@ -143,11 +143,14 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<OutboxDispatcherJob>();
 
         // SignalR
-        services.AddSignalR(options =>
+        var signalR = services.AddSignalR(options =>
         {
             options.EnableDetailedErrors = false;
             options.MaximumReceiveMessageSize = 128 * 1024;
         });
+        // More than one API instance: their live messages meet in Redis (R-M7-7). Off on a single developer machine.
+        if (configuration.GetValue<bool>("SignalR:RedisBackplane") && !string.IsNullOrEmpty(redisConnection))
+            signalR.AddStackExchangeRedis(redisConnection, o => o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("legaldesk"));
 
         // Language model strategy: Ai:Provider picks Groq, a local OpenAI-compatible server (Ollama), or None.
         var aiProvider = configuration.GetSection("Ai").Get<AiSettings>()?.Provider ?? "Groq";
@@ -179,6 +182,8 @@ public static class InfrastructureServiceExtensions
         // Text recognition for scanned contracts (R-M2-4): Tesseract and pdftoppm when installed, else none.
         services.Configure<SignFlow.Infrastructure.Services.Pdf.OcrSettings>(configuration.GetSection("Ocr"));
         services.AddSingleton<IOcrService, SignFlow.Infrastructure.Services.Pdf.TesseractOcrService>();
+        services.Configure<SignFlow.Infrastructure.Services.Pdf.OfficeSettings>(configuration.GetSection("Office"));
+        services.AddSingleton<SignFlow.Application.Common.Services.IDocxConverter, SignFlow.Infrastructure.Services.Pdf.LibreOfficeDocxConverter>();
 
         // The organisation's seal on completed contracts (R-M5-8)
         services.Configure<SignFlow.Infrastructure.Services.Seal.SealSettings>(configuration.GetSection("Seal"));
@@ -214,7 +219,6 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<SignFlow.Application.Common.Services.IPdfInspector, PdfInspector>();
         services.AddScoped<IWorkflowEngine, WorkflowEngine>();
         services.AddScoped<IPdfStampService, PdfStampService>();
-        services.AddScoped<IPdfTextEditService, PdfTextEditService>();
         services.AddScoped<IHtmlTemplatePdfGenerator, HtmlTemplatePdfGenerator>();
         services.AddScoped<INotificationHub, NotificationHubService>();
         services.AddScoped<INotificationService, NotificationService>();

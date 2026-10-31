@@ -1,5 +1,4 @@
 using SignFlow.Application.Common.Security;
-using System.Text.RegularExpressions;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,7 +10,9 @@ using ValidationException = SignFlow.Application.Common.Exceptions.ValidationExc
 
 namespace SignFlow.Application.Features.Comments.Commands;
 
-/// <summary>Adds a comment (or a reply) to a document as the authenticated user.</summary>
+/// <summary>Adds a comment (or a reply) to a document as the authenticated user (R-M7-1). People of the organisation
+/// choose who reads a new thread; a participant's thread is always shared with the participants. Mentions are picked
+/// people: user ids and participant ids.</summary>
 public record AddCommentCommand(
     Guid DocumentId,
     string Content,
@@ -19,7 +20,9 @@ public record AddCommentCommand(
     int? Page,
     float? X,
     float? Y,
-    string IpAddress) : ICommand<CommentDto>;
+    string IpAddress,
+    CommentVisibility Visibility = CommentVisibility.Internal,
+    List<Guid>? MentionIds = null) : ICommand<CommentDto>;
 
 public class AddCommentCommandValidator : AbstractValidator<AddCommentCommand>
 {
@@ -77,6 +80,13 @@ public class AddCommentCommandHandler(
             parentId: command.ParentCommentId,
             authorName: author.FullName);
 
+        // A participant never writes an internal note; a reply belongs to its thread.
+        var visibility = parent?.Visibility ?? (isPrivileged ? command.Visibility : CommentVisibility.Participants);
+        if (!isPrivileged && visibility == CommentVisibility.Internal)
+            throw new ForbiddenAccessException();
+        comment.Place(visibility, document.Version);
+        comment.Mention(await CommentNotifier.CheckMentionsAsync(db, document, visibility, command.MentionIds, cancellationToken));
+
         if (command.Page.HasValue)
             comment.SetPosition(command.Page.Value, command.X ?? 0, command.Y ?? 0);
 
@@ -106,14 +116,28 @@ public class AddCommentCommandHandler(
 
 /// <summary>
 /// Shared comment notification fan-out: document owner, parent-comment author on replies,
-/// and any registered user whose email is @-mentioned in the content — each at most once,
-/// never the author themself. Also pings the document's SignalR group so open views refetch
+/// and the people picked as mentioned — each at most once, never the author themself, and
+/// never a participant for an internal note. Also pings the document's SignalR group so open views refetch
 /// (a content-free ping by design: anonymization is per-viewer, so pushing the DTO could
 /// leak hidden identities on HideRecipientIdentities documents).
 /// </summary>
 public static class CommentNotifier
 {
-    private static readonly Regex MentionEmailRegex = new(@"[\w.+-]+@[\w-]+(\.[\w-]+)+", RegexOptions.Compiled);
+    /// <summary>Mentions are people of the organisation or the contract's participants; a participant only in a thread
+    /// they can read.</summary>
+    public static async Task<List<Guid>> CheckMentionsAsync(IApplicationDbContext db, Document document, CommentVisibility visibility,
+        IReadOnlyCollection<Guid>? ids, CancellationToken ct)
+    {
+        if (ids is not { Count: > 0 }) return [];
+        if (ids.Count > 20) throw new ValidationException("At most 20 people can be mentioned.");
+        var users = await db.Users.Where(u => ids.Contains(u.Id)).Select(u => u.Id).ToListAsync(ct);
+        var participants = document.Recipients.Where(r => ids.Contains(r.Id) && !r.IsPool).Select(r => r.Id).ToList();
+        if (users.Count + participants.Count != ids.Distinct().Count())
+            throw new ValidationException("Only people of the organisation or participants of this contract can be mentioned.");
+        if (visibility == CommentVisibility.Internal && participants.Count > 0)
+            throw new ValidationException("A participant cannot be mentioned in an internal note.");
+        return [.. users, .. participants];
+    }
 
     public static async Task NotifyAsync(
         IApplicationDbContext db,
@@ -157,7 +181,9 @@ public static class CommentNotifier
                     .Select(u => u.Email)
                     .FirstOrDefaultAsync(cancellationToken);
 
-            if (!string.IsNullOrEmpty(parentEmail) && notifiedEmails.Add(parentEmail))
+            var participantAuthor = parent.RecipientEmail is not null;
+            if (!string.IsNullOrEmpty(parentEmail) && !(participantAuthor && comment.Visibility == CommentVisibility.Internal)
+                && notifiedEmails.Add(parentEmail))
             {
                 await notifications.NotifyByEmailAsync(
                     parentEmail,
@@ -169,17 +195,18 @@ public static class CommentNotifier
             }
         }
 
-        foreach (Match match in MentionEmailRegex.Matches(comment.Content))
+        var mentioned = comment.Mentioned;
+        if (mentioned.Count > 0)
         {
-            if (!notifiedEmails.Add(match.Value)) continue;
+            var users = await db.Users.AsNoTracking().Where(u => mentioned.Contains(u.Id)).ToListAsync(cancellationToken);
+            foreach (var user in users.Where(u => notifiedEmails.Add(u.Email!)))
+                await notifications.NotifyUserAsync(user.Id, NotificationType.CommentMention, "You were mentioned in a comment",
+                    $"{authorName} mentioned you on \"{document.Title}\": {snippet}", document.Id, cancellationToken);
 
-            await notifications.NotifyByEmailAsync(
-                match.Value,
-                NotificationType.CommentMention,
-                "You were mentioned in a comment",
-                $"{authorName} mentioned you on \"{document.Title}\": {snippet}",
-                document.Id,
-                cancellationToken);
+            var participants = await db.Recipients.AsNoTracking().Where(r => mentioned.Contains(r.Id)).ToListAsync(cancellationToken);
+            foreach (var participant in participants.Where(p => notifiedEmails.Add(p.Email)))
+                await notifications.NotifyByEmailAsync(participant.Email, NotificationType.CommentMention, "You were mentioned in a comment",
+                    $"{authorName} mentioned you on \"{document.Title}\": {snippet}", document.Id, cancellationToken);
         }
 
         await hub.SendToGroupAsync(

@@ -17,7 +17,9 @@ public record CommentDto(
     bool IsResolved,
     bool IsMine,
     bool IsAnonymized,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    SignFlow.Domain.Enums.CommentVisibility Visibility = SignFlow.Domain.Enums.CommentVisibility.Participants,
+    int? VersionNumber = null);
 
 public static class CommentMapping
 {
@@ -41,7 +43,9 @@ public static class CommentMapping
         comment.IsResolved,
         isMine,
         anonymize,
-        comment.CreatedAt);
+        comment.CreatedAt,
+        comment.Visibility,
+        comment.VersionNumber);
 
     /// <summary>
     /// A comment is anonymized for a viewer when the document hides recipient identities,

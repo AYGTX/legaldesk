@@ -257,4 +257,54 @@ public class ContractDifferTests
 
         Assert.Single(clauses);
     }
+
+    private const string Confidentiality =
+        "Article 4 - Confidentialité. Chaque partie garde confidentielles les informations reçues de l'autre partie pendant toute la durée du contrat et trois ans après.";
+    private const string Payment =
+        "Article 5 - Paiement. Les factures sont payées à trente jours à compter de leur réception par virement bancaire.";
+    private const string Termination =
+        "Article 6 - Résiliation. Chaque partie peut résilier le contrat avec un préavis de trois mois notifié par lettre recommandée.";
+
+    [Fact]
+    public void A_clause_moved_elsewhere_and_renumbered_is_reported_as_moved_not_removed_and_added()
+    {
+        var before = string.Join("\n\n", Confidentiality, Payment, Termination);
+        var after = string.Join("\n\n",
+            Payment.Replace("Article 5", "Article 4"),
+            Termination.Replace("Article 6", "Article 5"),
+            Confidentiality.Replace("Article 4", "Article 6"));
+
+        var diff = ContractDiffer.Compare(before, after);
+
+        Assert.Equal(0, diff.AddedCount);
+        Assert.Equal(0, diff.RemovedCount);
+        var moved = Assert.Single(diff.Clauses, c => c.Change == ClauseChangeType.Moved);
+        Assert.StartsWith("Article 6 - Confidentialité", moved.CurrentText);
+        Assert.True(diff.HasChanges);
+    }
+
+    [Fact]
+    public void A_moved_clause_that_was_also_edited_shows_its_changed_words()
+    {
+        var before = string.Join("\n\n", Confidentiality, Payment, Termination);
+        var after = string.Join("\n\n", Payment, Termination, Confidentiality.Replace("trois ans", "cinq ans"));
+
+        var diff = ContractDiffer.Compare(before, after);
+
+        var moved = Assert.Single(diff.Clauses, c => c.Change == ClauseChangeType.Moved);
+        Assert.Equal(["cinq"], moved.CurrentWords.Where(w => w.IsChanged).Select(w => w.Text));
+    }
+
+    [Fact]
+    public void Two_unrelated_clauses_never_pair_as_a_move()
+    {
+        var before = string.Join("\n\n", Confidentiality, Payment);
+        var after = string.Join("\n\n", Payment, Termination);
+
+        var diff = ContractDiffer.Compare(before, after);
+
+        Assert.Equal(0, diff.MovedCount);
+        Assert.Equal(1, diff.RemovedCount);
+        Assert.Equal(1, diff.AddedCount);
+    }
 }

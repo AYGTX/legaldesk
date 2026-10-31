@@ -95,14 +95,8 @@ public class GetDocumentByIdQueryHandler(
             .FirstOrDefaultAsync(d => d.Id == query.DocumentId && !d.IsDeleted, cancellationToken)
             ?? throw new NotFoundException(nameof(Document), query.DocumentId);
 
-        var userId = currentUser.UserId;
-        var isAdmin = currentUser.Can(Permissions.ManageAllContracts);
-        if (!isAdmin && document.OwnerId != userId)
-        {
-            var isRecipient = document.Recipients.Any(r => r.Email == currentUser.UserEmail);
-            if (!isRecipient)
-                throw new ForbiddenAccessException();
-        }
+        if (!DocumentReadAccess.Allows(currentUser, document.OwnerId, document.Recipients.Select(r => r.Email)))
+            throw new ForbiddenAccessException();
 
         // Signing links are stored as hashes and are never returned, to anyone (R-M5-1): the owner resends a link instead.
         var changerIds = document.Versions.Select(v => v.ChangedById).Distinct().ToList();

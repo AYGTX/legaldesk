@@ -88,6 +88,8 @@ services:
       ASPNETCORE_URLS: "http://+:5000"
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SignFlowDb;User Id=sa;Password=SignFlow@Dev2026!;TrustServerCertificate=True;"
       ConnectionStrings__Redis: "redis:6379"
+      # Live updates go through Redis, so the API can run as more than one instance (R-M7-7)
+      SignalR__RedisBackplane: "true"
       # Secrets come from the shell or a git-ignored .env file next to this compose file, never from appsettings.
       Jwt__Secret: "${JWT_SECRET:?Set JWT_SECRET (32+ characters) in .env}"
       Groq__ApiKey: "${GROQ_API_KEY:-}"

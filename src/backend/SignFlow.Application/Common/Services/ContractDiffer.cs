@@ -8,7 +8,9 @@ public enum ClauseChangeType
     Unchanged = 0,
     Added = 1,
     Removed = 2,
-    Modified = 3
+    Modified = 3,
+    /// <summary>The clause is somewhere else now (R-M7-5); its words may have changed a little, and are marked.</summary>
+    Moved = 4
 }
 
 /// <summary>
@@ -36,9 +38,10 @@ public record ContractDiff(
     int AddedCount,
     int RemovedCount,
     int ModifiedCount,
-    int UnchangedCount)
+    int UnchangedCount,
+    int MovedCount = 0)
 {
-    public bool HasChanges => AddedCount > 0 || RemovedCount > 0 || ModifiedCount > 0;
+    public bool HasChanges => AddedCount > 0 || RemovedCount > 0 || ModifiedCount > 0 || MovedCount > 0;
 }
 
 /// <summary>
@@ -74,14 +77,65 @@ public static class ContractDiffer
         var current = SplitClauses(currentText);
 
         var ops = DiffClauses(previous, current);
-        var clauses = PairModifications(ops, previous, current);
+        var clauses = DetectMoves(PairModifications(ops, previous, current));
 
         return new ContractDiff(
             clauses,
             clauses.Count(c => c.Change == ClauseChangeType.Added),
             clauses.Count(c => c.Change == ClauseChangeType.Removed),
             clauses.Count(c => c.Change == ClauseChangeType.Modified),
-            clauses.Count(c => c.Change == ClauseChangeType.Unchanged));
+            clauses.Count(c => c.Change == ClauseChangeType.Unchanged),
+            clauses.Count(c => c.Change == ClauseChangeType.Moved));
+    }
+
+    /// <summary>How much of a clause must survive, apart from its number, for a removal here and an insertion there to
+    /// read as the same clause moved. Much stricter than an edit in place: two unrelated clauses must never pair.</summary>
+    private const double MovedSimilarityThreshold = 0.85;
+
+    private static readonly Regex LeadingNumber = new(
+        @"^(?:(?:article|art\.|section|clause)\s+)?(?:\d+(?:\.\d+)*|[ivxlc]+(?=[\s.):\-–]))\s*[.):\-–]?\s*",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// A clause taken out in one place and put back in another is a move, not a deletion and an unrelated addition
+    /// (R-M7-5). It is shown where it now stands; renumbering ("Article 4" becoming "Article 6") alone is not a change.
+    /// </summary>
+    private static List<ClauseDiff> DetectMoves(List<ClauseDiff> clauses)
+    {
+        var removed = clauses.Select((c, i) => (c, i)).Where(x => x.c.Change == ClauseChangeType.Removed).ToList();
+        var added = clauses.Select((c, i) => (c, i)).Where(x => x.c.Change == ClauseChangeType.Added).ToList();
+        if (removed.Count == 0 || added.Count == 0) return clauses;
+
+        var candidates = new List<(int Removed, int Added, double Score)>();
+        foreach (var (r, ri) in removed)
+        {
+            var before = Tokenize(LeadingNumber.Replace(r.PreviousText!, string.Empty));
+            foreach (var (a, ai) in added)
+            {
+                var after = Tokenize(LeadingNumber.Replace(a.CurrentText!, string.Empty));
+                if (before.Count < 3 || after.Count < 3) continue; // a heading alone moves nothing worth reporting
+                var score = Similarity(before, after);
+                if (score >= MovedSimilarityThreshold) candidates.Add((ri, ai, score));
+            }
+        }
+        if (candidates.Count == 0) return clauses;
+
+        var result = clauses.ToArray();
+        var dropped = new HashSet<int>();
+        var usedAdds = new HashSet<int>();
+        foreach (var (ri, ai, _) in candidates.OrderByDescending(c => c.Score))
+        {
+            if (dropped.Contains(ri) || usedAdds.Contains(ai)) continue;
+            dropped.Add(ri);
+            usedAdds.Add(ai);
+
+            var previousText = clauses[ri].PreviousText!;
+            var currentText = clauses[ai].CurrentText!;
+            var (prevWords, curWords) = MarkWords(Tokenize(previousText), Tokenize(currentText));
+            result[ai] = new ClauseDiff(ClauseChangeType.Moved, previousText, currentText, prevWords, curWords);
+        }
+
+        return [.. result.Where((_, i) => !dropped.Contains(i))];
     }
 
     /// <summary>
@@ -148,6 +202,8 @@ public static class ContractDiffer
     private static string NormalizeForMatch(string clause) =>
         string.Join(' ', clause.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
+    private static string MatchKey(string clause) => NormalizeForMatch(LeadingNumber.Replace(clause, string.Empty));
+
     private static List<string> Tokenize(string clause) =>
         [.. clause.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)];
 
@@ -160,8 +216,9 @@ public static class ContractDiffer
     /// </summary>
     private static List<ClauseOp> DiffClauses(List<string> previous, List<string> current)
     {
-        var a = previous.Select(NormalizeForMatch).ToList();
-        var b = current.Select(NormalizeForMatch).ToList();
+        // Matched without their number, so renumbering alone ("Article 5" now "Article 4") does not hide a moved clause.
+        var a = previous.Select(MatchKey).ToList();
+        var b = current.Select(MatchKey).ToList();
 
         var lcs = BuildLcsTable(a, b, StringComparer.Ordinal);
 
@@ -206,8 +263,18 @@ public static class ContractDiffer
         {
             if (ops[index].Change == ClauseChangeType.Unchanged)
             {
+                var before = previous[ops[index].PreviousIndex];
                 var text = current[ops[index].CurrentIndex];
-                result.Add(new ClauseDiff(ClauseChangeType.Unchanged, text, text, [], []));
+                if (NormalizeForMatch(before) == NormalizeForMatch(text))
+                {
+                    result.Add(new ClauseDiff(ClauseChangeType.Unchanged, text, text, [], []));
+                }
+                else
+                {
+                    // Renumbered: the same clause under another number is still a change a reviewer sees.
+                    var (prevWords, curWords) = MarkWords(Tokenize(before), Tokenize(text));
+                    result.Add(new ClauseDiff(ClauseChangeType.Modified, before, text, prevWords, curWords));
+                }
                 index++;
                 continue;
             }

@@ -20,7 +20,8 @@ public record VersionComparisonDto(
     int RemovedCount,
     int ModifiedCount,
     int UnchangedCount,
-    IReadOnlyList<ClauseDiff> Clauses);
+    IReadOnlyList<ClauseDiff> Clauses,
+    int MovedCount = 0);
 
 public class CompareDocumentVersionsQueryHandler(
     IApplicationDbContext db,
@@ -63,7 +64,7 @@ public class CompareDocumentVersionsQueryHandler(
             AuditAction.VersionsCompared,
             "system",
             $"Versions compared (v{query.FromVersion} → v{query.ToVersion}): " +
-                $"{diff.AddedCount} added, {diff.RemovedCount} removed, {diff.ModifiedCount} modified",
+                $"{diff.AddedCount} added, {diff.RemovedCount} removed, {diff.ModifiedCount} modified, {diff.MovedCount} moved",
             currentUser.UserId,
             actorEmail: currentUser.UserEmail,
             cancellationToken: cancellationToken);
@@ -81,7 +82,8 @@ public class CompareDocumentVersionsQueryHandler(
             diff.RemovedCount,
             diff.ModifiedCount,
             diff.UnchangedCount,
-            diff.Clauses);
+            diff.Clauses,
+            diff.MovedCount);
     }
 
     private async Task<string> ExtractAsync(string path, CancellationToken cancellationToken)

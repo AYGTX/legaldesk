@@ -38,7 +38,8 @@ public class ReviseFromTemplateCommandHandler(
     IWorkflowEngine workflowEngine,
     ICurrentUserService currentUser,
     IAuditService auditService,
-    ILogger<ReviseFromTemplateCommandHandler> logger) : ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult>
+    ILogger<ReviseFromTemplateCommandHandler> logger,
+    IContractTextProvider? texts = null) : ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult>
 {
     public async Task<UploadRevisionResult> HandleAsync(ReviseFromTemplateCommand command, CancellationToken cancellationToken = default)
     {
@@ -97,6 +98,7 @@ public class ReviseFromTemplateCommandHandler(
             document.Id, document.Version, document.StoragePath, document.FileSizeBytes, userId, note);
         previous.SetFilledValues(document.FilledValuesJson);
         previous.SetCreatedBy(userId.ToString());
+        await VersionFingerprints.StampAsync(db, previous, document, texts, cancellationToken);
         db.DocumentVersions.Add(previous);
 
         if (kind == TemplateRevisionSupport.Pdf)

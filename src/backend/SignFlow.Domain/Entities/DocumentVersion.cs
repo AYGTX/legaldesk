@@ -1,3 +1,5 @@
+using SignFlow.Domain.Enums;
+
 namespace SignFlow.Domain.Entities;
 
 public class DocumentVersion : TenantEntity
@@ -17,6 +19,20 @@ public class DocumentVersion : TenantEntity
     public string? FilledValuesJson { get; private set; }
 
     public void SetFilledValues(string? filledValuesJson) => FilledValuesJson = filledValuesJson;
+
+    // What the version was (R-M7-4): its file and text fingerprints, where its text came from, and its round.
+    public string? FileSha256 { get; private set; }
+    public string? TextSha256 { get; private set; }
+    public ContractTextSource? TextSource { get; private set; }
+    public Guid? RoundId { get; private set; }
+
+    public void Fingerprint(string? fileSha256, string? textSha256, ContractTextSource? textSource, Guid? roundId)
+    {
+        FileSha256 = fileSha256?.ToLowerInvariant();
+        TextSha256 = textSha256;
+        TextSource = textSource;
+        RoundId = roundId;
+    }
 
     private DocumentVersion() { }
 
