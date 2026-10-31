@@ -24,7 +24,11 @@ public interface IPlatformQueries
 {
     Task<Guid?> OrganisationOfUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    Task<Guid?> OrganisationOfSigningTokenAsync(string secureToken, CancellationToken cancellationToken = default);
+    /// <summary>The organisation of a signing link, by the token's hash.</summary>
+    Task<Guid?> OrganisationOfSigningTokenAsync(string tokenHash, CancellationToken cancellationToken = default);
+
+    /// <summary>The organisation of a signing session, by the session secret's hash.</summary>
+    Task<Guid?> OrganisationOfSigningSessionAsync(string secretHash, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Guid>> ActiveOrganisationIdsAsync(CancellationToken cancellationToken = default);
 

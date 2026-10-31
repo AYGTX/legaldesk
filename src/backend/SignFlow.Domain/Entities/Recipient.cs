@@ -11,13 +11,17 @@ public class Recipient : TenantEntity
     public int Order { get; private set; }
     public ApprovalType ApprovalType { get; private set; }
     public WorkflowStepStatus Status { get; private set; } = WorkflowStepStatus.Pending;
-    public string SecureToken { get; private set; } = Guid.NewGuid().ToString("N");
+    /// <summary>SHA-256 (hex) of the signing link's token (R-M5-1). The token itself is only ever in the e-mail.</summary>
+    public string? TokenHash { get; private set; }
     public DateTime? TokenExpiresAt { get; private set; }
+
+    /// <summary>When and how the participant last proved they own the e-mail address (code by e-mail, or their account).</summary>
+    public DateTime? VerifiedAt { get; private set; }
+    public string? VerificationMethod { get; private set; }
     public DateTime? SignedAt { get; private set; }
     public DateTime? ViewedAt { get; private set; }
     public string? SignedIp { get; private set; }
     public string? SignedUserAgent { get; private set; }
-    public string? SignedLocation { get; private set; }
     public string? DeclineReason { get; private set; }
     public bool ReminderSent { get; private set; }
     public DateTime? LastReminderSentAt { get; private set; }
@@ -53,19 +57,40 @@ public class Recipient : TenantEntity
             RoleLabel = roleLabel,
             // ViewOnly participants never gate the workflow: they are excluded from
             // turn-blocking and completion checks (both filter on IsRequired).
-            IsRequired = approvalType != ApprovalType.ViewOnly,
-            TokenExpiresAt = DateTime.UtcNow.AddDays(30)
+            IsRequired = approvalType != ApprovalType.ViewOnly
         };
+
+    /// <summary>How long a signing link opens the contract.</summary>
+    public static readonly TimeSpan LinkLifetime = TimeSpan.FromDays(30);
+
+    /// <summary>
+    /// A new signing link: <paramref name="token"/> goes in the e-mail, only its hash is kept. Any earlier link stops
+    /// working.
+    /// </summary>
+    public void IssueLink(string tokenHash)
+    {
+        TokenHash = tokenHash;
+        TokenExpiresAt = DateTime.UtcNow.Add(LinkLifetime);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public bool LinkExpired => TokenExpiresAt is { } expires && expires <= DateTime.UtcNow;
+
+    public void MarkVerified(string method)
+    {
+        VerifiedAt = DateTime.UtcNow;
+        VerificationMethod = method;
+        UpdatedAt = DateTime.UtcNow;
+    }
 
     public void MarkViewed() => ViewedAt ??= DateTime.UtcNow;
 
-    public void MarkSigned(string ip, string userAgent, string? location = null)
+    public void MarkSigned(string ip, string userAgent)
     {
         Status = WorkflowStepStatus.Completed;
         SignedAt = DateTime.UtcNow;
         SignedIp = ip;
         SignedUserAgent = userAgent;
-        SignedLocation = location;
     }
 
     public void Reject(string reason)
@@ -102,11 +127,12 @@ public class Recipient : TenantEntity
         SignedAt = null;
         SignedIp = null;
         SignedUserAgent = null;
-        SignedLocation = null;
         DeclineReason = null;
         ReminderSent = false;
         LastReminderSentAt = null;
-        TokenExpiresAt = DateTime.UtcNow.AddDays(30);
+        // A new round sends a new link when the participant's turn comes; the old one keeps working until then.
+        if (TokenHash is not null)
+            TokenExpiresAt = DateTime.UtcNow.Add(LinkLifetime);
     }
 
     public void MarkReminderSent()

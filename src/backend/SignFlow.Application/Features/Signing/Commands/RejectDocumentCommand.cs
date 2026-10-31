@@ -6,13 +6,13 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Application.Features.Signing.Commands;
 
-public record RejectDocumentCommand(string SecureToken, string Reason) : ICommand;
+public record RejectDocumentCommand(Guid RecipientId, string Reason) : ICommand;
 
 public class RejectDocumentCommandValidator : AbstractValidator<RejectDocumentCommand>
 {
     public RejectDocumentCommandValidator()
     {
-        RuleFor(x => x.SecureToken).NotEmpty();
+        RuleFor(x => x.RecipientId).NotEmpty();
         RuleFor(x => x.Reason).NotEmpty().MaximumLength(1000);
     }
 }
@@ -29,7 +29,7 @@ public class RejectDocumentCommandHandler(
 
         var recipient = await db.Recipients
             .Include(r => r.Document)
-            .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == command.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found.");
 
         // Recipient.Status never becomes InProgress (only WorkflowStep.Status does), so the old

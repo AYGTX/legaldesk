@@ -8,7 +8,7 @@ using SignFlow.Domain.Enums;
 namespace SignFlow.Application.Features.Signing.Commands;
 
 public record ApproveSigningCommand(
-    string SecureToken,
+    Guid RecipientId,
     string IpAddress,
     string UserAgent) : ICommand<ApproveSigningResult>;
 
@@ -28,7 +28,7 @@ public class ApproveSigningCommandHandler(
     {
         var recipient = await db.Recipients
             .Include(r => r.Document)
-            .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == command.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found or has expired.");
 
         if (recipient.Status == WorkflowStepStatus.Completed)

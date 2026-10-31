@@ -100,6 +100,10 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IReviewFeedbackSender, ReviewFeedbackSender>();
         services.AddScoped<IContractIntake, ContractIntake>();
 
+        // Signing access (M5): one gate for every signing endpoint
+        services.AddScoped<SignFlow.Application.Features.Signing.ISigningAccess, SignFlow.Application.Features.Signing.SigningAccess>();
+        services.AddScoped<ICommandHandler<ResendSigningLinkCommand>, ResendSigningLinkCommandHandler>();
+
         // Document query handlers
         services.AddScoped<IQueryHandler<GetDocumentsQuery, PagedResult<DocumentSummaryDto>>, GetDocumentsQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentByIdQuery, DocumentDetailDto>, GetDocumentByIdQueryHandler>();

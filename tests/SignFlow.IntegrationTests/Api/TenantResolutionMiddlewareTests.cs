@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using SignFlow.Api.Middleware;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Security;
+using SignFlow.Application.Features.Signing;
 using SignFlow.Infrastructure.Persistence;
 using SignFlow.Infrastructure.Services.Auth;
 
@@ -12,11 +14,14 @@ public class TenantResolutionMiddlewareTests
 {
     private static readonly Guid Org = Guid.NewGuid();
 
-    private sealed class FakePlatform(Guid? userOrg = null, Guid? tokenOrg = null) : IPlatformQueries
+    private sealed class FakePlatform(Guid? userOrg = null, Guid? tokenOrg = null, Guid? sessionOrg = null) : IPlatformQueries
     {
         public Task<Guid?> OrganisationOfUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(userOrg);
-        public Task<Guid?> OrganisationOfSigningTokenAsync(string token, CancellationToken ct = default) =>
-            Task.FromResult(token == "tok" ? tokenOrg : null);
+        // Links and sessions are looked up by the hash of what the request carries, never by the clear value.
+        public Task<Guid?> OrganisationOfSigningTokenAsync(string tokenHash, CancellationToken ct = default) =>
+            Task.FromResult(tokenHash == SecureTokens.Hash("tok") ? tokenOrg : null);
+        public Task<Guid?> OrganisationOfSigningSessionAsync(string secretHash, CancellationToken ct = default) =>
+            Task.FromResult(secretHash == SecureTokens.Hash("sess") ? sessionOrg : null);
         public Task<IReadOnlyList<Guid>> ActiveOrganisationIdsAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Guid>>([]);
         public Task<Guid?> SoleOrganisationIdAsync(CancellationToken ct = default) => Task.FromResult<Guid?>(null);
@@ -61,6 +66,16 @@ public class TenantResolutionMiddlewareTests
         http.Request.Path = "/api/v1/sign/tok/fields/123/sign";
 
         Assert.Equal(Org, await SeenDuringRequest(http, new FakePlatform(tokenOrg: Org), new TenantContext()));
+    }
+
+    [Fact]
+    public async Task A_signing_session_acts_for_its_participants_organisation()
+    {
+        var http = new DefaultHttpContext();
+        http.Request.Path = "/api/v1/sign/session/approve";
+        http.Request.Headers[SigningAccess.SessionHeader] = "sess";
+
+        Assert.Equal(Org, await SeenDuringRequest(http, new FakePlatform(sessionOrg: Org), new TenantContext()));
     }
 
     [Fact]

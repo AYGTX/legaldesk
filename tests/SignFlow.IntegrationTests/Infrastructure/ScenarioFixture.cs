@@ -142,6 +142,11 @@ public sealed class ScenarioFixture : IDisposable
         services.AddScoped<ReviewFeedbackSender>();
         services.AddScoped<SetReviewSettingCommandHandler>();
 
+        // Signing access (M5): the gate, and the decline handler the scenarios use.
+        services.AddScoped<SignFlow.Application.Features.Signing.ISigningAccess, SignFlow.Application.Features.Signing.SigningAccess>();
+        services.AddScoped<ICommandHandler<RejectDocumentCommand>, RejectDocumentCommandHandler>();
+        services.AddScoped<SignFlow.IntegrationTests.Scenarios.RejectDocumentHandlerAccessor>();
+
         _provider = services.BuildServiceProvider();
     }
 

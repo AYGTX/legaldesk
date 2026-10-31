@@ -32,6 +32,14 @@ public class Organisation : BaseEntity
 
     public int RetentionYears { get; private set; } = 10;
 
+    /// <summary>IANA time zone of the dates the server writes on contracts (signing dates, R-M5-7).</summary>
+    [MaxLength(64)]
+    public string TimeZoneId { get; private set; } = "Africa/Tunis";
+
+    /// <summary>.NET date format of those dates.</summary>
+    [MaxLength(32)]
+    public string DateFormat { get; private set; } = "dd/MM/yyyy";
+
     public bool IsActive { get; private set; } = true;
 
     private Organisation() { }

@@ -14,12 +14,17 @@ public class Signature : TenantEntity
     public string? FontFamily { get; private set; }
     public string Ip { get; private set; } = string.Empty;
     public string UserAgent { get; private set; } = string.Empty;
-    public string? Location { get; private set; }
-    public double? Latitude { get; private set; }
-    public double? Longitude { get; private set; }
-    public string? Certificate { get; private set; }
-    public string? Hash { get; private set; }
     public DateTime SignedAt { get; private set; } = DateTime.UtcNow;
+
+    // Evidence (R-M5-5): who proved what, on which exact file.
+    public string? VerifiedEmail { get; private set; }
+    public string? VerificationMethod { get; private set; }
+    public DateTime? VerifiedAt { get; private set; }
+    public int? DocumentVersion { get; private set; }
+    /// <summary>SHA-256 of the file the participant was shown.</summary>
+    public string? DocumentSha256 { get; private set; }
+    /// <summary>SHA-256 of the stored signature image, after the server re-encoded it.</summary>
+    public string? ImageSha256 { get; private set; }
 
     private Signature() { }
 
@@ -31,8 +36,7 @@ public class Signature : TenantEntity
         string userAgent,
         string? imageUrl = null,
         string? typedText = null,
-        string? fontFamily = null,
-        string? location = null)
+        string? fontFamily = null)
         => new()
         {
             SignatureFieldId = signatureFieldId,
@@ -42,11 +46,17 @@ public class Signature : TenantEntity
             UserAgent = userAgent,
             ImageUrl = imageUrl,
             TypedText = typedText,
-            FontFamily = fontFamily,
-            Location = location
+            FontFamily = fontFamily
         };
 
-    public void SetCertificate(string certificate) => Certificate = certificate;
-    public void SetHash(string hash) => Hash = hash;
-    public void SetCoordinates(double lat, double lng) { Latitude = lat; Longitude = lng; }
+    public void RecordEvidence(string? verifiedEmail, string? method, DateTime? verifiedAt, int documentVersion,
+        string? documentSha256, string? imageSha256)
+    {
+        VerifiedEmail = verifiedEmail;
+        VerificationMethod = method;
+        VerifiedAt = verifiedAt;
+        DocumentVersion = documentVersion;
+        DocumentSha256 = documentSha256;
+        ImageSha256 = imageSha256;
+    }
 }

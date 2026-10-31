@@ -1,3 +1,4 @@
+using SignFlow.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SignFlow.Application.Common.Interfaces;
@@ -73,10 +74,13 @@ public class WorkflowEngine(
 
             foreach (var viewer in document.Recipients.Where(r => r.ApprovalType == ApprovalType.ViewOnly))
             {
+                // The link's token is in this e-mail only; the database keeps its hash (R-M5-1).
+                var viewerToken = SecureTokens.Generate();
+                viewer.IssueLink(SecureTokens.Hash(viewerToken));
                 await emailService.SendTemplateAsync(
                     viewer.Email,
                     "DocumentReceived",
-                    new { viewer.Name, DocumentTitle = document.Title, SigningLink = $"/sign/{viewer.SecureToken}" },
+                    new { viewer.Name, DocumentTitle = document.Title, SigningLink = $"/sign/{viewerToken}" },
                     "A contract was shared with you",
                     cancellationToken);
 
@@ -324,10 +328,13 @@ public class WorkflowEngine(
                         $"The contract \"{docTitle}\" is waiting for your signature.")
                 };
 
+                // A fresh link for this turn: the token is in this e-mail only (R-M5-1).
+                var token = SecureTokens.Generate();
+                recipient.IssueLink(SecureTokens.Hash(token));
                 await emailService.SendTemplateAsync(
                     recipient.Email,
                     "DocumentReceived",
-                    new { recipient.Name, DocumentTitle = docTitle, SigningLink = $"/sign/{recipient.SecureToken}" },
+                    new { recipient.Name, DocumentTitle = docTitle, SigningLink = $"/sign/{token}" },
                     emailSubject,
                     cancellationToken);
 

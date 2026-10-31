@@ -15,10 +15,16 @@ public sealed class PlatformQueries(ApplicationDbContext db) : IPlatformQueries
             .Select(u => (Guid?)u.OrganisationId)
             .FirstOrDefaultAsync(cancellationToken);
 
-    public Task<Guid?> OrganisationOfSigningTokenAsync(string secureToken, CancellationToken cancellationToken = default) =>
+    public Task<Guid?> OrganisationOfSigningTokenAsync(string tokenHash, CancellationToken cancellationToken = default) =>
         db.Recipients.IgnoreQueryFilters([QueryFilters.Tenant])
-            .Where(r => r.SecureToken == secureToken)
+            .Where(r => r.TokenHash == tokenHash)
             .Select(r => (Guid?)r.OrganisationId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<Guid?> OrganisationOfSigningSessionAsync(string secretHash, CancellationToken cancellationToken = default) =>
+        db.SigningSessions.IgnoreQueryFilters([QueryFilters.Tenant])
+            .Where(s => s.SecretHash == secretHash)
+            .Select(s => (Guid?)s.OrganisationId)
             .FirstOrDefaultAsync(cancellationToken);
 
     public async Task<IReadOnlyList<Guid>> ActiveOrganisationIdsAsync(CancellationToken cancellationToken = default) =>

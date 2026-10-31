@@ -66,6 +66,13 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Status = 409,
                 Detail = ce.Message
             }),
+            SignFlow.Application.Features.Signing.SigningRefusedException sre => ((HttpStatusCode)sre.Status, new ProblemDetails
+            {
+                Title = "Signing refused",
+                Status = sre.Status,
+                Detail = sre.Message,
+                Extensions = { ["code"] = sre.Code }
+            }),
             ServiceUnavailableException sue => (HttpStatusCode.ServiceUnavailable, new ProblemDetails
             {
                 Title = "Service unavailable",

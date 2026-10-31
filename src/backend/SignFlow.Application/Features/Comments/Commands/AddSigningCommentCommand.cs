@@ -14,7 +14,7 @@ namespace SignFlow.Application.Features.Comments.Commands;
 /// token — works for external signers with no account, same as the rest of the signing flow.
 /// </summary>
 public record AddSigningCommentCommand(
-    string SecureToken,
+    Guid RecipientId,
     string Content,
     Guid? ParentCommentId,
     int? Page,
@@ -26,7 +26,7 @@ public class AddSigningCommentCommandValidator : AbstractValidator<AddSigningCom
 {
     public AddSigningCommentCommandValidator()
     {
-        RuleFor(x => x.SecureToken).NotEmpty();
+        RuleFor(x => x.RecipientId).NotEmpty();
         RuleFor(x => x.Content).NotEmpty().MaximumLength(4000);
         RuleFor(x => x.Page).GreaterThanOrEqualTo(1).When(x => x.Page.HasValue);
         RuleFor(x => x.X).InclusiveBetween(0, 100).When(x => x.X.HasValue);
@@ -45,7 +45,7 @@ public class AddSigningCommentCommandHandler(
     {
         var recipient = await db.Recipients
             .Include(r => r.Document)
-            .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == command.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found or has expired.");
 
         var document = recipient.Document;

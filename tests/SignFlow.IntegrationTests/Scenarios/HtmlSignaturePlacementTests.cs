@@ -88,9 +88,9 @@ public class HtmlSignaturePlacementTests
         await f.Db.SaveChangesAsync();
 
         await f.GetHandler<SignFieldCommandHandler>().HandleAsync(new SignFieldCommand(
-            SecureToken: who.SecureToken, FieldId: field.Id, SignatureType: SignatureType.Drawn,
-            ImageBase64: "iVBORw0KGgo=", TypedText: null, FontFamily: null,
-            IpAddress: "127.0.0.1", UserAgent: "test", Location: null));
+            RecipientId: who.Id, FieldId: field.Id, SignatureType: SignatureType.Drawn,
+            ImageBase64: Convert.ToBase64String(SignFlow.Application.Common.Services.SignatureImage.Encode(2, 1, new byte[8])), TypedText: null, FontFamily: null,
+            IpAddress: "127.0.0.1", UserAgent: "test"));
     }
 
     private static ApproveSigningCommandHandler ApproveHandler(ScenarioFixture f, IHtmlTemplatePdfGenerator generator) => new(
@@ -99,7 +99,7 @@ public class HtmlSignaturePlacementTests
         NullLogger<ApproveSigningCommandHandler>.Instance);
 
     private static Task<SigningSessionDto> SessionAsync(ScenarioFixture f, Recipient who) =>
-        new GetSigningSessionQueryHandler(f.Db).HandleAsync(new GetSigningSessionQuery(who.SecureToken));
+        new GetSigningSessionQueryHandler(f.Db).HandleAsync(new GetSigningSessionQuery(who.Id));
 
     [Fact]
     public async Task The_signing_screen_shows_each_signature_where_the_template_put_it()
@@ -154,9 +154,9 @@ public class HtmlSignaturePlacementTests
         var generator = new CapturingPdfGenerator();
 
         await SignAsync(fixture, seed.Alice, seed.AliceField);
-        await ApproveHandler(fixture, generator).HandleAsync(new ApproveSigningCommand(seed.Alice.SecureToken, "127.0.0.1", "test"));
+        await ApproveHandler(fixture, generator).HandleAsync(new ApproveSigningCommand(seed.Alice.Id, "127.0.0.1", "test"));
         await SignAsync(fixture, seed.Bob, seed.BobField);
-        await ApproveHandler(fixture, generator).HandleAsync(new ApproveSigningCommand(seed.Bob.SecureToken, "127.0.0.1", "test"));
+        await ApproveHandler(fixture, generator).HandleAsync(new ApproveSigningCommand(seed.Bob.Id, "127.0.0.1", "test"));
 
         // The last approval builds the PDF: the text carries a marker where each placeholder was...
         Assert.Contains($"Pour le Prestataire : {HtmlSignatureSlotsMarker("providerSig")}", generator.Html);
@@ -175,9 +175,9 @@ public class HtmlSignaturePlacementTests
         var generator = new CapturingPdfGenerator();
 
         await SignAsync(fixture, seed.Alice, seed.AliceField);
-        await ApproveHandler(fixture, generator).HandleAsync(new ApproveSigningCommand(seed.Alice.SecureToken, "127.0.0.1", "test"));
+        await ApproveHandler(fixture, generator).HandleAsync(new ApproveSigningCommand(seed.Alice.Id, "127.0.0.1", "test"));
         await SignAsync(fixture, seed.Bob, seed.BobField);
-        await ApproveHandler(fixture, generator).HandleAsync(new ApproveSigningCommand(seed.Bob.SecureToken, "127.0.0.1", "test"));
+        await ApproveHandler(fixture, generator).HandleAsync(new ApproveSigningCommand(seed.Bob.Id, "127.0.0.1", "test"));
 
         Assert.DoesNotContain("sf-signature", generator.Html);
         Assert.All(generator.Signatures, s => Assert.Null(s.TemplateKey));   // the generator appends these at the end

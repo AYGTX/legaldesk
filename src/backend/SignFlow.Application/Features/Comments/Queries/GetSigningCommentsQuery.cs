@@ -5,7 +5,7 @@ using SignFlow.Application.Common.Interfaces;
 namespace SignFlow.Application.Features.Comments.Queries;
 
 /// <summary>Lists a document's comments for a signing-session participant identified by token.</summary>
-public record GetSigningCommentsQuery(string SecureToken) : IQuery<List<CommentDto>>;
+public record GetSigningCommentsQuery(Guid RecipientId) : IQuery<List<CommentDto>>;
 
 public class GetSigningCommentsQueryHandler(
     IApplicationDbContext db) : IQueryHandler<GetSigningCommentsQuery, List<CommentDto>>
@@ -14,7 +14,7 @@ public class GetSigningCommentsQueryHandler(
     {
         var recipient = await db.Recipients.AsNoTracking()
             .Include(r => r.Document)
-            .FirstOrDefaultAsync(r => r.SecureToken == query.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == query.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found or has expired.");
 
         var document = recipient.Document;

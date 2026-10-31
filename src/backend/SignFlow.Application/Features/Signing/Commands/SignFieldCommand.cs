@@ -10,7 +10,7 @@ using SignFlow.Domain.Enums;
 namespace SignFlow.Application.Features.Signing.Commands;
 
 public record SignFieldCommand(
-    string SecureToken,
+    Guid RecipientId,
     Guid FieldId,
     SignatureType SignatureType,
     string? ImageBase64,
@@ -18,7 +18,10 @@ public record SignFieldCommand(
     string? FontFamily,
     string IpAddress,
     string UserAgent,
-    string? Location) : ICommand<SignFieldResult>;
+    SigningEvidence? Evidence = null) : ICommand<SignFieldResult>;
+
+/// <summary>How the participant proved who they are, from their signing session (R-M5-5).</summary>
+public record SigningEvidence(string? VerifiedEmail, string? Method, DateTime? VerifiedAt);
 
 public record SignFieldResult(Guid SignatureId, bool AllFieldsSigned, bool DocumentCompleted);
 
@@ -26,7 +29,7 @@ public class SignFieldCommandValidator : AbstractValidator<SignFieldCommand>
 {
     public SignFieldCommandValidator()
     {
-        RuleFor(x => x.SecureToken).NotEmpty();
+        RuleFor(x => x.RecipientId).NotEmpty();
         RuleFor(x => x.FieldId).NotEmpty();
         RuleFor(x => x.IpAddress).NotEmpty();
     }
@@ -42,7 +45,7 @@ public class SignFieldCommandHandler(
     {
         var recipient = await db.Recipients
             .Include(r => r.Document)
-            .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == command.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found or has expired.");
 
         if (recipient.Status == WorkflowStepStatus.Completed)
@@ -130,12 +133,23 @@ public class SignFieldCommandHandler(
                 previous.VoidSignature();
         }
 
-        string? imageUrl = null;
+        // A drawn signature is checked and re-encoded by the server before it is stored (R-M5-6).
+        string? imageUrl = null, imageSha256 = null;
         if (!string.IsNullOrEmpty(command.ImageBase64))
         {
-            var bytes = Convert.FromBase64String(command.ImageBase64.Split(',').Last());
-            using var ms = new MemoryStream(bytes);
+            var (png, sha) = SignatureImage.Sanitize(command.ImageBase64);
+            using var ms = new MemoryStream(png);
             imageUrl = await storage.UploadAsync(ms, $"sig_{command.FieldId}.png", "image/png", $"signatures/{recipient.DocumentId}", cancellationToken);
+            imageSha256 = sha;
+        }
+
+        // A date is the server's, in the organisation's time zone and format: the signer cannot type it (R-M5-7).
+        var value = command.TypedText ?? command.SignatureType.ToString();
+        if (field.FieldType == FieldType.Date)
+        {
+            var organisation = await db.Organisations.AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == recipient.OrganisationId, cancellationToken);
+            value = SigningDates.Today(organisation?.TimeZoneId, organisation?.DateFormat);
         }
 
         var signature = Signature.Create(
@@ -145,11 +159,12 @@ public class SignFieldCommandHandler(
             command.IpAddress,
             command.UserAgent,
             imageUrl,
-            command.TypedText,
-            command.FontFamily,
-            command.Location);
+            field.FieldType == FieldType.Date ? value : command.TypedText,
+            command.FontFamily);
+        signature.RecordEvidence(command.Evidence?.VerifiedEmail, command.Evidence?.Method, command.Evidence?.VerifiedAt,
+            recipient.Document.Version, DocumentFingerprint.Of(recipient.Document), imageSha256);
 
-        field.SetSigned(command.TypedText ?? command.SignatureType.ToString());
+        field.SetSigned(value);
         db.Signatures.Add(signature);
 
         recipient.MarkViewed();
@@ -162,7 +177,6 @@ public class SignFieldCommandHandler(
             $"Field '{field.FieldType}' signed",
             recipientId: recipient.Id,
             userAgent: command.UserAgent,
-            location: command.Location,
             actorName: recipient.Name,
             actorEmail: recipient.Email,
             cancellationToken: cancellationToken);

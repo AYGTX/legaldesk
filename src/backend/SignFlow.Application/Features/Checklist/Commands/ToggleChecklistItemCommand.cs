@@ -7,13 +7,13 @@ using SignFlow.Domain.Entities;
 namespace SignFlow.Application.Features.Checklist.Commands;
 
 /// <summary>Recipient-side: check/uncheck one of their own checklist items during review.</summary>
-public record ToggleChecklistItemCommand(string SecureToken, Guid ItemId, bool Checked) : ICommand;
+public record ToggleChecklistItemCommand(Guid RecipientId, Guid ItemId, bool Checked) : ICommand;
 
 public class ToggleChecklistItemCommandValidator : AbstractValidator<ToggleChecklistItemCommand>
 {
     public ToggleChecklistItemCommandValidator()
     {
-        RuleFor(x => x.SecureToken).NotEmpty();
+        RuleFor(x => x.RecipientId).NotEmpty();
         RuleFor(x => x.ItemId).NotEmpty();
     }
 }
@@ -23,7 +23,7 @@ public class ToggleChecklistItemCommandHandler(IApplicationDbContext db) : IComm
     public async Task HandleAsync(ToggleChecklistItemCommand command, CancellationToken cancellationToken = default)
     {
         var recipient = await db.Recipients
-            .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == command.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found or has expired.");
 
         var item = await db.ChecklistItems

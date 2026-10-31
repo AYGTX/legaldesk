@@ -12,13 +12,13 @@ namespace SignFlow.Application.Features.Signing.Commands;
 /// workflow in ChangesRequested so the owner can upload a revision and re-run the approval
 /// round, instead of killing the request outright.
 /// </summary>
-public record RequestChangesCommand(string SecureToken, string Reason, string IpAddress) : ICommand;
+public record RequestChangesCommand(Guid RecipientId, string Reason, string IpAddress) : ICommand;
 
 public class RequestChangesCommandValidator : AbstractValidator<RequestChangesCommand>
 {
     public RequestChangesCommandValidator()
     {
-        RuleFor(x => x.SecureToken).NotEmpty();
+        RuleFor(x => x.RecipientId).NotEmpty();
         RuleFor(x => x.Reason).NotEmpty().MaximumLength(2000);
     }
 }
@@ -33,7 +33,7 @@ public class RequestChangesCommandHandler(
     {
         var recipient = await db.Recipients
             .Include(r => r.Document)
-            .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == command.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found.");
 
         if (recipient.Status == WorkflowStepStatus.Completed)

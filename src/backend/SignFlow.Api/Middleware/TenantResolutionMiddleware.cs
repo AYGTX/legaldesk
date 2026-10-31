@@ -1,3 +1,5 @@
+using SignFlow.Application.Common.Security;
+using SignFlow.Application.Features.Signing;
 using System.Security.Claims;
 using SignFlow.Application.Common.Interfaces;
 using SignFlow.Infrastructure.Services.Auth;
@@ -38,13 +40,16 @@ public class TenantResolutionMiddleware(RequestDelegate next)
                 : null;
         }
 
-        // Public signing endpoints: /api/v{n}/sign/{token}/...
+        // Public signing endpoints: /api/v{n}/sign/{token}/..., acting through a signing session when one is sent.
         var segments = context.Request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries) ?? [];
         if (segments.Length >= 4
             && segments[0].Equals("api", StringComparison.OrdinalIgnoreCase)
             && segments[2].Equals("sign", StringComparison.OrdinalIgnoreCase))
         {
-            return await platform.OrganisationOfSigningTokenAsync(segments[3], context.RequestAborted);
+            var session = context.Request.Headers[SigningAccess.SessionHeader].ToString();
+            if (!string.IsNullOrWhiteSpace(session))
+                return await platform.OrganisationOfSigningSessionAsync(SecureTokens.Hash(session), context.RequestAborted);
+            return await platform.OrganisationOfSigningTokenAsync(SecureTokens.Hash(segments[3]), context.RequestAborted);
         }
 
         return null;

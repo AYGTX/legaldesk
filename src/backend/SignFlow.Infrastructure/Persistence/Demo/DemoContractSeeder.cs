@@ -181,7 +181,7 @@ internal static class DemoContractSeeder
             {
                 case WorkflowStepStatus.Completed:
                     recipient.MarkViewed();
-                    recipient.MarkSigned("196.203.0.11", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Tunis, Tunisie");
+                    recipient.MarkSigned("196.203.0.11", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
                     break;
                 case WorkflowStepStatus.Rejected:
                     recipient.MarkViewed();

@@ -37,7 +37,7 @@ public class TenantIsolationTests : IDisposable
         using var db = ContextFor(null);
         var owned = db.Model.GetEntityTypes().Where(t => typeof(ITenantOwned).IsAssignableFrom(t.ClrType)).ToList();
 
-        Assert.Equal(33, owned.Count); // + ReviewRun, OrganisationRuleSetting (S4)
+        Assert.Equal(35, owned.Count); // + ReviewRun, OrganisationRuleSetting (S4); SigningOtp, SigningSession (S5)
         Assert.All(owned, t =>
         {
             Assert.Contains(t.GetDeclaredQueryFilters(), f => f.Key == QueryFilters.Tenant);
@@ -112,11 +112,14 @@ public class TenantIsolationTests : IDisposable
     public async Task Platform_queries_resolve_a_signing_link_to_its_organisation_and_nothing_more()
     {
         var (_, recipientId) = await SeedContractIn(OrgB);
-        var token = (await ContextFor(OrgB).Recipients.SingleAsync(r => r.Id == recipientId)).SecureToken;
+        var db = ContextFor(OrgB);
+        var recipient = await db.Recipients.SingleAsync(r => r.Id == recipientId);
+        recipient.IssueLink(SignFlow.Application.Common.Security.SecureTokens.Hash("the-link"));
+        await db.SaveChangesAsync();
 
         var platform = new PlatformQueries(ContextFor(OrgA));
-        Assert.Equal(OrgB, await platform.OrganisationOfSigningTokenAsync(token));
-        Assert.Null(await platform.OrganisationOfSigningTokenAsync("not-a-token"));
+        Assert.Equal(OrgB, await platform.OrganisationOfSigningTokenAsync(SignFlow.Application.Common.Security.SecureTokens.Hash("the-link")));
+        Assert.Null(await platform.OrganisationOfSigningTokenAsync(SignFlow.Application.Common.Security.SecureTokens.Hash("not-a-token")));
     }
 
     [Fact]

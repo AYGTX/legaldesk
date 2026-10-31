@@ -10,7 +10,7 @@ namespace SignFlow.Application.Features.Signing.Commands;
 /// The participant confirms they have read the document and the AI review shown to them. Recorded with the time and
 /// what the review said at that moment, so the trail shows what they had in front of them when they acted.
 /// </summary>
-public record AcknowledgeReviewCommand(string SecureToken, string IpAddress, string UserAgent) : ICommand;
+public record AcknowledgeReviewCommand(Guid RecipientId, string IpAddress, string UserAgent) : ICommand;
 
 public class AcknowledgeReviewCommandHandler(
     IApplicationDbContext db,
@@ -20,7 +20,7 @@ public class AcknowledgeReviewCommandHandler(
     {
         var recipient = await db.Recipients
             .Include(r => r.Document)
-            .FirstOrDefaultAsync(r => r.SecureToken == command.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == command.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found or has expired.");
 
         if (recipient.Status is WorkflowStepStatus.Completed or WorkflowStepStatus.Rejected)

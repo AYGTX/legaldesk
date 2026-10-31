@@ -242,6 +242,9 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Send(System.Guid,SignFlow.Api.Controllers.V1.SendDocumentRequest,System.Threading.CancellationToken)">
             <summary>Send document for signing</summary>
         </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.ResendSigningLink(System.Guid,System.Guid,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.ResendSigningLinkCommand},System.Threading.CancellationToken)">
+            <summary>Send a participant a new signing link by e-mail; their previous link stops working (links are never shown)</summary>
+        </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Delete(System.Guid,System.Threading.CancellationToken)">
             <summary>Delete a document</summary>
         </member>
@@ -559,8 +562,14 @@
         <member name="T:SignFlow.Api.Controllers.V1.RequestsController">
             <summary>Personal request tracking — workflows the user sent and requests sent to them</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.RequestsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Requests.Queries.GetMyRequestsQuery,SignFlow.Application.Features.Requests.Queries.MyRequestsDto})">
+        <member name="M:SignFlow.Api.Controllers.V1.RequestsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Requests.Queries.GetMyRequestsQuery,SignFlow.Application.Features.Requests.Queries.MyRequestsDto},SignFlow.Application.Features.Signing.ISigningAccess)">
             <summary>Personal request tracking — workflows the user sent and requests sent to them</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.RequestsController.OpenSigningSession(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Opens a signing session for a request addressed to the signed-in user: their account proves the e-mail address,
+            so no code is needed (R-M5-3). The session secret goes in the X-Signing-Session header on /sign/session/...
+            </summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.RequestsController.GetMyRequests(System.Threading.CancellationToken)">
             <summary>Get the current user's sent workflows and received signing requests</summary>
@@ -614,43 +623,62 @@
             <summary>Switch a rule on or off, or change its severity (null keeps the rule's own)</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.SigningController">
-            <summary>External signing endpoints: the link's token is the credential, so no sign-in</summary>
+            <summary>
+            The participant's side of a contract (M5), no sign-in. The e-mailed link shows what is asked and sends a 6-digit code;
+            the code opens a signing session (header X-Signing-Session) and only a session reads the contract or acts. Every
+            endpoint goes through <see cref="T:SignFlow.Application.Features.Signing.ISigningAccess"/>; a refusal answers with a code the page explains (R-M5-2).
+            Signed-in participants open a session from their account instead and use "session" as the token.
+            </summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.SigningController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Signing.Queries.GetSigningSessionQuery,SignFlow.Application.Features.Signing.Queries.SigningSessionDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.SignFieldCommand,SignFlow.Application.Features.Signing.Commands.SignFieldResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.ApproveSigningCommand,SignFlow.Application.Features.Signing.Commands.ApproveSigningResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.RejectDocumentCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.AcknowledgeReviewCommand},SignFlow.Application.Common.Interfaces.IStorageService)">
-            <summary>External signing endpoints: the link's token is the credential, so no sign-in</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.#ctor(SignFlow.Application.Features.Signing.ISigningAccess,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Signing.Queries.GetSigningSessionQuery,SignFlow.Application.Features.Signing.Queries.SigningSessionDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.SignFieldCommand,SignFlow.Application.Features.Signing.Commands.SignFieldResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.ApproveSigningCommand,SignFlow.Application.Features.Signing.Commands.ApproveSigningResult},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.RejectDocumentCommand},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.AcknowledgeReviewCommand},SignFlow.Application.Common.Interfaces.IStorageService)">
+            <summary>
+            The participant's side of a contract (M5), no sign-in. The e-mailed link shows what is asked and sends a 6-digit code;
+            the code opens a signing session (header X-Signing-Session) and only a session reads the contract or acts. Every
+            endpoint goes through <see cref="T:SignFlow.Application.Features.Signing.ISigningAccess"/>; a refusal answers with a code the page explains (R-M5-2).
+            Signed-in participants open a session from their account instead and use "session" as the token.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.Intro(System.String,System.Threading.CancellationToken)">
+            <summary>What the link is for: contract title, sender, participant, masked e-mail. Nothing of the contract.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.SendCode(System.String,System.Threading.CancellationToken)">
+            <summary>E-mail a 6-digit code to the participant (valid 10 minutes)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.VerifyCode(System.String,SignFlow.Api.Controllers.V1.VerifyCodeRequest,System.Threading.CancellationToken)">
+            <summary>Check the code; opens a 30-minute signing session</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetSession(System.String,System.Threading.CancellationToken)">
-            <summary>Get the signing session for a recipient</summary>
+            <summary>The signing session: the contract, the participant's fields and the circuit</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetDocument(System.String,System.Threading.CancellationToken)">
-            <summary>Stream the document PDF inline for the signing session (token-authenticated)</summary>
+            <summary>The PDF being signed</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.SignField(System.String,System.Guid,SignFlow.Api.Controllers.V1.SignFieldRequest,System.Threading.CancellationToken)">
-            <summary>Sign a single field</summary>
+            <summary>Fill or sign one field</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.AcknowledgeReview(System.String,System.Threading.CancellationToken)">
-            <summary>Confirm the document and its AI review were read — required before signing, approving or reviewing</summary>
+            <summary>Confirm the contract and its review were read — required before signing, approving or reviewing</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.Approve(System.String,System.Threading.CancellationToken)">
-            <summary>Approve signing after reviewing all filled fields — stamps PDF and advances workflow</summary>
+            <summary>Approve, after every required field is filled: advances the circuit</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetSummary(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
-            <summary>Get an AI-generated summary of the document (token-authenticated, no login required)</summary>
+            <summary>A plain-language summary of the contract</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetComments(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Comments.Queries.GetSigningCommentsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Comments.CommentDto}},System.Threading.CancellationToken)">
-            <summary>List the document's comments for this signing session (token-authenticated)</summary>
+            <summary>The contract's comments visible to participants</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.AddComment(System.String,SignFlow.Api.Controllers.V1.AddSigningCommentRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Comments.Commands.AddSigningCommentCommand,SignFlow.Application.Features.Comments.CommentDto},System.Threading.CancellationToken)">
-            <summary>Add a comment or a reply as the signing-session participant (token-authenticated)</summary>
+            <summary>Add a comment or a reply as the participant</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.SigningController.Reject(System.String,SignFlow.Api.Controllers.V1.RejectRequest,System.Threading.CancellationToken)">
-            <summary>Reject a document</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.Decline(System.String,SignFlow.Api.Controllers.V1.RejectRequest,System.Threading.CancellationToken)">
+            <summary>Decline the contract, with a reason</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.RequestChanges(System.String,SignFlow.Api.Controllers.V1.RequestChangesRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Signing.Commands.RequestChangesCommand},System.Threading.CancellationToken)">
-            <summary>Request changes on a document (reviewers/approvers) — pauses the workflow instead of rejecting it</summary>
+            <summary>Ask the sender for changes — pauses the circuit instead of ending it</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.ToggleChecklistItem(System.String,System.Guid,SignFlow.Api.Controllers.V1.ToggleChecklistItemRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Checklist.Commands.ToggleChecklistItemCommand},System.Threading.CancellationToken)">
-            <summary>Check or uncheck one of the recipient's own checklist items (token-authenticated)</summary>
+            <summary>Check or uncheck one of the participant's checklist items</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.AddSigningCommentRequest">
             <summary>Request body for adding a comment via a signing token; position fields are optional page-anchoring.</summary>

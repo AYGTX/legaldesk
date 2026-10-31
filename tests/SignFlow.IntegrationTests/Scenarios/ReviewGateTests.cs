@@ -60,12 +60,12 @@ public class ReviewGateTests
 
     private static Task<SignFieldResult> Sign(ScenarioFixture f, Recipient who, SignatureField field) =>
         f.GetHandler<SignFieldCommandHandler>().HandleAsync(new SignFieldCommand(
-            who.SecureToken, field.Id, SignatureType.Typed, null, "Mia", null, "127.0.0.1", "test", null));
+            who.Id, field.Id, SignatureType.Typed, null, "Mia", null, "127.0.0.1", "test", null));
 
     private static AcknowledgeReviewCommandHandler Acknowledge(ScenarioFixture f) => new(f.Db, f.GetHandler<IAuditService>());
 
     private static Task<SigningSessionDto> Session(ScenarioFixture f, Recipient who) =>
-        new GetSigningSessionQueryHandler(f.Db).HandleAsync(new GetSigningSessionQuery(who.SecureToken));
+        new GetSigningSessionQueryHandler(f.Db).HandleAsync(new GetSigningSessionQuery(who.Id));
 
     [Fact]
     public async Task Signing_is_refused_until_the_participant_confirms_they_read_it()
@@ -77,7 +77,7 @@ public class ReviewGateTests
         Assert.Contains("confirm", refused.Message);
         Assert.False((await fixture.Db.SignatureFields.SingleAsync()).IsSigned);
 
-        await Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(seed.Signer.SecureToken, "127.0.0.1", "test"));
+        await Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(seed.Signer.Id, "127.0.0.1", "test"));
 
         Assert.True((await Sign(fixture, seed.Signer, seed.Field)).AllFieldsSigned);
     }
@@ -92,7 +92,7 @@ public class ReviewGateTests
             fixture.Db, fixture.GetHandler<IWorkflowEngine>(), fixture.GetHandler<IStorageService>(), fixture.GetHandler<IPdfStampService>(),
             fixture.GetHandler<IHtmlTemplatePdfGenerator>(), fixture.GetHandler<IAuditService>(), fixture.GetHandler<INotificationHub>(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<ApproveSigningCommandHandler>.Instance)
-            .HandleAsync(new ApproveSigningCommand(seed.Signer.SecureToken, "127.0.0.1", "test")));
+            .HandleAsync(new ApproveSigningCommand(seed.Signer.Id, "127.0.0.1", "test")));
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class ReviewGateTests
     {
         var seed = await SeedAsync();
         using var fixture = seed.Fixture;
-        var command = new AcknowledgeReviewCommand(seed.Signer.SecureToken, "127.0.0.1", "test");
+        var command = new AcknowledgeReviewCommand(seed.Signer.Id, "127.0.0.1", "test");
 
         await Acknowledge(fixture).HandleAsync(command);
         var first = (await fixture.Db.Recipients.FirstAsync(r => r.Id == seed.Signer.Id)).ReviewAcknowledgedAt;
@@ -120,7 +120,7 @@ public class ReviewGateTests
         fixture.Db.Recipients.Add(viewer);
         await fixture.Db.SaveChangesAsync();
 
-        await Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(viewer.SecureToken, "127.0.0.1", "test"));
+        await Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(viewer.Id, "127.0.0.1", "test"));
 
         Assert.Null((await fixture.Db.Recipients.FirstAsync(r => r.Id == viewer.Id)).ReviewAcknowledgedAt);
         Assert.False((await Session(fixture, viewer)).ReviewGate!.Required);
@@ -177,7 +177,7 @@ public class ReviewGateTests
         var seed = await SeedAsync();
         using var fixture = seed.Fixture;
 
-        await Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(seed.Signer.SecureToken, "127.0.0.1", "test"));
+        await Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(seed.Signer.Id, "127.0.0.1", "test"));
 
         Assert.True((await Session(fixture, seed.Signer)).ReviewGate!.Acknowledged);
     }
@@ -187,7 +187,7 @@ public class ReviewGateTests
     {
         var seed = await SeedAsync();
         using var fixture = seed.Fixture;
-        await Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(seed.Signer.SecureToken, "127.0.0.1", "test"));
+        await Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(seed.Signer.Id, "127.0.0.1", "test"));
 
         (await fixture.Db.Recipients.FirstAsync(r => r.Id == seed.Signer.Id)).ResetForRevision();
         await fixture.Db.SaveChangesAsync();
@@ -206,6 +206,6 @@ public class ReviewGateTests
         await fixture.Db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<ConflictException>(() =>
-            Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(seed.Signer.SecureToken, "127.0.0.1", "test")));
+            Acknowledge(fixture).HandleAsync(new AcknowledgeReviewCommand(seed.Signer.Id, "127.0.0.1", "test")));
     }
 }

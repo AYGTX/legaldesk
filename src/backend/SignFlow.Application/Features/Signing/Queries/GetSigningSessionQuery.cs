@@ -7,7 +7,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Application.Features.Signing.Queries;
 
-public record GetSigningSessionQuery(string SecureToken) : IQuery<SigningSessionDto>;
+public record GetSigningSessionQuery(Guid RecipientId) : IQuery<SigningSessionDto>;
 
 public record SigningSessionDto(
     Guid DocumentId,
@@ -82,7 +82,7 @@ public class GetSigningSessionQueryHandler(IApplicationDbContext db) : IQueryHan
             .Include(r => r.Document)
             .Include(r => r.AssignedFields)
             .Include(r => r.ChecklistItems)
-            .FirstOrDefaultAsync(r => r.SecureToken == query.SecureToken, cancellationToken)
+            .FirstOrDefaultAsync(r => r.Id == query.RecipientId, cancellationToken)
             ?? throw new NotFoundException("Signing session not found or has expired.");
 
         if (recipient.TokenExpiresAt.HasValue && recipient.TokenExpiresAt.Value < DateTime.UtcNow)

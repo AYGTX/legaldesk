@@ -117,15 +117,14 @@ public class SigningScenarioTests
 
         var signHandler = fixture.GetHandler<SignFieldCommandHandler>();
         var signResult = await signHandler.HandleAsync(new SignFieldCommand(
-            SecureToken: recipient.SecureToken,
+            RecipientId: recipient.Id,
             FieldId: field.Id,
             SignatureType: SignatureType.Typed,
             ImageBase64: null,
             TypedText: "Alice Signer",
             FontFamily: "Arial",
             IpAddress: "127.0.0.1",
-            UserAgent: "IntegrationTest/1.0",
-            Location: null));
+            UserAgent: "IntegrationTest/1.0"));
 
         Assert.True(signResult.AllFieldsSigned, "All fields should be signed after the only field is signed.");
         Assert.False(signResult.DocumentCompleted, "Signing a field must not complete the document on its own.");
@@ -136,7 +135,7 @@ public class SigningScenarioTests
         // ── 6. Recipient approves, which advances the workflow ────────────────
         var approveHandler = fixture.GetHandler<ApproveSigningCommandHandler>();
         var approveResult = await approveHandler.HandleAsync(new ApproveSigningCommand(
-            SecureToken: recipient.SecureToken,
+            RecipientId: recipient.Id,
             IpAddress: "127.0.0.1",
             UserAgent: "IntegrationTest/1.0"));
 
@@ -205,12 +204,12 @@ public class SigningScenarioTests
         // Bob tries to sign before Alice — must be rejected
         await Assert.ThrowsAsync<SignFlow.Application.Common.Exceptions.ConflictException>(
             () => signHandler.HandleAsync(new SignFieldCommand(
-                bob.SecureToken, bobField.Id, SignatureType.Typed,
+                bob.Id, bobField.Id, SignatureType.Typed,
                 null, "Bob", null, "127.0.0.1", "test", null)));
 
         // Alice signs her field
         var aliceResult = await signHandler.HandleAsync(new SignFieldCommand(
-            alice.SecureToken, aliceField.Id, SignatureType.Typed,
+            alice.Id, aliceField.Id, SignatureType.Typed,
             null, "Alice", null, "127.0.0.1", "test", null));
 
         Assert.True(aliceResult.AllFieldsSigned);
@@ -219,22 +218,22 @@ public class SigningScenarioTests
         // arrived — the gate is the approval, not the signature.
         await Assert.ThrowsAsync<SignFlow.Application.Common.Exceptions.ConflictException>(
             () => signHandler.HandleAsync(new SignFieldCommand(
-                bob.SecureToken, bobField.Id, SignatureType.Typed,
+                bob.Id, bobField.Id, SignatureType.Typed,
                 null, "Bob", null, "127.0.0.1", "test", null)));
 
         var aliceApproval = await approveHandler.HandleAsync(new ApproveSigningCommand(
-            alice.SecureToken, "127.0.0.1", "test"));
+            alice.Id, "127.0.0.1", "test"));
         Assert.False(aliceApproval.DocumentCompleted, "Document should not complete until Bob also approves.");
 
         // Now Bob can sign and approve
         var bobResult = await signHandler.HandleAsync(new SignFieldCommand(
-            bob.SecureToken, bobField.Id, SignatureType.Typed,
+            bob.Id, bobField.Id, SignatureType.Typed,
             null, "Bob", null, "127.0.0.1", "test", null));
 
         Assert.True(bobResult.AllFieldsSigned);
 
         var bobApproval = await approveHandler.HandleAsync(new ApproveSigningCommand(
-            bob.SecureToken, "127.0.0.1", "test"));
+            bob.Id, "127.0.0.1", "test"));
         Assert.True(bobApproval.DocumentCompleted);
 
         var doc = await fixture.Db.Documents.FindAsync(docId);

@@ -63,7 +63,7 @@ public record DocumentDetailDto(
     List<TemplateRevisionDto>? TemplateRevisions = null);
 
 public record OwnerDto(Guid Id, string FullName, string Email, string? AvatarUrl);
-public record RecipientDto(Guid Id, string Name, string Email, int Order, ApprovalType ApprovalType, WorkflowStepStatus Status, string SecureToken, DateTime? SignedAt, DateTime? ViewedAt, string? RoleLabel = null, string? DeclineReason = null, List<ChecklistItemDto>? ChecklistItems = null);
+public record RecipientDto(Guid Id, string Name, string Email, int Order, ApprovalType ApprovalType, WorkflowStepStatus Status, DateTime? SignedAt, DateTime? ViewedAt, string? RoleLabel = null, string? DeclineReason = null, List<ChecklistItemDto>? ChecklistItems = null);
 public record ChecklistItemDto(Guid Id, string Text, int Order, bool IsChecked);
 /// <summary>
 /// What changed between two versions of a template contract: the answers that differ, with who changed them and why.
@@ -102,15 +102,7 @@ public class GetDocumentByIdQueryHandler(
                 throw new ForbiddenAccessException();
         }
 
-        // A signing token is a credential: whoever holds it can act as that recipient. The owner and admins
-        // manage the circuit and need them all; a participant only ever gets their own.
-        var seesAllTokens = isAdmin || document.OwnerId == userId;
-        var viewerEmail = currentUser.UserEmail;
-        string TokenFor(Recipient r) =>
-            seesAllTokens || string.Equals(r.Email, viewerEmail, StringComparison.OrdinalIgnoreCase)
-                ? r.SecureToken
-                : string.Empty;
-
+        // Signing links are stored as hashes and are never returned, to anyone (R-M5-1): the owner resends a link instead.
         var changerIds = document.Versions.Select(v => v.ChangedById).Distinct().ToList();
         Dictionary<Guid, string> changerNames = changerIds.Count == 0
             ? []
@@ -165,7 +157,7 @@ public class GetDocumentByIdQueryHandler(
             new OwnerDto(document.Owner.Id, document.Owner.FullName, document.Owner.Email!, document.Owner.AvatarUrl),
             document.Recipients
                 .OrderBy(r => r.Order)
-                .Select(r => new RecipientDto(r.Id, r.Name, r.Email, r.Order, r.ApprovalType, r.Status, TokenFor(r), r.SignedAt, r.ViewedAt, r.RoleLabel, r.DeclineReason,
+                .Select(r => new RecipientDto(r.Id, r.Name, r.Email, r.Order, r.ApprovalType, r.Status, r.SignedAt, r.ViewedAt, r.RoleLabel, r.DeclineReason,
                     r.ChecklistItems.OrderBy(c => c.Order).Select(c => new ChecklistItemDto(c.Id, c.Text, c.Order, c.IsChecked)).ToList()))
                 .ToList(),
             document.SignatureFields

@@ -247,6 +247,19 @@ public class DocumentsController(
         return NoContent();
     }
 
+    /// <summary>Send a participant a new signing link by e-mail; their previous link stops working (links are never shown)</summary>
+    [HttpPost("{id:guid}/recipients/{recipientId:guid}/resend-link")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<IActionResult> ResendSigningLink(
+        [FromRoute] Guid id, [FromRoute] Guid recipientId,
+        [FromServices] ICommandHandler<SignFlow.Application.Features.Signing.Commands.ResendSigningLinkCommand> handler,
+        CancellationToken ct)
+    {
+        await handler.HandleAsync(new SignFlow.Application.Features.Signing.Commands.ResendSigningLinkCommand(id, recipientId), ct);
+        return NoContent();
+    }
+
     /// <summary>Delete a document</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(204)]

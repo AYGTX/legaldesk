@@ -7,7 +7,8 @@ internal sealed class FakeCurrentUserService(Guid userId, string email = "owner@
     /// <summary>Lets a test act as someone else without rebuilding the fixture.</summary>
     public Guid? UserIdOverride { get; set; }
     public Guid? UserId => UserIdOverride ?? userId;
-    public string? UserEmail => email;
+    public string? EmailOverride { get; set; }
+    public string? UserEmail => EmailOverride ?? email;
     public string? UserName => "Test Owner";
     public bool IsAuthenticated => true;
     /// <summary>When set, the user holds exactly these roles; otherwise every role (the default for scenario tests).</summary>
