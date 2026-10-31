@@ -704,6 +704,24 @@
         <member name="M:SignFlow.Api.Controllers.V1.VacationsController.Cancel(System.Guid,System.Threading.CancellationToken)">
             <summary>Cancel a scheduled vacation</summary>
         </member>
+        <member name="T:SignFlow.Api.Controllers.V1.VerifyController">
+            <summary>
+            Public check of a sealed contract (R-M5-9): the code printed on its evidence page says who sealed it and when; an
+            uploaded PDF is compared with the sealed one through its SHA-256. Nothing of the contract is shown, nothing is kept.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VerifyController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.VerifySealQuery,SignFlow.Application.Features.Documents.Queries.SealInfoDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Queries.CheckSealedFileCommand,SignFlow.Application.Features.Documents.Queries.SealCheckDto})">
+            <summary>
+            Public check of a sealed contract (R-M5-9): the code printed on its evidence page says who sealed it and when; an
+            uploaded PDF is compared with the sealed one through its SHA-256. Nothing of the contract is shown, nothing is kept.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VerifyController.Get(System.String,System.Threading.CancellationToken)">
+            <summary>Who sealed the contract with this code, and when</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.VerifyController.Check(System.String,Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">
+            <summary>Does this PDF match the sealed contract, byte for byte?</summary>
+        </member>
         <member name="T:SignFlow.Api.Controllers.V1.WorkflowPresetsController">
             <summary>
             Reusable approval workflows. A template follows one, so the path is set up once and changed in one place.

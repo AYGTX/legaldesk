@@ -10,6 +10,8 @@ TestResults/
 # API runtime output
 src/backend/**/logs/
 src/backend/SignFlow.Api/uploads/
+# Test seal certificates created in Development (private keys)
+src/backend/SignFlow.Api/App_Data/
 src/backend/*.log
 
 # Angular / Node

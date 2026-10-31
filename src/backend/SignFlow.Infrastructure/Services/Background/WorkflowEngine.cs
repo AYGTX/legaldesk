@@ -12,7 +12,8 @@ public class WorkflowEngine(
     IEmailService emailService,
     INotificationHub hub,
     INotificationService notifications,
-    ILogger<WorkflowEngine> logger) : IWorkflowEngine
+    ILogger<WorkflowEngine> logger,
+    SignFlow.Application.Features.Documents.Commands.IDocumentJobs? documentJobs = null) : IWorkflowEngine
 {
     public async Task StartAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
@@ -365,6 +366,9 @@ public class WorkflowEngine(
         document.SetStatus(DocumentStatus.Completed);
         document.Workflow?.Complete();
         await db.SaveChangesAsync(cancellationToken);
+
+        // Evidence page and seal, in the background (R-M5-8).
+        documentJobs?.EnqueueSeal(document.Id, document.OrganisationId);
 
         await emailService.SendTemplateAsync(
             document.Owner.Email!,

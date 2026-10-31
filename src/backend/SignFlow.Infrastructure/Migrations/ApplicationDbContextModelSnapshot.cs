@@ -794,6 +794,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("FilledValuesJson")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("FinalSha256")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("FinalStoragePath")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -899,6 +902,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("SealedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("datetime2");

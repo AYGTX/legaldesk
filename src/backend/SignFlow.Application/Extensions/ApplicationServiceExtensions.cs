@@ -104,6 +104,11 @@ public static class ApplicationServiceExtensions
         services.AddScoped<SignFlow.Application.Features.Signing.ISigningAccess, SignFlow.Application.Features.Signing.SigningAccess>();
         services.AddScoped<ICommandHandler<ResendSigningLinkCommand>, ResendSigningLinkCommandHandler>();
 
+        // Seal and public verification (R-M5-8, R-M5-9)
+        services.AddScoped<IDocumentSealer, DocumentSealer>();
+        services.AddScoped<IQueryHandler<VerifySealQuery, SealInfoDto>, VerifySealQueryHandler>();
+        services.AddScoped<ICommandHandler<CheckSealedFileCommand, SealCheckDto>, CheckSealedFileCommandHandler>();
+
         // Document query handlers
         services.AddScoped<IQueryHandler<GetDocumentsQuery, PagedResult<DocumentSummaryDto>>, GetDocumentsQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentByIdQuery, DocumentDetailDto>, GetDocumentByIdQueryHandler>();

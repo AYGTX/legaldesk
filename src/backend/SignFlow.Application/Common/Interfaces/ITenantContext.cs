@@ -27,6 +27,9 @@ public interface IPlatformQueries
     /// <summary>The organisation of a signing link, by the token's hash.</summary>
     Task<Guid?> OrganisationOfSigningTokenAsync(string tokenHash, CancellationToken cancellationToken = default);
 
+    /// <summary>A sealed contract by its public verification code (R-M5-9), whatever its organisation.</summary>
+    Task<SealRecord?> FindSealAsync(string verificationCode, CancellationToken cancellationToken = default);
+
     /// <summary>The organisation of a signing session, by the session secret's hash.</summary>
     Task<Guid?> OrganisationOfSigningSessionAsync(string secretHash, CancellationToken cancellationToken = default);
 
@@ -39,3 +42,6 @@ public interface IPlatformQueries
     /// <summary>Whether any user of any organisation has this e-mail: people sign in by e-mail alone.</summary>
     Task<bool> EmailInUseAsync(string email, CancellationToken cancellationToken = default);
 }
+
+/// <summary>A sealed contract as the public verification page sees it: no title, no content.</summary>
+public sealed record SealRecord(string Code, string OrganisationName, DateTime SealedAt, string Sha256);

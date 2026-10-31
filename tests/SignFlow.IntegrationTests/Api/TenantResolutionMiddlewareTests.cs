@@ -22,6 +22,7 @@ public class TenantResolutionMiddlewareTests
             Task.FromResult(tokenHash == SecureTokens.Hash("tok") ? tokenOrg : null);
         public Task<Guid?> OrganisationOfSigningSessionAsync(string secretHash, CancellationToken ct = default) =>
             Task.FromResult(secretHash == SecureTokens.Hash("sess") ? sessionOrg : null);
+        public Task<SealRecord?> FindSealAsync(string code, CancellationToken ct = default) => Task.FromResult<SealRecord?>(null);
         public Task<IReadOnlyList<Guid>> ActiveOrganisationIdsAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Guid>>([]);
         public Task<Guid?> SoleOrganisationIdAsync(CancellationToken ct = default) => Task.FromResult<Guid?>(null);

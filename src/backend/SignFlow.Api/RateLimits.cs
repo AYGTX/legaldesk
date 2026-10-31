@@ -12,6 +12,7 @@ public static class RateLimits
 {
     public const string Auth = "auth";
     public const string Signing = "signing";
+    public const string Verify = "verify";
 
     public static IServiceCollection AddLegalDeskRateLimits(this IServiceCollection services) =>
         services.AddRateLimiter(options =>
@@ -25,6 +26,10 @@ public static class RateLimits
             // 60 calls per minute per signing link (the token is the third path segment after /api/v1/sign/).
             options.AddPolicy(Signing, http => RateLimitPartition.GetFixedWindowLimiter(
                 SigningToken(http), _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
+
+            // Public seal check: 30 per minute per IP.
+            options.AddPolicy(Verify, http => RateLimitPartition.GetFixedWindowLimiter(
+                Ip(http), _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1) }));
 
             // Everything: 300 per minute per user, or per IP when anonymous.
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http =>

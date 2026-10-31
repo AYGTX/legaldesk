@@ -29,6 +29,10 @@ public class Document : TenantEntity
     public string? Tags { get; private set; }
     public bool IsPublic { get; private set; }
     public string? VerificationCode { get; private set; }
+
+    /// <summary>SHA-256 of the sealed final PDF (R-M5-8): what the public verification page compares uploads with.</summary>
+    public string? FinalSha256 { get; private set; }
+    public DateTime? SealedAt { get; private set; }
     public int Version { get; private set; } = 1;
     public Guid? ParentDocumentId { get; private set; }
     public bool HasWatermark { get; private set; }
@@ -189,6 +193,15 @@ public class Document : TenantEntity
     }
 
     public void SetFinalStoragePath(string path) => FinalStoragePath = path;
+
+    /// <summary>The final PDF is now the sealed one, with the evidence page.</summary>
+    public void Seal(string sealedPath, string sha256)
+    {
+        FinalStoragePath = sealedPath;
+        FinalSha256 = sha256;
+        SealedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
     public void SetHash(string hash) => Hash = hash;
     public void SetPageCount(int pageCount) => PageCount = pageCount;
 

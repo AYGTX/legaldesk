@@ -41,5 +41,7 @@ public enum AuditAction
     ReviewRequested = 36,
     ReviewFailed = 37,
     /// <summary>Sent with an open High finding: the owner's reason is in the entry (R-M8-8).</summary>
-    SentWithOpenRisks = 38
+    SentWithOpenRisks = 38,
+    /// <summary>The final PDF was sealed (R-M5-8); the entry carries its SHA-256.</summary>
+    DocumentSealed = 39
 }

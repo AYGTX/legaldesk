@@ -21,6 +21,13 @@ public sealed class PlatformQueries(ApplicationDbContext db) : IPlatformQueries
             .Select(r => (Guid?)r.OrganisationId)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public Task<SealRecord?> FindSealAsync(string verificationCode, CancellationToken cancellationToken = default) =>
+        db.Documents.IgnoreQueryFilters([QueryFilters.Tenant])
+            .Where(d => d.VerificationCode == verificationCode && d.SealedAt != null && d.FinalSha256 != null && !d.IsDeleted)
+            .Join(db.Organisations, d => d.OrganisationId, o => o.Id,
+                (d, o) => new SealRecord(d.VerificationCode!, o.Name, d.SealedAt!.Value, d.FinalSha256!))
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<Guid?> OrganisationOfSigningSessionAsync(string secretHash, CancellationToken cancellationToken = default) =>
         db.SigningSessions.IgnoreQueryFilters([QueryFilters.Tenant])
             .Where(s => s.SecretHash == secretHash)

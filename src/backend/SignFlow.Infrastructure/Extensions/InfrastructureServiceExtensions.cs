@@ -179,6 +179,16 @@ public static class InfrastructureServiceExtensions
         services.Configure<SignFlow.Infrastructure.Services.Pdf.OcrSettings>(configuration.GetSection("Ocr"));
         services.AddSingleton<IOcrService, SignFlow.Infrastructure.Services.Pdf.TesseractOcrService>();
 
+        // The organisation's seal on completed contracts (R-M5-8)
+        services.Configure<SignFlow.Infrastructure.Services.Seal.SealSettings>(configuration.GetSection("Seal"));
+        services.AddHttpClient(SignFlow.Infrastructure.Services.Seal.Rfc3161TimestampAuthority.HttpClientName,
+            client => client.Timeout = TimeSpan.FromSeconds(30));
+        services.AddScoped<ITimestampAuthority, SignFlow.Infrastructure.Services.Seal.Rfc3161TimestampAuthority>();
+        services.AddSingleton<SignFlow.Infrastructure.Services.Seal.ISealCertificateStore, SignFlow.Infrastructure.Services.Seal.SealCertificateStore>();
+        services.AddScoped<IPdfSealer, SignFlow.Infrastructure.Services.Seal.PdfSealer>();
+        services.AddScoped<IEvidencePageWriter, SignFlow.Infrastructure.Services.Seal.EvidencePageWriter>();
+        services.AddScoped<SignFlow.Application.Features.Documents.Commands.IDocumentJobs, SignFlow.Infrastructure.Services.Background.HangfireDocumentJobs>();
+
         // Application services
         services.AddScoped<IAiService, LlmAiService>();
         services.AddScoped<ITokenService, TokenService>();
