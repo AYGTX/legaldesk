@@ -2,6 +2,7 @@ using SignFlow.Application.Common.Security;
 using FluentValidation;
 using SignFlow.Application.Common.Exceptions;
 using SignFlow.Application.Common.Interfaces;
+using SignFlow.Application.Common.Services;
 
 namespace SignFlow.Application.Features.HtmlTemplates.Commands;
 
@@ -31,12 +32,15 @@ public class GenerateHtmlTemplateCommandValidator : AbstractValidator<GenerateHt
 
 public class GenerateHtmlTemplateCommandHandler(
     IAiService aiService,
-    ICurrentUserService currentUser) : ICommandHandler<GenerateHtmlTemplateCommand, GenerateHtmlTemplateResult>
+    ICurrentUserService currentUser,
+    ModelAccess model) : ICommandHandler<GenerateHtmlTemplateCommand, GenerateHtmlTemplateResult>
 {
     public async Task<GenerateHtmlTemplateResult> HandleAsync(GenerateHtmlTemplateCommand command, CancellationToken cancellationToken = default)
     {
         if (!currentUser.Can(Permissions.ManageTemplates))
             throw new ForbiddenAccessException();
+        // The pasted text is a model's input like a contract's: only when the organisation turned the assistant on (R-M12-1).
+        await model.RequireOnAsync(cancellationToken);
 
         var result = await aiService.GenerateHtmlFromTextAsync(command.UserText, cancellationToken);
 

@@ -23,6 +23,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Invitation, UserDto } from '../../core/models';
 import { UserDialogComponent } from './user-dialog.component';
 import { RequestTypesComponent } from './request-types.component';
+import { OrganisationSettingsComponent } from './organisation-settings.component';
 
 @Component({
   selector: 'sf-admin',
@@ -33,7 +34,7 @@ import { RequestTypesComponent } from './request-types.component';
     MatChipsModule, MatProgressSpinnerModule,
     MatFormFieldModule, MatInputModule, MatMenuModule, MatDividerModule,
     MatTooltipModule, MatDialogModule, MatSnackBarModule,
-    RequestTypesComponent, TranslatePipe
+    RequestTypesComponent, OrganisationSettingsComponent, TranslatePipe
   ],
   template: `
     <div class="admin-page">
@@ -177,10 +178,8 @@ import { RequestTypesComponent } from './request-types.component';
         }
 
         @if (section() === 'settings') {
-          <div class="tab-content coming-soon">
-            <mat-icon>settings</mat-icon>
-            <h3>{{ 'admin.systemSettings.title' | translate }}</h3>
-            <p>{{ 'admin.systemSettings.description' | translate }}</p>
+          <div class="tab-content">
+            <sf-organisation-settings></sf-organisation-settings>
           </div>
         }
     </div>

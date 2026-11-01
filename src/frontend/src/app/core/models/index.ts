@@ -16,3 +16,4 @@ export * from './report.models';
 export * from './contract-intelligence.model';
 export * from './clause.models';
 export * from './version-comparison.model';
+export * from './assistant.models';

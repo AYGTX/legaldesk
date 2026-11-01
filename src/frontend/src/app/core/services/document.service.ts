@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
   DocumentDetail, DocumentSummary, DashboardData,
-  FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto,
+  FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType,
   Review, ReviewRun, ReviewItemStatus, ReviewRuleSetting, RiskSeverity, VersionComparison, TemplateRevisionForm, ContractRound
 } from '../models';
 
@@ -43,8 +43,8 @@ export class DocumentService {
   }
 
   /** `reason` is required to send with open high-risk findings (kept in the audit trail); a blocked contract is never sent. */
-  send(id: string, reason?: string): Observable<void> {
-    return this.api.post<void>(`/v1/documents/${id}/send`, { reason: reason ?? null });
+  send(id: string, reason?: string, shareSummary = false): Observable<void> {
+    return this.api.post<void>(`/v1/documents/${id}/send`, { reason: reason ?? null, shareSummary });
   }
 
   /** Owner response to a change request: swaps in a revised PDF and returns the document to Draft. */
@@ -140,10 +140,6 @@ export class DocumentService {
 
   exportAuditTrail(documentId: string): Observable<Blob> {
     return this.api.download(`/v1/documents/${documentId}/audit/export`);
-  }
-
-  getDocumentSummary(id: string): Observable<AiSummaryDto> {
-    return this.api.get<AiSummaryDto>(`/v1/documents/${id}/summary`);
   }
 
   /** One turn of "ask the contract": answered from the contract's text only, with verified excerpts. */

@@ -47,7 +47,8 @@ public class ContractChatTests
         await db.SaveChangesAsync();
         var user = (FakeCurrentUserService)fx.GetHandler<ICurrentUserService>();
         var handler = new AskContractQuestionCommandHandler(fx.Db, new FixedText(text), ai, user,
-            fx.GetHandler<IAuditService>(), NullLogger<AskContractQuestionCommandHandler>.Instance);
+            fx.GetHandler<IAuditService>(), fx.GetHandler<ModelAccess>(), NullLogger<AskContractQuestionCommandHandler>.Instance);
+        await fx.SetModelAsync(true);
         return (fx, doc, handler, user);
     }
 

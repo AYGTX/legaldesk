@@ -51,6 +51,8 @@ public class Organisation : BaseEntity
 
     public void SetAlertOffsets(string offsets) => AlertOffsets = offsets;
 
+    public void SetModelMode(ModelMode mode) => ModelMode = mode;
+
     public void MarkLifecycleSweep(DateTime localDate) => LastLifecycleSweepOn = localDate.Date;
 
     private Organisation() { }

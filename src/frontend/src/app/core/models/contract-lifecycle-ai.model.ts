@@ -16,6 +16,7 @@ export interface KeyTerms {
   terms: KeyTerm[];
   suggested: SuggestedTerm;
   language: string;
+  label?: import('./assistant.models').ModelLabel;
 }
 
 export interface RenewalNote {
@@ -28,6 +29,7 @@ export interface RenewalNote {
   noticeDeadline: string | null;
   autoRenews: boolean;
   language: string;
+  label?: import('./assistant.models').ModelLabel;
 }
 
 export interface ContractScheduleRow {

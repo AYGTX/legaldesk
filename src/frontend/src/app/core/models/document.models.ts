@@ -6,11 +6,6 @@ export type ApprovalType = 'Signature' | 'Approval' | 'Review' | 'ViewOnly' | 'S
 export type WorkflowType = 'Sequential' | 'Parallel' | 'Mixed';
 export type WorkflowStepStatus = 'Pending' | 'InProgress' | 'Completed' | 'Rejected' | 'Skipped' | 'Delegated' | 'Escalated' | 'Expired' | 'ChangesRequested';
 
-export interface AiSummaryDto {
-  summary: string;
-  generatedAt: string;
-}
-
 export interface DocumentSummary {
   id: string;
   title: string;
@@ -53,8 +48,8 @@ export interface DocumentDetail {
   requestTypeName?: string;
   requestTypeIcon?: string;
   requestTypeColor?: string;
-  aiSummary?: string;
-  aiSummaryGeneratedAt?: string;
+  /** The assistant's summary is shown to the participants on the signing page (R-M12-8). */
+  shareSummaryWithParticipants?: boolean;
   /** Review verdict and scores of the current version, carried on the detail payload so the band renders at once. */
   readinessVerdict: ReadinessVerdict;
   readinessScore?: number;

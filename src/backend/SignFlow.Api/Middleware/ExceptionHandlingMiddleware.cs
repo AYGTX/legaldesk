@@ -35,11 +35,12 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
                 Detail = "One or more validation errors occurred.",
                 Extensions = { ["errors"] = ve.Errors }
             }),
-            NotFoundException nfe => (HttpStatusCode.NotFound, new ProblemDetails
+            NotFoundException nfe => (HttpStatusCode.NotFound, nfe.Code is null
+                ? new ProblemDetails { Title = "Resource Not Found", Status = 404, Detail = nfe.Message }
+                : new ProblemDetails { Title = "Resource Not Found", Status = 404, Detail = nfe.Message, Extensions = { ["code"] = nfe.Code } }),
+            TooManyRequestsException tme => (HttpStatusCode.TooManyRequests, new ProblemDetails
             {
-                Title = "Resource Not Found",
-                Status = 404,
-                Detail = nfe.Message
+                Title = "Too Many Requests", Status = 429, Detail = tme.Message, Extensions = { ["code"] = tme.Code }
             }),
             ForbiddenAccessException fae => (HttpStatusCode.Forbidden, fae.Code is null
                 ? new ProblemDetails { Title = "Forbidden", Status = 403, Detail = fae.Message }

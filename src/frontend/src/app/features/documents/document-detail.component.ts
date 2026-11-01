@@ -18,7 +18,9 @@ import { DocumentService } from '../../core/services/document.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { HubService } from '../../core/services/hub.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { DocumentDetail, WorkflowParticipant, AiSummaryDto, Review, ContractRound } from '../../core/models';
+import { DocumentDetail, WorkflowParticipant, ContractSummary, Review, ContractRound } from '../../core/models';
+import { AssistantService, assistantErrorKey } from '../../core/services/assistant.service';
+import { AssistantSummaryComponent } from '../../shared/components/assistant-summary.component';
 import { ReviewService } from '../../core/services/review.service';
 import { ReadinessChecklistComponent } from '../../shared/readiness-checklist/readiness-checklist.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
@@ -40,7 +42,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
     MatStepperModule, MatChipsModule, MatDividerModule, MatTooltipModule, MatDialogModule,
     MatTabsModule, MatSnackBarModule, CommentsPanelComponent,
     ContractChatPanelComponent, ContractTermPanelComponent, ContractLifecycleAiPanelComponent,
-    ReadinessChecklistComponent, TranslatePipe
+    ReadinessChecklistComponent, AssistantSummaryComponent, TranslatePipe
   ],
   template: `
     <div class="detail-page">
@@ -337,6 +339,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             <div class="summary-grid">
             <div class="intel-layout">
             <!-- AI Summary -->
+            @if (assistant.enabled()) {
             <mat-card class="ai-summary-card">
               <mat-card-header>
                 <mat-card-title class="ai-summary-title">
@@ -351,12 +354,11 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     <div class="skeleton-line medium"></div>
                   </div>
                 } @else if (summary()) {
-                  <p class="summary-text">{{ summary()!.summary }}</p>
-                  <span class="summary-meta">{{ 'documents.detail.generated' | translate: { date: (summary()!.generatedAt | date:'MMM d, y') } }}</span>
+                  <sf-assistant-summary [summary]="summary()!"></sf-assistant-summary>
                 } @else if (summaryError()) {
                   <div class="summary-empty">
                     <mat-icon>smart_toy</mat-icon>
-                    <p>{{ 'documents.detail.summaryError' | translate }}</p>
+                    <p>{{ summaryError()! | translate }}</p>
                     <button mat-stroked-button (click)="generateSummary()">{{ 'common.retry' | translate }}</button>
                   </div>
                 } @else {
@@ -366,8 +368,15 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     <button mat-stroked-button (click)="generateSummary()">{{ 'documents.detail.generateSummary' | translate }}</button>
                   </div>
                 }
+                @if (doc()!.status === 'Draft' && isOwner()) {
+                  <label class="share-summary">
+                    <input type="checkbox" [(ngModel)]="shareSummary" />
+                    <span>{{ 'assistant.shareOnSend' | translate }}</span>
+                  </label>
+                }
               </mat-card-content>
             </mat-card>
+            }
               @if (readiness(); as r) {
                 <mat-card class="readiness-card" id="readiness-checklist">
                   <mat-card-content>
@@ -428,6 +437,9 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             <ng-template mat-tab-label>
               <mat-icon class="tab-icon">auto_awesome</mat-icon> {{ 'documents.detail.tabs.harvey' | translate }}
             </ng-template>
+            @if (!assistant.enabled()) {
+              <p class="assistant-off"><mat-icon>info</mat-icon> {{ 'assistant.offHint' | translate }}</p>
+            } @else {
             <div class="harvey-grid">
             <!-- Ask the contract -->
             <sf-contract-chat-panel [documentId]="doc()!.id"></sf-contract-chat-panel>
@@ -438,6 +450,7 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               (applied)="load()">
             </sf-contract-lifecycle-ai-panel>
             </div>
+            }
           </mat-tab>
 
           <!-- 3. Signing and follow-up: workflow, recipients, fields, comments, versions, obligations -->
@@ -727,9 +740,13 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   readonly libraryClausesTooltip = () => (this.doc()?.libraryClauses ?? []).map(c => `${c.title} v${c.version}`).join(' · ');
   readonly error = signal<string | null>(null);
   readonly sending = signal(false);
-  readonly summary = signal<AiSummaryDto | null>(null);
+  readonly summary = signal<ContractSummary | null>(null);
   readonly summaryLoading = signal(false);
-  readonly summaryError = signal(false);
+  /** The translation key of why the summary could not be made. */
+  readonly summaryError = signal<string | null>(null);
+  readonly assistant = inject(AssistantService);
+  /** Show the assistant's summary to the participants when this draft is sent (R-M12-8). */
+  shareSummary = false;
 
   /** 0 = Summary, 1 = Review, 2 = Harvey, 3 = Signing and follow-up. */
   readonly tabIndex = signal(0);
@@ -1088,9 +1105,6 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
       next: doc => {
         this.doc.set(doc);
         this.loading.set(false);
-        if (doc.aiSummary && doc.aiSummaryGeneratedAt) {
-          this.summary.set({ summary: doc.aiSummary, generatedAt: doc.aiSummaryGeneratedAt });
-        }
         this.loadReadiness();
         this.documentService.getRounds(this.documentId).subscribe({ next: r => this.rounds.set(r), error: () => this.rounds.set([]) });
       },
@@ -1152,10 +1166,10 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
 
   generateSummary(): void {
     this.summaryLoading.set(true);
-    this.summaryError.set(false);
-    this.documentService.getDocumentSummary(this.documentId).subscribe({
+    this.summaryError.set(null);
+    this.assistant.summary(this.documentId).subscribe({
       next: s => { this.summary.set(s); this.summaryLoading.set(false); },
-      error: () => { this.summaryError.set(true); this.summaryLoading.set(false); }
+      error: err => { this.summaryError.set(assistantErrorKey(err)); this.summaryLoading.set(false); }
     });
   }
 
@@ -1174,7 +1188,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
    */
   private doSend(): void {
     this.sending.set(true);
-    this.reviews.send(this.documentId).subscribe({
+    this.reviews.send(this.documentId, undefined, this.shareSummary).subscribe({
       next: sent => { this.sending.set(false); if (sent) this.load(); },
       error: (err: Error & { code?: string | null }) => {
         this.sending.set(false);

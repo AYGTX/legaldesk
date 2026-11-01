@@ -33,6 +33,7 @@ public interface IApplicationDbContext
     DbSet<PdfTemplateField> PdfTemplateFields { get; }
     DbSet<Clause> Clauses { get; }
     DbSet<ContractTerm> ContractTerms { get; }
+    DbSet<ModelOutput> ModelOutputs { get; }
     DbSet<Obligation> Obligations { get; }
     DbSet<ContractEvent> ContractEvents { get; }
     DbSet<ClauseVersion> ClauseVersions { get; }

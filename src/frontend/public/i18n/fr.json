@@ -427,6 +427,18 @@
       "once": "Cette date seulement",
       "addFailed": "Le jour n'a pas pu être ajouté.",
       "deleteFailed": "Le jour n'a pas pu être retiré."
+    },
+    "orgSettings": {
+      "assistantTitle": "Assistant Harvey",
+      "assistantIntro": "Activé, le texte de vos contrats est envoyé au modèle ci-dessous pour les résumés, les questions, les données clés, les notes de renouvellement et l'explication des modifications. Chaque usage est consigné dans la piste d'audit du contrat. Désactivé par défaut.",
+      "assistantToggle": "Activer l'assistant pour cette organisation",
+      "assistantModel": "Modèle de ce serveur : {{provider}} · {{model}}",
+      "assistantUnavailable": "Aucun modèle n'est configuré sur ce serveur : l'assistant ne peut pas être activé.",
+      "alertsTitle": "Alertes des contrats",
+      "alertsIntro": "Jours avant la date limite de préavis d'un contrat (sinon sa date de fin) où partent les alertes, séparés par des virgules. Le jour même est toujours inclus.",
+      "alertsLabel": "Jours d'alerte",
+      "saved": "Paramètres enregistrés",
+      "failed": "Les paramètres n'ont pas pu être enregistrés"
     }
   },
   "auth": {
@@ -916,7 +928,13 @@
         "downloadVersion": "Télécharger la v{{version}}",
         "downloadFailed": "Cette version n’a pas pu être téléchargée.",
         "moved": "déplacée(s)",
-        "movedHere": "Déplacée ici"
+        "movedHere": "Déplacée ici",
+        "kind": {
+          "Added": "Ajoutée",
+          "Removed": "Supprimée",
+          "Modified": "Modifiée",
+          "Moved": "Déplacée"
+        }
       },
       "severityPossible": "À valider — risques possibles",
       "chat": {
@@ -2874,5 +2892,28 @@
     "secret": "Gardez cette adresse privée : toute personne qui la connaît voit ces dates.",
     "revoked": "L'adresse de calendrier ne fonctionne plus.",
     "failed": "L'adresse de calendrier n'a pas pu être modifiée."
+  },
+  "assistant": {
+    "label": "Assistant Harvey, généré par un modèle",
+    "labelHint": "Rédigé par un modèle de langage à partir du texte du contrat. Chaque citation a été vérifiée mot pour mot dans le contrat ; le reste se lit avec prudence.",
+    "off": "L'assistant Harvey n'est pas activé pour votre organisation.",
+    "offHint": "L'assistant Harvey est désactivé pour votre organisation. Un administrateur peut l'activer dans Administration > Paramètres système.",
+    "limit": "Vous avez atteint le nombre de demandes à l'assistant permis pour le moment. Réessayez plus tard.",
+    "failed": "L'assistant n'a pas pu répondre. Réessayez.",
+    "shareOnSend": "Montrer ce résumé aux participants sur la page de signature à l'envoi du contrat",
+    "summary": {
+      "empty": "L'assistant n'a trouvé aucun point qu'il puisse appuyer sur une citation du contrat.",
+      "notRead": "{{count}} clause(s) n'ont pas été lues et ne figurent pas dans ce résumé :",
+      "dropped": "{{count}} point(s) écarté(s) car leur citation est introuvable dans le contrat.",
+      "disclaimer": "Une aide à la lecture, pas un avis juridique. C'est le contrat lui-même qui est signé."
+    },
+    "explain": {
+      "run": "Expliquer les modifications",
+      "running": "L'assistant lit les modifications…",
+      "title": "Ce qui a changé de la v{{from}} à la v{{to}}",
+      "none": "Aucune modification n'a pu être expliquée avec le texte exact des deux versions.",
+      "unexplained": "{{count}} modification(s) non expliquée(s) : lisez-les dans la comparaison ci-dessus.",
+      "disclaimer": "Une explication, jamais une évaluation du risque : c'est la revue qui évalue le risque."
+    }
   }
 }

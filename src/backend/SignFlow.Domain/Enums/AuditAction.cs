@@ -47,5 +47,7 @@ public enum AuditAction
     /// <summary>Renew, renegotiate, terminate or let expire was recorded on the term (R-M10-4).</summary>
     ContractTermDecided = 40,
     /// <summary>An automatic renewal moved the term to its next period (R-M10-2).</summary>
-    ContractRolledOver = 41
+    ContractRolledOver = 41,
+    /// <summary>Contract text was sent to the language model (R-M12-2): feature, provider, model, characters, who.</summary>
+    ModelUsed = 42
 }

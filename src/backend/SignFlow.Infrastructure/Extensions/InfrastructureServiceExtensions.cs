@@ -151,6 +151,7 @@ public static class InfrastructureServiceExtensions
         if (configuration.GetValue<bool>("SignalR:RedisBackplane") && !string.IsNullOrEmpty(redisConnection))
             signalR.AddStackExchangeRedis(redisConnection, o => o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("legaldesk"));
 
+        services.AddScoped<IModelInfo, SignFlow.Infrastructure.Services.Ai.LlmModelInfo>();
         // Language model strategy: Ai:Provider picks Groq, a local OpenAI-compatible server (Ollama), or None.
         var aiProvider = configuration.GetSection("Ai").Get<AiSettings>()?.Provider ?? "Groq";
         var localLlm = configuration.GetSection("LocalLlm").Get<LocalLlmSettings>() ?? new LocalLlmSettings();

@@ -82,6 +82,7 @@ const NAV: NavEntry[] = [
   }
 ];
 
+import { AssistantService } from '../../core/services/assistant.service';
 @Component({
   selector: 'sf-layout',
   standalone: true,
@@ -255,6 +256,7 @@ const NAV: NavEntry[] = [
 })
 export class LayoutComponent implements OnInit {
   readonly auth = inject(AuthService);
+  private readonly assistant = inject(AssistantService);
   readonly hub = inject(HubService);
   readonly theme = inject(ThemeService);
   readonly language = inject(LanguageService);
@@ -337,7 +339,10 @@ export class LayoutComponent implements OnInit {
 
   readonly avatarSrc = () => resolveFileUrl(this.auth.user()?.avatarUrl);
 
-  ngOnInit(): void { this.hub.connect(); }
+  ngOnInit(): void {
+    this.hub.connect();
+    this.assistant.loadStatus();
+  }
 
   toggleSidenav(): void { this.sidenavCollapsed.update(v => !v); }
 

@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { ApiService } from './api.service';
-import { SigningSession, SignFieldRequest, SignFieldResult, AiSummaryDto, SigningIntro, OpenedSigningSession } from '../models';
+import { SigningSession, SignFieldRequest, SignFieldResult, SigningIntro, OpenedSigningSession } from '../models';
 
 /** Route token of a session opened from the participant's LegalDesk account (no e-mailed link). */
 export const ACCOUNT_SESSION = 'session';
@@ -100,9 +100,6 @@ export class SigningService {
     return this.api.post<void>(`/v1/sign/${token}/request-changes`, { reason });
   }
 
-  getDocumentSummary(token: string): Observable<AiSummaryDto> {
-    return this.api.get<AiSummaryDto>(`/v1/sign/${token}/summary`);
-  }
 
   /** Check or uncheck one of the recipient's own checklist items. */
   toggleChecklistItem(token: string, itemId: string, checked: boolean): Observable<void> {

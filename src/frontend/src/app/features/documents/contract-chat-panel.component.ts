@@ -8,12 +8,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { ChatCitation, ChatTurn } from '../../core/models/contract-chat.model';
+import { ModelLabel } from '../../core/models/assistant.models';
+import { ModelLabelComponent } from '../../shared/components/model-label.component';
 
 interface Message extends ChatTurn {
   citations?: ChatCitation[];
   /** False when the model gave no excerpt that checks out against the contract. */
   grounded?: boolean;
   error?: boolean;
+  label?: ModelLabel;
 }
 
 /** Suggested first questions: shown until the first message, translated under documents.detail.chat.suggestions. */
@@ -27,7 +30,7 @@ const SUGGESTIONS = ['term', 'termination', 'liability', 'payment'] as const;
 @Component({
   selector: 'sf-contract-chat-panel',
   standalone: true,
-  imports: [FormsModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, TranslatePipe],
+  imports: [FormsModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, ModelLabelComponent, TranslatePipe],
   template: `
     <mat-card class="chat-card">
       @if (messages().length) {
@@ -60,6 +63,7 @@ const SUGGESTIONS = ['term', 'termination', 'liability', 'payment'] as const;
             <div class="msg" [class.user]="m.role === 'user'" [class.error]="m.error">
               <div class="bubble">{{ m.content }}</div>
               @if (m.role === 'assistant' && !m.error) {
+                <sf-model-label [label]="m.label"></sf-model-label>
                 @for (c of m.citations ?? []; track c.quote) {
                   <blockquote class="quote">
                     <mat-icon class="ok" [matTooltip]="'documents.detail.chat.verifiedHint' | translate">verified</mat-icon>
@@ -174,7 +178,7 @@ export class ContractChatPanelComponent {
     this.docs.askContract(this.documentId(), { question, history, language }).subscribe({
       next: reply => {
         this.messages.update(ms => [...ms, {
-          role: 'assistant', content: reply.answer, citations: reply.citations, grounded: reply.grounded
+          role: 'assistant', content: reply.answer, citations: reply.citations, grounded: reply.grounded, label: reply.label
         }]);
         this.busy.set(false);
         this.scrollDown();

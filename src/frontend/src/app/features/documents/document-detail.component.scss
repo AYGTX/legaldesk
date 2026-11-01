@@ -383,3 +383,6 @@
 .round-steps .step-status[data-status='Rejected'], .round-steps .step-status[data-status='ChangesRequested'] { color: #b06000; }
 .round-steps .step-reason { flex-basis: 100%; margin: 0 0 0 24px; color: #4a5566; font-style: italic; }
 .round-steps .muted, .round-head .muted { color: #6b7686; font-size: 12px; }
+
+.share-summary { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: #4b5563; cursor: pointer; }
+.assistant-off { display: flex; align-items: center; gap: 8px; color: #6b7280; font-size: 14px; padding: 16px; }

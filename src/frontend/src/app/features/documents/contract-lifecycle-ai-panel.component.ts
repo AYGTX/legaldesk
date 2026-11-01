@@ -14,10 +14,11 @@ import { LifecycleService } from '../../core/services/lifecycle.service';
  * Harvey's help across the contract's life: reads the key data (each value with the sentence it comes from, checked
  * word for word) so the term can be applied in one click, and writes a short decision note before the next deadline.
  */
+import { ModelLabelComponent } from '../../shared/components/model-label.component';
 @Component({
   selector: 'sf-contract-lifecycle-ai-panel',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, TranslatePipe],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, ModelLabelComponent, TranslatePipe],
   template: `
     <mat-card class="lc-card">
       <mat-card-header>
@@ -43,6 +44,7 @@ import { LifecycleService } from '../../core/services/lifecycle.service';
 
         @if (terms(); as kt) {
           <h4 class="lc-sub">{{ 'documents.detail.lifecycleAi.keyData' | translate }}</h4>
+          <sf-model-label [label]="kt.label"></sf-model-label>
           @if (kt.terms.length === 0) {
             <p class="lc-muted">{{ 'documents.detail.lifecycleAi.nothingFound' | translate }}</p>
           } @else {
@@ -74,6 +76,7 @@ import { LifecycleService } from '../../core/services/lifecycle.service';
 
         @if (note(); as n) {
           <h4 class="lc-sub">{{ 'documents.detail.lifecycleAi.noteTitle' | translate }}</h4>
+          <sf-model-label [label]="n.label"></sf-model-label>
           <span class="lc-reco" [ngClass]="'reco-' + n.recommendation">
             {{ ('documents.detail.lifecycleAi.reco.' + n.recommendation) | translate }}
           </span>

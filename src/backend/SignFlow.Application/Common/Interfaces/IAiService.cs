@@ -20,6 +20,17 @@ public interface IAiService
     Task<IReadOnlyList<ExtractedTerm>> ExtractKeyTermsAsync(string text, string title, string language, CancellationToken ct = default) =>
         throw new AiNotConfiguredException();
 
+    /// <summary>
+    /// The summary, built clause by clause (R-M12-4): every clause is read, in batches, and each point carries the
+    /// sentence it comes from. Clauses a limit kept from being read are listed, never silently skipped.
+    /// </summary>
+    Task<ClauseSummary> SummarizeClausesAsync(IReadOnlyList<ClauseText> clauses, string title, string language, CancellationToken ct = default) =>
+        throw new AiNotConfiguredException();
+
+    /// <summary>Each changed clause explained in plain words (R-M12-7). Never a risk rating: that is the review's job.</summary>
+    Task<IReadOnlyList<ChangeExplanation>> ExplainChangesAsync(IReadOnlyList<ChangeToExplain> changes, string language, CancellationToken ct = default) =>
+        throw new AiNotConfiguredException();
+
     /// <summary>A short note to decide what to do at the contract's next deadline: renew, renegotiate or terminate.</summary>
     Task<RenewalNote> WriteRenewalNoteAsync(string text, string facts, string language, CancellationToken ct = default) =>
         throw new AiNotConfiguredException();
@@ -31,6 +42,16 @@ public record ExtractedTerm(string Field, string Value, string? Quote);
 
 /// <param name="Recommendation">Renew | Renegotiate | Terminate | Review</param>
 public record RenewalNote(string Recommendation, string Summary, IReadOnlyList<string> Reasons, IReadOnlyList<string> Quotes);
+
+/// <summary>One point of the summary: the clause it is about, the point, and the contract's own words (not yet verified).</summary>
+public record SummaryPoint(string Clause, string Point, string? Quote);
+
+/// <param name="NotRead">Clauses a limit kept from being read (R-M12-4).</param>
+public record ClauseSummary(IReadOnlyList<SummaryPoint> Points, IReadOnlyList<string> NotRead);
+
+public record ChangeToExplain(int Index, string? Previous, string? Current);
+
+public record ChangeExplanation(int Index, string Explanation);
 
 /// <summary>One earlier message of the conversation. Role is "user" or "assistant".</summary>
 public record ChatTurn(string Role, string Content);

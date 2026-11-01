@@ -48,9 +48,10 @@ public class Document : TenantEntity
     public string? WatermarkText { get; private set; }
     public bool HideRecipientIdentities { get; private set; }
 
-    // AI-generated summary (persisted so all parties can read it without re-calling the AI)
-    public string? AiSummary { get; private set; }
-    public DateTime? AiSummaryGeneratedAt { get; private set; }
+    /// <summary>The owner chose, when sending, to let participants read the assistant's summary (R-M12-8).</summary>
+    public bool ShareSummaryWithParticipants { get; private set; }
+
+    public void SetShareSummary(bool share) => ShareSummaryWithParticipants = share;
 
     // Pre-flight review (M8): Harvey's findings on the current version, graded. NotEvaluated until a review of
     // this version has completed (R-M8-5); the scores are computed from the findings, never asked of a model.
@@ -238,9 +239,6 @@ public class Document : TenantEntity
         Hash = hash;
         Version++;
         FinalStoragePath = null;
-        // The cached summary/risk analysis describe the previous file's content
-        AiSummary = null;
-        AiSummaryGeneratedAt = null;
         // The text of the previous file is gone with it; the new file is read again by the intake job.
         TextSource = ContractTextSource.Embedded;
         OcrText = null;
@@ -301,13 +299,6 @@ public class Document : TenantEntity
     public void SetHideRecipientIdentities(bool hide)
     {
         HideRecipientIdentities = hide;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void SetAiSummary(string summary)
-    {
-        AiSummary = summary;
-        AiSummaryGeneratedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 

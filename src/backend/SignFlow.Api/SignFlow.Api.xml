@@ -315,8 +315,11 @@
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.DecideReviewItem(System.Guid,System.Guid,SignFlow.Api.Controllers.V1.DecideReviewItemRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Reviews.DecideReviewItemCommand,SignFlow.Application.Features.Reviews.ReviewDto},System.Threading.CancellationToken)">
             <summary>Accept a finding, mark it not applicable (both with a reason), or reopen it; the verdict is re-graded</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSummary(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
-            <summary>Get an AI-generated plain-English summary of a document</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetSummary(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Assistant.GetContractSummaryQuery,SignFlow.Application.Features.Assistant.ContractSummaryDto},System.Threading.CancellationToken)">
+            <summary>The Harvey assistant's summary of the current version, clause by clause, every point with its verified quote (404 when the assistant is off)</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.ExplainChanges(System.Guid,System.Int32,System.Int32,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Assistant.ExplainChangesCommand,SignFlow.Application.Features.Assistant.ExplainChangesDto},System.Threading.CancellationToken)">
+            <summary>What changed between two versions, explained in plain words by the Harvey assistant (never a risk rating)</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.DownloadVersion(System.Guid,System.Int32,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentVersionFileQuery,SignFlow.Application.Features.Documents.Queries.DocumentVersionFileDto},System.Threading.CancellationToken)">
             <summary>Download a specific version of the contract (as attachment)</summary>
@@ -336,7 +339,7 @@
         <member name="T:SignFlow.Api.Controllers.V1.SendDocumentRequest">
             <param name="Reason">Why the contract goes out with open high-risk findings; required in that case (R-M8-8).</param>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.SendDocumentRequest.#ctor(System.String)">
+        <member name="M:SignFlow.Api.Controllers.V1.SendDocumentRequest.#ctor(System.String,System.Boolean)">
             <param name="Reason">Why the contract goes out with open high-risk findings; required in that case (R-M8-8).</param>
         </member>
         <member name="P:SignFlow.Api.Controllers.V1.SendDocumentRequest.Reason">
@@ -443,6 +446,33 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.NotificationsController.MarkAllRead(System.Threading.CancellationToken)">
             <summary>Mark all notifications as read</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.OrganisationSettingsController">
+            <summary>
+            The organisation's own settings: whether contract text may be sent to the Harvey assistant's model (off by
+            default, D3), and the days before a deadline its alerts go out (R-M10-3).
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.OrganisationSettingsController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Administration.GetOrganisationSettingsQuery,SignFlow.Application.Features.Administration.OrganisationSettingsDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Administration.SetOrganisationSettingsCommand,SignFlow.Application.Features.Administration.OrganisationSettingsDto})">
+            <summary>
+            The organisation's own settings: whether contract text may be sent to the Harvey assistant's model (off by
+            default, D3), and the days before a deadline its alerts go out (R-M10-3).
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.OrganisationSettingsController.Get(System.Threading.CancellationToken)">
+            <summary>The organisation's settings</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.OrganisationSettingsController.Set(SignFlow.Application.Features.Administration.SetOrganisationSettingsCommand,System.Threading.CancellationToken)">
+            <summary>Turn the assistant on or off, and set the alert days</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.AssistantController">
+            <summary>Whether the Harvey assistant is available to the signed-in person's organisation.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AssistantController.#ctor(SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Administration.GetAssistantStatusQuery,SignFlow.Application.Features.Administration.AssistantStatusDto})">
+            <summary>Whether the Harvey assistant is available to the signed-in person's organisation.</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.AssistantController.Status(System.Threading.CancellationToken)">
+            <summary>On or off, and which model</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.PdfTemplatesController">
             <summary>
@@ -662,8 +692,8 @@
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.Approve(System.String,System.Threading.CancellationToken)">
             <summary>Approve, after every required field is filled: advances the circuit</summary>
         </member>
-        <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetSummary(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Documents.Queries.GetDocumentSummaryQuery,SignFlow.Application.Features.Documents.Queries.AiDocumentSummaryDto},System.Threading.CancellationToken)">
-            <summary>A plain-language summary of the contract</summary>
+        <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetSummary(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Assistant.GetSigningSummaryQuery,SignFlow.Application.Features.Assistant.ContractSummaryDto},System.Threading.CancellationToken)">
+            <summary>The assistant's summary, only when the sender shared it with participants (404 otherwise)</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.SigningController.GetComments(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Comments.Queries.GetSigningCommentsQuery,System.Collections.Generic.List{SignFlow.Application.Features.Comments.CommentDto}},System.Threading.CancellationToken)">
             <summary>The contract's comments visible to participants</summary>

@@ -427,6 +427,18 @@
       "once": "This date only",
       "addFailed": "The day could not be added.",
       "deleteFailed": "The day could not be removed."
+    },
+    "orgSettings": {
+      "assistantTitle": "Harvey assistant",
+      "assistantIntro": "When on, the text of your contracts is sent to the model below for summaries, questions, key data, renewal notes and change explanations. Every use is recorded in the contract's audit trail. Off by default.",
+      "assistantToggle": "Turn the assistant on for this organisation",
+      "assistantModel": "Model on this server: {{provider}} · {{model}}",
+      "assistantUnavailable": "No model is configured on this server: the assistant cannot be turned on.",
+      "alertsTitle": "Contract alerts",
+      "alertsIntro": "Days before a contract's notice deadline (else its end date) the alerts go out, separated by commas. The day itself is always included.",
+      "alertsLabel": "Alert days",
+      "saved": "Settings saved",
+      "failed": "The settings could not be saved"
     }
   },
   "auth": {
@@ -916,7 +928,13 @@
         "downloadVersion": "Download v{{version}}",
         "downloadFailed": "That version could not be downloaded.",
         "moved": "moved",
-        "movedHere": "Moved here"
+        "movedHere": "Moved here",
+        "kind": {
+          "Added": "Added",
+          "Removed": "Removed",
+          "Modified": "Modified",
+          "Moved": "Moved"
+        }
       },
       "severityPossible": "To review — possible risks",
       "chat": {
@@ -2874,5 +2892,28 @@
     "secret": "Keep this address private: anyone who has it sees these dates.",
     "revoked": "The calendar address no longer works.",
     "failed": "The calendar address could not be changed."
+  },
+  "assistant": {
+    "label": "Harvey assistant, model-generated",
+    "labelHint": "Written by a language model from the contract text. Every quote was checked word for word against the contract; the rest must be read with care.",
+    "off": "The Harvey assistant is not turned on for your organisation.",
+    "offHint": "The Harvey assistant is off for your organisation. An administrator can turn it on in Administration > System settings.",
+    "limit": "You have reached the number of assistant requests allowed for now. Try again later.",
+    "failed": "The assistant could not answer. Try again.",
+    "shareOnSend": "Show this summary to the participants on the signing page when the contract is sent",
+    "summary": {
+      "empty": "The assistant found no point it could back with a quote from the contract.",
+      "notRead": "{{count}} clause(s) were not read and are not in this summary:",
+      "dropped": "{{count}} point(s) left out because their quote was not found in the contract.",
+      "disclaimer": "A reading aid, not legal advice. The contract itself is what is signed."
+    },
+    "explain": {
+      "run": "Explain the changes",
+      "running": "The assistant is reading the changes…",
+      "title": "What changed from v{{from}} to v{{to}}",
+      "none": "No change could be explained with the exact wording of both versions.",
+      "unexplained": "{{count}} change(s) not explained: read them in the comparison above.",
+      "disclaimer": "An explanation, never a risk rating: the review rates risk."
+    }
   }
 }

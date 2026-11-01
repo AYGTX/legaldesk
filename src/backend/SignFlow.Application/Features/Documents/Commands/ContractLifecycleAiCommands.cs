@@ -23,28 +23,31 @@ public record KeyTermDto(string Field, string Value, string? Quote, bool Verifie
 /// <summary>The term fields LegalDesk tracks, read from the verified values; null when the contract does not state them.</summary>
 public record SuggestedTermDto(DateTime? StartDate, DateTime? EndDate, bool? AutoRenews, int? NoticePeriodDays);
 
-public record KeyTermsDto(IReadOnlyList<KeyTermDto> Terms, SuggestedTermDto Suggested, string Language);
+public record KeyTermsDto(IReadOnlyList<KeyTermDto> Terms, SuggestedTermDto Suggested, string Language, ModelLabelDto? Label = null);
 
 public class ExtractKeyTermsCommandHandler(
     IApplicationDbContext db,
     IContractTextProvider textProvider,
     IAiService aiService,
     ICurrentUserService currentUser,
-    IAuditService auditService)
+    IAuditService auditService,
+    ModelAccess model)
     : ICommandHandler<ExtractKeyTermsCommand, KeyTermsDto>
 {
     public async Task<KeyTermsDto> HandleAsync(ExtractKeyTermsCommand command, CancellationToken cancellationToken = default)
     {
         var (document, text) = await ContractAccess.LoadAsync(db, textProvider, currentUser, command.DocumentId, cancellationToken);
+        await model.BeginAsync(document.Id, currentUser.UserId, null, cancellationToken);
         var language = ContractLanguage.ForAnswer(text, command.Language);
 
         var terms = await ReadAsync(aiService, text, document.Title, language, cancellationToken);
+        await model.RecordAsync(document.Id, "key-terms", text.Length, currentUser.UserId, currentUser.UserEmail, ct: cancellationToken);
 
         await auditService.LogAsync(document.Id, AuditAction.ContractKeyTermsExtracted, "system",
             $"Key data read by Harvey: {terms.Count} value(s) with a verified excerpt",
             currentUser.UserId, actorEmail: currentUser.UserEmail, cancellationToken: cancellationToken);
 
-        return new KeyTermsDto(terms, Suggest(terms), language);
+        return new KeyTermsDto(terms, Suggest(terms), language, model.Label(PromptVersions.KeyTerms));
     }
 
     /// <summary>The key data with a verified excerpt: a value the model cannot point to in the contract, word for word,
@@ -83,14 +86,15 @@ public record WriteRenewalNoteCommand(Guid DocumentId, string Language) : IComma
 
 public record RenewalNoteDto(
     string Recommendation, string Summary, IReadOnlyList<string> Reasons, IReadOnlyList<ChatCitationDto> Citations,
-    LifecycleStage Stage, DateTime? EndDate, DateTime? NoticeDeadline, bool AutoRenews, string Language);
+    LifecycleStage Stage, DateTime? EndDate, DateTime? NoticeDeadline, bool AutoRenews, string Language, ModelLabelDto? Label = null);
 
 public class WriteRenewalNoteCommandHandler(
     IApplicationDbContext db,
     IContractTextProvider textProvider,
     IAiService aiService,
     ICurrentUserService currentUser,
-    IAuditService auditService)
+    IAuditService auditService,
+    ModelAccess model)
     : ICommandHandler<WriteRenewalNoteCommand, RenewalNoteDto>
 {
     private static readonly string[] Recommendations = ["Renew", "Renegotiate", "Terminate", "Review"];
@@ -101,6 +105,7 @@ public class WriteRenewalNoteCommandHandler(
         var term = await db.ContractTerms.AsNoTracking().FirstOrDefaultAsync(t => t.DocumentId == document.Id, cancellationToken);
         if (term?.CurrentEndDate is null)
             throw new ValidationException("Record the contract's end date first: the note is about its next deadline.");
+        await model.BeginAsync(document.Id, currentUser.UserId, null, cancellationToken);
         var obligations = await db.Obligations.AsNoTracking()
             .Where(o => o.DocumentId == document.Id && o.Confirmed && o.Status == ObligationStatus.Upcoming)
             .OrderBy(o => o.DueDate).Take(5).ToListAsync(cancellationToken);
@@ -118,7 +123,9 @@ public class WriteRenewalNoteCommandHandler(
             .OrderBy(r => ReviewGrading.Rank(r.Severity))
             .Take(8)
             .Select(r => $"{r.Title} ({r.Severity}{(r.ClauseReference is null ? "" : $", {r.ClauseReference}")})");
-        var note = await aiService.WriteRenewalNoteAsync(text, Facts(term, status, obligations, risks), language, cancellationToken);
+        var facts = Facts(term, status, obligations, risks);
+        var note = await aiService.WriteRenewalNoteAsync(text, facts, language, cancellationToken);
+        await model.RecordAsync(document.Id, "renewal-note", text.Length + facts.Length, currentUser.UserId, currentUser.UserEmail, ct: cancellationToken);
         var citations = note.Quotes.Where(q => !string.IsNullOrWhiteSpace(q)).Select(q => q.Trim()).Distinct().Take(4)
             .Select(q => new ChatCitationDto(q, QuoteMatcher.IsVerbatim(text, q))).Where(c => c.Verified).ToList();
         var recommendation = Recommendations.FirstOrDefault(r => r.Equals(note.Recommendation?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? "Review";
@@ -128,7 +135,7 @@ public class WriteRenewalNoteCommandHandler(
             currentUser.UserId, actorEmail: currentUser.UserEmail, cancellationToken: cancellationToken);
 
         return new RenewalNoteDto(recommendation, note.Summary, note.Reasons.Take(5).ToList(), citations,
-            status.Stage, term.CurrentEndDate, status.NoticeDeadline, term.RenewalMode == RenewalMode.Automatic, language);
+            status.Stage, term.CurrentEndDate, status.NoticeDeadline, term.RenewalMode == RenewalMode.Automatic, language, model.Label(PromptVersions.RenewalNote));
     }
 
     /// <summary>What LegalDesk knows for certain, given to the model as facts it must not contradict.</summary>

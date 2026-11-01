@@ -32,6 +32,7 @@ import { WorkflowTypeToggleComponent } from '../../shared/workflow-type-toggle/w
 import { ApprovalPathSummaryComponent } from '../../shared/approval-path-summary/approval-path-summary.component';
 import { buildApprovalPath } from '../pdf-templates/approval-path.util';
 import { lintTemplate } from './template-lint';
+import { AssistantService } from '../../core/services/assistant.service';
 
 const WORKFLOW_TYPES: { value: WorkflowType; labelKey: string }[] = [
   { value: 'Sequential', labelKey: 'designer.workflow.sequential' },
@@ -85,10 +86,12 @@ interface EditorSnapshot { html: string; fields: HtmlTemplateFieldInput[]; }
           <input class="title-input" [(ngModel)]="name" [placeholder]="'htmlTemplateEditor.namePlaceholder' | translate" />
         </div>
         <div class="top-actions">
+          @if (assistant.enabled()) {
           <button mat-stroked-button class="ai-btn" (click)="aiPanelOpen.set(true)">
             <span class="material-symbols-outlined ai-icon">auto_awesome</span>
             {{ 'htmlTemplateEditor.generateWithAi' | translate }}
           </button>
+          }
           <button mat-stroked-button (click)="togglePreview()">
             <mat-icon>{{ previewing() ? 'edit' : 'preview' }}</mat-icon>
             {{ previewing() ? ('common.edit' | translate) : ('htmlTemplateEditor.preview' | translate) }}
@@ -598,6 +601,7 @@ interface EditorSnapshot { html: string; fields: HtmlTemplateFieldInput[]; }
   `]
 })
 export class HtmlTemplateEditorComponent implements OnInit {
+  readonly assistant = inject(AssistantService);
   @ViewChild('htmlEditor') htmlEditorRef?: ElementRef<HTMLTextAreaElement>;
 
   private readonly svc = inject(HtmlTemplateService);

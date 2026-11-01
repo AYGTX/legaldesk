@@ -4,6 +4,7 @@ namespace SignFlow.Infrastructure.Services.Ai.Llm;
 public class NoLlmProvider : ILlmProvider
 {
     public string Name => "None";
+    public string ModelName => "none";
     public bool IsConfigured => false;
     public int AnalysisMaxInputChars => 0;
 

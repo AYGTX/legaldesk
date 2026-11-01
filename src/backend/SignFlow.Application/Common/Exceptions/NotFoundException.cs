@@ -7,4 +7,9 @@ public class NotFoundException : Exception
 
     public NotFoundException(string message)
         : base(message) { }
+
+    /// <summary>A stable code the client can act on ("model.off"), when the refusal has one.</summary>
+    public string? Code { get; private init; }
+
+    public static NotFoundException WithCode(string code, string message) => new(message) { Code = code };
 }

@@ -196,7 +196,7 @@ public class DocumentsController(
         [FromBody] SendDocumentRequest? request,
         CancellationToken ct)
     {
-        await sendHandler.HandleAsync(new SendDocumentCommand(id, request?.Reason), ct);
+        await sendHandler.HandleAsync(new SendDocumentCommand(id, request?.Reason, request?.ShareSummary ?? false), ct);
         return NoContent();
     }
 
@@ -367,18 +367,27 @@ public class DocumentsController(
         CancellationToken ct)
         => Ok(await handler.HandleAsync(new DecideReviewItemCommand(id, itemId, request.Status, request.Reason), ct));
 
-    /// <summary>Get an AI-generated plain-English summary of a document</summary>
+    /// <summary>The Harvey assistant's summary of the current version, clause by clause, every point with its verified quote (404 when the assistant is off)</summary>
     [HttpGet("{id:guid}/summary")]
-    [ProducesResponseType(typeof(AiDocumentSummaryDto), 200)]
+    [ProducesResponseType(typeof(SignFlow.Application.Features.Assistant.ContractSummaryDto), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 404)]
-    public async Task<ActionResult<AiDocumentSummaryDto>> GetSummary(
+    [ProducesResponseType(typeof(ProblemDetails), 429)]
+    public async Task<ActionResult<SignFlow.Application.Features.Assistant.ContractSummaryDto>> GetSummary(
         [FromRoute] Guid id,
-        [FromServices] IQueryHandler<GetDocumentSummaryQuery, AiDocumentSummaryDto> summaryHandler,
+        [FromServices] IQueryHandler<SignFlow.Application.Features.Assistant.GetContractSummaryQuery, SignFlow.Application.Features.Assistant.ContractSummaryDto> summaryHandler,
         CancellationToken ct)
-    {
-        var result = await summaryHandler.HandleAsync(new GetDocumentSummaryQuery(id), ct);
-        return Ok(result);
-    }
+        => Ok(await summaryHandler.HandleAsync(new SignFlow.Application.Features.Assistant.GetContractSummaryQuery(id), ct));
+
+    /// <summary>What changed between two versions, explained in plain words by the Harvey assistant (never a risk rating)</summary>
+    [HttpPost("{id:guid}/versions/explain")]
+    [ProducesResponseType(typeof(SignFlow.Application.Features.Assistant.ExplainChangesDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 429)]
+    public async Task<ActionResult<SignFlow.Application.Features.Assistant.ExplainChangesDto>> ExplainChanges(
+        [FromRoute] Guid id, [FromQuery] int from, [FromQuery] int to,
+        [FromServices] ICommandHandler<SignFlow.Application.Features.Assistant.ExplainChangesCommand, SignFlow.Application.Features.Assistant.ExplainChangesDto> handler,
+        CancellationToken ct)
+        => Ok(await handler.HandleAsync(new SignFlow.Application.Features.Assistant.ExplainChangesCommand(id, from, to), ct));
 
     /// <summary>Download a specific version of the contract (as attachment)</summary>
     [HttpGet("{id:guid}/versions/{versionNumber:int}/download")]
@@ -469,7 +478,7 @@ public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);
 
 
 /// <param name="Reason">Why the contract goes out with open high-risk findings; required in that case (R-M8-8).</param>
-public record SendDocumentRequest(string? Reason = null);
+public record SendDocumentRequest(string? Reason = null, bool ShareSummary = false);
 
 public record DecideReviewItemRequest(ReadinessItemStatus Status, string? Reason);
 

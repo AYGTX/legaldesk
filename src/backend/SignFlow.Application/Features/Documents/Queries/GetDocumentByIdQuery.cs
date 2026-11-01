@@ -33,8 +33,7 @@ public record DocumentDetailDto(
     string? RequestTypeName,
     string? RequestTypeIcon,
     string? RequestTypeColor,
-    string? AiSummary,
-    DateTime? AiSummaryGeneratedAt,
+    bool ShareSummaryWithParticipants,
     // Review verdict and scores of the current version, threaded through so the detail page's band renders in the
     // same round-trip. The findings themselves come from GET reviews/latest.
     ReadinessVerdict ReadinessVerdict,
@@ -130,8 +129,7 @@ public class GetDocumentByIdQueryHandler(
             document.RequestType != null ? document.RequestType.Name : null,
             document.RequestType != null ? document.RequestType.Icon : null,
             document.RequestType != null ? document.RequestType.Color : null,
-            document.AiSummary,
-            document.AiSummaryGeneratedAt,
+            document.ShareSummaryWithParticipants,
             document.ReadinessVerdict,
             document.ReadinessScore,
             document.RiskScore,

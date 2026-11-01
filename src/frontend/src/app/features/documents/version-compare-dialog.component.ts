@@ -10,7 +10,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
-import { ClauseDiff, DocumentVersionInfo, VersionComparison } from '../../core/models';
+import { ClauseDiff, DocumentVersionInfo, ExplainChanges, VersionComparison } from '../../core/models';
+import { AssistantService, assistantErrorKey } from '../../core/services/assistant.service';
+import { ModelLabelComponent } from '../../shared/components/model-label.component';
 
 export interface VersionCompareDialogData {
   documentId: string;
@@ -31,7 +33,7 @@ export interface VersionCompareDialogData {
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatButtonModule, MatIconModule,
-    MatSelectModule, MatFormFieldModule, MatSlideToggleModule, MatProgressSpinnerModule, TranslatePipe
+    MatSelectModule, MatFormFieldModule, MatSlideToggleModule, MatProgressSpinnerModule, ModelLabelComponent, TranslatePipe
   ],
   template: `
     <h2 mat-dialog-title class="compare-title">
@@ -102,6 +104,37 @@ export interface VersionCompareDialogData {
           <mat-slide-toggle [ngModel]="changesOnly()" (ngModelChange)="changesOnly.set($event)" class="compare-toggle">
             {{ 'documents.detail.compare.changesOnly' | translate }}
           </mat-slide-toggle>
+
+          <!-- The Harvey assistant explains the changes in plain words (R-M12-7); it never rates them. -->
+          @if (assistant.enabled()) {
+            <div class="explain">
+              @if (!explanation()) {
+                <button mat-stroked-button (click)="explain()" [disabled]="explaining()">
+                  <mat-icon>auto_awesome</mat-icon> {{ 'assistant.explain.run' | translate }}
+                </button>
+                @if (explaining()) { <span class="compare-hint">{{ 'assistant.explain.running' | translate }}</span> }
+                @if (explainError()) { <span class="compare-error-inline">{{ explainError()! | translate }}</span> }
+              } @else {
+                @let e = explanation()!;
+                <h4 class="explain-title">{{ 'assistant.explain.title' | translate: { from: e.from, to: e.to } }}</h4>
+                <sf-model-label [label]="e.label"></sf-model-label>
+                @for (c of e.changes; track $index) {
+                  <div class="explain-item">
+                    <span class="explain-kind">{{ ('documents.detail.compare.kind.' + c.change) | translate }}</span>
+                    <p class="explain-text">{{ c.explanation }}</p>
+                    @if (c.previousQuote) { <blockquote class="explain-quote">v{{ e.from }} « {{ c.previousQuote }} »</blockquote> }
+                    @if (c.currentQuote) { <blockquote class="explain-quote">v{{ e.to }} « {{ c.currentQuote }} »</blockquote> }
+                  </div>
+                } @empty {
+                  <p class="compare-hint">{{ 'assistant.explain.none' | translate }}</p>
+                }
+                @if (e.unexplained > 0) {
+                  <p class="compare-hint">{{ 'assistant.explain.unexplained' | translate: { count: e.unexplained } }}</p>
+                }
+                <p class="compare-hint">{{ 'assistant.explain.disclaimer' | translate }}</p>
+              }
+            </div>
+          }
         }
 
         <div class="clause-list">
@@ -154,6 +187,14 @@ export interface VersionCompareDialogData {
     .picker-arrow { color: #5f6368; }
 
     .compare-hint { color: #5f6368; font-size: 13px; margin: 4px 0; }
+    .explain { margin: 12px 0; padding: 12px; border: 1px solid #ede9fe; border-radius: 8px; background: #faf9ff; }
+    .explain button mat-icon { color: #7c4dff; }
+    .explain-title { margin: 0 0 4px; font-size: 14px; }
+    .explain-item { margin: 10px 0; }
+    .explain-kind { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #6b7280; }
+    .explain-text { margin: 2px 0 4px; font-size: 14px; }
+    .explain-quote { margin: 2px 0; padding: 4px 8px; border-left: 3px solid #c4b5fd; font-size: 12px; color: #4b5563; font-style: italic; }
+    .compare-error-inline { color: #b3261e; font-size: 13px; margin-left: 8px; }
     .compare-error {
       display: flex; align-items: center; gap: 8px; margin: 8px 0;
       padding: 10px 12px; border-radius: 8px; background: #fce8e6; color: #c5221f; font-size: 13px;
@@ -202,6 +243,10 @@ export class VersionCompareDialogComponent {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly result = signal<VersionComparison | null>(null);
+  readonly assistant = inject(AssistantService);
+  readonly explanation = signal<ExplainChanges | null>(null);
+  readonly explaining = signal(false);
+  readonly explainError = signal<string | null>(null);
 
   // Signals rather than plain fields: `sameVersion` and `visibleClauses` below are computed, and a
   // computed with no signal dependencies caches on first render and never recomputes.
@@ -241,6 +286,7 @@ export class VersionCompareDialogComponent {
   /** A stale redline beside freshly chosen versions is worse than none — clear it on change. */
   onSelectionChange(): void {
     this.result.set(null);
+    this.explanation.set(null);
     this.error.set(null);
   }
 
@@ -259,6 +305,18 @@ export class VersionCompareDialogComponent {
         this.error.set(err.error?.detail ?? this.translate.instant('documents.detail.compare.failed'));
         this.loading.set(false);
       }
+    });
+  }
+
+  /** Plain-words explanation of the changes between the two versions picked; stored on the server per pair. */
+  explain(): void {
+    const r = this.result();
+    if (!r) return;
+    this.explaining.set(true);
+    this.explainError.set(null);
+    this.assistant.explain(this.data.documentId, r.fromVersion, r.toVersion).subscribe({
+      next: e => { this.explanation.set(e); this.explaining.set(false); },
+      error: err => { this.explainError.set(assistantErrorKey(err)); this.explaining.set(false); }
     });
   }
 }

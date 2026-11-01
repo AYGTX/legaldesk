@@ -12,6 +12,8 @@ public abstract class OpenAiCompatibleProvider(IHttpClientFactory httpFactory, I
     public const string AnalysisClient = "llm-analysis";
 
     public abstract string Name { get; }
+
+    public string ModelName => ModelFor(LlmTask.Quick);
     public abstract bool IsConfigured { get; }
     public abstract int AnalysisMaxInputChars { get; }
 

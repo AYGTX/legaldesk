@@ -130,16 +130,17 @@ public class SigningController(
         return Ok(await approveHandler.HandleAsync(new ApproveSigningCommand(context.Recipient.Id, Ip, UserAgent, context.Session?.UserId), ct));
     }
 
-    /// <summary>A plain-language summary of the contract</summary>
+    /// <summary>The assistant's summary, only when the sender shared it with participants (404 otherwise)</summary>
     [HttpGet("{token}/summary")]
-    [ProducesResponseType(typeof(AiDocumentSummaryDto), 200)]
-    public async Task<ActionResult<AiDocumentSummaryDto>> GetSummary(
+    [ProducesResponseType(typeof(SignFlow.Application.Features.Assistant.ContractSummaryDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    public async Task<ActionResult<SignFlow.Application.Features.Assistant.ContractSummaryDto>> GetSummary(
         [FromRoute] string token,
-        [FromServices] IQueryHandler<GetDocumentSummaryQuery, AiDocumentSummaryDto> summaryHandler,
+        [FromServices] IQueryHandler<SignFlow.Application.Features.Assistant.GetSigningSummaryQuery, SignFlow.Application.Features.Assistant.ContractSummaryDto> summaryHandler,
         CancellationToken ct)
     {
         var context = await Gate(token, SigningNeed.View, ct);
-        return Ok(await summaryHandler.HandleAsync(new GetDocumentSummaryQuery(context.Document.Id), ct));
+        return Ok(await summaryHandler.HandleAsync(new SignFlow.Application.Features.Assistant.GetSigningSummaryQuery(context.Recipient.Id), ct));
     }
 
     /// <summary>The contract's comments visible to participants</summary>

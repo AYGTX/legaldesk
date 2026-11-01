@@ -17,6 +17,9 @@ public interface ILlmProvider
 {
     string Name { get; }
 
+    /// <summary>The model that answers ordinary requests, named in the audit and on every output (R-M12-2, R-M12-3).</summary>
+    string ModelName { get; }
+
     /// <summary>False when no model is configured — callers then use the rules-based paths.</summary>
     bool IsConfigured { get; }
 

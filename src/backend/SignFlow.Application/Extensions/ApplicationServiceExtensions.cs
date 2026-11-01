@@ -81,6 +81,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IContractReviewService, ContractReviewService>();
         services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
         services.AddScoped<ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult>, ReviseFromTemplateCommandHandler>();
+        // Contract assistant guard (M12)
+        services.AddScoped<SignFlow.Application.Common.Services.ModelAccess>();
+
         // Lifecycle (M10)
         services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.IssueCalendarTokenCommand, string>, SignFlow.Application.Features.Lifecycle.IssueCalendarTokenCommandHandler>();
         services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.RevokeCalendarTokenCommand>, SignFlow.Application.Features.Lifecycle.RevokeCalendarTokenCommandHandler>();
@@ -122,7 +125,13 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IQueryHandler<GetDocumentsQuery, PagedResult<DocumentSummaryDto>>, GetDocumentsQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentByIdQuery, DocumentDetailDto>, GetDocumentByIdQueryHandler>();
         services.AddScoped<IQueryHandler<GetDashboardQuery, DashboardDto>, GetDashboardQueryHandler>();
-        services.AddScoped<IQueryHandler<GetDocumentSummaryQuery, AiDocumentSummaryDto>, GetDocumentSummaryQueryHandler>();
+        services.AddScoped<SignFlow.Application.Features.Assistant.ContractSummaries>();
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Administration.GetOrganisationSettingsQuery, SignFlow.Application.Features.Administration.OrganisationSettingsDto>, SignFlow.Application.Features.Administration.GetOrganisationSettingsQueryHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Administration.SetOrganisationSettingsCommand, SignFlow.Application.Features.Administration.OrganisationSettingsDto>, SignFlow.Application.Features.Administration.SetOrganisationSettingsCommandHandler>();
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Administration.GetAssistantStatusQuery, SignFlow.Application.Features.Administration.AssistantStatusDto>, SignFlow.Application.Features.Administration.GetAssistantStatusQueryHandler>();
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Assistant.GetContractSummaryQuery, SignFlow.Application.Features.Assistant.ContractSummaryDto>, SignFlow.Application.Features.Assistant.GetContractSummaryQueryHandler>();
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Assistant.GetSigningSummaryQuery, SignFlow.Application.Features.Assistant.ContractSummaryDto>, SignFlow.Application.Features.Assistant.GetSigningSummaryQueryHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Assistant.ExplainChangesCommand, SignFlow.Application.Features.Assistant.ExplainChangesDto>, SignFlow.Application.Features.Assistant.ExplainChangesCommandHandler>();
         services.AddScoped<IQueryHandler<GetTemplateRevisionFormQuery, TemplateRevisionFormDto>, GetTemplateRevisionFormQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentVersionFileQuery, DocumentVersionFileDto>, GetDocumentVersionFileQueryHandler>();
         services.AddScoped<IQueryHandler<GetDocumentDocxQuery, DocumentDocxDto>, GetDocumentDocxQueryHandler>();

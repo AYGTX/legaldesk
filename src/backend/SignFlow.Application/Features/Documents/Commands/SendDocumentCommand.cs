@@ -11,7 +11,8 @@ namespace SignFlow.Application.Features.Documents.Commands;
 /// Starts the validation circuit, behind the review gate (R-M8-8). <paramref name="Reason"/> is the owner's reason for
 /// sending with an open High finding; it is kept in the audit trail. A Critical finding is never forceable.
 /// </summary>
-public record SendDocumentCommand(Guid DocumentId, string? Reason = null) : ICommand;
+/// <param name="ShareSummary">Show the Harvey assistant's summary to the participants on the signing page (R-M12-8).</param>
+public record SendDocumentCommand(Guid DocumentId, string? Reason = null, bool ShareSummary = false) : ICommand;
 
 public class SendDocumentCommandValidator : AbstractValidator<SendDocumentCommand>
 {
@@ -43,6 +44,7 @@ public class SendDocumentCommandHandler(
             throw new ConflictException("Document must have at least one recipient before sending.");
 
         var reason = EnforceReviewGate(document, command.Reason);
+        document.SetShareSummary(command.ShareSummary);
 
         await workflowEngine.StartAsync(document.Id, cancellationToken);
 

@@ -1,3 +1,4 @@
+using SignFlow.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -82,6 +83,8 @@ public sealed class ScenarioFixture : IDisposable
             sp.GetRequiredService<IVirusScanService>(), NullLogger<PdfUploadGuard>.Instance));
         services.AddSingleton<IAuditService, NullAuditService>();
         services.AddSingleton<IAiService, NullAiService>();
+        services.AddSingleton<IModelInfo>(new FakeModelInfo());
+        services.AddScoped<ModelAccess>();
         services.AddSingleton<ICurrentUserService>(new FakeCurrentUserService(ownerId, ownerEmail));
 
         // Command handlers
@@ -162,6 +165,20 @@ public sealed class ScenarioFixture : IDisposable
     public FixedTextProvider Text { get; } = new();
 
     public T GetHandler<T>() where T : notnull => _provider.GetRequiredService<T>();
+
+    /// <summary>The organisation of the scenario, with the contract assistant on (or off).</summary>
+    public async Task SetModelAsync(bool on)
+    {
+        var db = (ApplicationDbContext)Db;
+        var organisation = await db.Organisations.FirstOrDefaultAsync(o => o.Id == OrganisationId);
+        if (organisation is null)
+        {
+            organisation = Organisation.Create("Org", "org-" + OrganisationId.ToString("N")[..8], OrganisationId);
+            db.Organisations.Add(organisation);
+        }
+        organisation.SetModelMode(on ? ModelMode.Groq : ModelMode.Off);
+        await db.SaveChangesAsync();
+    }
 
     /// <summary>Runs Harvey's review of the contract's current version to the end, as the API and its job would.</summary>
     public async Task<ReviewDto> ReviewAsync(Guid documentId)

@@ -82,8 +82,8 @@ export class ReviewService {
    * Sends the contract through the review gate (R-M8-8). With open high-risk findings the API asks for a reason: the
    * reader is asked for one and the send is retried with it. Emits true when sent, false when the reader cancelled.
    */
-  send(documentId: string, reason?: string): Observable<boolean> {
-    return this.documents.send(documentId, reason).pipe(
+  send(documentId: string, reason?: string, shareSummary = false): Observable<boolean> {
+    return this.documents.send(documentId, reason, shareSummary).pipe(
       map(() => true),
       catchError(err => {
         const errors = err.error?.errors as Record<string, string[]> | undefined;
@@ -94,7 +94,7 @@ export class ReviewService {
             inputLabel: this.translate.instant('shared.review.send.reasonLabel'),
             inputType: 'textarea',
             confirmLabel: this.translate.instant('shared.review.send.reasonConfirm')
-          }).pipe(switchMap(given => given?.trim() ? this.send(documentId, given.trim()) : of(false)));
+          }).pipe(switchMap(given => given?.trim() ? this.send(documentId, given.trim(), shareSummary) : of(false)));
         }
         if (errors?.['readiness']) return throwError(() => new ReviewError(this.translate.instant('shared.review.send.blocked'), 'readiness'));
         if (errors?.['readinessRequired']) return throwError(() => new ReviewError(this.translate.instant('shared.review.send.required'), 'readinessRequired'));

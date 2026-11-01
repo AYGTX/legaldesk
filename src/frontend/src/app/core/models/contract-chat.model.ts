@@ -24,4 +24,5 @@ export interface AskContractReply {
   /** False when no excerpt checked out: the answer is a lead to verify, not something the contract is shown to say. */
   grounded: boolean;
   language: string;
+  label?: import('./assistant.models').ModelLabel;
 }

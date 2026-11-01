@@ -361,6 +361,109 @@ public class LlmAiService(
         }
     }
 
+    // ---------------------------------------------------------------------------------------
+    // Summary, clause by clause (R-M12-4), and the negotiation explainer (R-M12-7)
+    // ---------------------------------------------------------------------------------------
+
+    /// <summary>One batch of clauses per call; past this many calls, the remaining clauses are reported as not read.</summary>
+    private const int SummaryBatchChars = 6_000;
+    private const int SummaryMaxBatches = 40;
+
+    private const string SummaryMapSystemPrompt = """
+        You summarise part of ONE contract for the person who must sign or manage it. You receive a batch of its
+        clauses, each introduced by [clause: reference]. For each clause that says something that matters (a party's
+        obligation, a price, a date, a duration, a renewal, a notice, a liability, a termination right, a penalty),
+        write one short, neutral point in plain words, and copy word for word the sentence of the clause it rests on.
+        Skip clauses with nothing that matters (titles, definitions without consequence). Never invent, never
+        give advice, never rate risk.
+        Reply with JSON only: {"points":[{"clause":"reference","point":"…","quote":"exact sentence"}]}
+        """;
+
+    public async Task<ClauseSummary> SummarizeClausesAsync(IReadOnlyList<ClauseText> clauses, string title, string language, CancellationToken ct = default)
+    {
+        if (!llm.IsConfigured) throw new AiNotConfiguredException();
+
+        var batches = new List<List<ClauseText>>();
+        var current = new List<ClauseText>();
+        var size = 0;
+        foreach (var clause in clauses)
+        {
+            var text = clause.Text.Length > SummaryBatchChars ? clause.Text[..SummaryBatchChars] : clause.Text;
+            if (size + text.Length > SummaryBatchChars && current.Count > 0)
+            {
+                batches.Add(current);
+                current = [];
+                size = 0;
+            }
+            current.Add(clause with { Text = text });
+            size += text.Length;
+        }
+        if (current.Count > 0) batches.Add(current);
+
+        var read = batches.Take(SummaryMaxBatches).ToList();
+        var notRead = batches.Skip(SummaryMaxBatches).SelectMany(b => b).Select(c => c.Reference).ToList();
+        var points = new List<SummaryPoint>();
+        foreach (var batch in read)
+        {
+            var body = string.Join("\n\n", batch.Select(c => $"[clause: {c.Reference}]\n{c.Text}"));
+            var user = $"Contract title: {title}\nWrite the points in: {(language == "en" ? "English" : "French")}\n<clauses>\n{body}\n</clauses>";
+            string content;
+            try { content = await ChatAsync(SummaryMapSystemPrompt, user, LlmTask.Analysis, 0.1, ct, maxTokens: 1500); }
+            catch (HttpRequestException ex)
+            {
+                logger.LogWarning(ex, "Summary batch failed; retrying once");
+                content = await ChatAsync(SummaryMapSystemPrompt, user, LlmTask.Analysis, 0.1, ct, maxTokens: 1500);
+            }
+            try
+            {
+                using var doc = JsonDocument.Parse(StripCodeFences(content));
+                if (doc.RootElement.TryGetProperty("points", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                    points.AddRange(arr.EnumerateArray()
+                        .Select(p => new SummaryPoint(Str(p, "clause"), Str(p, "point"), Str(p, "quote") is { Length: > 0 } q ? q : null))
+                        .Where(p => p.Point.Length > 0));
+            }
+            catch (JsonException)
+            {
+                // A batch the model answered badly yields no point: its clauses are not shown as summarised.
+                notRead.AddRange(batch.Select(c => c.Reference));
+                logger.LogWarning("A summary batch was not valid JSON; its {Count} clause(s) are reported as not read", batch.Count);
+            }
+        }
+        return new ClauseSummary(points, notRead);
+    }
+
+    private const string ExplainerSystemPrompt = """
+        You explain to a non-lawyer what changed between two versions of the same contract. For each numbered change
+        you receive the previous wording and the new wording (one of them may be missing: a clause added or removed).
+        Explain in one or two plain sentences what is different in practice. Do not judge whether the change is good
+        or risky, do not recommend anything, do not quote anything not in the two wordings.
+        Reply with JSON only: {"changes":[{"index":0,"explanation":"…"}]}
+        """;
+
+    public async Task<IReadOnlyList<ChangeExplanation>> ExplainChangesAsync(IReadOnlyList<ChangeToExplain> changes, string language, CancellationToken ct = default)
+    {
+        if (!llm.IsConfigured) throw new AiNotConfiguredException();
+        if (changes.Count == 0) return [];
+        var body = string.Join("\n\n", changes.Select(c =>
+            $"[change {c.Index}]\nPREVIOUS: {Cap(c.Previous) ?? "(none: clause added)"}\nNEW: {Cap(c.Current) ?? "(none: clause removed)"}"));
+        var user = $"Explain in: {(language == "en" ? "English" : "French")}\n<changes>\n{body}\n</changes>";
+        var content = await ChatAsync(ExplainerSystemPrompt, user, LlmTask.Analysis, 0.1, ct, maxTokens: 2000);
+        try
+        {
+            using var doc = JsonDocument.Parse(StripCodeFences(content));
+            if (!doc.RootElement.TryGetProperty("changes", out var arr) || arr.ValueKind != JsonValueKind.Array) return [];
+            return [.. arr.EnumerateArray()
+                .Select(c => new ChangeExplanation(c.TryGetProperty("index", out var i) && i.TryGetInt32(out var n) ? n : -1, Str(c, "explanation")))
+                .Where(c => c.Index >= 0 && c.Explanation.Length > 0)];
+        }
+        catch (JsonException)
+        {
+            throw new AiResponseUnusableException("The explanation could not be read.");
+        }
+
+        static string? Cap(string? s) => s is null ? null : s.Length > 2_500 ? s[..2_500] + "…" : s;
+    }
+
     private static string Str(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) ? v.ValueKind switch
         {

@@ -23,6 +23,9 @@ import { ReviewGateComponent } from '../../shared/review-gate/review-gate.compon
 import { ConfirmService } from '../../core/services/confirm.service';
 import { SigningSession, AssignedField, FilledField, SignatureType, ChecklistItemInfo, SigningIntro } from '../../core/models';
 import { SignatureDialogComponent } from './signature-dialog.component';
+import { AssistantService } from '../../core/services/assistant.service';
+import { AssistantSummaryComponent } from '../../shared/components/assistant-summary.component';
+import { ContractSummary } from '../../core/models/assistant.models';
 import { WorkflowVisualizerComponent } from '../../shared/workflow-visualizer/workflow-visualizer.component';
 import { CommentsPanelComponent } from '../../shared/comments-panel/comments-panel.component';
 import { remainingTime, RemainingTime } from '../../core/utils/sla';
@@ -36,7 +39,7 @@ import { environment } from '../../../environments/environment';
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatDialogModule, MatFormFieldModule, MatInputModule,
     MatStepperModule, MatChipsModule, MatTooltipModule, MatSnackBarModule,
-    WorkflowVisualizerComponent, CommentsPanelComponent, ReviewGateComponent, TranslatePipe
+    WorkflowVisualizerComponent, CommentsPanelComponent, ReviewGateComponent, AssistantSummaryComponent, TranslatePipe
   ],
   template: `
     <div class="signing-layout">
@@ -196,6 +199,8 @@ import { environment } from '../../../environments/environment';
 
               <div class="summary-divider"></div>
 
+              <!-- Only when the sender shared the assistant's summary (R-M12-8) -->
+              @if (summaryLoading() || summary()) {
               <div class="summary-body">
                 <h2 class="summary-section-title">
                   <mat-icon>auto_awesome</mat-icon>
@@ -209,11 +214,10 @@ import { environment } from '../../../environments/environment';
                     <div class="skeleton-line w70"></div>
                   </div>
                 } @else if (summary()) {
-                  <p class="summary-text">{{ summary() }}</p>
-                } @else {
-                  <p class="summary-unavailable">{{ 'signing.summary.unavailable' | translate }}</p>
+                  <sf-assistant-summary [summary]="summary()!"></sf-assistant-summary>
                 }
               </div>
+              }
 
               @if (session()!.message) {
                 <div class="summary-message">
@@ -606,7 +610,8 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly reviewMode = signal(false);
   readonly approving = signal(false);
   readonly signingStep = signal<'summary' | 'signing'>('summary');
-  readonly summary = signal<string | null>(null);
+  readonly summary = signal<ContractSummary | null>(null);
+  private readonly assistant = inject(AssistantService);
   readonly summaryLoading = signal(true);
   readonly downloading = signal(false);
   // The e-mailed code step (R-M5-3).
@@ -796,15 +801,11 @@ export class SigningComponent implements OnInit, AfterViewInit, OnDestroy {
         this.session.set(s);
         this.loading.set(false);
         if (!s.isCompleted && !s.isRejected && !s.isExpired && s.isMyTurn) {
-          // HTML template docs have no PDF — skip AI summary fetch
-          if (!s.isHtmlTemplate) {
-            this.signingService.getDocumentSummary(this.token).subscribe({
-              next: res => { this.summary.set(res.summary); this.summaryLoading.set(false); },
-              error: () => this.summaryLoading.set(false)
-            });
-          } else {
-            this.summaryLoading.set(false);
-          }
+          // 404 when the sender did not share the summary, or the assistant is off: the section is then not shown.
+          this.assistant.signingSummary(this.token).subscribe({
+            next: res => { this.summary.set(res); this.summaryLoading.set(false); },
+            error: () => this.summaryLoading.set(false)
+          });
           const firstUnsigned = s.fields.find(f => !f.isSigned);
           if (firstUnsigned) this.currentFieldId.set(firstUnsigned.id);
         }

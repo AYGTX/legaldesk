@@ -21,7 +21,8 @@ public record ChatCitationDto(string Quote, bool Verified);
 
 /// <param name="Grounded">False when the model gave no excerpt that checks out: the answer is then a lead to verify, not
 /// something the contract is shown to say.</param>
-public record ContractChatReplyDto(string Answer, IReadOnlyList<ChatCitationDto> Citations, bool Grounded, string Language);
+public record ContractChatReplyDto(string Answer, IReadOnlyList<ChatCitationDto> Citations, bool Grounded, string Language,
+    ModelLabelDto? Label = null);
 
 public class AskContractQuestionCommandHandler(
     IApplicationDbContext db,
@@ -29,6 +30,7 @@ public class AskContractQuestionCommandHandler(
     IAiService aiService,
     ICurrentUserService currentUser,
     IAuditService auditService,
+    ModelAccess model,
     ILogger<AskContractQuestionCommandHandler> logger)
     : ICommandHandler<AskContractQuestionCommand, ContractChatReplyDto>
 {
@@ -48,6 +50,7 @@ public class AskContractQuestionCommandHandler(
 
         if (!currentUser.Can(Permissions.ManageAllContracts) && document.OwnerId != currentUser.UserId)
             throw new ForbiddenAccessException();
+        await model.BeginAsync(document.Id, currentUser.UserId, null, cancellationToken);
 
         // Only the last few turns, only user/assistant roles, each capped: the client is not trusted with the prompt.
         var history = (command.History ?? [])
@@ -63,6 +66,8 @@ public class AskContractQuestionCommandHandler(
         var language = ContractLanguage.ForAnswer(text, command.Language);
 
         var answer = await aiService.AnswerQuestionAsync(text, document.Title, history, question, language, cancellationToken);
+        await model.RecordAsync(document.Id, "chat", text.Length + question.Length + history.Sum(t => t.Content.Length),
+            currentUser.UserId, currentUser.UserEmail, ct: cancellationToken);
 
         var checkedQuotes = answer.Quotes
             .Where(q => !string.IsNullOrWhiteSpace(q))
@@ -86,6 +91,6 @@ public class AskContractQuestionCommandHandler(
         logger.LogInformation("Contract {DocumentId} question by {UserId}: {Verified} verified / {Rejected} rejected excerpts",
             document.Id, currentUser.UserId, shown.Count, checkedQuotes.Count - shown.Count);
 
-        return new ContractChatReplyDto(answer.Answer, shown, shown.Count > 0, language);
+        return new ContractChatReplyDto(answer.Answer, shown, shown.Count > 0, language, model.Label(PromptVersions.Chat));
     }
 }

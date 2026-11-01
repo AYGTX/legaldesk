@@ -27,8 +27,11 @@ public class HtmlContractReviewTests
     {
         public List<string> Texts { get; } = [];
 
-        public new Task<string> SummarizeDocumentAsync(string text, string title, CancellationToken ct = default)
-        { Texts.Add(text); return Task.FromResult("A short summary."); }
+        public new Task<ClauseSummary> SummarizeClausesAsync(IReadOnlyList<ClauseText> clauses, string title, string language, CancellationToken ct = default)
+        {
+            Texts.AddRange(clauses.Select(c => c.Text));
+            return Task.FromResult(new ClauseSummary([new SummaryPoint("Article 1", "The client pays 45000 TND.", "Le Client Smith & Sons paie 45000 TND.")], []));
+        }
     }
 
     private sealed record Seed(ScenarioFixture Fixture, Document Document, CapturingAiService Ai, ContractTextProvider Text);
@@ -119,8 +122,10 @@ public class HtmlContractReviewTests
         var seed = await SeedAsync("45000", personalData: true);
         using var fixture = seed.Fixture;
 
-        var summary = await new GetDocumentSummaryQueryHandler(fixture.Db, seed.Text, seed.Ai)
-            .HandleAsync(new GetDocumentSummaryQuery(seed.Document.Id));
-        Assert.Equal("A short summary.", summary.Summary);
+        await fixture.SetModelAsync(true);
+
+        var summary = await new SignFlow.Application.Features.Assistant.ContractSummaries(fixture.Db, seed.Text, seed.Ai, fixture.GetHandler<ModelAccess>())
+            .GetOrCreateAsync(seed.Document, OwnerId, "owner@test.com", null, null, default);
+        Assert.Equal("Le Client Smith & Sons paie 45000 TND.", Assert.Single(summary.Points).Quote);
     }
 }
