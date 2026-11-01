@@ -11,3 +11,7 @@ mat-dialog-content { min-width: 460px; padding-top: 8px; }
     .color-grid { display: flex; gap: 8px; }
     .color-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
     .color-btn.selected { border-color: #1e293b; box-shadow: 0 0 0 2px white inset; }
+
+.full { width: 100%; }
+.rule-sets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; margin-bottom: 12px; }
+@media (max-width: 520px) { .rule-sets { grid-template-columns: 1fr; } }

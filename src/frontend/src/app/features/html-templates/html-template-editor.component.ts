@@ -194,7 +194,7 @@ interface EditorSnapshot { html: string; fields: HtmlTemplateFieldInput[]; }
               </button>
             </span>
             <button class="clause-lib-btn" (click)="openClausePicker()"
-                    [matTooltip]="'clauses.picker.buttonTooltip' | translate">
+                    [matTooltip]="('clauses.picker.buttonTooltip' | translate) + ' ' + ('htmlTemplateEditor.lockedClauseHint' | translate)">
               <mat-icon>menu_book</mat-icon> {{ 'clauses.picker.button' | translate }}
             </button>
             <button class="clause-lib-btn" (click)="wrapSelectionInCondition()"
@@ -908,7 +908,8 @@ export class HtmlTemplateEditorComponent implements OnInit {
       .afterClosed().subscribe(clause => {
         if (!clause) return;
         this.history.record(() => {
-          this.insertAtCursor(`\n${clause.body}\n`);
+          // A locked block (R-M6-7): the server refuses a save that changes its words.
+          this.insertAtCursor(`\n<div class="library-clause" data-clause-id="${clause.id}" data-clause-version="${clause.version}" data-locked="true">${clause.body}</div>\n`);
           this.scanForNewFields();
           this.bump();
         });

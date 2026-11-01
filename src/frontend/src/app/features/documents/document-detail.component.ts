@@ -66,6 +66,12 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     <mat-icon>{{ doc()!.requestTypeIcon || 'category' }}</mat-icon> {{ doc()!.requestTypeName }}
                   </span>
                 }
+                @if (doc()!.libraryClauses?.length) {
+                  <span class="meta-item" [matTooltip]="libraryClausesTooltip()">
+                    <mat-icon>menu_book</mat-icon>
+                    {{ 'documents.detail.libraryClauses' | translate: { count: doc()!.libraryClauses!.length } }}
+                  </span>
+                }
                 @if (doc()!.templateName) {
                   <span class="meta-item" [matTooltip]="'documents.detail.templateTooltip' | translate">
                     <mat-icon>library_books</mat-icon>
@@ -778,6 +784,7 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly doc = signal<DocumentDetail | null>(null);
   readonly rounds = signal<ContractRound[]>([]);
+  readonly libraryClausesTooltip = () => (this.doc()?.libraryClauses ?? []).map(c => `${c.title} v${c.version}`).join(' · ');
   readonly error = signal<string | null>(null);
   readonly sending = signal(false);
   readonly summary = signal<AiSummaryDto | null>(null);

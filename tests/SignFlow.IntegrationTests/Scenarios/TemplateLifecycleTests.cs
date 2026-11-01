@@ -124,4 +124,29 @@ public class TemplateLifecycleTests
         Assert.Throws<InvalidOperationException>(() =>
             template.Update("Prestation", "<p>y</p>", null, true, WorkflowType.Sequential, false, null));
     }
+
+    [Fact]
+    public async Task A_template_without_a_workflow_follows_its_contract_types_default_one()
+    {
+        var (f, template) = await SeedAsync();
+        using var _ = f;
+        var preset = WorkflowPreset.Create("Juridique", null, WorkflowType.Sequential);
+        f.Db.WorkflowPresets.Add(preset);
+        f.Db.WorkflowPresetSteps.Add(WorkflowPresetStep.Create(preset.Id, 1, 1, "Juriste", PresetApproverKind.User, OwnerId, null, null, null, null, null));
+        var family = RequestType.Create("Prestation", null, 72, null, null);
+        family.SetFamily(preset.Id, ["consumer", "unknown-set"]);
+        f.Db.RequestTypes.Add(family);
+        template.Update(template.Name, template.HtmlContent, null, true, WorkflowType.Sequential, false, family.Id);
+        template.SubmitForReview(OwnerId);
+        template.Approve(OwnerId);
+        await f.Db.SaveChangesAsync();
+
+        // No approver given by the requester: the family's workflow names the signer.
+        var documentId = await Requests(f).HandleAsync(new CreateRequestFromHtmlTemplateCommand(
+            template.Id, new() { ["price"] = "1000 TND" }, null, "Contrat"));
+
+        var recipient = Assert.Single(f.Db.Recipients.Where(r => r.DocumentId == documentId));
+        Assert.Equal("owner@test.com", recipient.Email);
+        Assert.Equal(["consumer"], family.RuleSetList);
+    }
 }

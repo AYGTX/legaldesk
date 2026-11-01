@@ -46,7 +46,8 @@ public class RequestTypesController(
     public async Task<ActionResult<CreateRequestTypeResponse>> Create([FromBody] CreateRequestTypeRequest request, CancellationToken ct)
     {
         var id = await createHandler.HandleAsync(
-            new CreateRequestTypeCommand(request.Name, request.Description, request.SlaHours, request.Icon, request.Color), ct);
+            new CreateRequestTypeCommand(request.Name, request.Description, request.SlaHours, request.Icon, request.Color,
+                request.DefaultPresetId, request.RuleSets), ct);
         return CreatedAtAction(nameof(GetAll), new { }, new CreateRequestTypeResponse(id));
     }
 
@@ -57,7 +58,8 @@ public class RequestTypesController(
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRequestTypeRequest request, CancellationToken ct)
     {
         await updateHandler.HandleAsync(
-            new UpdateRequestTypeCommand(id, request.Name, request.Description, request.SlaHours, request.Icon, request.Color), ct);
+            new UpdateRequestTypeCommand(id, request.Name, request.Description, request.SlaHours, request.Icon, request.Color,
+                request.DefaultPresetId, request.RuleSets), ct);
         return NoContent();
     }
 
@@ -83,7 +85,9 @@ public class RequestTypesController(
     }
 }
 
-public record CreateRequestTypeRequest(string Name, string? Description, int SlaHours, string? Icon, string? Color);
-public record UpdateRequestTypeRequest(string Name, string? Description, int SlaHours, string? Icon, string? Color);
+public record CreateRequestTypeRequest(string Name, string? Description, int SlaHours, string? Icon, string? Color,
+    Guid? DefaultPresetId = null, List<string>? RuleSets = null);
+public record UpdateRequestTypeRequest(string Name, string? Description, int SlaHours, string? Icon, string? Color,
+    Guid? DefaultPresetId = null, List<string>? RuleSets = null);
 public record SetStatusRequest(bool IsActive);
 public record CreateRequestTypeResponse(Guid Id);

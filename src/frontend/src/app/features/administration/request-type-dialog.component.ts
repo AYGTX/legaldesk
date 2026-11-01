@@ -11,7 +11,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { RequestTypeService } from '../../core/services/request-type.service';
-import { RequestType } from '../../core/models';
+import { RequestType, RULE_SETS } from '../../core/models';
+import { WorkflowPresetService } from '../../core/services/workflow-preset.service';
+import { WorkflowPresetDto } from '../../core/models/workflow-preset.models';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 export interface RequestTypeDialogData {
   requestType: RequestType | null; // null = create
@@ -26,7 +29,7 @@ const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6'
   imports: [
     CommonModule, ReactiveFormsModule,
     MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatCheckboxModule, TranslatePipe
   ],
   template: `
     <h2 mat-dialog-title>{{ (isEdit ? 'admin.requestTypeDialog.editTitle' : 'admin.requestTypeDialog.createTitle') | translate }}</h2>
@@ -60,6 +63,25 @@ const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6'
           </mat-form-field>
         </div>
         <p class="sla-hint">{{ 'admin.requestTypeDialog.slaHint' | translate }}</p>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>{{ 'admin.requestTypeDialog.defaultPreset' | translate }}</mat-label>
+          <mat-select formControlName="defaultPresetId">
+            <mat-option [value]="null">{{ 'admin.requestTypeDialog.noDefaultPreset' | translate }}</mat-option>
+            @for (p of presets(); track p.id) { <mat-option [value]="p.id">{{ p.name }}</mat-option> }
+          </mat-select>
+          <mat-hint>{{ 'admin.requestTypeDialog.defaultPresetHint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        <label class="picker-label">{{ 'admin.requestTypeDialog.ruleSets' | translate }}</label>
+        <p class="sla-hint">{{ 'admin.requestTypeDialog.ruleSetsHint' | translate }}</p>
+        <div class="rule-sets">
+          @for (k of ruleSetKeys; track k) {
+            <mat-checkbox [checked]="ruleSets().includes(k)" (change)="toggleRuleSet(k, $event.checked)">
+              {{ ('admin.requestTypeDialog.ruleSet.' + k) | translate }}
+            </mat-checkbox>
+          }
+        </div>
 
         <label class="picker-label">{{ 'admin.requestTypeDialog.icon' | translate }}</label>
         <div class="icon-grid">
@@ -108,8 +130,22 @@ export class RequestTypeDialogComponent {
     slaValue: [this.initialSlaValue(), [Validators.required, Validators.min(1)]],
     slaUnit: [this.initialSlaUnit()],
     icon: [this.data.requestType?.icon ?? 'description'],
-    color: [this.data.requestType?.color ?? COLORS[0]]
+    color: [this.data.requestType?.color ?? COLORS[0]],
+    defaultPresetId: [this.data.requestType?.defaultPresetId ?? null as string | null]
   });
+
+  readonly ruleSetKeys = RULE_SETS;
+  readonly ruleSets = signal<string[]>([...(this.data.requestType?.ruleSets ?? [])]);
+  readonly presets = signal<WorkflowPresetDto[]>([]);
+  private readonly presetService = inject(WorkflowPresetService);
+
+  constructor() {
+    this.presetService.getAll().subscribe({ next: p => this.presets.set(p.filter(x => x.isActive || x.id === this.form.value.defaultPresetId)), error: () => {} });
+  }
+
+  toggleRuleSet(key: string, on: boolean): void {
+    this.ruleSets.update(list => on ? [...new Set([...list, key])] : list.filter(k => k !== key));
+  }
 
   private initialSlaUnit(): 'hours' | 'days' {
     const h = this.data.requestType?.slaHours ?? 72;
@@ -131,7 +167,9 @@ export class RequestTypeDialogComponent {
       description: v.description || undefined,
       slaHours,
       icon: v.icon || undefined,
-      color: v.color || undefined
+      color: v.color || undefined,
+      defaultPresetId: v.defaultPresetId || null,
+      ruleSets: this.ruleSets()
     };
 
     const req$: Observable<unknown> = this.isEdit

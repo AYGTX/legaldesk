@@ -101,8 +101,9 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
 
         // A workflow preset, when the template has one, names the signer of the first signature fields in order and
         // may drop a step whose condition does not hold for these answers — together with that step's signature field.
+        // A template with no workflow of its own follows its contract family's default one (R-M6-8).
         var routing = await presets.ResolveAsync(
-            template.WorkflowPresetId, approverSigFields.Count, command.FilledValues,
+            template.WorkflowPresetId ?? template.RequestType?.DefaultPresetId, approverSigFields.Count, command.FilledValues,
             template.Fields.ToDictionary(f => f.FieldKey, f => f.Type), cancellationToken);
 
         var presetFor = new List<PresetAssignment?>(approverSigFields.Count);
@@ -184,6 +185,7 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
             message: command.Message);
 
         document.SetHtmlSource(template.Id, filledJson, template.HtmlContent, template.Version);
+        document.SetLibraryClauses(LockedClauses.Serialise(await LockedClauses.UsedAsync(db, template.HtmlContent, cancellationToken)));
         document.SetWorkflowType(workflowType);
         document.SetHideRecipientIdentities(template.HideRecipientIdentities);
         document.SetCreatedBy(initiatorId.ToString());

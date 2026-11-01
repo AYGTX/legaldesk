@@ -39,6 +39,29 @@ public class RequestType : TenantEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>The workflow a contract of this family follows when its template names none (R-M6-8).</summary>
+    public Guid? DefaultPresetId { get; private set; }
+
+    /// <summary>
+    /// The Harvey rule sets that apply to the family (R-M6-8), comma-separated keys from <see cref="RuleSets"/>. Recorded
+    /// now; Harvey does not group its rules into sets yet, so every approved rule still applies to every contract.
+    /// </summary>
+    public string? RuleSetKeys { get; private set; }
+
+    /// <summary>The rule sets a family can name.</summary>
+    public static readonly string[] RuleSets = ["banking", "competition", "consumer", "data-protection", "employment", "public-procurement"];
+
+    public IReadOnlyList<string> RuleSetList =>
+        string.IsNullOrWhiteSpace(RuleSetKeys) ? [] : RuleSetKeys.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+    public void SetFamily(Guid? defaultPresetId, IEnumerable<string>? ruleSets)
+    {
+        DefaultPresetId = defaultPresetId;
+        var keys = (ruleSets ?? []).Select(k => k.Trim().ToLowerInvariant()).Where(RuleSets.Contains).Distinct().ToList();
+        RuleSetKeys = keys.Count == 0 ? null : string.Join(',', keys);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void SetActive(bool isActive)
     {
         IsActive = isActive;

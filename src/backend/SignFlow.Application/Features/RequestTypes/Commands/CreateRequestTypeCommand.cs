@@ -13,7 +13,9 @@ public record CreateRequestTypeCommand(
     string? Description,
     int SlaHours,
     string? Icon,
-    string? Color) : ICommand<Guid>;
+    string? Color,
+    Guid? DefaultPresetId = null,
+    List<string>? RuleSets = null) : ICommand<Guid>;
 
 public class CreateRequestTypeCommandValidator : AbstractValidator<CreateRequestTypeCommand>
 {
@@ -43,6 +45,8 @@ public class CreateRequestTypeCommandHandler(
             throw new ConflictException($"A request type named '{command.Name}' already exists.");
 
         var type = RequestType.Create(command.Name, command.Description, command.SlaHours, command.Icon, command.Color);
+        await RequestTypeFamily.CheckPresetAsync(db, command.DefaultPresetId, cancellationToken);
+        type.SetFamily(command.DefaultPresetId, command.RuleSets);
         type.SetCreatedBy(currentUser.UserId!.Value.ToString());
         db.RequestTypes.Add(type);
         await db.SaveChangesAsync(cancellationToken);

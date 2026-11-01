@@ -84,6 +84,8 @@ export interface DocumentDetail {
   /** The template and version the contract came from (R-M6-5). */
   templateName?: string | null;
   templateVersion?: number | null;
+  /** Library clauses the contract carries, each at its version (R-M6-7). */
+  libraryClauses?: { clauseId: string; title: string; version: number }[] | null;
   templateRevisions?: TemplateRevision[];
 }
 

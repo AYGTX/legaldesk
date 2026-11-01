@@ -326,7 +326,7 @@
       }
     },
     "requestTypes": {
-      "intro": "Configure the request categories and their signing deadlines (SLA). This is the source of truth applied to every new request.",
+      "intro": "Configure the contract types, their signing deadline (SLA), the workflow their contracts follow by default, and the areas of law that apply.",
       "newRequestType": "New Contract Type",
       "noRequestTypesYet": "No contract types yet",
       "createFirst": "Create your first contract type",
@@ -358,7 +358,20 @@
       "color": "Color",
       "create": "Create",
       "save": "Save",
-      "operationFailed": "Operation failed"
+      "operationFailed": "Operation failed",
+      "defaultPreset": "Default workflow",
+      "noDefaultPreset": "None: the requester chooses who signs",
+      "defaultPresetHint": "Contracts of this type follow it when their template names no workflow.",
+      "ruleSets": "Harvey rule sets",
+      "ruleSetsHint": "The areas of law that apply to this type of contract. Recorded now; Harvey applies every approved rule until its rules are grouped by area.",
+      "ruleSet": {
+        "banking": "Banking",
+        "competition": "Competition",
+        "consumer": "Consumer protection",
+        "data-protection": "Data protection",
+        "employment": "Employment",
+        "public-procurement": "Public procurement"
+      }
     },
     "roles": {
       "Administrator": "Administrator",
@@ -976,7 +989,8 @@
       "linkResent": "A new link was sent to {{name}}. Their previous link no longer works.",
       "linkResendFailed": "The link could not be sent. Please try again.",
       "fromTemplate": "Template {{name}} v{{version}}",
-      "templateTooltip": "The template and version this contract was made from"
+      "templateTooltip": "The template and version this contract was made from",
+      "libraryClauses": "{{count}} library clause(s)"
     },
     "upload": {
       "title": "Upload Contract",
@@ -2277,7 +2291,8 @@
         "lt": "is less than",
         "lte": "is at most"
       }
-    }
+    },
+    "lockedClauseHint": "Library clauses are inserted locked: change their wording in the clause library, not here."
   },
   "clauses": {
     "title": "Clause Library",
@@ -2748,7 +2763,8 @@
     },
     "clause": {
       "ownWording": "You wrote this wording, so someone else must approve it.",
-      "notDraft": "Only a draft wording can be approved."
+      "notDraft": "Only a draft wording can be approved.",
+      "lockedEdited": "The library clause \"{{title}}\" was edited in the template. Library wording is changed by drafting a new version of the clause."
     },
     "template": {
       "notApproved": "This template version has not been approved by legal yet.",

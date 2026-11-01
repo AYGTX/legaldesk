@@ -16,7 +16,10 @@ public record RequestTypeDto(
     bool IsActive,
     string? Icon,
     string? Color,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    Guid? DefaultPresetId = null,
+    string? DefaultPresetName = null,
+    List<string>? RuleSets = null);
 
 public class GetRequestTypesQueryHandler(
     IApplicationDbContext db,
@@ -29,7 +32,9 @@ public class GetRequestTypesQueryHandler(
 
         return await db.RequestTypes.AsNoTracking()
             .OrderBy(t => t.Name)
-            .Select(t => new RequestTypeDto(t.Id, t.Name, t.Description, t.SlaHours, t.IsActive, t.Icon, t.Color, t.CreatedAt))
+            .Select(t => new RequestTypeDto(t.Id, t.Name, t.Description, t.SlaHours, t.IsActive, t.Icon, t.Color, t.CreatedAt,
+                t.DefaultPresetId, db.WorkflowPresets.Where(p => p.Id == t.DefaultPresetId).Select(p => p.Name).FirstOrDefault(),
+                t.RuleSetKeys == null ? null : t.RuleSetKeys.Split(',', StringSplitOptions.None).ToList()))
             .ToListAsync(cancellationToken);
     }
 }

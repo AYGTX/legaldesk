@@ -1005,6 +1005,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("LayoutVersion")
                         .HasColumnType("int");
 
+                    b.Property<string>("LibraryClausesJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Message")
                         .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
@@ -2191,6 +2194,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("DefaultPresetId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -2212,6 +2218,9 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<Guid>("OrganisationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RuleSetKeys")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SlaHours")
                         .HasColumnType("int");

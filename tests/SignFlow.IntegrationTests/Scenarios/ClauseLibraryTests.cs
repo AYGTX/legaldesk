@@ -151,4 +151,27 @@ public class ClauseLibraryTests
         Assert.Empty(await forRule.HandleAsync(new GetClausesForRuleQuery("confidentiality.duration")));
         Assert.Single(await forRule.HandleAsync(new GetClausesForRuleQuery("liability.cap")));
     }
+
+    [Fact]
+    public async Task A_library_clause_in_a_template_keeps_its_approved_words_and_the_contract_records_its_version()
+    {
+        var (f, reviewer) = await FixtureAsync();
+        using var _ = f;
+        var id = await CreateAsync(f, "<p>Chaque partie garde confidentielles les informations reçues.</p>");
+        ActAs(f, reviewer, "reviewer@test.com");
+        await ApproveAsync(f, id, 1);
+
+        var block = $"<div class=\"library-clause\" data-clause-id=\"{id}\" data-clause-version=\"1\" data-locked=\"true\">" +
+                    "<p>Chaque partie garde confidentielles\n   les informations reçues.</p></div>";
+        await SignFlow.Application.Common.Services.LockedClauses.CheckAsync(f.Db, "<h2>Article 5</h2>" + block, default);
+
+        var used = await SignFlow.Application.Common.Services.LockedClauses.UsedAsync(f.Db, block + block, default);
+        var only = Assert.Single(used);
+        Assert.Equal(("Confidentialité", 1), (only.Title, only.Version));
+
+        var edited = block.Replace("confidentielles", "secrètes");
+        var refused = await Assert.ThrowsAsync<ConflictException>(() =>
+            SignFlow.Application.Common.Services.LockedClauses.CheckAsync(f.Db, edited, default));
+        Assert.Equal("clause.lockedEdited", refused.Code);
+    }
 }

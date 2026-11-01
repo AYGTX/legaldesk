@@ -289,6 +289,11 @@ public class Document : TenantEntity
     /// <summary>The version of the template this contract came from (R-M6-5); the template id names that exact version.</summary>
     public int? TemplateVersion { get; private set; }
 
+    /// <summary>The library clauses the contract carries, each at its version, as JSON (R-M6-7).</summary>
+    public string? LibraryClausesJson { get; private set; }
+
+    public void SetLibraryClauses(string? json) => LibraryClausesJson = json;
+
     public void SetHtmlSource(Guid htmlTemplateId, string filledValuesJson, string htmlContentSnapshot, int? templateVersion = null)
     {
         HtmlTemplateId = htmlTemplateId;

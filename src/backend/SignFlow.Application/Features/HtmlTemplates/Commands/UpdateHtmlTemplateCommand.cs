@@ -63,6 +63,9 @@ public class UpdateHtmlTemplateCommandHandler(
             && !await db.WorkflowPresets.AnyAsync(p => p.Id == command.WorkflowPresetId.Value && p.IsActive, cancellationToken))
             throw new Common.Exceptions.ValidationException("The selected workflow is invalid or inactive.");
 
+        // Library clauses keep their approved wording (R-M6-7).
+        await Common.Services.LockedClauses.CheckAsync(db, command.HtmlContent, cancellationToken);
+
         template.Update(
             command.Name,
             // Cleaned on save (R-M6-3): what is stored never runs in a reader's browser or makes the renderer fetch a URL.

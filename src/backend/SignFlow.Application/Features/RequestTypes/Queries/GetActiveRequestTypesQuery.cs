@@ -14,7 +14,9 @@ public class GetActiveRequestTypesQueryHandler(
         return await db.RequestTypes.AsNoTracking()
             .Where(t => t.IsActive)
             .OrderBy(t => t.Name)
-            .Select(t => new RequestTypeDto(t.Id, t.Name, t.Description, t.SlaHours, t.IsActive, t.Icon, t.Color, t.CreatedAt))
+            .Select(t => new RequestTypeDto(t.Id, t.Name, t.Description, t.SlaHours, t.IsActive, t.Icon, t.Color, t.CreatedAt,
+                t.DefaultPresetId, db.WorkflowPresets.Where(p => p.Id == t.DefaultPresetId).Select(p => p.Name).FirstOrDefault(),
+                t.RuleSetKeys == null ? null : t.RuleSetKeys.Split(',', StringSplitOptions.None).ToList()))
             .ToListAsync(cancellationToken);
     }
 }

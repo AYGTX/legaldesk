@@ -14,7 +14,9 @@ public record UpdateRequestTypeCommand(
     string? Description,
     int SlaHours,
     string? Icon,
-    string? Color) : ICommand;
+    string? Color,
+    Guid? DefaultPresetId = null,
+    List<string>? RuleSets = null) : ICommand;
 
 public class UpdateRequestTypeCommandValidator : AbstractValidator<UpdateRequestTypeCommand>
 {
@@ -49,6 +51,9 @@ public class UpdateRequestTypeCommandHandler(
         // Note: changing the SLA here only affects FUTURE requests. Existing documents keep the
         // ExpiresAt/SlaHours snapshot taken at their creation time.
         type.Update(command.Name, command.Description, command.SlaHours, command.Icon, command.Color);
+        if (command.DefaultPresetId != type.DefaultPresetId) // a family may keep a workflow deactivated since
+            await RequestTypeFamily.CheckPresetAsync(db, command.DefaultPresetId, cancellationToken);
+        type.SetFamily(command.DefaultPresetId, command.RuleSets);
         await db.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Request type {Id} updated by {UserId}", command.Id, currentUser.UserId);

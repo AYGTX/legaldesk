@@ -64,7 +64,8 @@ public record DocumentDetailDto(
     string? TemplateKind = null,
     List<TemplateRevisionDto>? TemplateRevisions = null,
     string? TemplateName = null,
-    int? TemplateVersion = null);
+    int? TemplateVersion = null,
+    List<SignFlow.Application.Common.Services.UsedClause>? LibraryClauses = null);
 
 public record OwnerDto(Guid Id, string FullName, string Email, string? AvatarUrl);
 /// <summary>A participant of the circuit, with its settings (M4): stage rule, team or role pool, due date, reminders,
@@ -193,7 +194,8 @@ public class GetDocumentByIdQueryHandler(
             document.HtmlTemplateId is { } h ? await db.HtmlTemplates.AsNoTracking().Where(t => t.Id == h).Select(t => t.Name).FirstOrDefaultAsync(cancellationToken)
                 : document.PdfTemplateId is { } p ? await db.PdfTemplates.AsNoTracking().Where(t => t.Id == p).Select(t => t.Name).FirstOrDefaultAsync(cancellationToken)
                 : null,
-            document.TemplateVersion);
+            document.TemplateVersion,
+            SignFlow.Application.Common.Services.LockedClauses.Parse(document.LibraryClausesJson));
     }
 
     /// <summary>

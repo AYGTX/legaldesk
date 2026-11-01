@@ -326,7 +326,7 @@
       }
     },
     "requestTypes": {
-      "intro": "Configurez les catégories de demandes et leurs délais de signature (SLA). C'est la référence appliquée à chaque nouvelle demande.",
+      "intro": "Configurez les types de contrats, leur délai de signature (SLA), le circuit que suivent leurs contrats par défaut et les domaines du droit qui s'appliquent.",
       "newRequestType": "Nouveau type de contrat",
       "noRequestTypesYet": "Aucun type de contrat pour le moment",
       "createFirst": "Créer votre premier type de contrat",
@@ -358,7 +358,20 @@
       "color": "Couleur",
       "create": "Créer",
       "save": "Enregistrer",
-      "operationFailed": "Échec de l'opération"
+      "operationFailed": "Échec de l'opération",
+      "defaultPreset": "Circuit par défaut",
+      "noDefaultPreset": "Aucun : le demandeur choisit qui signe",
+      "defaultPresetHint": "Les contrats de ce type le suivent quand leur modèle ne nomme aucun circuit.",
+      "ruleSets": "Ensembles de règles Harvey",
+      "ruleSetsHint": "Les domaines du droit qui s'appliquent à ce type de contrat. Enregistrés dès maintenant ; Harvey applique toutes les règles approuvées tant que ses règles ne sont pas regroupées par domaine.",
+      "ruleSet": {
+        "banking": "Banque",
+        "competition": "Concurrence",
+        "consumer": "Protection du consommateur",
+        "data-protection": "Protection des données",
+        "employment": "Droit du travail",
+        "public-procurement": "Marchés publics"
+      }
     },
     "roles": {
       "Administrator": "Administrateur",
@@ -976,7 +989,8 @@
       "linkResent": "Un nouveau lien a été envoyé à {{name}}. Son ancien lien ne fonctionne plus.",
       "linkResendFailed": "Le lien n'a pas pu être envoyé. Réessayez.",
       "fromTemplate": "Modèle {{name}} v{{version}}",
-      "templateTooltip": "Le modèle et la version dont ce contrat est issu"
+      "templateTooltip": "Le modèle et la version dont ce contrat est issu",
+      "libraryClauses": "{{count}} clause(s) de la bibliothèque"
     },
     "upload": {
       "title": "Importer un contrat",
@@ -2277,7 +2291,8 @@
         "lt": "est inférieur à",
         "lte": "est au plus égal à"
       }
-    }
+    },
+    "lockedClauseHint": "Les clauses de la bibliothèque sont insérées verrouillées : modifiez leur rédaction dans la bibliothèque, pas ici."
   },
   "clauses": {
     "title": "Bibliothèque de clauses",
@@ -2748,7 +2763,8 @@
     },
     "clause": {
       "ownWording": "Vous avez rédigé cette version : quelqu'un d'autre doit l'approuver.",
-      "notDraft": "Seul un brouillon peut être approuvé."
+      "notDraft": "Seul un brouillon peut être approuvé.",
+      "lockedEdited": "La clause de la bibliothèque « {{title}} » a été modifiée dans le modèle. La rédaction d'une clause se change en créant une nouvelle version dans la bibliothèque."
     },
     "template": {
       "notApproved": "Cette version du modèle n'a pas encore été approuvée par le service juridique.",

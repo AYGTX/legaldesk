@@ -105,8 +105,9 @@ public class CreateRequestFromPdfTemplateCommandHandler(
 
         // A workflow preset, when the template has one, names the signer of the first signature fields in order and
         // may drop a step whose condition does not hold for these answers, together with that step's signature field.
+        // A template with no workflow of its own follows its contract family's default one (R-M6-8).
         var routing = await presets.ResolveAsync(
-            template.WorkflowPresetId, approverSigFields.Count, command.FilledValues,
+            template.WorkflowPresetId ?? template.RequestType?.DefaultPresetId, approverSigFields.Count, command.FilledValues,
             template.Fields.ToDictionary(f => f.FieldKey, f => Enum.Parse<HtmlTemplateFieldType>(f.Type.ToString())),
             cancellationToken);
 
@@ -198,6 +199,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
             document.ApplyRequestType(requestType.Id, requestType.SlaHours);
 
         foreach (var clause in annexClauses) clause.RecordUsage();
+        document.SetLibraryClauses(LockedClauses.Serialise([.. annexClauses.Select(c => new UsedClause(c.Id, c.Title, c.Approved!.Number))]));
 
         db.Documents.Add(document);
         await db.SaveChangesAsync(cancellationToken);
