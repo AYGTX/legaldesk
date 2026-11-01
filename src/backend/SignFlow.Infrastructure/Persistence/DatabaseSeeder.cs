@@ -30,10 +30,18 @@ public static class DatabaseSeeder
         }
         using var tenantScope = context.Tenant.BeginScope(Organisation.DefaultId);
 
-        // The working calendar starts with Tunisia's fixed-date holidays (R-M4-10); administrators add the religious ones.
-        if (!await context.OrganisationHolidays.AnyAsync())
+        // The working calendar starts with Tunisia's public holidays (R-M4-10): the fixed dates, and the religious ones
+        // expected for 2026–2028. A yearly date already there is not added again; a year that already has a one-off
+        // holiday is the administrator's to keep, so its estimates are not added (a corrected date is never undone).
+        var existing = await context.OrganisationHolidays.Select(h => new { h.Date, h.EveryYear }).ToListAsync();
+        var yearsKept = existing.Where(e => !e.EveryYear).Select(e => e.Date.Year).ToHashSet();
+        var missing = OrganisationHoliday.TunisianFixed()
+            .Where(h => !existing.Any(e => e.EveryYear && e.Date.Month == h.Date.Month && e.Date.Day == h.Date.Day))
+            .Concat(OrganisationHoliday.TunisianReligious2026To2028().Where(h => !yearsKept.Contains(h.Date.Year)))
+            .ToList();
+        if (missing.Count > 0)
         {
-            context.OrganisationHolidays.AddRange(OrganisationHoliday.TunisianFixed());
+            context.OrganisationHolidays.AddRange(missing);
             await context.SaveChangesAsync();
         }
 

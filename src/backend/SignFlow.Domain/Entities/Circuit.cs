@@ -92,7 +92,34 @@ public class OrganisationHoliday : TenantEntity
 
     public bool Covers(DateOnly day) => EveryYear ? day.Month == Date.Month && day.Day == Date.Day : day == Date;
 
-    /// <summary>Tunisia's fixed-date public holidays. Religious holidays move every year; administrators add them.</summary>
+    /// <summary>
+    /// Tunisia's religious public holidays for 2026–2028, from the expected Hijri calendar. Each depends on the sighting
+    /// of the moon and may move by a day: the name says "estimated", and an administrator corrects the date once the
+    /// official announcement is out (Teams > working calendar).
+    /// </summary>
+    public static IReadOnlyList<OrganisationHoliday> TunisianReligious2026To2028() =>
+    [
+        On(new DateOnly(2026, 3, 20), "Eid al-Fitr / Aïd el-Fitr (estimated)"),
+        On(new DateOnly(2026, 3, 21), "Eid al-Fitr, 2nd day / Aïd el-Fitr, 2e jour (estimated)"),
+        On(new DateOnly(2026, 5, 27), "Eid al-Adha / Aïd el-Idha (estimated)"),
+        On(new DateOnly(2026, 5, 28), "Eid al-Adha, 2nd day / Aïd el-Idha, 2e jour (estimated)"),
+        On(new DateOnly(2026, 6, 16), "Islamic New Year / Ras el-Am el-Hijri (estimated)"),
+        On(new DateOnly(2026, 8, 25), "Mawlid / Mouled (estimated)"),
+        On(new DateOnly(2027, 3, 10), "Eid al-Fitr / Aïd el-Fitr (estimated)"),
+        On(new DateOnly(2027, 3, 11), "Eid al-Fitr, 2nd day / Aïd el-Fitr, 2e jour (estimated)"),
+        On(new DateOnly(2027, 5, 16), "Eid al-Adha / Aïd el-Idha (estimated)"),
+        On(new DateOnly(2027, 5, 17), "Eid al-Adha, 2nd day / Aïd el-Idha, 2e jour (estimated)"),
+        On(new DateOnly(2027, 6, 6), "Islamic New Year / Ras el-Am el-Hijri (estimated)"),
+        On(new DateOnly(2027, 8, 15), "Mawlid / Mouled (estimated)"),
+        On(new DateOnly(2028, 2, 27), "Eid al-Fitr / Aïd el-Fitr (estimated)"),
+        On(new DateOnly(2028, 2, 28), "Eid al-Fitr, 2nd day / Aïd el-Fitr, 2e jour (estimated)"),
+        On(new DateOnly(2028, 5, 5), "Eid al-Adha / Aïd el-Idha (estimated)"),
+        On(new DateOnly(2028, 5, 6), "Eid al-Adha, 2nd day / Aïd el-Idha, 2e jour (estimated)"),
+        On(new DateOnly(2028, 5, 25), "Islamic New Year / Ras el-Am el-Hijri (estimated)"),
+        On(new DateOnly(2028, 8, 3), "Mawlid / Mouled (estimated)")
+    ];
+
+    /// <summary>Tunisia's fixed-date public holidays. Religious holidays move every year: see <see cref="TunisianReligious2026To2028"/>.</summary>
     public static IReadOnlyList<OrganisationHoliday> TunisianFixed() =>
     [
         On(new DateOnly(2000, 1, 1), "New Year's Day / Jour de l'an", true),
