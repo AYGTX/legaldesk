@@ -14,13 +14,6 @@ public class HtmlTemplate : VersionedTemplate
 
     public bool IsActive { get; private set; } = true;
 
-    /// <summary>
-    /// When set, the approver is fixed and the initiator cannot change it.
-    /// When null, the initiator picks an approver at request-creation time (unless a
-    /// field-level PreAssignedApprover is set on the relevant Approver Signature field).
-    /// </summary>
-    public Guid? DefaultApproverId { get; private set; }
-    public ApplicationUser? DefaultApprover { get; private set; }
 
     /// <summary>How recipients created from this template are routed: Sequential, Parallel, or Mixed.</summary>
     public WorkflowType WorkflowType { get; private set; } = WorkflowType.Sequential;
@@ -60,7 +53,6 @@ public class HtmlTemplate : VersionedTemplate
         string htmlContent,
         Guid createdById,
         string? description = null,
-        Guid? defaultApproverId = null,
         WorkflowType workflowType = WorkflowType.Sequential,
         bool hideRecipientIdentities = false,
         Guid? requestTypeId = null)
@@ -70,7 +62,6 @@ public class HtmlTemplate : VersionedTemplate
             HtmlContent = htmlContent,
             CreatedById = createdById,
             Description = description,
-            DefaultApproverId = defaultApproverId,
             WorkflowType = workflowType,
             HideRecipientIdentities = hideRecipientIdentities,
             RequestTypeId = requestTypeId
@@ -80,7 +71,6 @@ public class HtmlTemplate : VersionedTemplate
         string name,
         string htmlContent,
         string? description,
-        Guid? defaultApproverId,
         bool isActive,
         WorkflowType workflowType,
         bool hideRecipientIdentities,
@@ -89,7 +79,6 @@ public class HtmlTemplate : VersionedTemplate
         Name = name;
         HtmlContent = htmlContent;
         Description = description;
-        DefaultApproverId = defaultApproverId;
         IsActive = isActive;
         WorkflowType = workflowType;
         HideRecipientIdentities = hideRecipientIdentities;
@@ -103,7 +92,7 @@ public class HtmlTemplate : VersionedTemplate
     /// </summary>
     public HtmlTemplate NextVersion(Guid createdById)
     {
-        var next = Create(Name, HtmlContent, createdById, Description, DefaultApproverId, WorkflowType, HideRecipientIdentities, RequestTypeId);
+        var next = Create(Name, HtmlContent, createdById, Description, WorkflowType, HideRecipientIdentities, RequestTypeId);
         next.WorkflowPresetId = WorkflowPresetId;
         next.IsActive = IsActive;
         next.BecomeNextVersionOf(this);

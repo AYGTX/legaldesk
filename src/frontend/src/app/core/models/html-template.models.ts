@@ -16,9 +16,7 @@ export interface HtmlTemplateFieldDto {
   order: number;
   autoFillFrom?: string;
   optionsJson?: string;
-  preAssignedApproverId?: string;
-  preAssignedApproverName?: string;
-  workflowStage: number;
+  filledByStep: number;
   /** What the request form starts this field as when nothing else fills it. */
   defaultValue?: string;
 }
@@ -34,8 +32,6 @@ export interface HtmlTemplateDto {
   isActive: boolean;
   createdById: string;
   createdByName: string;
-  defaultApproverId?: string;
-  defaultApproverName?: string;
   workflowType: WorkflowType;
   fieldCount: number;
   createdAt: string;
@@ -54,8 +50,6 @@ export interface HtmlTemplateDetailDto {
   isActive: boolean;
   createdById: string;
   createdByName: string;
-  defaultApproverId?: string;
-  defaultApproverName?: string;
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
   createdAt: string;
@@ -78,8 +72,7 @@ export interface HtmlTemplateFieldInput {
   order: number;
   autoFillFrom?: string;
   optionsJson?: string;
-  preAssignedApproverId?: string;
-  workflowStage: number;
+  filledByStep: number;
   defaultValue?: string;
 }
 
@@ -87,7 +80,6 @@ export interface CreateHtmlTemplateRequest {
   name: string;
   htmlContent: string;
   description?: string;
-  defaultApproverId?: string;
   fields: HtmlTemplateFieldInput[];
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
@@ -99,7 +91,6 @@ export interface UpdateHtmlTemplateRequest {
   name: string;
   htmlContent: string;
   description?: string;
-  defaultApproverId?: string;
   isActive: boolean;
   fields: HtmlTemplateFieldInput[];
   workflowType: WorkflowType;

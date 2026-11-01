@@ -24,7 +24,6 @@ export interface UnifiedTemplate {
   isActive: boolean;
   fieldCount: number;
   pageCount?: number;
-  defaultApproverName?: string;
   workflowType: WorkflowType;
   createdByName: string;
   createdAt: string;
@@ -40,7 +39,6 @@ export function fromHtmlTemplate(t: HtmlTemplateDto): UnifiedTemplate {
     description: t.description,
     isActive: t.isActive,
     fieldCount: t.fieldCount,
-    defaultApproverName: t.defaultApproverName,
     workflowType: t.workflowType,
     createdByName: t.createdByName,
     createdAt: t.createdAt,
@@ -58,7 +56,6 @@ export function fromPdfTemplate(t: PdfTemplateDto): UnifiedTemplate {
     isActive: t.isActive,
     fieldCount: t.fieldCount,
     pageCount: t.pageCount,
-    defaultApproverName: t.defaultApproverName,
     workflowType: t.workflowType,
     createdByName: t.createdByName,
     createdAt: t.createdAt,

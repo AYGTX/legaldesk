@@ -19,9 +19,7 @@ public record HtmlTemplateFieldDto(
     int Order,
     string? AutoFillFrom,
     string? OptionsJson,
-    Guid? PreAssignedApproverId,
-    string? PreAssignedApproverName,
-    int WorkflowStage,
+    int FilledByStep,
     string? DefaultValue = null);
 
 public record HtmlTemplateDetailDto(
@@ -32,8 +30,6 @@ public record HtmlTemplateDetailDto(
     bool IsActive,
     Guid CreatedById,
     string CreatedByName,
-    Guid? DefaultApproverId,
-    string? DefaultApproverName,
     WorkflowType WorkflowType,
     bool HideRecipientIdentities,
     DateTime CreatedAt,
@@ -58,10 +54,8 @@ public class GetHtmlTemplateByIdQueryHandler(
         var template = await db.HtmlTemplates
             .AsNoTracking()
             .Include(t => t.CreatedByUser)
-            .Include(t => t.DefaultApprover)
             .Include(t => t.RequestType)
             .Include(t => t.Fields.OrderBy(f => f.Order))
-                .ThenInclude(f => f.PreAssignedApprover)
             .FirstOrDefaultAsync(t => t.Id == query.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(HtmlTemplate), query.Id);
 
@@ -78,8 +72,6 @@ public class GetHtmlTemplateByIdQueryHandler(
             template.IsActive,
             template.CreatedById,
             $"{template.CreatedByUser.FirstName} {template.CreatedByUser.LastName}",
-            template.DefaultApproverId,
-            template.DefaultApprover is not null ? $"{template.DefaultApprover.FirstName} {template.DefaultApprover.LastName}" : null,
             template.WorkflowType,
             template.HideRecipientIdentities,
             template.CreatedAt,
@@ -94,9 +86,7 @@ public class GetHtmlTemplateByIdQueryHandler(
                 f.Order,
                 f.AutoFillFrom,
                 f.OptionsJson,
-                f.PreAssignedApproverId,
-                f.PreAssignedApprover is not null ? $"{f.PreAssignedApprover.FirstName} {f.PreAssignedApprover.LastName}" : null,
-                f.WorkflowStage,
+                f.FilledByStep,
                 f.DefaultValue)).ToList(),
             template.RequestTypeId,
             template.RequestType?.Name,

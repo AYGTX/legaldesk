@@ -25,9 +25,7 @@ public record PdfTemplateFieldDto(
     string? AutoFillFrom,
     string? DefaultValue,
     string? OptionsJson,
-    Guid? PreAssignedApproverId,
-    string? PreAssignedApproverName,
-    int WorkflowStage);
+    int FilledByStep);
 
 public record PdfTemplateDetailDto(
     Guid Id,
@@ -38,8 +36,6 @@ public record PdfTemplateDetailDto(
     string StoragePath,
     Guid CreatedById,
     string CreatedByName,
-    Guid? DefaultApproverId,
-    string? DefaultApproverName,
     WorkflowType WorkflowType,
     bool HideRecipientIdentities,
     DateTime CreatedAt,
@@ -68,10 +64,8 @@ public class GetPdfTemplateByIdQueryHandler(
         var template = await db.PdfTemplates
             .AsNoTracking()
             .Include(t => t.CreatedByUser)
-            .Include(t => t.DefaultApprover)
             .Include(t => t.RequestType)
             .Include(t => t.Fields.OrderBy(f => f.Order))
-                .ThenInclude(f => f.PreAssignedApprover)
             .FirstOrDefaultAsync(t => t.Id == query.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(PdfTemplate), query.Id);
 
@@ -89,8 +83,6 @@ public class GetPdfTemplateByIdQueryHandler(
             template.StoragePath,
             template.CreatedById,
             $"{template.CreatedByUser.FirstName} {template.CreatedByUser.LastName}",
-            template.DefaultApproverId,
-            template.DefaultApprover is not null ? $"{template.DefaultApprover.FirstName} {template.DefaultApprover.LastName}" : null,
             template.WorkflowType,
             template.HideRecipientIdentities,
             template.CreatedAt,
@@ -108,9 +100,7 @@ public class GetPdfTemplateByIdQueryHandler(
                 f.AutoFillFrom,
                 f.DefaultValue,
                 f.OptionsJson,
-                f.PreAssignedApproverId,
-                f.PreAssignedApprover is not null ? $"{f.PreAssignedApprover.FirstName} {f.PreAssignedApprover.LastName}" : null,
-                f.WorkflowStage)).ToList(),
+                f.FilledByStep)).ToList(),
             template.RequestTypeId,
             template.RequestType?.Name,
             template.RequestType?.SlaHours,

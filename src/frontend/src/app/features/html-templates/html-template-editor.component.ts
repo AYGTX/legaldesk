@@ -147,23 +147,6 @@ interface EditorSnapshot { html: string; fields: HtmlTemplateFieldInput[]; }
               @if (!selectedPreset()) {
                 <sf-workflow-type-toggle [compact]="true" [value]="workflowType()" (valueChange)="workflowType.set($event)"></sf-workflow-type-toggle>
               }
-              @if (!selectedPreset() || needsDefaultApprover()) {
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ff">
-                <mat-label>{{ 'htmlTemplateEditor.defaultApprover' | translate }}</mat-label>
-                <input matInput [matAutocomplete]="approverAuto" [ngModel]="approverInput()" (ngModelChange)="onApproverInput($event)"
-                       [placeholder]="'htmlTemplateEditor.userPicksAtSubmit' | translate" />
-                @if (defaultApproverId()) {
-                  <button matSuffix mat-icon-button type="button" (click)="clearApprover()" [attr.aria-label]="'htmlTemplateEditor.settings.clearApprover' | translate">
-                    <mat-icon>close</mat-icon>
-                  </button>
-                }
-                <mat-autocomplete #approverAuto="matAutocomplete" [displayWith]="displayUser">
-                  @for (u of filteredUsers(); track u.id) {
-                    <mat-option [value]="u">{{ u.fullName }} <span class="opt-sub">{{ u.email }}</span></mat-option>
-                  }
-                </mat-autocomplete>
-              </mat-form-field>
-              }
               @if (selectedPreset(); as preset) {
                 <ol class="preset-steps">
                   @for (st of preset.steps; track st.order) {
@@ -406,15 +389,6 @@ interface EditorSnapshot { html: string; fields: HtmlTemplateFieldInput[]; }
                       </div>
                     }
                     @if (f.role === 'Approver' && f.type === 'Signature') {
-                      <div class="fc-row">
-                        <label>{{ 'htmlTemplateEditor.assignTo' | translate }} <span class="fc-hint">{{ 'htmlTemplateEditor.assignToHint' | translate }}</span></label>
-                        <select [(ngModel)]="f.preAssignedApproverId" class="fc-select">
-                          <option value="">{{ 'htmlTemplateEditor.unassigned' | translate }}</option>
-                          @for (u of users(); track u.id) {
-                            <option [value]="u.id">{{ u.fullName }} ({{ u.email }})</option>
-                          }
-                        </select>
-                      </div>
                       @if (!isPlaced(f.fieldKey)) {
                         <div class="fc-warn">
                           <span>{{ 'htmlTemplateEditor.signatureNotPlaced' | translate }}</span>
@@ -426,7 +400,7 @@ interface EditorSnapshot { html: string; fields: HtmlTemplateFieldInput[]; }
                       @if (workflowType() === 'Mixed') {
                         <div class="fc-row">
                           <label>{{ 'htmlTemplateEditor.stage' | translate }} <span class="fc-hint">{{ 'htmlTemplateEditor.stageHint' | translate }}</span></label>
-                          <input type="number" min="1" [(ngModel)]="f.workflowStage" class="fc-input" />
+                          <input type="number" min="1" [(ngModel)]="f.filledByStep" class="fc-input" />
                         </div>
                       }
                     }
@@ -651,12 +625,10 @@ export class HtmlTemplateEditorComponent implements OnInit {
   expandedIdx = signal<number | null>(null);
   workflowType = signal<WorkflowType>('Sequential');
   hideRecipientIdentities = signal(false);
-  defaultApproverId = signal('');
   /** The reusable approval workflow this template follows ('' = none). */
   workflowPresetId = signal('');
   presets = signal<WorkflowPresetDto[]>([]);
   /** What the approver box shows: the text being typed, or the chosen user. */
-  approverInput = signal<string | UserDto>('');
   settingsOpen = signal(true);
   readonly formatSla = formatSla;
 
@@ -683,22 +655,16 @@ export class HtmlTemplateEditorComponent implements OnInit {
   readonly lintErrors = computed(() => this.lint().filter(i => i.severity === 'error').length);
 
   readonly userNames = computed(() => Object.fromEntries(this.users().map(u => [u.id, u.fullName])));
-  readonly filteredUsers = computed(() => {
-    const typed = this.approverInput();
-    const q = typeof typed === 'string' ? typed.trim().toLowerCase() : '';
-    const all = this.users();
-    return (q ? all.filter(u => u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : all).slice(0, 50);
-  });
 
-  /** The approval path the server will build from the fields, workflow type and default approver. */
+  /** The approval path the server will build from the fields and the workflow type. */
   readonly path = computed(() => {
     this.version();
     return buildApprovalPath(
       this.fields().map(f => ({
         tempId: f.fieldKey, label: f.label, type: f.type, fillRole: f.role,
-        workflowStage: f.workflowStage || 1, preAssignedApproverId: f.preAssignedApproverId || undefined
+        filledByStep: f.filledByStep || 1
       })),
-      this.workflowType(), this.defaultApproverId() || undefined);
+      this.workflowType());
   });
 
   readonly selectedPreset = computed(() => this.presets().find(p => p.id === this.workflowPresetId()) ?? null);
@@ -712,7 +678,6 @@ export class HtmlTemplateEditorComponent implements OnInit {
   });
 
   /** Signature fields past the workflow's last step still need someone: the default approver, or the requester's choice. */
-  readonly needsDefaultApprover = computed(() => this.approverSignatureCount() > (this.selectedPreset()?.steps.length ?? 0));
 
   /** Where the workflow and the template's signature fields do not line up. */
   readonly presetWarnings = computed(() => {
@@ -731,8 +696,6 @@ export class HtmlTemplateEditorComponent implements OnInit {
   readonly settingsSummary = computed(() => {
     const preset = this.selectedPreset();
     const parts = preset ? [preset.name] : [this.translate.instant('workflow.type.' + this.workflowType())];
-    const approver = this.userNames()[this.defaultApproverId()];
-    if (approver) parts.push(approver);
     const type = this.requestTypes().find(t => t.id === this.requestTypeId);
     if (type) parts.push(`${type.name} (${formatSla(type.slaHours)})`);
     return parts.join(' · ');
@@ -756,7 +719,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
     this.templateId = this.route.snapshot.paramMap.get('id');
     this.isEdit = !!this.templateId;
 
-    this.userSvc.getUsers({ pageSize: 200 }).subscribe(r => { this.users.set(r.items); this.syncApproverInput(); });
+    this.userSvc.getUsers({ pageSize: 200 }).subscribe(r => this.users.set(r.items));
     this.requestTypeSvc.getActive().subscribe(types => this.requestTypes.set(types));
     this.presetSvc.getAll().subscribe({ next: p => this.presets.set(p), error: () => this.presets.set([]) });
 
@@ -765,8 +728,6 @@ export class HtmlTemplateEditorComponent implements OnInit {
         this.name = t.name;
         this.description = t.description ?? '';
         this.htmlContent = t.htmlContent;
-        this.defaultApproverId.set(t.defaultApproverId ?? '');
-        this.syncApproverInput();
         this.workflowPresetId.set(t.workflowPreset?.id ?? '');
         this.settingsOpen.set(false);
         this.requestTypeId = t.requestTypeId ?? '';
@@ -783,8 +744,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
           autoFillFrom: f.autoFillFrom ?? '',
           optionsJson: f.optionsJson ?? '',
           defaultValue: f.defaultValue ?? '',
-          preAssignedApproverId: f.preAssignedApproverId ?? '',
-          workflowStage: f.workflowStage ?? 1
+          filledByStep: f.filledByStep ?? 1
         })));
         this.history.reset({ html: this.htmlContent, fields: structuredClone(this.fields()) });
         this.bump();
@@ -850,26 +810,6 @@ export class HtmlTemplateEditorComponent implements OnInit {
 
   displayUser = (u: UserDto | string | null): string => (u && typeof u !== 'string' ? u.fullName : (u ?? ''));
 
-  onApproverInput(value: string | UserDto): void {
-    this.approverInput.set(value);
-    // Typing again un-picks the approver; choosing a suggestion picks one.
-    this.defaultApproverId.set(typeof value === 'string' ? '' : value.id);
-    this.bump();
-  }
-
-  clearApprover(): void {
-    this.approverInput.set('');
-    this.defaultApproverId.set('');
-    this.bump();
-  }
-
-  /** Shows the saved approver by name once both the template and the user list have arrived. */
-  private syncApproverInput(): void {
-    const id = this.defaultApproverId();
-    if (!id) return;
-    const user = this.users().find(u => u.id === id);
-    if (user) this.approverInput.set(user);
-  }
 
   // ---- review
 
@@ -916,7 +856,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
       role: 'Initiator',
       isRequired: false,
       order: this.fields().length + 1,
-      workflowStage: 1
+      filledByStep: 1
     };
     this.history.record(() => {
       this.fields.update(arr => [...arr, f]);
@@ -1062,7 +1002,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
       role: 'Initiator',
       isRequired: false,
       order: startOrder + i + 1,
-      workflowStage: 1
+      filledByStep: 1
     }));
     this.fields.update(arr => [...arr, ...newFields]);
 
@@ -1097,7 +1037,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
           isRequired: f.isRequired,
           order: f.order || i + 1,
           autoFillFrom: f.autoFillFrom ?? '',
-          workflowStage: 1
+          filledByStep: 1
         })));
         this.expandedIdx.set(null);
         this.bump();
@@ -1134,8 +1074,7 @@ export class HtmlTemplateEditorComponent implements OnInit {
       autoFillFrom: f.autoFillFrom || undefined,
       optionsJson: f.optionsJson || undefined,
       defaultValue: f.defaultValue || undefined,
-      preAssignedApproverId: f.preAssignedApproverId || undefined,
-      workflowStage: f.workflowStage || 1
+      filledByStep: f.filledByStep || 1
     }));
 
     if (this.isEdit && this.templateId) {
@@ -1143,7 +1082,6 @@ export class HtmlTemplateEditorComponent implements OnInit {
         name: this.name,
         htmlContent: this.htmlContent,
         description: this.description || undefined,
-        defaultApproverId: this.defaultApproverId() || undefined,
         isActive: this.isActive,
         fields: fieldsPayload,
         workflowType: this.workflowType(),
@@ -1163,7 +1101,6 @@ export class HtmlTemplateEditorComponent implements OnInit {
         name: this.name,
         htmlContent: this.htmlContent,
         description: this.description || undefined,
-        defaultApproverId: this.defaultApproverId() || undefined,
         fields: fieldsPayload,
         workflowType: this.workflowType(),
         hideRecipientIdentities: this.hideRecipientIdentities(),

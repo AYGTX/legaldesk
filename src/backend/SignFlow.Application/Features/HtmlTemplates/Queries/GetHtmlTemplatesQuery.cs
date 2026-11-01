@@ -20,8 +20,6 @@ public record HtmlTemplateDto(
     bool IsActive,
     Guid CreatedById,
     string CreatedByName,
-    Guid? DefaultApproverId,
-    string? DefaultApproverName,
     WorkflowType WorkflowType,
     int FieldCount,
     DateTime CreatedAt,
@@ -42,7 +40,6 @@ public class GetHtmlTemplatesQueryHandler(
         var q = db.HtmlTemplates
             .AsNoTracking()
             .Include(t => t.CreatedByUser)
-            .Include(t => t.DefaultApprover)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -66,8 +63,6 @@ public class GetHtmlTemplatesQueryHandler(
                 t.IsActive,
                 t.CreatedById,
                 t.CreatedByUser.FirstName + " " + t.CreatedByUser.LastName,
-                t.DefaultApproverId,
-                t.DefaultApprover != null ? t.DefaultApprover.FirstName + " " + t.DefaultApprover.LastName : null,
                 t.WorkflowType,
                 t.Fields.Count,
                 t.CreatedAt,

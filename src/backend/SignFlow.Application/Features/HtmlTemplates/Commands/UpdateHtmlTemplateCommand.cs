@@ -13,7 +13,6 @@ public record UpdateHtmlTemplateCommand(
     string Name,
     string HtmlContent,
     string? Description,
-    Guid? DefaultApproverId,
     bool IsActive,
     List<HtmlTemplateFieldInput> Fields,
     WorkflowType WorkflowType = WorkflowType.Sequential,
@@ -50,20 +49,6 @@ public class UpdateHtmlTemplateCommandHandler(
         if (!template.IsEditable)
             throw new ConflictException("template.notEditable", "This version is approved: draft its next version to change it.");
 
-        var approverIds = command.Fields
-            .Where(f => f.PreAssignedApproverId.HasValue)
-            .Select(f => f.PreAssignedApproverId!.Value)
-            .Distinct()
-            .ToList();
-        if (command.DefaultApproverId.HasValue)
-            approverIds.Add(command.DefaultApproverId.Value);
-
-        if (approverIds.Count > 0)
-        {
-            var existingCount = await db.Users.CountAsync(u => approverIds.Contains(u.Id), cancellationToken);
-            if (existingCount != approverIds.Distinct().Count())
-                throw new NotFoundException(nameof(ApplicationUser), approverIds.First());
-        }
 
         if (command.RequestTypeId.HasValue)
         {
@@ -83,7 +68,6 @@ public class UpdateHtmlTemplateCommandHandler(
             // Cleaned on save (R-M6-3): what is stored never runs in a reader's browser or makes the renderer fetch a URL.
             Common.Services.SafeHtml.Clean(command.HtmlContent),
             command.Description,
-            command.DefaultApproverId,
             command.IsActive,
             command.WorkflowType,
             command.HideRecipientIdentities,
@@ -107,8 +91,7 @@ public class UpdateHtmlTemplateCommandHandler(
                 f.Order,
                 f.AutoFillFrom,
                 f.OptionsJson,
-                f.PreAssignedApproverId,
-                f.WorkflowStage,
+                f.FilledByStep,
                 f.DefaultValue);
             db.HtmlTemplateFields.Add(field);
         }

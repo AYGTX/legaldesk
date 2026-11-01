@@ -124,12 +124,10 @@ public class PdfTemplatesController(
                 id,
                 request.Name,
                 request.Description,
-                request.DefaultApproverId,
                 request.IsActive,
                 request.Fields.Select(f => new PdfTemplateFieldInput(
                     f.FieldKey, f.Label, f.Type, f.FillRole, f.Page, f.X, f.Y, f.Width, f.Height,
-                    f.IsRequired, f.Order, f.AutoFillFrom, f.DefaultValue, f.OptionsJson,
-                    f.PreAssignedApproverId, f.WorkflowStage)).ToList(),
+                    f.IsRequired, f.Order, f.AutoFillFrom, f.DefaultValue, f.OptionsJson, f.FilledByStep)).ToList(),
                 request.WorkflowType,
                 request.HideRecipientIdentities,
                 request.RequestTypeId,
@@ -189,13 +187,11 @@ public record PdfTemplateFieldRequest(
     string? AutoFillFrom = null,
     string? DefaultValue = null,
     string? OptionsJson = null,
-    Guid? PreAssignedApproverId = null,
-    int WorkflowStage = 1);
+    int FilledByStep = 1);
 
 public record UpdatePdfTemplateRequest(
     string Name,
     string? Description,
-    Guid? DefaultApproverId,
     bool IsActive,
     List<PdfTemplateFieldRequest> Fields,
     WorkflowType WorkflowType = WorkflowType.Sequential,

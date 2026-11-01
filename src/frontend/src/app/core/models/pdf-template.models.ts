@@ -33,8 +33,6 @@ export interface PdfTemplateDto {
   pageCount: number;
   createdById: string;
   createdByName: string;
-  defaultApproverId?: string;
-  defaultApproverName?: string;
   workflowType: WorkflowType;
   fieldCount: number;
   createdAt: string;
@@ -57,9 +55,7 @@ export interface PdfTemplateFieldDto {
   autoFillFrom?: string;
   defaultValue?: string;
   optionsJson?: string;
-  preAssignedApproverId?: string;
-  preAssignedApproverName?: string;
-  workflowStage: number;
+  filledByStep: number;
 }
 
 export interface PdfTemplateDetailDto {
@@ -75,8 +71,6 @@ export interface PdfTemplateDetailDto {
   storagePath: string;
   createdById: string;
   createdByName: string;
-  defaultApproverId?: string;
-  defaultApproverName?: string;
   workflowType: WorkflowType;
   hideRecipientIdentities: boolean;
   createdAt: string;
@@ -108,7 +102,6 @@ export interface CreatePdfTemplateResult {
 export interface UpdatePdfTemplateRequest {
   name: string;
   description?: string;
-  defaultApproverId?: string;
   isActive: boolean;
   fields: PdfTemplateFieldDto[];
   workflowType: WorkflowType;

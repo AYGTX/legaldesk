@@ -16,7 +16,6 @@ public record UpdatePdfTemplateCommand(
     Guid Id,
     string Name,
     string? Description,
-    Guid? DefaultApproverId,
     bool IsActive,
     List<PdfTemplateFieldInput> Fields,
     WorkflowType WorkflowType = WorkflowType.Sequential,
@@ -63,20 +62,6 @@ public class UpdatePdfTemplateCommandHandler(
         if (!template.IsEditable)
             throw new ConflictException("template.notEditable", "This version is approved: draft its next version to change it.");
 
-        var approverIds = command.Fields
-            .Where(f => f.PreAssignedApproverId.HasValue)
-            .Select(f => f.PreAssignedApproverId!.Value)
-            .Distinct()
-            .ToList();
-        if (command.DefaultApproverId.HasValue)
-            approverIds.Add(command.DefaultApproverId.Value);
-
-        if (approverIds.Count > 0)
-        {
-            var existingCount = await db.Users.CountAsync(u => approverIds.Contains(u.Id), cancellationToken);
-            if (existingCount != approverIds.Distinct().Count())
-                throw new NotFoundException(nameof(ApplicationUser), approverIds.First());
-        }
 
         if (command.RequestTypeId.HasValue)
         {
@@ -94,7 +79,6 @@ public class UpdatePdfTemplateCommandHandler(
         template.Update(
             command.Name,
             command.Description,
-            command.DefaultApproverId,
             command.IsActive,
             command.WorkflowType,
             command.HideRecipientIdentities,
@@ -131,8 +115,7 @@ public class UpdatePdfTemplateCommandHandler(
                 f.AutoFillFrom,
                 f.DefaultValue,
                 f.OptionsJson,
-                f.PreAssignedApproverId,
-                f.WorkflowStage);
+                f.FilledByStep);
             db.PdfTemplateFields.Add(field);
         }
 

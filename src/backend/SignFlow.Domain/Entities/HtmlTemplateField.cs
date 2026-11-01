@@ -27,20 +27,12 @@ public class HtmlTemplateField : TenantEntity
     /// <summary>JSON array of option strings — only relevant for future Dropdown type.</summary>
     public string? OptionsJson { get; private set; }
 
-    /// <summary>
-    /// Only relevant for Approver Signature fields: locks this field to a specific user,
-    /// overriding the template's DefaultApprover and skipping the at-request-time picker
-    /// for this field. Null means the approver is chosen at request-creation time.
-    /// </summary>
-    public Guid? PreAssignedApproverId { get; private set; }
-    public ApplicationUser? PreAssignedApprover { get; private set; }
 
     /// <summary>
-    /// Only relevant for Approver Signature fields when the template's WorkflowType is Mixed:
-    /// fields sharing the same stage sign in parallel; stages are worked through in ascending order.
-    /// Ignored for Sequential/Parallel templates.
+    /// For a field an approver fills or signs: the step of the template's workflow that fills it (R-M6-2), never a
+    /// person. With a workflow, the step's own stage orders it; without one, fields sharing a step act together.
     /// </summary>
-    public int WorkflowStage { get; private set; } = 1;
+    public int FilledByStep { get; private set; } = 1;
 
     /// <summary>
     /// What the field starts as on the request form when nothing else fills it (an auto-fill source wins). The
@@ -60,8 +52,7 @@ public class HtmlTemplateField : TenantEntity
         int order,
         string? autoFillFrom = null,
         string? optionsJson = null,
-        Guid? preAssignedApproverId = null,
-        int workflowStage = 1,
+        int filledByStep = 1,
         string? defaultValue = null)
         => new()
         {
@@ -74,13 +65,12 @@ public class HtmlTemplateField : TenantEntity
             Order = order,
             AutoFillFrom = autoFillFrom,
             OptionsJson = optionsJson,
-            PreAssignedApproverId = preAssignedApproverId,
-            WorkflowStage = workflowStage,
+            FilledByStep = filledByStep,
             DefaultValue = defaultValue
         };
 
     public HtmlTemplateField CopyTo(Guid templateId) =>
-        Create(templateId, FieldKey, Label, Type, Role, IsRequired, Order, AutoFillFrom, OptionsJson, PreAssignedApproverId, WorkflowStage, DefaultValue);
+        Create(templateId, FieldKey, Label, Type, Role, IsRequired, Order, AutoFillFrom, OptionsJson, FilledByStep, DefaultValue);
 
     public void Update(
         string label,
@@ -90,8 +80,7 @@ public class HtmlTemplateField : TenantEntity
         int order,
         string? autoFillFrom,
         string? optionsJson,
-        Guid? preAssignedApproverId,
-        int workflowStage,
+        int filledByStep,
         string? defaultValue = null)
     {
         Label = label;
@@ -101,8 +90,7 @@ public class HtmlTemplateField : TenantEntity
         Order = order;
         AutoFillFrom = autoFillFrom;
         OptionsJson = optionsJson;
-        PreAssignedApproverId = preAssignedApproverId;
-        WorkflowStage = workflowStage;
+        FilledByStep = filledByStep;
         DefaultValue = defaultValue;
         UpdatedAt = DateTime.UtcNow;
     }

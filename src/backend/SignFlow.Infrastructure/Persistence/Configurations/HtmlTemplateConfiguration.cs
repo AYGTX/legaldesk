@@ -21,10 +21,6 @@ public class HtmlTemplateConfiguration : IEntityTypeConfiguration<HtmlTemplate>
             .HasForeignKey(t => t.CreatedById)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(t => t.DefaultApprover)
-            .WithMany()
-            .HasForeignKey(t => t.DefaultApproverId)
-            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(t => t.RequestType)
             .WithMany()
@@ -63,10 +59,6 @@ public class HtmlTemplateFieldConfiguration : IEntityTypeConfiguration<HtmlTempl
         builder.Property(f => f.CreatedBy).HasMaxLength(50);
         builder.Property(f => f.UpdatedBy).HasMaxLength(50);
 
-        builder.HasOne(f => f.PreAssignedApprover)
-            .WithMany()
-            .HasForeignKey(f => f.PreAssignedApproverId)
-            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(f => new { f.HtmlTemplateId, f.FieldKey }).IsUnique();
     }

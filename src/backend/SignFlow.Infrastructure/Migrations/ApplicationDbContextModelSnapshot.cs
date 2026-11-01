@@ -1365,9 +1365,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("DefaultApproverId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -1428,8 +1425,6 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.HasIndex("DefaultApproverId");
-
                     b.HasIndex("IsActive");
 
                     b.HasIndex("OrganisationId");
@@ -1467,6 +1462,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("FilledByStep")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("HtmlTemplateId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1491,9 +1489,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("OrganisationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("PreAssignedApproverId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
@@ -1507,14 +1502,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("WorkflowStage")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OrganisationId");
-
-                    b.HasIndex("PreAssignedApproverId");
 
                     b.HasIndex("HtmlTemplateId", "FieldKey")
                         .IsUnique();
@@ -1851,9 +1841,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("DefaultApproverId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -1926,8 +1913,6 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.HasIndex("DefaultApproverId");
-
                     b.HasIndex("IsActive");
 
                     b.HasIndex("OrganisationId");
@@ -1968,6 +1953,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("FillRole")
                         .HasColumnType("int");
 
+                    b.Property<int>("FilledByStep")
+                        .HasColumnType("int");
+
                     b.Property<float>("Height")
                         .HasColumnType("real");
 
@@ -1998,9 +1986,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("PdfTemplateId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("PreAssignedApproverId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
@@ -2014,9 +1999,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<float>("Width")
                         .HasColumnType("real");
 
-                    b.Property<int>("WorkflowStage")
-                        .HasColumnType("int");
-
                     b.Property<float>("X")
                         .HasColumnType("real");
 
@@ -2026,8 +2008,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrganisationId");
-
-                    b.HasIndex("PreAssignedApproverId");
 
                     b.HasIndex("PdfTemplateId", "FieldKey")
                         .IsUnique();
@@ -3661,11 +3641,6 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "DefaultApprover")
-                        .WithMany()
-                        .HasForeignKey("DefaultApproverId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("SignFlow.Domain.Entities.Organisation", null)
                         .WithMany()
                         .HasForeignKey("OrganisationId")
@@ -3683,8 +3658,6 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("DefaultApprover");
 
                     b.Navigation("RequestType");
 
@@ -3705,14 +3678,7 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "PreAssignedApprover")
-                        .WithMany()
-                        .HasForeignKey("PreAssignedApproverId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("HtmlTemplate");
-
-                    b.Navigation("PreAssignedApprover");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Notification", b =>
@@ -3765,11 +3731,6 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "DefaultApprover")
-                        .WithMany()
-                        .HasForeignKey("DefaultApproverId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("SignFlow.Domain.Entities.Organisation", null)
                         .WithMany()
                         .HasForeignKey("OrganisationId")
@@ -3787,8 +3748,6 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("DefaultApprover");
 
                     b.Navigation("RequestType");
 
@@ -3809,14 +3768,7 @@ namespace SignFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SignFlow.Domain.Entities.ApplicationUser", "PreAssignedApprover")
-                        .WithMany()
-                        .HasForeignKey("PreAssignedApproverId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("PdfTemplate");
-
-                    b.Navigation("PreAssignedApprover");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.Recipient", b =>

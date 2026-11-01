@@ -22,8 +22,8 @@ public record CreateRequestFromHtmlTemplateCommand(
     /// <summary>fieldKey → value filled by the initiator (Initiator-role fields).</summary>
     Dictionary<string, string> FilledValues,
     /// <summary>
-    /// Approver choices for Approver Signature fields that have no field-level PreAssignedApprover and no
-    /// template-wide DefaultApprover — consumed in field order. Fields with either of those already set
+    /// Approver choices for Approver signature fields when the template has no workflow (R-M6-2: routing comes only
+    /// from the workflow) — consumed in field order.
     /// ignore this list entirely.
     /// </summary>
     List<ApproverSelection>? Approvers = null,
@@ -59,7 +59,6 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
 
         var template = await db.HtmlTemplates
             .Include(t => t.Fields)
-            .Include(t => t.DefaultApprover)
             .Include(t => t.RequestType)
             .FirstOrDefaultAsync(t => t.Id == command.TemplateId, cancellationToken)
             ?? throw new NotFoundException(nameof(HtmlTemplate), command.TemplateId);
@@ -132,9 +131,7 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
         var workflowType = routing?.WorkflowType ?? template.WorkflowType;
 
         // Resolve one approver selection per sig field. Precedence: the workflow preset's step > field-level
-        // PreAssignedApprover (locked by the template admin, always a system user) > template-wide DefaultApprover
-        // (also a system user) > caller-supplied Approvers (consumed in order, one per field that still needs a
-        // choice — each can be a system user OR an external signer with no account).
+        // Routing comes only from the template's workflow (R-M6-2); without one, the requester chooses.
         var supplied = command.Approvers ?? [];
         var suppliedIndex = 0;
         var selections = new List<ApproverSelection>(approverSigFields.Count);
@@ -145,10 +142,6 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
                 selections.Add(new ApproverSelection(null, pool.Name, Recipient.PoolAddress));
             else if (presetFor[fieldIndex]?.Approver is { } presetApprover)
                 selections.Add(presetApprover);
-            else if (field.PreAssignedApproverId.HasValue)
-                selections.Add(new ApproverSelection(field.PreAssignedApproverId, null, null));
-            else if (template.DefaultApproverId.HasValue)
-                selections.Add(new ApproverSelection(template.DefaultApproverId, null, null));
             else if (suppliedIndex < supplied.Count)
                 selections.Add(supplied[suppliedIndex++]);
             else
@@ -208,7 +201,7 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
         var firstApproverEmail = string.Empty;
 
         // Mixed stages, renumbered 1..n: a skipped step leaves a gap that nothing downstream should have to understand.
-        var stageOf = approverSigFields.Select((f, i) => presetFor[i]?.Stage ?? f.WorkflowStage).ToList();
+        var stageOf = approverSigFields.Select((f, i) => presetFor[i]?.Stage ?? f.FilledByStep).ToList();
         var stageRank = stageOf.Distinct().Order().Select((stage, index) => (stage, rank: index + 1)).ToDictionary(x => x.stage, x => x.rank);
 
         for (var i = 0; i < resolvedApprovers.Count; i++)

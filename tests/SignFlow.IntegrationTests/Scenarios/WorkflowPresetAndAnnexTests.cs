@@ -71,7 +71,7 @@ public class WorkflowPresetRoutingTests
             HtmlTemplateFieldRole.Initiator, true, 1));
         for (var i = 0; i < signatures; i++)
             f.Db.HtmlTemplateFields.Add(HtmlTemplateField.Create(template.Id, $"sig{i + 1}", $"Signature {i + 1}", HtmlTemplateFieldType.Signature,
-                HtmlTemplateFieldRole.Approver, true, i + 2, workflowStage: stages?[i] ?? 1));
+                HtmlTemplateFieldRole.Approver, true, i + 2, filledByStep: stages?[i] ?? 1));
         await f.Db.SaveChangesAsync();
         return template;
     }
@@ -337,7 +337,7 @@ public class PdfAnnexRequestTests
         var basePdf = OnePagePdf();
         var path = await storage.UploadAsync(new MemoryStream(basePdf), "base.pdf", "application/pdf", "pdf-templates");
 
-        var template = PdfTemplate.Create("Contrat", path, "base.pdf", basePdf.Length, 1, OwnerId, defaultApproverId: OwnerId);
+        var template = PdfTemplate.Create("Contrat", path, "base.pdf", basePdf.Length, 1, OwnerId);
 
         template.ImportApproved();
         db.PdfTemplates.Add(template);
@@ -365,7 +365,7 @@ public class PdfAnnexRequestTests
             NullLogger<CreateRequestFromPdfTemplateCommandHandler>.Instance);
 
         return handler.HandleAsync(new CreateRequestFromPdfTemplateCommand(
-            w.Template.Id, new Dictionary<string, string> { ["amount"] = "750" }, null, "Contrat test", null,
+            w.Template.Id, new Dictionary<string, string> { ["amount"] = "750" }, [new ApproverSelection(OwnerId, null, null)], "Contrat test", null,
             clauseIds.Length == 0 ? null : [.. clauseIds]));
     }
 
@@ -467,7 +467,7 @@ public class PdfAnnexRequestTests
             NullLogger<CreateRequestFromPdfTemplateCommandHandler>.Instance);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(new CreateRequestFromPdfTemplateCommand(
-            w.Template.Id, new Dictionary<string, string> { ["amount"] = "1" }, null, "x", null, [w.Approved.Id])));
+            w.Template.Id, new Dictionary<string, string> { ["amount"] = "1" }, [new ApproverSelection(OwnerId, null, null)], "x", null, [w.Approved.Id])));
         Assert.Empty(w.F.Db.Documents);
     }
 

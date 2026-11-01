@@ -122,6 +122,6 @@ public class TemplateLifecycleTests
         template.ImportApproved();
 
         Assert.Throws<InvalidOperationException>(() =>
-            template.Update("Prestation", "<p>y</p>", null, null, true, WorkflowType.Sequential, false, null));
+            template.Update("Prestation", "<p>y</p>", null, true, WorkflowType.Sequential, false, null));
     }
 }

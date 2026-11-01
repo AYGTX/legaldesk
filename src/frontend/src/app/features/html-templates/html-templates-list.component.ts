@@ -72,10 +72,6 @@ import { HtmlTemplateDto } from '../../core/models/html-template.models';
                 }
                 <div class="row-meta">
                   <span>{{ 'templates.fields' | translate: { n: t.fieldCount } }}</span>
-                  @if (t.defaultApproverName) {
-                    <span class="sep">·</span>
-                    <span>{{ 'templates.defaultApprover' | translate: { name: t.defaultApproverName } }}</span>
-                  }
                   <span class="sep">·</span>
                   <span>{{ 'templates.createdBy' | translate: { name: t.createdByName } }}</span>
                   <span class="sep">·</span>

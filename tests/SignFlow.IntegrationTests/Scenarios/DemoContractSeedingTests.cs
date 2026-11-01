@@ -197,15 +197,16 @@ public class DemoContractSeedingTests : IAsyncLifetime
         Assert.Equal(1, template.PageCount);
         Assert.Equal(16, template.Fields.Count);
 
-        // Two pre-assigned approver signatures in order: line manager (stage 1), then HR (stage 2).
+        // Two approver signatures in order, routed by the template's workflow (R-M6-2): line manager (step 1), then HR (step 2).
         var signatures = template.Fields
             .Where(f => f.Type == PdfFieldType.Signature)
             .OrderBy(f => f.Order)
             .ToList();
         Assert.Equal(["manager_signature", "hr_signature"], signatures.Select(f => f.FieldKey));
         Assert.All(signatures, f => Assert.Equal(PdfFieldFillRole.Approver, f.FillRole));
-        Assert.All(signatures, f => Assert.NotNull(f.PreAssignedApproverId));
-        Assert.Equal([1, 2], signatures.Select(f => f.WorkflowStage));
+        Assert.NotNull(template.WorkflowPresetId);
+        Assert.Equal(2, _db.WorkflowPresetSteps.Count(s => s.WorkflowPresetId == template.WorkflowPresetId));
+        Assert.Equal([1, 2], signatures.Select(f => f.FilledByStep));
 
         // Every field fits on an A4 page rendered at PDF.js scale 1.5 (892.5 × 1263 canvas px).
         Assert.All(template.Fields, f =>
@@ -244,8 +245,9 @@ public class DemoContractSeedingTests : IAsyncLifetime
             .OrderBy(f => f.Order)
             .ToList();
         Assert.Equal(["legal_signature", "client_signature"], signatures.Select(f => f.FieldKey));
-        Assert.NotNull(signatures[0].PreAssignedApproverId);
-        Assert.Null(signatures[1].PreAssignedApproverId); // the client is chosen per contract
+        // Legal is the workflow's one step; the client's signer, past the last step, is chosen per contract.
+        Assert.NotNull(template.WorkflowPresetId);
+        Assert.Equal(1, _db.WorkflowPresetSteps.Count(s => s.WorkflowPresetId == template.WorkflowPresetId));
 
         var types = template.Fields.ToDictionary(f => f.FieldKey, f => f.Type);
         var baseValues = new Dictionary<string, string>

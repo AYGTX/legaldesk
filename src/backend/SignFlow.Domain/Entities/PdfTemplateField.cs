@@ -47,19 +47,12 @@ public class PdfTemplateField : TenantEntity
     /// <summary>JSON array of option strings — only relevant for the Dropdown type.</summary>
     public string? OptionsJson { get; private set; }
 
-    /// <summary>
-    /// Only relevant for Approver fields: locks this field to a specific user, overriding the template's
-    /// DefaultApprover and skipping the at-request-time picker for this field. This is how "route to a
-    /// specific person/role" is expressed. Null means the approver is chosen at request-creation time.
-    /// </summary>
-    public Guid? PreAssignedApproverId { get; private set; }
-    public ApplicationUser? PreAssignedApprover { get; private set; }
 
     /// <summary>
-    /// Only relevant for Approver fields when the template's WorkflowType is Mixed: fields sharing the
-    /// same stage are worked in parallel; stages are worked through in ascending order.
+    /// For a field an approver fills or signs: the step of the template's workflow that fills it (R-M6-2), never a
+    /// person. With a workflow, the step's own stage orders it; without one, fields sharing a step act together.
     /// </summary>
-    public int WorkflowStage { get; private set; } = 1;
+    public int FilledByStep { get; private set; } = 1;
 
     private PdfTemplateField() { }
 
@@ -77,8 +70,7 @@ public class PdfTemplateField : TenantEntity
         string? autoFillFrom = null,
         string? defaultValue = null,
         string? optionsJson = null,
-        Guid? preAssignedApproverId = null,
-        int workflowStage = 1)
+        int filledByStep = 1)
         => new()
         {
             PdfTemplateId = templateId,
@@ -96,13 +88,12 @@ public class PdfTemplateField : TenantEntity
             AutoFillFrom = autoFillFrom,
             DefaultValue = defaultValue,
             OptionsJson = optionsJson,
-            PreAssignedApproverId = preAssignedApproverId,
-            WorkflowStage = workflowStage
+            FilledByStep = filledByStep
         };
 
     public PdfTemplateField CopyTo(Guid templateId) =>
         Create(templateId, FieldKey, Label, Type, FillRole, Page, X, Y, Width, Height, IsRequired, Order,
-            AutoFillFrom, DefaultValue, OptionsJson, PreAssignedApproverId, WorkflowStage);
+            AutoFillFrom, DefaultValue, OptionsJson, FilledByStep);
 
     /// <summary>Maps this template field's type to the document-level <see cref="FieldType"/> used on instances.</summary>
     public FieldType ToSignatureFieldType() => Type switch

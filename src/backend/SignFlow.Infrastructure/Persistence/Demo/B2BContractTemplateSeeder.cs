@@ -134,6 +134,17 @@ internal static class B2BContractTemplateSeeder
 
         template.ImportApproved();
         template.SetCreatedBy(owner.Id.ToString());
+        // Routing comes only from a workflow (R-M6-2): legal signs first; the client's signer is the requester's choice.
+        var preset = WorkflowPreset.Create($"{TemplateName} — circuit", "Circuit du modèle de démonstration.", WorkflowType.Sequential);
+        context.WorkflowPresets.Add(preset);
+        var step = 0;
+        foreach (var f in Fields.Where(f => f.ApproverEmail is not null))
+        {
+            step++;
+            context.WorkflowPresetSteps.Add(WorkflowPresetStep.Create(preset.Id, step, step, f.Label, PresetApproverKind.User,
+                approvers[f.ApproverEmail!], null, null, null, null, null));
+        }
+        template.SetWorkflowPreset(preset.Id);
         context.HtmlTemplates.Add(template);
 
         for (var i = 0; i < Fields.Length; i++)
@@ -143,8 +154,7 @@ internal static class B2BContractTemplateSeeder
                 template.Id, f.Key, f.Label, f.Type, f.Role,
                 isRequired: f.Required,
                 order: i + 1,
-                autoFillFrom: f.AutoFill,
-                preAssignedApproverId: f.ApproverEmail is null ? null : approvers[f.ApproverEmail]));
+                autoFillFrom: f.AutoFill));
         }
 
         await context.SaveChangesAsync(cancellationToken);

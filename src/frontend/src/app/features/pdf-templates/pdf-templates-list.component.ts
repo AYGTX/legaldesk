@@ -73,10 +73,6 @@ import { AuthService } from '../../core/auth/auth.service';
                   <span>{{ 'pdfTemplates.list.pages' | translate: { n: t.pageCount } }}</span>
                   <span class="sep">·</span>
                   <span>{{ 'pdfTemplates.list.fields' | translate: { n: t.fieldCount } }}</span>
-                  @if (t.defaultApproverName) {
-                    <span class="sep">·</span>
-                    <span>{{ 'pdfTemplates.list.defaultApprover' | translate: { name: t.defaultApproverName } }}</span>
-                  }
                   <span class="sep">·</span>
                   <span>{{ t.createdAt | date:'mediumDate' }}</span>
                 </div>

@@ -22,8 +22,8 @@ public record CreateRequestFromPdfTemplateCommand(
     /// <summary>fieldKey → value filled by the initiator (Requester-role fields).</summary>
     Dictionary<string, string> FilledValues,
     /// <summary>
-    /// Approver choices for Approver signature fields with no field-level PreAssignedApprover and no
-    /// template-wide DefaultApprover — consumed in field order. Each may be a system user or an external signer.
+    /// Approver choices for Approver signature fields when the template has no workflow (R-M6-2: routing comes only
+    /// from the workflow) — consumed in field order.
     /// </summary>
     List<ApproverSelection>? Approvers = null,
     string? Title = null,
@@ -63,7 +63,6 @@ public class CreateRequestFromPdfTemplateCommandHandler(
 
         var template = await db.PdfTemplates
             .Include(t => t.Fields)
-            .Include(t => t.DefaultApprover)
             .Include(t => t.RequestType)
             .FirstOrDefaultAsync(t => t.Id == command.TemplateId, cancellationToken)
             ?? throw new NotFoundException(nameof(PdfTemplate), command.TemplateId);
@@ -137,7 +136,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
 
         var workflowType = routing?.WorkflowType ?? template.WorkflowType;
 
-        // Resolve one approver per signature field: workflow step > field PreAssignedApprover > template DefaultApprover > supplied list.
+        // One approver per signature field: the workflow's step (R-M6-2), else the requester's choice.
         var resolvedApprovers = await ResolveApproversAsync(template, approverSigFields, presetFor, command.Approvers ?? [], cancellationToken);
 
         // Clauses the template always carries, then the ones the requester added: approved wording only.
@@ -210,7 +209,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
         var firstApproverEmail = string.Empty;
 
         // Mixed stages, renumbered 1..n: a skipped step leaves a gap that nothing downstream should have to understand.
-        var stageOf = approverSigFields.Select((f, i) => presetFor[i]?.Stage ?? f.WorkflowStage).ToList();
+        var stageOf = approverSigFields.Select((f, i) => presetFor[i]?.Stage ?? f.FilledByStep).ToList();
         var stageRank = stageOf.Distinct().Order().Select((stage, index) => (stage, rank: index + 1)).ToDictionary(x => x.stage, x => x.rank);
 
         for (var i = 0; i < approverSigFields.Count; i++)
@@ -249,7 +248,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
                 // Signature fields use their own recipient; other approver fields follow the same-stage recipient.
                 var recipient = f.Type == PdfFieldType.Signature && sigFieldRecipient.TryGetValue(f.Id, out var own)
                     ? own
-                    : stageToRecipient.GetValueOrDefault(f.WorkflowStage) ?? stageToRecipient.Values.FirstOrDefault();
+                    : stageToRecipient.GetValueOrDefault(f.FilledByStep) ?? stageToRecipient.Values.FirstOrDefault();
                 recipientId = recipient?.Id;
             }
             else
@@ -331,10 +330,6 @@ public class CreateRequestFromPdfTemplateCommandHandler(
                 selections.Add(new ApproverSelection(null, pool.Name, Recipient.PoolAddress));
             else if (presetFor[fieldIndex]?.Approver is { } presetApprover)
                 selections.Add(presetApprover);
-            else if (field.PreAssignedApproverId.HasValue)
-                selections.Add(new ApproverSelection(field.PreAssignedApproverId, null, null));
-            else if (template.DefaultApproverId.HasValue)
-                selections.Add(new ApproverSelection(template.DefaultApproverId, null, null));
             else if (suppliedIndex < supplied.Count)
                 selections.Add(supplied[suppliedIndex++]);
             else

@@ -20,8 +20,6 @@ public record PdfTemplateDto(
     int PageCount,
     Guid CreatedById,
     string CreatedByName,
-    Guid? DefaultApproverId,
-    string? DefaultApproverName,
     WorkflowType WorkflowType,
     int FieldCount,
     DateTime CreatedAt,
@@ -42,7 +40,6 @@ public class GetPdfTemplatesQueryHandler(
         var q = db.PdfTemplates
             .AsNoTracking()
             .Include(t => t.CreatedByUser)
-            .Include(t => t.DefaultApprover)
             .AsQueryable();
 
         if (!adminView || query.ActiveOnly == true)
@@ -67,8 +64,6 @@ public class GetPdfTemplatesQueryHandler(
                 t.PageCount,
                 t.CreatedById,
                 t.CreatedByUser.FirstName + " " + t.CreatedByUser.LastName,
-                t.DefaultApproverId,
-                t.DefaultApprover != null ? t.DefaultApprover.FirstName + " " + t.DefaultApprover.LastName : null,
                 t.WorkflowType,
                 t.Fields.Count,
                 t.CreatedAt,

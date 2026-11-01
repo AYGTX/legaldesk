@@ -17,15 +17,13 @@ public record HtmlTemplateFieldInput(
     int Order,
     string? AutoFillFrom = null,
     string? OptionsJson = null,
-    Guid? PreAssignedApproverId = null,
-    int WorkflowStage = 1,
+    int FilledByStep = 1,
     string? DefaultValue = null);
 
 public record CreateHtmlTemplateCommand(
     string Name,
     string HtmlContent,
     string? Description = null,
-    Guid? DefaultApproverId = null,
     List<HtmlTemplateFieldInput>? Fields = null,
     WorkflowType WorkflowType = WorkflowType.Sequential,
     bool HideRecipientIdentities = false,
@@ -58,20 +56,6 @@ public class CreateHtmlTemplateCommandHandler(
 
         var createdById = currentUser.UserId ?? throw new ForbiddenAccessException();
 
-        var approverIds = (command.Fields ?? [])
-            .Where(f => f.PreAssignedApproverId.HasValue)
-            .Select(f => f.PreAssignedApproverId!.Value)
-            .Distinct()
-            .ToList();
-        if (command.DefaultApproverId.HasValue)
-            approverIds.Add(command.DefaultApproverId.Value);
-
-        if (approverIds.Count > 0)
-        {
-            var existingCount = await db.Users.CountAsync(u => approverIds.Contains(u.Id), cancellationToken);
-            if (existingCount != approverIds.Distinct().Count())
-                throw new NotFoundException(nameof(ApplicationUser), approverIds.First());
-        }
 
         if (command.RequestTypeId.HasValue)
         {
@@ -91,7 +75,6 @@ public class CreateHtmlTemplateCommandHandler(
             Common.Services.SafeHtml.Clean(command.HtmlContent),
             createdById,
             command.Description,
-            command.DefaultApproverId,
             command.WorkflowType,
             command.HideRecipientIdentities,
             command.RequestTypeId);
@@ -114,8 +97,7 @@ public class CreateHtmlTemplateCommandHandler(
                     f.Order,
                     f.AutoFillFrom,
                     f.OptionsJson,
-                    f.PreAssignedApproverId,
-                    f.WorkflowStage,
+                    f.FilledByStep,
                     f.DefaultValue);
                 db.HtmlTemplateFields.Add(field);
             }

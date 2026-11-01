@@ -28,8 +28,7 @@ public record PdfTemplateFieldInput(
     string? AutoFillFrom = null,
     string? DefaultValue = null,
     string? OptionsJson = null,
-    Guid? PreAssignedApproverId = null,
-    int WorkflowStage = 1);
+    int FilledByStep = 1);
 
 /// <summary>
 /// Uploads and persists the base PDF for a new template (admin/manager). The PDF is stored once and

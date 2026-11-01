@@ -320,15 +320,12 @@ export class NewRequestComponent implements OnInit {
     return steps[this.approverSigFields().indexOf(f)] ?? null;
   }
 
-  /** Sig fields nobody has been named for (no workflow step, no field-level assignment, no template default) — these need a picker. */
-  unassignedApproverSigFields = computed(() =>
-    this.approverSigFields().filter(f =>
-      !this.presetStepFor(f) && !f.preAssignedApproverId && !this.selectedTemplate()?.defaultApproverId)
-  );
+  /** Sig fields the workflow does not cover — the requester chooses who signs them (R-M6-2). */
+  unassignedApproverSigFields = computed(() => this.approverSigFields().filter(f => !this.presetStepFor(f)));
 
   /** The approver name to display as fixed for a field, or null if the initiator must pick one. */
-  fixedApproverNameFor(f: HtmlTemplateFieldDto): string | null {
-    return f.preAssignedApproverName ?? this.selectedTemplate()?.defaultApproverName ?? null;
+  fixedApproverNameFor(_f: HtmlTemplateFieldDto): string | null {
+    return null;
   }
 
   /** Index into selectedApproverIds for a field that needs a picker. */

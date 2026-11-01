@@ -344,17 +344,16 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
       .sort((a, b) => a.order - b.order)
   );
 
-  // Approver signature slots that still need a choice at request time (no field-level or template-level approver).
+  // Approver signature slots the workflow does not cover: the requester chooses (R-M6-2).
   readonly approverSlots = computed(() => {
     const t = this.template();
     if (!t) return [];
-    if (t.defaultApproverId) return [];
     // The workflow names the signer of the first signature fields; only the rest are left to the requester.
     const covered = t.workflowPreset?.steps.length ?? 0;
     return t.fields
       .filter(f => f.fillRole === 'Approver' && f.type === 'Signature')
       .sort((a, b) => a.order - b.order)
-      .filter((f, i) => i >= covered && !f.preAssignedApproverId);
+      .filter((f, i) => i >= covered);
   });
 
   /** Labels of fields that are auto-populated (shown to the user so they know why they're already filled in). */
@@ -390,8 +389,6 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
   approverLabelFor(f: PdfTemplateFieldDto): string {
     const step = this.workflowStepFor(f);
     if (step) return step.who;
-    if (f.preAssignedApproverName) return f.preAssignedApproverName;
-    if (this.template()?.defaultApproverName) return this.template()!.defaultApproverName!;
     const idx = this.approverSlots().findIndex(s => s.fieldKey === f.fieldKey);
     if (idx === -1) return f.label;
     const entry = this.approvers[idx];

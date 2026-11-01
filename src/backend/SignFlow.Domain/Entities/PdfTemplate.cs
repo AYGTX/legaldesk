@@ -23,13 +23,6 @@ public class PdfTemplate : VersionedTemplate
     public long FileSizeBytes { get; private set; }
     public int PageCount { get; private set; }
 
-    /// <summary>
-    /// When set, the approver is fixed and the initiator cannot change it. When null, the initiator
-    /// picks approvers at request-creation time (unless a field-level PreAssignedApprover is set).
-    /// Mirrors <see cref="HtmlTemplate.DefaultApproverId"/>.
-    /// </summary>
-    public Guid? DefaultApproverId { get; private set; }
-    public ApplicationUser? DefaultApprover { get; private set; }
 
     /// <summary>How recipients created from this template are routed: Sequential, Parallel, or Mixed.</summary>
     public WorkflowType WorkflowType { get; private set; } = WorkflowType.Sequential;
@@ -90,7 +83,6 @@ public class PdfTemplate : VersionedTemplate
         Guid createdById,
         Guid? requestTypeId = null,
         string? description = null,
-        Guid? defaultApproverId = null,
         WorkflowType workflowType = WorkflowType.Sequential,
         bool hideRecipientIdentities = false)
         => new()
@@ -102,7 +94,6 @@ public class PdfTemplate : VersionedTemplate
             PageCount = pageCount,
             CreatedById = createdById,
             Description = description,
-            DefaultApproverId = defaultApproverId,
             WorkflowType = workflowType,
             HideRecipientIdentities = hideRecipientIdentities,
             RequestTypeId = requestTypeId
@@ -124,7 +115,6 @@ public class PdfTemplate : VersionedTemplate
     public void Update(
         string name,
         string? description,
-        Guid? defaultApproverId,
         bool isActive,
         WorkflowType workflowType,
         bool hideRecipientIdentities,
@@ -132,7 +122,6 @@ public class PdfTemplate : VersionedTemplate
     {
         Name = name;
         Description = description;
-        DefaultApproverId = defaultApproverId;
         IsActive = isActive;
         WorkflowType = workflowType;
         HideRecipientIdentities = hideRecipientIdentities;
@@ -146,8 +135,7 @@ public class PdfTemplate : VersionedTemplate
     /// </summary>
     public PdfTemplate NextVersion(Guid createdById)
     {
-        var next = Create(Name, StoragePath, FileName, FileSizeBytes, PageCount, createdById, RequestTypeId, Description,
-            DefaultApproverId, WorkflowType, HideRecipientIdentities);
+        var next = Create(Name, StoragePath, FileName, FileSizeBytes, PageCount, createdById, RequestTypeId, Description, WorkflowType, HideRecipientIdentities);
         next.WorkflowPresetId = WorkflowPresetId;
         next.AnnexClauseIdsJson = AnnexClauseIdsJson;
         next.IsActive = IsActive;

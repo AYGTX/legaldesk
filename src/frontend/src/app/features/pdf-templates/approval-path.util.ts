@@ -6,16 +6,15 @@ export interface PathField {
   label: string;
   type: string;
   fillRole: string;
-  workflowStage: number;
-  preAssignedApproverId?: string;
+  filledByStep: number;
 }
 
 export interface PathSigner {
   tempId: string;
   label: string;
-  /** The fixed approver for this signature, if the template names one (field-level first, then template-wide). */
+  /** Never set by a template (R-M6-2): a person comes from the workflow, else from the requester. */
   approverId?: string;
-  /** True when the template does not say who signs — the requester is asked when creating the request. */
+  /** True when the template's workflow does not say who signs — the requester is asked when creating the request. */
   atRequestTime: boolean;
 }
 
@@ -56,23 +55,19 @@ const isSignature = (f: PathField) => f.type === 'Signature';
  */
 export function buildApprovalPath(
   fields: readonly PathField[],
-  workflowType: WorkflowType,
-  defaultApproverId: string | undefined
+  workflowType: WorkflowType
 ): ApprovalPath {
   const signatures = fields.filter(f => isApprover(f) && isSignature(f));
   const otherApproverFields = fields.filter(f => isApprover(f) && !isSignature(f));
 
-  const toSigner = (f: PathField): PathSigner => {
-    const approverId = f.preAssignedApproverId || defaultApproverId || undefined;
-    return { tempId: f.tempId, label: f.label, approverId, atRequestTime: !approverId };
-  };
+  const toSigner = (f: PathField): PathSigner => ({ tempId: f.tempId, label: f.label, atRequestTime: true });
 
   let groups: PathField[][];
   if (workflowType === 'Parallel') {
     groups = signatures.length ? [signatures] : [];
   } else if (workflowType === 'Mixed') {
-    const stages = [...new Set(signatures.map(f => f.workflowStage || 1))].sort((a, b) => a - b);
-    groups = stages.map(stage => signatures.filter(f => (f.workflowStage || 1) === stage));
+    const stages = [...new Set(signatures.map(f => f.filledByStep || 1))].sort((a, b) => a - b);
+    groups = stages.map(stage => signatures.filter(f => (f.filledByStep || 1) === stage));
   } else {
     groups = signatures.map(f => [f]);
   }
@@ -85,7 +80,7 @@ export function buildApprovalPath(
   // A non-signature approver field is filled by the recipient of the first signature sharing its stage,
   // or the first recipient overall when no signature has that stage.
   for (const f of otherApproverFields) {
-    const owner = signatures.find(s => (s.workflowStage || 1) === (f.workflowStage || 1)) ?? signatures[0];
+    const owner = signatures.find(s => (s.filledByStep || 1) === (f.filledByStep || 1)) ?? signatures[0];
     const step = owner ? stepOf.get(owner.tempId) : undefined;
     if (step) stepOf.set(f.tempId, step);
   }
@@ -97,23 +92,23 @@ export function buildApprovalPath(
   }
 
   if (workflowType === 'Mixed' && signatures.length > 0) {
-    const used = [...new Set(signatures.map(f => f.workflowStage || 1))].sort((a, b) => a - b);
+    const used = [...new Set(signatures.map(f => f.filledByStep || 1))].sort((a, b) => a - b);
     const contiguous = used.every((stage, i) => stage === i + 1);
     if (!contiguous) warnings.push({ code: 'stageGap', params: { stages: used.join(', ') } });
   }
 
   if (workflowType !== 'Mixed') {
-    const ignored = [...signatures, ...otherApproverFields].filter(f => (f.workflowStage || 1) !== 1);
+    const ignored = [...signatures, ...otherApproverFields].filter(f => (f.filledByStep || 1) !== 1);
     if (ignored.length > 0) warnings.push({ code: 'stagesIgnored', params: { count: String(ignored.length) } });
   }
 
-  const signatureStages = new Set(signatures.map(f => f.workflowStage || 1));
-  const orphaned = otherApproverFields.filter(f => !signatureStages.has(f.workflowStage || 1));
+  const signatureStages = new Set(signatures.map(f => f.filledByStep || 1));
+  const orphaned = otherApproverFields.filter(f => !signatureStages.has(f.filledByStep || 1));
   if (signatures.length > 0 && orphaned.length > 0) {
     warnings.push({ code: 'stageNoSignature', params: { fields: orphaned.map(f => f.label).join(', ') } });
   }
 
-  const requestTimeCount = signatures.filter(f => !f.preAssignedApproverId && !defaultApproverId).length;
+  const requestTimeCount = signatures.length;
 
   return { steps, warnings, requestTimeCount, stepOf };
 }
@@ -121,7 +116,7 @@ export function buildApprovalPath(
 /** Renumbers workflow stages to 1..n in their current order, closing any gaps. Returns the new stage per field id. */
 export function compactStages(fields: readonly PathField[]): Map<string, number> {
   const approvers = fields.filter(isApprover);
-  const stages = [...new Set(approvers.map(f => f.workflowStage || 1))].sort((a, b) => a - b);
+  const stages = [...new Set(approvers.map(f => f.filledByStep || 1))].sort((a, b) => a - b);
   const renumber = new Map(stages.map((stage, i) => [stage, i + 1]));
-  return new Map(approvers.map(f => [f.tempId, renumber.get(f.workflowStage || 1)!]));
+  return new Map(approvers.map(f => [f.tempId, renumber.get(f.filledByStep || 1)!]));
 }

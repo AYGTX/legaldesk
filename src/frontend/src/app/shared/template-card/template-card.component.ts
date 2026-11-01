@@ -38,10 +38,6 @@ import { UnifiedTemplate } from '../../core/models/template-gallery.model';
             <span class="sep">·</span>
           }
           <span>{{ 'templates.fields' | translate: { n: template().fieldCount } }}</span>
-          @if (template().defaultApproverName) {
-            <span class="sep">·</span>
-            <span>{{ 'templates.defaultApprover' | translate: { name: template().defaultApproverName } }}</span>
-          }
           <span class="sep">·</span>
           <span>{{ 'templates.createdBy' | translate: { name: template().createdByName } }}</span>
           <span class="sep">·</span>

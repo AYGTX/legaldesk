@@ -142,6 +142,17 @@ internal static class VacationRequestTemplateSeeder
 
         template.ImportApproved();
         template.SetCreatedBy(owner.Id.ToString());
+        // Routing comes only from a workflow (R-M6-2): the manager, then HR, each step filling its own fields.
+        var preset = WorkflowPreset.Create($"{TemplateName} — circuit", "Circuit du modèle de démonstration.", WorkflowType.Sequential);
+        context.WorkflowPresets.Add(preset);
+        var order = 0;
+        foreach (var f in Layout.Where(f => f.ApproverEmail is not null))
+        {
+            order++;
+            context.WorkflowPresetSteps.Add(WorkflowPresetStep.Create(preset.Id, order, f.Stage, f.Label, PresetApproverKind.User,
+                approvers[f.ApproverEmail!], null, null, null, null, null));
+        }
+        template.SetWorkflowPreset(preset.Id);
         context.PdfTemplates.Add(template);
 
         for (var i = 0; i < Layout.Length; i++)
@@ -158,8 +169,7 @@ internal static class VacationRequestTemplateSeeder
                 order: i + 1,
                 autoFillFrom: f.AutoFill,
                 optionsJson: f.Options is null ? null : JsonSerializer.Serialize(f.Options),
-                preAssignedApproverId: f.ApproverEmail is null ? null : approvers[f.ApproverEmail],
-                workflowStage: f.Stage));
+                filledByStep: f.Stage));
         }
 
         await context.SaveChangesAsync(cancellationToken);

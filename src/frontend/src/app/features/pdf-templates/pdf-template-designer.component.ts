@@ -48,8 +48,7 @@ interface TemplateField {
   autoFillFrom?: string;
   defaultValue?: string;
   optionsJson?: string;
-  preAssignedApproverId?: string;
-  workflowStage: number;
+  filledByStep: number;
 }
 
 const PDF_FIELD_DEFS: { type: PdfFieldType; icon: string; width: number; height: number }[] = [
@@ -149,15 +148,6 @@ const CANVAS_SCALE = 1.5;
             <sf-workflow-type-toggle [compact]="true" [value]="workflowType()" (valueChange)="setWorkflowType($event)"></sf-workflow-type-toggle>
             }
 
-            @if (!selectedPreset() || needsDefaultApprover()) {
-            <label class="pl">{{ 'pdfTemplates.designer.defaultApprover' | translate }}</label>
-            <mat-form-field appearance="outline" class="ff">
-              <mat-select [value]="defaultApproverId() ?? ''" (selectionChange)="defaultApproverId.set($event.value || undefined)">
-                <mat-option value="">{{ 'pdfTemplates.designer.noDefaultApprover' | translate }}</mat-option>
-                @for (u of users(); track u.id) { <mat-option [value]="u.id">{{ u.fullName }}</mat-option> }
-              </mat-select>
-            </mat-form-field>
-            }
             <mat-checkbox [checked]="hideIdentities()" (change)="hideIdentities.set($event.checked)">{{ 'designer.anon.hideIdentities' | translate }}</mat-checkbox>
 
             @if (!selectedPreset()) { <ng-container *ngTemplateOutlet="pathPanel"></ng-container> }
@@ -279,16 +269,9 @@ const CANVAS_SCALE = 1.5;
             }
 
             @if (sel.fillRole === 'Approver') {
-              <label class="pl">{{ 'pdfTemplates.designer.preAssignedApprover' | translate }}</label>
-              <mat-form-field appearance="outline" class="ff">
-                <mat-select [value]="sel.preAssignedApproverId ?? ''" (selectionChange)="updateProp('preAssignedApproverId', $event.value || undefined)">
-                  <mat-option value="">{{ 'pdfTemplates.designer.approverAtRequestTime' | translate }}</mat-option>
-                  @for (u of users(); track u.id) { <mat-option [value]="u.id">{{ u.fullName }}</mat-option> }
-                </mat-select>
-              </mat-form-field>
 
-              <label class="pl">{{ 'pdfTemplates.designer.workflowStage' | translate }}</label>
-              <input class="pi" type="number" min="1" [ngModel]="sel.workflowStage" (ngModelChange)="updateProp('workflowStage', +$event || 1)" />
+              <label class="pl">{{ 'pdfTemplates.designer.filledByStep' | translate }}</label>
+              <input class="pi" type="number" min="1" [ngModel]="sel.filledByStep" (ngModelChange)="updateProp('filledByStep', +$event || 1)" />
               @if (workflowType() !== 'Mixed') {
                 <div class="stage-hint">{{ 'pdfTemplates.designer.path.stageHint' | translate }}</div>
               }
@@ -529,7 +512,6 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   readonly workflowType = signal<WorkflowType>('Sequential');
   readonly hideIdentities = signal(false);
   readonly isActive = signal(true);
-  readonly defaultApproverId = signal<string | undefined>(undefined);
   readonly requestTypeId = signal<string | undefined>(undefined);
   readonly workflowPresetId = signal<string | undefined>(undefined);
   /** Clauses carried onto every request as an annex. */
@@ -543,7 +525,6 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
     this.fields().filter(f => f.fillRole === 'Approver' && f.type === 'Signature').length);
 
   /** Signature fields past the workflow's last step still need someone: the default approver, or the requester's choice. */
-  readonly needsDefaultApprover = computed(() => this.approverSignatureCount() > (this.selectedPreset()?.steps.length ?? 0));
 
   /** Where the workflow and the template's signature fields do not line up. */
   readonly presetWarnings = computed(() => {
@@ -575,7 +556,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
   // ---- Approval path ---------------------------------------------------------------------------
 
   /** The approval path the server will build from the current fields, workflow type and default approver. */
-  readonly path = computed(() => buildApprovalPath(this.fields(), this.workflowType(), this.defaultApproverId()));
+  readonly path = computed(() => buildApprovalPath(this.fields(), this.workflowType()));
 
   /**
    * Colour is reserved for fill responsibility (see the legend), so a step is shown by its number alone;
@@ -620,7 +601,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       const together = previous === 'Parallel';
       const order = this.signatureIds();
       this.fields.update(fs => fs.map(f => order.includes(f.tempId)
-        ? { ...f, workflowStage: together ? 1 : order.indexOf(f.tempId) + 1 }
+        ? { ...f, filledByStep: together ? 1 : order.indexOf(f.tempId) + 1 }
         : f));
     }
     this.workflowType.set(type);
@@ -638,9 +619,9 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       const stageOfStep = new Map<number, number>();
       items.forEach(i => { const step = stepOf.get(i.tempId); if (step !== undefined && !stageOfStep.has(step)) stageOfStep.set(step, i.stage); });
       return fs.map(f => {
-        if (newStage.has(f.tempId)) return { ...f, workflowStage: newStage.get(f.tempId)! };
+        if (newStage.has(f.tempId)) return { ...f, filledByStep: newStage.get(f.tempId)! };
         const step = stepOf.get(f.tempId);
-        if (f.fillRole === 'Approver' && step !== undefined && stageOfStep.has(step)) return { ...f, workflowStage: stageOfStep.get(step)! };
+        if (f.fillRole === 'Approver' && step !== undefined && stageOfStep.has(step)) return { ...f, filledByStep: stageOfStep.get(step)! };
         return f;
       });
     });
@@ -676,7 +657,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       const f = this.fields().find(x => x.tempId === tempId);
       if (!f) return false;
       // Up needs an earlier stage to move to; down always can (it opens a new stage when it is the last one).
-      return direction === 1 || (f.workflowStage || 1) > 1;
+      return direction === 1 || (f.filledByStep || 1) > 1;
     }
     const ids = this.signatureIds();
     const i = ids.indexOf(tempId);
@@ -690,10 +671,10 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
     if (this.workflowType() === 'Mixed') {
       this.fields.update(fs => {
         const moved = fs.map(f => f.tempId === tempId
-          ? { ...f, workflowStage: Math.max(1, (f.workflowStage || 1) + direction) }
+          ? { ...f, filledByStep: Math.max(1, (f.filledByStep || 1) + direction) }
           : f);
         const renumbered = compactStages(moved);
-        return moved.map(f => renumbered.has(f.tempId) ? { ...f, workflowStage: renumbered.get(f.tempId)! } : f);
+        return moved.map(f => renumbered.has(f.tempId) ? { ...f, filledByStep: renumbered.get(f.tempId)! } : f);
       });
     } else {
       const ids = this.signatureIds();
@@ -740,7 +721,6 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
         this.workflowType.set(t.workflowType);
         this.hideIdentities.set(t.hideRecipientIdentities);
         this.isActive.set(t.isActive);
-        this.defaultApproverId.set(t.defaultApproverId);
         this.requestTypeId.set(t.requestTypeId);
         this.workflowPresetId.set(t.workflowPreset?.id);
         this.annexClauses.set((t.annexClauses ?? []).map(c => ({ id: c.id, title: c.title })));
@@ -758,8 +738,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
           autoFillFrom: f.autoFillFrom,
           defaultValue: f.defaultValue,
           optionsJson: f.optionsJson,
-          preAssignedApproverId: f.preAssignedApproverId,
-          workflowStage: f.workflowStage
+          filledByStep: f.filledByStep
         })));
         this.doc.set(true);
         this.loadPdf();
@@ -831,7 +810,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       page: this.currentPage(),
       x, y, width: def.width, height: def.height,
       isRequired: true,
-      workflowStage: 1
+      filledByStep: 1
     };
     this.fields.update(fs => [...fs, field]);
     this.selectField(field);
@@ -936,7 +915,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
             x: d.x * CANVAS_SCALE, y: d.y * CANVAS_SCALE, width: d.width * CANVAS_SCALE, height: d.height * CANVAS_SCALE, isRequired: d.isRequired,
             autoFillFrom: d.autoFillFrom ?? undefined,
             optionsJson: d.options.length ? JSON.stringify(d.options) : undefined,
-            workflowStage: 1
+            filledByStep: 1
           });
         }
         this.fields.update(fs => [...fs, ...added]);
@@ -988,7 +967,7 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
     this.syncSelected(sel.tempId);
 
     // Stages only mean something on a Mixed template — choosing one is a clear request for that.
-    if (prop === 'workflowStage' && (value as number) > 1 && this.workflowType() !== 'Mixed') {
+    if (prop === 'filledByStep' && (value as number) > 1 && this.workflowType() !== 'Mixed') {
       this.workflowType.set('Mixed');
       this.snack.open(this.translate.instant('pdfTemplates.designer.path.switchedToMixed'), 'OK', { duration: 4000 });
     }
@@ -1065,13 +1044,11 @@ export class PdfTemplateDesignerComponent implements OnInit, OnDestroy {
       autoFillFrom: f.autoFillFrom,
       defaultValue: f.defaultValue,
       optionsJson: f.optionsJson,
-      preAssignedApproverId: f.preAssignedApproverId,
-      workflowStage: f.workflowStage
+      filledByStep: f.filledByStep
     }));
 
     this.svc.update(this.templateId, {
       name: this.name.trim(),
-      defaultApproverId: this.defaultApproverId(),
       isActive: this.isActive(),
       fields,
       workflowType: this.workflowType(),
