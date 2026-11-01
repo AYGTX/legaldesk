@@ -6,7 +6,7 @@ import { ApiService } from './api.service';
 import {
   DocumentDetail, DocumentSummary, DashboardData,
   FieldDto, RecipientInputDto, PagedResult, MyRequests, WorkflowType, AiSummaryDto,
-  Review, ReviewRun, ReviewItemStatus, ReviewRuleSetting, RiskSeverity, ContractTermUpdate, VersionComparison, TemplateRevisionForm, ContractRound
+  Review, ReviewRun, ReviewItemStatus, ReviewRuleSetting, RiskSeverity, VersionComparison, TemplateRevisionForm, ContractRound
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -80,14 +80,7 @@ export class DocumentService {
     return this.api.post<void>(`/v1/documents/${id}/reopen`, { slaHours: slaHours ?? null });
   }
 
-  updateObligation(id: string, dueDate: string, obligationType: string): Observable<void> {
-    return this.api.patch<void>(`/v1/documents/${id}/obligation`, { dueDate, obligationType });
-  }
 
-  /** Records the negotiated term; re-arms the lifecycle alert ladder against the new dates. */
-  updateContractTerm(id: string, term: ContractTermUpdate): Observable<void> {
-    return this.api.patch<void>(`/v1/documents/${id}/term`, term);
-  }
 
   /** Every contract with its end date and notice deadline, most urgent first. */
   getSchedule(): Observable<ContractScheduleRow[]> {

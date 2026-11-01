@@ -43,5 +43,9 @@ public enum AuditAction
     /// <summary>Sent with an open High finding: the owner's reason is in the entry (R-M8-8).</summary>
     SentWithOpenRisks = 38,
     /// <summary>The final PDF was sealed (R-M5-8); the entry carries its SHA-256.</summary>
-    DocumentSealed = 39
+    DocumentSealed = 39,
+    /// <summary>Renew, renegotiate, terminate or let expire was recorded on the term (R-M10-4).</summary>
+    ContractTermDecided = 40,
+    /// <summary>An automatic renewal moved the term to its next period (R-M10-2).</summary>
+    ContractRolledOver = 41
 }

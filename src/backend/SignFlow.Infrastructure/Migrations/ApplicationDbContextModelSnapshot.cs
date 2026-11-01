@@ -165,6 +165,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("AvatarUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CalendarTokenHash")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Company")
                         .HasColumnType("nvarchar(max)");
 
@@ -772,6 +775,57 @@ namespace SignFlow.Infrastructure.Migrations
                     b.ToTable("ConsentLogs");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.ContractEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.HasIndex("DocumentId", "At");
+
+                    b.ToTable("ContractEvents");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.ContractRound", b =>
                 {
                     b.Property<Guid>("Id")
@@ -824,6 +878,102 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ContractRounds");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.ContractTerm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ConfirmedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("CurrentEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Decision")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DecisionAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DecisionById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("EndAlertSent")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("InitialEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastAlertAnchor")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("LastAlertOffset")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NoticeAmount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NoticeForm")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NoticeProofPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("NoticeSentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("NoticeUnit")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("RenewalMode")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RenewalMonths")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentEndDate");
+
+                    b.HasIndex("DocumentId")
+                        .IsUnique();
+
+                    b.HasIndex("OrganisationId");
+
+                    b.ToTable("ContractTerms");
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.DataSubjectRequest", b =>
@@ -906,9 +1056,6 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<DateTime?>("AiSummaryGeneratedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("AutoRenews")
-                        .HasColumnType("bit");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
@@ -916,12 +1063,6 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("ContractEndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ContractStartDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -989,18 +1130,8 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<bool>("IsTemplate")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime?>("LastObligationReminderSentAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<Guid?>("LastReviewRunId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("LastTermAlertSentAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LastTermAlertStage")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
 
                     b.Property<int>("LayoutVersion")
                         .HasColumnType("int");
@@ -1010,21 +1141,6 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<string>("Message")
                         .HasMaxLength(5000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("NoticePeriodDays")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("ObligationConfirmed")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ObligationDueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ObligationRationale")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ObligationType")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OcrText")
@@ -1093,9 +1209,6 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<int?>("TemplateVersion")
                         .HasColumnType("int");
-
-                    b.Property<bool>("TermConfirmed")
-                        .HasColumnType("bit");
 
                     b.Property<int>("TextSource")
                         .HasColumnType("int");
@@ -1595,11 +1708,90 @@ namespace SignFlow.Infrastructure.Migrations
                     b.ToTable("Notifications");
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.Obligation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Confirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastReminderFor")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("LastReminderOffset")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Quote")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("Recurrence")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.HasIndex("DocumentId", "DueDate");
+
+                    b.ToTable("Obligations");
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.Organisation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AlertOffsets")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Country")
                         .IsRequired()
@@ -1627,6 +1819,9 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastLifecycleSweepOn")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ModelMode")
                         .IsRequired()
@@ -3547,11 +3742,41 @@ namespace SignFlow.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SignFlow.Domain.Entities.ContractEvent", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SignFlow.Domain.Entities.ContractRound", b =>
                 {
                     b.HasOne("SignFlow.Domain.Entities.Document", null)
                         .WithMany()
                         .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.ContractTerm", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Document", null)
+                        .WithOne("Term")
+                        .HasForeignKey("SignFlow.Domain.Entities.ContractTerm", "DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -3703,6 +3928,21 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SignFlow.Domain.Entities.Obligation", b =>
+                {
+                    b.HasOne("SignFlow.Domain.Entities.Document", null)
+                        .WithMany("Obligations")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SignFlow.Domain.Entities.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SignFlow.Domain.Entities.OrganisationHoliday", b =>
@@ -4109,11 +4349,15 @@ namespace SignFlow.Infrastructure.Migrations
 
                     b.Navigation("Comments");
 
+                    b.Navigation("Obligations");
+
                     b.Navigation("ReadinessItems");
 
                     b.Navigation("Recipients");
 
                     b.Navigation("SignatureFields");
+
+                    b.Navigation("Term");
 
                     b.Navigation("Versions");
 

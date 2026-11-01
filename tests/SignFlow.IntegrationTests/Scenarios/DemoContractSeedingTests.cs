@@ -107,14 +107,11 @@ public class DemoContractSeedingTests : IAsyncLifetime
     [Fact]
     public async Task Executed_contracts_cover_the_whole_expiry_alert_ladder()
     {
-        var tracked = await _db.Documents
-            .Where(d => d.Status == DocumentStatus.Completed && d.ContractEndDate != null)
+        var tracked = await _db.ContractTerms
+            .Where(t => t.CurrentEndDate != null && _db.Documents.Any(d => d.Id == t.DocumentId && d.Status == DocumentStatus.Completed))
             .ToListAsync();
 
-        var stages = tracked
-            .Select(d => ContractTermEvaluator.Evaluate(
-                d.ContractStartDate, d.ContractEndDate, d.NoticePeriodDays, DateTime.UtcNow))
-            .ToList();
+        var stages = tracked.Select(t => TermLadder.Status(t, DateTime.UtcNow)).ToList();
 
         // The stage a legal team actually misses, and the two on either side of it.
         Assert.Contains(stages, s => s.Stage == LifecycleStage.NoticeDeadlinePassed);
@@ -122,13 +119,14 @@ public class DemoContractSeedingTests : IAsyncLifetime
         Assert.Contains(stages, s => s.Stage == LifecycleStage.Expired);
         Assert.Contains(stages, s => s.Stage == LifecycleStage.InForce);
 
-        // Nothing has been alerted on yet, so each contract is armed at its current rung.
+        // Nothing has been alerted on yet: the contracts close to their deadline are armed.
         var dueRungs = tracked
-            .Zip(stages, (d, s) => ContractTermEvaluator.NextAlertStage(s, d.LastTermAlertStage))
+            .Select(t => TermLadder.Due(t, DateTime.UtcNow, TermLadder.DefaultOffsets))
             .Where(r => r is not null)
+            .Select(r => (r!.Offset, r.IsEnd))
             .ToList();
-        Assert.Equal(tracked.Count, dueRungs.Count);
-        Assert.True(dueRungs.Distinct().Count() >= 4, "The ladder rungs should not all be the same one");
+        Assert.NotEmpty(dueRungs);
+        Assert.True(dueRungs.Distinct().Count() >= 2, "The ladder rungs should not all be the same one");
     }
 
     [Fact]

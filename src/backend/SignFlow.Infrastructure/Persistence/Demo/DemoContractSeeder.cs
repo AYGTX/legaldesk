@@ -139,20 +139,17 @@ internal static class DemoContractSeeder
 
         if (spec.Term is { } term)
         {
-            document.SetContractTerm(
-                today.AddDays(-term.StartDaysAgo),
-                today.AddDays(term.EndInDays),
-                term.AutoRenews,
-                term.NoticePeriodDays);
+            var contractTerm = ContractTerm.For(document.Id);
+            contractTerm.Import(today.AddDays(-term.StartDaysAgo), today.AddDays(term.EndInDays), term.AutoRenews, term.NoticePeriodDays,
+                confirmed: true, owner.Id);
+            context.ContractTerms.Add(contractTerm);
         }
 
-        if (spec.Obligation is { } obligation)
+        // Only a confirmed obligation is seeded: an unconfirmed date without the contract's words is never shown (R-M10-6).
+        if (spec.Obligation is { Confirmed: true } obligation)
         {
-            var dueDate = today.AddDays(obligation.DueInDays);
-            if (obligation.Confirmed)
-                document.ConfirmObligation(dueDate, obligation.Type);
-            else
-                document.SetObligationSuggestion(dueDate, obligation.Type, obligation.Rationale);
+            context.Obligations.Add(Obligation.Create(document.Id, obligation.Type, Enum.TryParse<ObligationKind>(obligation.Type, out var kind) ? kind : ObligationKind.Renewal,
+                today.AddDays(obligation.DueInDays), ObligationRecurrence.None, owner.Id, null, ObligationSource.Person, confirmed: true));
         }
 
         var recipients = AddParticipants(context, document, spec, sentAt, completedAt);

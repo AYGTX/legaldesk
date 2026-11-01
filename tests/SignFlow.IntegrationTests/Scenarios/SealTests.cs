@@ -177,6 +177,8 @@ public class SealTests
     {
         public Task<SealRecord?> FindSealAsync(string code, CancellationToken ct = default) => Task.FromResult(code == seal.Code ? seal : null);
         public Task<Guid?> OrganisationOfUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult<Guid?>(null);
+        public Task<(Guid UserId, Guid OrganisationId)?> UserOfCalendarTokenAsync(string tokenHash, CancellationToken ct = default) =>
+            Task.FromResult<(Guid UserId, Guid OrganisationId)?>(null);
         public Task<Guid?> OrganisationOfSigningTokenAsync(string tokenHash, CancellationToken ct = default) => Task.FromResult<Guid?>(null);
         public Task<Guid?> OrganisationOfSigningSessionAsync(string secretHash, CancellationToken ct = default) => Task.FromResult<Guid?>(null);
         public Task<IReadOnlyList<Guid>> ActiveOrganisationIdsAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Guid>>([]);

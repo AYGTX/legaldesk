@@ -22,6 +22,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ProfileDto } from '../../core/models';
 import { resolveFileUrl } from '../../core/utils/file-url';
 import { VacationPanelComponent } from './vacation-panel.component';
+import { CalendarFeedPanelComponent } from './calendar-feed-panel.component';
 import { SecurityPanelComponent } from './security-panel.component';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
@@ -45,7 +46,7 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
     MatTabsModule,
     MatChipsModule,
     MatSnackBarModule,
-    VacationPanelComponent,
+    VacationPanelComponent, CalendarFeedPanelComponent,
     SecurityPanelComponent,
     TranslatePipe,
   ],
@@ -232,6 +233,9 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
           <mat-tab [label]="'profile.tabs.vacation' | translate">
             <mat-card class="tab-card">
               <sf-vacation-panel></sf-vacation-panel>
+            </mat-card>
+            <mat-card class="tab-card">
+              <sf-calendar-feed-panel></sf-calendar-feed-panel>
             </mat-card>
           </mat-tab>
         </mat-tab-group>

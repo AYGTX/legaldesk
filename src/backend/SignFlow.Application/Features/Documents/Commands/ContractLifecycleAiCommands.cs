@@ -65,9 +65,8 @@ public class ExtractKeyTermsCommandHandler(
     public static SuggestedTermDto Suggest(IReadOnlyList<KeyTermDto> terms)
     {
         string? Get(string field) => terms.FirstOrDefault(t => t.Field == field)?.Value;
-        static DateTime? Date(string? v) =>
-            DateTime.TryParseExact(v, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var d)
-                ? DateTime.SpecifyKind(d.Date, DateTimeKind.Utc) : null;
+        // An explicit reader (R-M10-7): ISO, day/month/year, or written French, English or Arabic month names.
+        static DateTime? Date(string? v) => ContractDates.Parse(v);
         var renew = Get("auto_renewal")?.ToLowerInvariant();
         return new SuggestedTermDto(
             Date(Get("start_date")),
@@ -99,10 +98,14 @@ public class WriteRenewalNoteCommandHandler(
     public async Task<RenewalNoteDto> HandleAsync(WriteRenewalNoteCommand command, CancellationToken cancellationToken = default)
     {
         var (document, text) = await ContractAccess.LoadAsync(db, textProvider, currentUser, command.DocumentId, cancellationToken);
-        if (document.ContractEndDate is null)
+        var term = await db.ContractTerms.AsNoTracking().FirstOrDefaultAsync(t => t.DocumentId == document.Id, cancellationToken);
+        if (term?.CurrentEndDate is null)
             throw new ValidationException("Record the contract's end date first: the note is about its next deadline.");
+        var obligations = await db.Obligations.AsNoTracking()
+            .Where(o => o.DocumentId == document.Id && o.Confirmed && o.Status == ObligationStatus.Upcoming)
+            .OrderBy(o => o.DueDate).Take(5).ToListAsync(cancellationToken);
         var language = ContractLanguage.ForAnswer(text, command.Language);
-        var status = ContractTermEvaluator.Evaluate(document.ContractStartDate, document.ContractEndDate, document.NoticePeriodDays, DateTime.UtcNow);
+        var status = TermLadder.Status(term, DateTime.UtcNow);
 
         // Harvey's open findings on the current version, so the note cannot ignore a risk the review raised.
         var openRisks = document.LastReviewRunId is { } runId
@@ -115,7 +118,7 @@ public class WriteRenewalNoteCommandHandler(
             .OrderBy(r => ReviewGrading.Rank(r.Severity))
             .Take(8)
             .Select(r => $"{r.Title} ({r.Severity}{(r.ClauseReference is null ? "" : $", {r.ClauseReference}")})");
-        var note = await aiService.WriteRenewalNoteAsync(text, Facts(document, status, risks), language, cancellationToken);
+        var note = await aiService.WriteRenewalNoteAsync(text, Facts(term, status, obligations, risks), language, cancellationToken);
         var citations = note.Quotes.Where(q => !string.IsNullOrWhiteSpace(q)).Select(q => q.Trim()).Distinct().Take(4)
             .Select(q => new ChatCitationDto(q, QuoteMatcher.IsVerbatim(text, q))).Where(c => c.Verified).ToList();
         var recommendation = Recommendations.FirstOrDefault(r => r.Equals(note.Recommendation?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? "Review";
@@ -125,20 +128,20 @@ public class WriteRenewalNoteCommandHandler(
             currentUser.UserId, actorEmail: currentUser.UserEmail, cancellationToken: cancellationToken);
 
         return new RenewalNoteDto(recommendation, note.Summary, note.Reasons.Take(5).ToList(), citations,
-            status.Stage, document.ContractEndDate, status.NoticeDeadline, document.AutoRenews, language);
+            status.Stage, term.CurrentEndDate, status.NoticeDeadline, term.RenewalMode == RenewalMode.Automatic, language);
     }
 
     /// <summary>What LegalDesk knows for certain, given to the model as facts it must not contradict.</summary>
-    public static string Facts(Document document, ContractTermStatus status, IEnumerable<string> openRisks)
+    public static string Facts(ContractTerm term, ContractTermStatus status, IEnumerable<Obligation> obligations, IEnumerable<string> openRisks)
     {
         static string D(DateTime? d) => d?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "not recorded";
         var sb = new StringBuilder();
         sb.AppendLine($"Today: {D(DateTime.UtcNow)}");
-        sb.AppendLine($"Start date: {D(document.ContractStartDate)}; end date: {D(document.ContractEndDate)}");
-        sb.AppendLine($"Automatic renewal: {(document.AutoRenews ? "yes" : "no")}; notice period: {(document.NoticePeriodDays is { } n ? $"{n} days" : "not recorded")}");
+        sb.AppendLine($"Start date: {D(term.StartDate)}; current end date: {D(term.CurrentEndDate)}");
+        sb.AppendLine($"Renewal: {term.RenewalMode}{(term.RenewalMonths is { } m ? $" by {m} months" : "")}; notice period: {(term.NoticeAmount is { } n ? $"{n} {term.NoticeUnit.ToString().ToLowerInvariant()}" : "not recorded")}");
         sb.AppendLine($"Last day to give notice: {D(status.NoticeDeadline)}; days to end: {status.DaysToEnd?.ToString(CultureInfo.InvariantCulture) ?? "?"}; stage: {status.Stage}");
-        if (document.ObligationDueDate is not null)
-            sb.AppendLine($"Tracked obligation: {document.ObligationType} due {D(document.ObligationDueDate)}");
+        foreach (var o in obligations)
+            sb.AppendLine($"Obligation: {o.Title} ({o.Kind}) due {D(o.DueDate)}");
         foreach (var risk in openRisks)
             sb.AppendLine($"Open risk from the review: {risk}");
         return sb.ToString();

@@ -44,6 +44,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PdfTemplate> PdfTemplates => Set<PdfTemplate>();
     public DbSet<PdfTemplateField> PdfTemplateFields => Set<PdfTemplateField>();
     public DbSet<Clause> Clauses => Set<Clause>();
+    public DbSet<ContractTerm> ContractTerms => Set<ContractTerm>();
+    public DbSet<Obligation> Obligations => Set<Obligation>();
+    public DbSet<ContractEvent> ContractEvents => Set<ContractEvent>();
     public DbSet<ClauseVersion> ClauseVersions => Set<ClauseVersion>();
     public DbSet<ClauseRuleLink> ClauseRuleLinks => Set<ClauseRuleLink>();
     public DbSet<DocumentReadinessItem> DocumentReadinessItems => Set<DocumentReadinessItem>();

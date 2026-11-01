@@ -42,6 +42,17 @@ public class Organisation : BaseEntity
 
     public bool IsActive { get; private set; } = true;
 
+    /// <summary>Days before a contract's notice deadline (else end date) its alerts go out (R-M10-3), most distant first.</summary>
+    [MaxLength(64)]
+    public string AlertOffsets { get; private set; } = "60,30,14,7,0";
+
+    /// <summary>Local date the lifecycle sweep last ran for this organisation, so it runs once a day at 08:00 local (R-M10-8).</summary>
+    public DateTime? LastLifecycleSweepOn { get; private set; }
+
+    public void SetAlertOffsets(string offsets) => AlertOffsets = offsets;
+
+    public void MarkLifecycleSweep(DateTime localDate) => LastLifecycleSweepOn = localDate.Date;
+
     private Organisation() { }
 
     public static Organisation Create(string name, string slug, Guid? id = null) => new()

@@ -81,8 +81,16 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IContractReviewService, ContractReviewService>();
         services.AddScoped<ICommandHandler<UploadRevisionCommand, UploadRevisionResult>, UploadRevisionCommandHandler>();
         services.AddScoped<ICommandHandler<ReviseFromTemplateCommand, UploadRevisionResult>, ReviseFromTemplateCommandHandler>();
-        services.AddScoped<ICommandHandler<UpdateObligationCommand>, UpdateObligationCommandHandler>();
-        services.AddScoped<ICommandHandler<UpdateContractTermCommand>, UpdateContractTermCommandHandler>();
+        // Lifecycle (M10)
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.IssueCalendarTokenCommand, string>, SignFlow.Application.Features.Lifecycle.IssueCalendarTokenCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.RevokeCalendarTokenCommand>, SignFlow.Application.Features.Lifecycle.RevokeCalendarTokenCommandHandler>();
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Lifecycle.GetCalendarFeedQuery, string>, SignFlow.Application.Features.Lifecycle.GetCalendarFeedQueryHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.SetContractTermCommand>, SignFlow.Application.Features.Lifecycle.SetContractTermCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.DecideTermCommand>, SignFlow.Application.Features.Lifecycle.DecideTermCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.AddObligationCommand, Guid>, SignFlow.Application.Features.Lifecycle.AddObligationCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.UpdateObligationCommand>, SignFlow.Application.Features.Lifecycle.UpdateObligationCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Lifecycle.ActOnObligationCommand>, SignFlow.Application.Features.Lifecycle.ActOnObligationCommandHandler>();
+        services.AddScoped<IQueryHandler<SignFlow.Application.Features.Lifecycle.GetContractLifecycleDetailQuery, SignFlow.Application.Features.Lifecycle.ContractLifecycleDetailDto>, SignFlow.Application.Features.Lifecycle.GetContractLifecycleDetailQueryHandler>();
         services.AddScoped<ICommandHandler<AskContractQuestionCommand, ContractChatReplyDto>, AskContractQuestionCommandHandler>();
         services.AddScoped<ICommandHandler<ExtractKeyTermsCommand, KeyTermsDto>, ExtractKeyTermsCommandHandler>();
         services.AddScoped<ICommandHandler<WriteRenewalNoteCommand, RenewalNoteDto>, WriteRenewalNoteCommandHandler>();

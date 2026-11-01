@@ -385,11 +385,6 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             <!-- Contract term & lifecycle -->
             <sf-contract-term-panel [wide]="true"
               [documentId]="doc()!.id"
-              [contractStartDate]="doc()!.contractStartDate"
-              [contractEndDate]="doc()!.contractEndDate"
-              [autoRenews]="doc()!.autoRenews"
-              [noticePeriodDays]="doc()!.noticePeriodDays"
-              [termConfirmed]="doc()!.termConfirmed"
               [canEdit]="isOwner() || auth.isAdmin()"
               (saved)="load()">
             </sf-contract-term-panel>
@@ -439,7 +434,6 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
             <!-- Harvey: key data and renewal note -->
             <sf-contract-lifecycle-ai-panel
               [documentId]="doc()!.id"
-              [hasEndDate]="!!doc()!.contractEndDate"
               [canEdit]="isOwner() || auth.isAdmin()"
               (applied)="load()">
             </sf-contract-lifecycle-ai-panel>
@@ -701,60 +695,6 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
               </mat-card>
             }
 
-            <!-- Obligation Tracking -->
-            <mat-card class="obligation-card">
-              <mat-card-header>
-                <mat-card-title class="ai-summary-title">
-                  <mat-icon class="ai-icon">event_available</mat-icon> {{ 'documents.detail.obligation.title' | translate }}
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                @if (editingObligation()) {
-                  <div class="obligation-edit-form">
-                    <label class="obligation-field">
-                      <span>{{ 'documents.detail.obligation.dueDate' | translate }}</span>
-                      <input type="date" [(ngModel)]="obligationDueDateInput" />
-                    </label>
-                    <label class="obligation-field">
-                      <span>{{ 'documents.detail.obligation.type' | translate }}</span>
-                      <input type="text" [(ngModel)]="obligationTypeInput" />
-                    </label>
-                    <div class="obligation-edit-actions">
-                      <button mat-stroked-button (click)="cancelEditObligation()">{{ 'common.cancel' | translate }}</button>
-                      <button mat-flat-button color="primary" [disabled]="savingObligation() || !obligationDueDateInput || !obligationTypeInput"
-                        (click)="saveObligation()">{{ 'documents.detail.obligation.save' | translate }}</button>
-                    </div>
-                  </div>
-                } @else if (doc()!.obligationDueDate) {
-                  <div class="obligation-details">
-                    <div class="obligation-row">
-                      <span class="obligation-label">{{ 'documents.detail.obligation.dueDate' | translate }}</span>
-                      <span class="obligation-value">{{ doc()!.obligationDueDate | date:'MMM d, y' }}</span>
-                    </div>
-                    <div class="obligation-row">
-                      <span class="obligation-label">{{ 'documents.detail.obligation.type' | translate }}</span>
-                      <span class="obligation-value">{{ doc()!.obligationType }}</span>
-                    </div>
-                    @if (!doc()!.obligationConfirmed) {
-                      <div class="obligation-suggested-chip">
-                        <mat-icon>auto_awesome</mat-icon> {{ 'documents.detail.obligation.suggested' | translate }}
-                      </div>
-                      @if (doc()!.obligationRationale) {
-                        <p class="obligation-rationale">{{ doc()!.obligationRationale }}</p>
-                      }
-                    }
-                    @if (isOwner() || auth.isAdmin()) {
-                      <button mat-stroked-button (click)="startEditObligation()">{{ 'documents.detail.obligation.edit' | translate }}</button>
-                    }
-                  </div>
-                } @else {
-                  <div class="summary-empty">
-                    <mat-icon>event_available</mat-icon>
-                    <p>{{ 'documents.detail.obligation.none' | translate }}</p>
-                  </div>
-                }
-              </mat-card-content>
-            </mat-card>
           </div>
         </div>
           </mat-tab>
@@ -806,10 +746,6 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
   readonly reopening = signal(false);
   readonly uploadingRevision = signal(false);
 
-  readonly editingObligation = signal(false);
-  readonly savingObligation = signal(false);
-  obligationDueDateInput = '';
-  obligationTypeInput = '';
 
   /** Owner and admins can resolve/delete any comment thread. */
   readonly canModerate = () =>
@@ -957,12 +893,6 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     if (severe > 0) {
       out.push({ key: 'risks', tone: 'warning', icon: 'warning', title: this.tr('next.risks', { count: severe }), sub: this.tr('next.risksSub'), go: () => this.showChecklist() });
     }
-    if (!d.contractEndDate && this.canReview()) {
-      out.push({
-        key: 'term', tone: 'muted', icon: 'event', title: this.tr('next.setTerm'), sub: this.tr('next.setTermSub'),
-        go: () => document.querySelector('sf-contract-term-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      });
-    }
     return out;
   }
 
@@ -1084,28 +1014,6 @@ export class DocumentDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  startEditObligation(): void {
-    const d = this.doc();
-    this.obligationDueDateInput = d?.obligationDueDate ? d.obligationDueDate.substring(0, 10) : '';
-    this.obligationTypeInput = d?.obligationType ?? '';
-    this.editingObligation.set(true);
-  }
-
-  cancelEditObligation(): void {
-    this.editingObligation.set(false);
-  }
-
-  saveObligation(): void {
-    if (!this.obligationDueDateInput || !this.obligationTypeInput) return;
-    this.savingObligation.set(true);
-    this.documentService.updateObligation(this.documentId, this.obligationDueDateInput, this.obligationTypeInput.trim()).subscribe({
-      next: () => { this.savingObligation.set(false); this.editingObligation.set(false); this.load(); },
-      error: err => {
-        this.savingObligation.set(false);
-        this.snack.open(err.error?.detail ?? this.translate.instant('documents.detail.obligation.saveFailed'), 'OK', { duration: 4000 });
-      }
-    });
-  }
 
   readonly workflowParticipants = (): WorkflowParticipant[] => {
     // Viewers aren't workflow gates — keep them out of the signing-progress visualizer.

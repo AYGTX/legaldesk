@@ -201,19 +201,14 @@ try
         job => job.DispatchAsync(CancellationToken.None),
         "* * * * *");
 
-    // Recurring obligation sweep: remind owners of upcoming contract renewal/expiry dates daily.
-    RecurringJob.AddOrUpdate<ObligationReminderJob>(
-        "obligation-reminder-sweep",
+    // The lifecycle sweep (M10): every hour it looks for organisations where it is 08:00 or later locally and that
+    // have not been swept today (R-M10-8), then rolls renewals forward, walks the alert ladder and reminds obligations.
+    RecurringJob.RemoveIfExists("obligation-reminder-sweep");
+    RecurringJob.RemoveIfExists("contract-term-alert-sweep");
+    RecurringJob.AddOrUpdate<LifecycleSweepJob>(
+        "lifecycle-sweep",
         job => job.SweepAsync(CancellationToken.None),
-        "0 8 * * *");
-
-    // Recurring contract term sweep: walk executed contracts through their expiry milestones and
-    // escalate to the legal team once the notice window has closed. Runs an hour before the
-    // obligation sweep so the two don't compete for the same connections.
-    RecurringJob.AddOrUpdate<ContractTermAlertJob>(
-        "contract-term-alert-sweep",
-        job => job.SweepAsync(CancellationToken.None),
-        "0 7 * * *");
+        "10 * * * *");
 
     app.MapControllers();
     app.MapHub<SignFlowHub>("/hubs/signflow");

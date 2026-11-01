@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { DocumentService } from '../../core/services/document.service';
 import { KeyTerms, RenewalNote } from '../../core/models/contract-lifecycle-ai.model';
+import { LifecycleService } from '../../core/services/lifecycle.service';
 
 /**
  * Harvey's help across the contract's life: reads the key data (each value with the sentence it comes from, checked
@@ -117,10 +118,12 @@ import { KeyTerms, RenewalNote } from '../../core/models/contract-lifecycle-ai.m
 })
 export class ContractLifecycleAiPanelComponent {
   private readonly documents = inject(DocumentService);
+  private readonly lifecycle = inject(LifecycleService);
   private readonly translate = inject(TranslateService);
 
   readonly documentId = input.required<string>();
-  readonly hasEndDate = input(false);
+  /** Kept for callers; the note asks the server, which says when no end date is recorded. */
+  readonly hasEndDate = input(true);
   readonly canEdit = input(false);
   readonly applied = output<void>();
 
@@ -160,8 +163,10 @@ export class ContractLifecycleAiPanelComponent {
     const s = this.terms()?.suggested;
     if (!s?.endDate) return;
     this.applying.set(true);
-    this.documents.updateContractTerm(this.documentId(), {
-      startDate: s.startDate, endDate: s.endDate, autoRenews: !!s.autoRenews, noticePeriodDays: s.noticePeriodDays
+    // A person applies what Harvey read (R-M12-9): the dates become the term only through this click.
+    this.lifecycle.setTerm(this.documentId(), {
+      startDate: s.startDate ?? null, endDate: s.endDate, renewalMode: s.autoRenews ? 'Automatic' : 'None',
+      renewalMonths: s.autoRenews ? 12 : null, noticeAmount: s.noticePeriodDays ?? null, noticeUnit: 'Days', noticeForm: null
     }).subscribe({
       next: () => { this.applying.set(false); this.appliedOk.set(true); this.applied.emit(); },
       error: () => { this.applying.set(false); this.error.set(this.translate.instant('documents.detail.lifecycleAi.failed')); }

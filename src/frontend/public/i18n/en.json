@@ -757,16 +757,6 @@
           "Possible": "Possible risk"
         }
       },
-      "obligation": {
-        "title": "Obligation Tracking",
-        "dueDate": "Due date",
-        "type": "Obligation type",
-        "suggested": "Harvey-suggested — please confirm",
-        "edit": "Edit obligation",
-        "save": "Save",
-        "saveFailed": "Failed to save obligation",
-        "none": "No obligation date tracked"
-      },
       "notFound": "Contract not found",
       "backToDocuments": "Back to Contracts",
       "confirmSend": "Send this contract for signatures? Participants will be notified by email.",
@@ -2773,6 +2763,116 @@
       "notInReview": "Send the template to legal review before approving it.",
       "editable": "This version is still a draft: edit it directly.",
       "criticalFindings": "Harvey found {{count}} critical issue(s) in this template. Fix them before approving it."
+    },
+    "term": {
+      "notConfirmed": "Record the contract's term before deciding on it."
     }
+  },
+  "lifecycle": {
+    "title": "Term and obligations",
+    "failed": "The change could not be saved.",
+    "history": "History",
+    "term": {
+      "start": "Start",
+      "end": "End date",
+      "currentEnd": "Current end date",
+      "renewal": "Renewal",
+      "renewalMonths": "Renews for (months)",
+      "notice": "Notice period",
+      "noNotice": "None",
+      "noticeForm": "Notice to be given by",
+      "noticeDeadline": "Last day to give notice",
+      "confirmHint": "Check these dates against the contract: alerts are sent from them.",
+      "save": "Save the term",
+      "edit": "Change the term",
+      "record": "Record the term",
+      "none": "No term recorded: no alert can be sent before a notice deadline or an end date.",
+      "unconfirmed": "Not confirmed",
+      "confirmedBy": "Confirmed by {{name}} on {{date}}"
+    },
+    "renewalMode": {
+      "None": "No renewal",
+      "Automatic": "Renews automatically",
+      "Option": "Renewal by option"
+    },
+    "noticeUnit": {
+      "Days": "days",
+      "Months": "months"
+    },
+    "noticeForm": {
+      "Letter": "Letter",
+      "Email": "E-mail",
+      "RegisteredMail": "Registered mail"
+    },
+    "decision": {
+      "None": "No decision",
+      "Renew": "Renew",
+      "Renegotiate": "Renegotiate",
+      "Terminate": "Terminate",
+      "LetExpire": "Let it expire"
+    },
+    "decisionHint": {
+      "Renew": "The contract continues. Recording this stops the reminders for this term.",
+      "Renegotiate": "You are renegotiating. Recording this stops the reminders for this term.",
+      "Terminate": "Give the date the termination notice was sent and attach its proof (acknowledgement of receipt, e-mail).",
+      "LetExpire": "The contract ends on its end date. Recording this stops the reminders."
+    },
+    "decisionForm": {
+      "noticeSentAt": "Notice sent on",
+      "proof": "Proof the notice was sent",
+      "record": "Record the decision"
+    },
+    "obligations": {
+      "title": "Obligations",
+      "none": "No obligation recorded.",
+      "noDate": "no date yet",
+      "toConfirm": "To confirm",
+      "confirmHint": "Give the date and confirm: only confirmed obligations are reminded.",
+      "done": "Done",
+      "waive": "Waive",
+      "name": "Obligation",
+      "kind": "Type",
+      "due": "Due on",
+      "recurrence": "Repeats",
+      "confirm": "Confirm",
+      "add": "Add an obligation"
+    },
+    "kind": {
+      "Payment": "Payment",
+      "Report": "Report",
+      "InsuranceCertificate": "Insurance certificate",
+      "Audit": "Audit",
+      "Renewal": "Renewal",
+      "Other": "Other"
+    },
+    "recurrence": {
+      "None": "Once",
+      "Monthly": "Monthly",
+      "Quarterly": "Quarterly",
+      "Yearly": "Yearly"
+    },
+    "status": {
+      "Upcoming": "Upcoming",
+      "Done": "Done",
+      "Missed": "Missed",
+      "Waived": "Waived"
+    },
+    "event": {
+      "Rollover": "Renewed automatically",
+      "Decision": "Decision recorded",
+      "NoticeSent": "Notice sent"
+    }
+  },
+  "calendarFeed": {
+    "title": "Calendar",
+    "hint": "Your contracts' notice deadlines, end dates and obligations in your own calendar (Outlook, Google, Apple): subscribe to this address.",
+    "issue": "Get my calendar address",
+    "replace": "Get a new address",
+    "revoke": "Stop the address",
+    "copy": "Copy",
+    "copied": "Address copied.",
+    "secret": "Keep this address private: anyone who has it sees these dates.",
+    "revoked": "The calendar address no longer works.",
+    "failed": "The calendar address could not be changed."
   }
 }

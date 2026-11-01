@@ -138,8 +138,7 @@ public static class InfrastructureServiceExtensions
         services.AddHangfireServer();
         services.AddScoped<SlaExpirationJob>();
         services.AddScoped<StepFollowUpJob>();
-        services.AddScoped<ObligationReminderJob>();
-        services.AddScoped<ContractTermAlertJob>();
+        services.AddScoped<LifecycleSweepJob>();
         services.AddScoped<OutboxDispatcherJob>();
 
         // SignalR

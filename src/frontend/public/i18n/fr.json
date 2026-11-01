@@ -757,16 +757,6 @@
           "Possible": "Risque possible"
         }
       },
-      "obligation": {
-        "title": "Suivi des obligations",
-        "dueDate": "Date d'échéance",
-        "type": "Type d'obligation",
-        "suggested": "Suggéré par Harvey — à confirmer",
-        "edit": "Modifier l'obligation",
-        "save": "Enregistrer",
-        "saveFailed": "Échec de l'enregistrement de l'obligation",
-        "none": "Aucune date d'obligation suivie"
-      },
       "notFound": "Contrat introuvable",
       "backToDocuments": "Retour aux contrats",
       "confirmSend": "Envoyer ce contrat pour signature ? Les intervenants seront notifiés par e-mail.",
@@ -2773,6 +2763,116 @@
       "notInReview": "Envoyez le modèle en revue juridique avant de l'approuver.",
       "editable": "Cette version est encore un brouillon : modifiez-la directement.",
       "criticalFindings": "Harvey a relevé {{count}} problème(s) critique(s) dans ce modèle. Corrigez-les avant de l'approuver."
+    },
+    "term": {
+      "notConfirmed": "Enregistrez la durée du contrat avant de décider."
     }
+  },
+  "lifecycle": {
+    "title": "Durée et obligations",
+    "failed": "La modification n'a pas pu être enregistrée.",
+    "history": "Historique",
+    "term": {
+      "start": "Début",
+      "end": "Date de fin",
+      "currentEnd": "Date de fin actuelle",
+      "renewal": "Renouvellement",
+      "renewalMonths": "Se renouvelle pour (mois)",
+      "notice": "Préavis",
+      "noNotice": "Aucun",
+      "noticeForm": "Congé à donner par",
+      "noticeDeadline": "Dernier jour pour donner congé",
+      "confirmHint": "Vérifiez ces dates dans le contrat : les alertes partent de là.",
+      "save": "Enregistrer la durée",
+      "edit": "Modifier la durée",
+      "record": "Enregistrer la durée",
+      "none": "Aucune durée enregistrée : aucune alerte ne peut partir avant une date de préavis ou de fin.",
+      "unconfirmed": "Non confirmée",
+      "confirmedBy": "Confirmée par {{name}} le {{date}}"
+    },
+    "renewalMode": {
+      "None": "Pas de renouvellement",
+      "Automatic": "Tacite reconduction",
+      "Option": "Renouvellement sur option"
+    },
+    "noticeUnit": {
+      "Days": "jours",
+      "Months": "mois"
+    },
+    "noticeForm": {
+      "Letter": "Lettre",
+      "Email": "E-mail",
+      "RegisteredMail": "Lettre recommandée"
+    },
+    "decision": {
+      "None": "Aucune décision",
+      "Renew": "Renouveler",
+      "Renegotiate": "Renégocier",
+      "Terminate": "Résilier",
+      "LetExpire": "Laisser expirer"
+    },
+    "decisionHint": {
+      "Renew": "Le contrat continue. Enregistrer cette décision arrête les rappels pour cette période.",
+      "Renegotiate": "Vous renégociez. Enregistrer cette décision arrête les rappels pour cette période.",
+      "Terminate": "Indiquez la date d'envoi du congé et joignez-en la preuve (accusé de réception, e-mail).",
+      "LetExpire": "Le contrat prend fin à sa date de fin. Enregistrer cette décision arrête les rappels."
+    },
+    "decisionForm": {
+      "noticeSentAt": "Congé envoyé le",
+      "proof": "Preuve de l'envoi du congé",
+      "record": "Enregistrer la décision"
+    },
+    "obligations": {
+      "title": "Obligations",
+      "none": "Aucune obligation enregistrée.",
+      "noDate": "pas encore de date",
+      "toConfirm": "À confirmer",
+      "confirmHint": "Indiquez la date et confirmez : seules les obligations confirmées font l’objet de rappels.",
+      "done": "Faite",
+      "waive": "Abandonner",
+      "name": "Obligation",
+      "kind": "Type",
+      "due": "Échéance",
+      "recurrence": "Se répète",
+      "confirm": "Confirmer",
+      "add": "Ajouter une obligation"
+    },
+    "kind": {
+      "Payment": "Paiement",
+      "Report": "Rapport",
+      "InsuranceCertificate": "Attestation d'assurance",
+      "Audit": "Audit",
+      "Renewal": "Renouvellement",
+      "Other": "Autre"
+    },
+    "recurrence": {
+      "None": "Une fois",
+      "Monthly": "Chaque mois",
+      "Quarterly": "Chaque trimestre",
+      "Yearly": "Chaque année"
+    },
+    "status": {
+      "Upcoming": "À venir",
+      "Done": "Faite",
+      "Missed": "Manquée",
+      "Waived": "Abandonnée"
+    },
+    "event": {
+      "Rollover": "Renouvelé automatiquement",
+      "Decision": "Décision enregistrée",
+      "NoticeSent": "Congé envoyé"
+    }
+  },
+  "calendarFeed": {
+    "title": "Calendrier",
+    "hint": "Les dates de préavis, de fin et les obligations de vos contrats dans votre propre calendrier (Outlook, Google, Apple) : abonnez-vous à cette adresse.",
+    "issue": "Obtenir mon adresse de calendrier",
+    "replace": "Obtenir une nouvelle adresse",
+    "revoke": "Arrêter l'adresse",
+    "copy": "Copier",
+    "copied": "Adresse copiée.",
+    "secret": "Gardez cette adresse privée : toute personne qui la connaît voit ces dates.",
+    "revoked": "L'adresse de calendrier ne fonctionne plus.",
+    "failed": "L'adresse de calendrier n'a pas pu être modifiée."
   }
 }

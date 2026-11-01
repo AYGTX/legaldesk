@@ -43,17 +43,6 @@ public record DocumentDetailDto(
     DateTime? ReadinessEvaluatedAt,
     // The field layout's version: the designer sends it back with a save (R-M3-4).
     int LayoutVersion,
-    DateTime? ObligationDueDate,
-    string? ObligationType,
-    string? ObligationRationale,
-    bool ObligationConfirmed,
-    // Contract term. The lifecycle stage and notice deadline are derived client-side from these
-    // by the same rules the alert sweep uses, so there is nothing here that can go stale.
-    DateTime? ContractStartDate,
-    DateTime? ContractEndDate,
-    bool AutoRenews,
-    int? NoticePeriodDays,
-    bool TermConfirmed,
     bool HideRecipientIdentities,
     OwnerDto Owner,
     List<RecipientDto> Recipients,
@@ -148,15 +137,6 @@ public class GetDocumentByIdQueryHandler(
             document.RiskScore,
             document.ReadinessEvaluatedAt,
             document.LayoutVersion,
-            document.ObligationDueDate,
-            document.ObligationType,
-            document.ObligationRationale,
-            document.ObligationConfirmed,
-            document.ContractStartDate,
-            document.ContractEndDate,
-            document.AutoRenews,
-            document.NoticePeriodDays,
-            document.TermConfirmed,
             document.HideRecipientIdentities,
             new OwnerDto(document.Owner.Id, document.Owner.FullName, document.Owner.Email!, document.Owner.AvatarUrl),
             // Retired participants are history: the rounds keep what they did.

@@ -27,6 +27,9 @@ public interface IPlatformQueries
     /// <summary>The organisation of a signing link, by the token's hash.</summary>
     Task<Guid?> OrganisationOfSigningTokenAsync(string tokenHash, CancellationToken cancellationToken = default);
 
+    /// <summary>The active user whose calendar feed address carries this token hash, and their organisation (R-M10-9).</summary>
+    Task<(Guid UserId, Guid OrganisationId)?> UserOfCalendarTokenAsync(string tokenHash, CancellationToken cancellationToken = default);
+
     /// <summary>A sealed contract by its public verification code (R-M5-9), whatever its organisation.</summary>
     Task<SealRecord?> FindSealAsync(string verificationCode, CancellationToken cancellationToken = default);
 

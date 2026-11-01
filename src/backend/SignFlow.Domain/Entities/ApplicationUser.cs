@@ -29,6 +29,9 @@ public class ApplicationUser : IdentityUser<Guid>, ITenantOwned
     /// <summary>Preferred language for e-mails and notifications (fr or en).</summary>
     public string PreferredLanguage { get; set; } = "fr";
 
+    /// <summary>SHA-256 of the secret in the user's calendar feed address (R-M10-9); null when there is no feed.</summary>
+    public string? CalendarTokenHash { get; set; }
+
     // Two-factor sign-in uses Identity's TwoFactorEnabled and authenticator key; sessions live in UserSession.
 
     public string FullName => $"{FirstName} {LastName}".Trim();

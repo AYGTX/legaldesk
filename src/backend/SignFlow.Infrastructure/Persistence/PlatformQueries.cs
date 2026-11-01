@@ -15,6 +15,15 @@ public sealed class PlatformQueries(ApplicationDbContext db) : IPlatformQueries
             .Select(u => (Guid?)u.OrganisationId)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<(Guid UserId, Guid OrganisationId)?> UserOfCalendarTokenAsync(string tokenHash, CancellationToken cancellationToken = default)
+    {
+        var user = await db.Users.IgnoreQueryFilters().AsNoTracking()
+            .Where(u => u.CalendarTokenHash == tokenHash && u.IsActive)
+            .Select(u => new { u.Id, u.OrganisationId })
+            .FirstOrDefaultAsync(cancellationToken);
+        return user is null ? null : (user.Id, user.OrganisationId);
+    }
+
     public Task<Guid?> OrganisationOfSigningTokenAsync(string tokenHash, CancellationToken cancellationToken = default) =>
         db.Recipients.IgnoreQueryFilters([QueryFilters.Tenant])
             .Where(r => r.TokenHash == tokenHash)

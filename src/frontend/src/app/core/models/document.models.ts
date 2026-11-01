@@ -62,16 +62,6 @@ export interface DocumentDetail {
   /** Field layout version, sent back with a save (R-M3-4). */
   layoutVersion?: number;
   readinessEvaluatedAt?: string;
-  obligationDueDate?: string;
-  obligationType?: string;
-  obligationRationale?: string;
-  obligationConfirmed: boolean;
-  /** Contract term. The lifecycle stage and notice deadline are derived from these — see evaluateContractTerm. */
-  contractStartDate?: string;
-  contractEndDate?: string;
-  autoRenews: boolean;
-  noticePeriodDays?: number;
-  termConfirmed: boolean;
   hideRecipientIdentities: boolean;
   owner: OwnerInfo;
   recipients: RecipientInfo[];

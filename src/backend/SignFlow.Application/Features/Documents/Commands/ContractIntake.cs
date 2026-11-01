@@ -52,7 +52,6 @@ public class ContractIntake(
 
         if (suggest && !string.IsNullOrWhiteSpace(text))
         {
-            await SuggestAsync(document, text, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
         }
 
@@ -110,29 +109,4 @@ public class ContractIntake(
         return text;
     }
 
-    /// <summary>The obligation date and the contract term, as suggestions the owner confirms. A date the owner already
-    /// confirmed is never replaced. A failure here never stops the review.</summary>
-    private async Task SuggestAsync(Document document, string text, CancellationToken ct)
-    {
-        try
-        {
-            if (!document.ObligationConfirmed)
-            {
-                var obligation = await aiService.SuggestObligationAsync(text, document.Title, DateTime.UtcNow, ct);
-                document.SetObligationSuggestion(obligation.DueDate, obligation.ObligationType, obligation.Rationale);
-            }
-
-            if (document.ContractEndDate is null)
-            {
-                var terms = await ExtractKeyTermsCommandHandler.ReadAsync(aiService, text, document.Title, "fr", ct);
-                var proposed = ExtractKeyTermsCommandHandler.Suggest(terms);
-                if (proposed?.EndDate is not null)
-                    document.SuggestContractTerm(proposed.StartDate, proposed.EndDate, proposed.AutoRenews ?? false, proposed.NoticePeriodDays);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            logger.LogInformation(ex, "No dates proposed for contract {DocumentId}", document.Id);
-        }
-    }
 }

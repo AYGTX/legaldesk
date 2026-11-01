@@ -18,6 +18,8 @@ public class TenantResolutionMiddlewareTests
     {
         public Task<Guid?> OrganisationOfUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult(userOrg);
         // Links and sessions are looked up by the hash of what the request carries, never by the clear value.
+        public Task<(Guid UserId, Guid OrganisationId)?> UserOfCalendarTokenAsync(string tokenHash, CancellationToken ct = default) =>
+            Task.FromResult<(Guid UserId, Guid OrganisationId)?>(null);
         public Task<Guid?> OrganisationOfSigningTokenAsync(string tokenHash, CancellationToken ct = default) =>
             Task.FromResult(tokenHash == SecureTokens.Hash("tok") ? tokenOrg : null);
         public Task<Guid?> OrganisationOfSigningSessionAsync(string secretHash, CancellationToken ct = default) =>

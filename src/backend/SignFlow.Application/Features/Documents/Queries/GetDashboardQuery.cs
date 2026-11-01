@@ -53,9 +53,9 @@ public class GetDashboardQueryHandler(
         var soonCutoff = DateTime.UtcNow.Date.AddDays(30);
         var expiringSoon = await ownedDocs.CountAsync(
             d => d.Status == DocumentStatus.Completed
-                 && d.ContractEndDate != null
-                 && d.ContractEndDate >= DateTime.UtcNow.Date
-                 && d.ContractEndDate <= soonCutoff,
+                 && d.Term != null && d.Term.CurrentEndDate != null
+                 && d.Term.CurrentEndDate >= DateTime.UtcNow.Date
+                 && d.Term.CurrentEndDate <= soonCutoff,
             cancellationToken);
 
         var recentActivity = await db.AuditLogs.AsNoTracking()

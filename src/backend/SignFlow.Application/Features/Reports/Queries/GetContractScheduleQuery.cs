@@ -47,8 +47,7 @@ public class GetContractScheduleQueryHandler(IApplicationDbContext db, ICurrentU
             .Where(d => !d.IsDeleted && !d.IsTemplate && (isAdmin || d.OwnerId == userId))
             .Select(d => new
             {
-                d.Id, d.Title, d.Status, d.ContractStartDate, d.ContractEndDate, d.AutoRenews, d.NoticePeriodDays,
-                d.TermConfirmed, d.CreatedAt,
+                d.Id, d.Title, d.Status, d.Term, d.CreatedAt,
                 RequestTypeName = d.RequestType != null ? d.RequestType.Name : null
             })
             .ToListAsync(cancellationToken);
@@ -56,11 +55,13 @@ public class GetContractScheduleQueryHandler(IApplicationDbContext db, ICurrentU
         return rows
             .Select(d =>
             {
-                var s = ContractTermEvaluator.Evaluate(d.ContractStartDate, d.ContractEndDate, d.NoticePeriodDays, now);
+                var s = TermLadder.Status(d.Term, now);
+                var end = d.Term?.CurrentEndDate;
                 return new ContractScheduleRowDto(
-                    d.Id, d.Title, d.Status.ToString(), d.RequestTypeName, d.ContractStartDate, d.ContractEndDate,
-                    s.NoticeDeadline, s.DaysToEnd, s.DaysToNoticeDeadline, d.AutoRenews, d.NoticePeriodDays,
-                    d.TermConfirmed, d.ContractEndDate is null ? MissingDates : s.Stage.ToString(), d.CreatedAt);
+                    d.Id, d.Title, d.Status.ToString(), d.RequestTypeName, d.Term?.StartDate, end,
+                    s.NoticeDeadline, s.DaysToEnd, s.DaysToNoticeDeadline, d.Term?.RenewalMode == RenewalMode.Automatic,
+                    d.Term?.NoticeAmount is { } n && d.Term.NoticeUnit == NoticeUnit.Days ? n : d.Term?.NoticeAmount * 30,
+                    d.Term?.IsConfirmed ?? false, end is null ? MissingDates : s.Stage.ToString(), d.CreatedAt);
             })
             // Most urgent first: a missed notice deadline, then the nearest end dates; contracts without dates last.
             .OrderBy(r => r.Stage == MissingDates ? 1 : 0)

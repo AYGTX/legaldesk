@@ -68,37 +68,6 @@ public class DocumentsController(
         return NoContent();
     }
 
-    /// <summary>Confirm or override the AI-suggested obligation (renewal/expiry) date</summary>
-    [HttpPatch("{id:guid}/obligation")]
-    [ProducesResponseType(204)]
-    [ProducesResponseType(typeof(ProblemDetails), 404)]
-    public async Task<IActionResult> UpdateObligation(
-        [FromRoute] Guid id,
-        [FromBody] UpdateObligationRequest request,
-        [FromServices] ICommandHandler<UpdateObligationCommand> handler,
-        CancellationToken ct)
-    {
-        await handler.HandleAsync(new UpdateObligationCommand(id, request.DueDate, request.ObligationType), ct);
-        return NoContent();
-    }
-
-    /// <summary>Record the negotiated contract term that drives the lifecycle alerts</summary>
-    [HttpPatch("{id:guid}/term")]
-    [ProducesResponseType(204)]
-    [ProducesResponseType(typeof(ProblemDetails), 404)]
-    [ProducesResponseType(typeof(ProblemDetails), 422)]
-    public async Task<IActionResult> UpdateContractTerm(
-        [FromRoute] Guid id,
-        [FromBody] UpdateContractTermRequest request,
-        [FromServices] ICommandHandler<UpdateContractTermCommand> handler,
-        CancellationToken ct)
-    {
-        await handler.HandleAsync(
-            new UpdateContractTermCommand(
-                id, request.StartDate, request.EndDate, request.AutoRenews, request.NoticePeriodDays),
-            ct);
-        return NoContent();
-    }
 
     /// <summary>List documents with pagination, filtering and sorting</summary>
     [HttpGet]
@@ -493,13 +462,7 @@ public record UploadDocumentRequest(
 
 public record ReopenDocumentRequest(int? SlaHours);
 
-public record UpdateObligationRequest(DateTime DueDate, string ObligationType);
 
-public record UpdateContractTermRequest(
-    DateTime? StartDate,
-    DateTime? EndDate,
-    bool AutoRenews,
-    int? NoticePeriodDays);
 
 public record ReviseAnswersRequest(Dictionary<string, string>? FilledValues, string? ChangeNote = null);
 public record UploadRevisionRequest(IFormFile File, string? ChangeNote = null);

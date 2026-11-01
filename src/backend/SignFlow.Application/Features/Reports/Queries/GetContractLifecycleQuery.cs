@@ -51,15 +51,12 @@ public class GetContractLifecycleQueryHandler(IApplicationDbContext db)
         var tracked = await db.Documents.AsNoTracking()
             .Where(d => !d.IsDeleted
                         && d.Status == DocumentStatus.Completed
-                        && d.ContractEndDate != null)
+                        && d.Term != null && d.Term.CurrentEndDate != null)
             .Select(d => new
             {
                 d.Id,
                 d.Title,
-                d.ContractStartDate,
-                d.ContractEndDate,
-                d.AutoRenews,
-                d.NoticePeriodDays,
+                d.Term,
                 RequestTypeName = d.RequestType != null ? d.RequestType.Name : null
             })
             .ToListAsync(cancellationToken);
@@ -71,11 +68,10 @@ public class GetContractLifecycleQueryHandler(IApplicationDbContext db)
             {
                 d.Id,
                 d.Title,
-                d.ContractEndDate,
-                d.AutoRenews,
+                ContractEndDate = d.Term!.CurrentEndDate,
+                AutoRenews = d.Term.RenewalMode == RenewalMode.Automatic,
                 d.RequestTypeName,
-                Status = ContractTermEvaluator.Evaluate(
-                    d.ContractStartDate, d.ContractEndDate, d.NoticePeriodDays, now)
+                Status = TermLadder.Status(d.Term, now)
             })
             .ToList();
 

@@ -70,28 +70,11 @@ public class Document : TenantEntity
     /// <summary>The background reading of a new file has not finished: a review would read nothing yet.</summary>
     public bool IntakePending { get; private set; }
 
-    // Obligation tracking (renewal/expiry date), AI-suggested at upload time and owner-confirmable
-    public DateTime? ObligationDueDate { get; private set; }
-    public string? ObligationType { get; private set; }
-    public string? ObligationRationale { get; private set; }
-    public bool ObligationConfirmed { get; private set; }
-    public DateTime? LastObligationReminderSentAt { get; private set; }
+    /// <summary>The contract's term (R-M10-1): its own record, created when a person first records the dates.</summary>
+    public ContractTerm? Term { get; private set; }
 
-    // Contract term — the lifecycle envelope the contract runs inside, distinct from an obligation:
-    // an obligation is a dated duty extracted from the text, the term is "in force from X to Y,
-    // auto-renews or not, notice must be given N days ahead". Entered by the owner, never guessed.
-    // The notice deadline is deliberately NOT stored: it is derived from ContractEndDate and
-    // NoticePeriodDays wherever it is needed, so the two can never drift apart.
-    public DateTime? ContractStartDate { get; private set; }
-    public DateTime? ContractEndDate { get; private set; }
-    public bool AutoRenews { get; private set; }
-    public int? NoticePeriodDays { get; private set; }
-    public bool TermConfirmed { get; private set; }
-    // The last rung of the alert ladder already sent, so each milestone fires exactly once.
-    // This replaces the blunt time-based throttle used for obligation reminders.
-    [MaxLength(32)]
-    public string? LastTermAlertStage { get; private set; }
-    public DateTime? LastTermAlertSentAt { get; private set; }
+    /// <summary>What the contract obliges a party to do (R-M10-5), a list (D12).</summary>
+    public ICollection<Obligation> Obligations { get; private set; } = [];
 
     // Request type & SLA (snapshot taken at creation so later config changes don't affect in-flight requests)
     public Guid? RequestTypeId { get; private set; }
@@ -365,65 +348,6 @@ public class Document : TenantEntity
         ReadinessScore = null;
         RiskScore = null;
         ReadinessEvaluatedAt = null;
-    }
-
-    /// <summary>AI-suggested obligation date at upload/analysis time — not yet confirmed by the owner.</summary>
-    public void SetObligationSuggestion(DateTime? dueDate, string? obligationType, string? rationale)
-    {
-        ObligationDueDate = dueDate;
-        ObligationType = obligationType;
-        ObligationRationale = rationale;
-        ObligationConfirmed = false;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    /// <summary>Owner override/confirmation of the obligation date — takes precedence over the AI suggestion.</summary>
-    public void ConfirmObligation(DateTime dueDate, string obligationType)
-    {
-        ObligationDueDate = dueDate;
-        ObligationType = obligationType;
-        ObligationRationale = null;
-        ObligationConfirmed = true;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void MarkObligationReminderSent()
-    {
-        LastObligationReminderSentAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    /// <summary>
-    /// Records the negotiated contract term. Re-dating a contract clears the alert ladder so the
-    /// milestones are re-armed against the new end date — otherwise moving an end date forward
-    /// would silently skip every rung already sent against the old one.
-    /// </summary>
-    public void SetContractTerm(DateTime? startDate, DateTime? endDate, bool autoRenews, int? noticePeriodDays)
-    {
-        ContractStartDate = startDate;
-        ContractEndDate = endDate;
-        AutoRenews = autoRenews;
-        NoticePeriodDays = noticePeriodDays;
-        TermConfirmed = true;
-        LastTermAlertStage = null;
-        LastTermAlertSentAt = null;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    /// <summary>A term read from the contract by the AI assistant: recorded so the contract appears in the schedule,
-    /// but left unconfirmed until a person saves the term.</summary>
-    public void SuggestContractTerm(DateTime? startDate, DateTime? endDate, bool autoRenews, int? noticePeriodDays)
-    {
-        SetContractTerm(startDate, endDate, autoRenews, noticePeriodDays);
-        TermConfirmed = false;
-    }
-
-    /// <summary>Records which rung of the alert ladder has been sent, so it never fires twice.</summary>
-    public void MarkTermAlertSent(string stage)
-    {
-        LastTermAlertStage = stage;
-        LastTermAlertSentAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public bool IsExpired() => ExpiresAt.HasValue && ExpiresAt.Value < DateTime.UtcNow;

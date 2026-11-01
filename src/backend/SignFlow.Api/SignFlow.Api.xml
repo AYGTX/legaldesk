@@ -106,6 +106,21 @@
         <member name="M:SignFlow.Api.Controllers.V1.SignInResponse.#ctor(System.String,System.Nullable{System.DateTime},SignFlow.Application.Features.Auth.UserInfo,System.Boolean,System.String)">
             <summary>Either a session (access token, its expiry, the user) or a two-factor challenge to answer</summary>
         </member>
+        <member name="T:SignFlow.Api.Controllers.V1.CalendarController">
+            <summary>
+            The user's calendar feed (R-M10-9): notice deadlines, end dates and obligations as an .ics address a calendar
+            subscribes to. The address carries a secret; issuing a new one or revoking it stops the old address.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CalendarController.Issue(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Lifecycle.IssueCalendarTokenCommand,System.String},System.Threading.CancellationToken)">
+            <summary>Issue (or replace) the current user's feed address</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CalendarController.Revoke(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Lifecycle.RevokeCalendarTokenCommand},System.Threading.CancellationToken)">
+            <summary>Stop the current user's feed address</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.CalendarController.Feed(System.String,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Lifecycle.GetCalendarFeedQuery,System.String},System.Threading.CancellationToken)">
+            <summary>The feed, read by a calendar application through its secret address</summary>
+        </member>
         <member name="T:SignFlow.Api.Controllers.V1.ClausesController">
             <summary>
             The clause library (M9): each clause keeps every wording it has had; an approved wording never changes, a new one is
@@ -240,12 +255,6 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.Reopen(System.Guid,SignFlow.Api.Controllers.V1.ReopenDocumentRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.ReopenDocumentCommand},System.Threading.CancellationToken)">
             <summary>Reopen an expired request (administrators only)</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.UpdateObligation(System.Guid,SignFlow.Api.Controllers.V1.UpdateObligationRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.UpdateObligationCommand},System.Threading.CancellationToken)">
-            <summary>Confirm or override the AI-suggested obligation (renewal/expiry) date</summary>
-        </member>
-        <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.UpdateContractTerm(System.Guid,SignFlow.Api.Controllers.V1.UpdateContractTermRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Documents.Commands.UpdateContractTermCommand},System.Threading.CancellationToken)">
-            <summary>Record the negotiated contract term that drives the lifecycle alerts</summary>
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.DocumentsController.GetDocuments(System.Int32,System.Int32,System.String,System.Nullable{SignFlow.Domain.Enums.DocumentStatus},System.String,System.Boolean,System.Nullable{System.Guid},System.String,System.Threading.CancellationToken)">
             <summary>List documents with pagination, filtering and sorting</summary>
@@ -398,6 +407,27 @@
         </member>
         <member name="M:SignFlow.Api.Controllers.V1.HtmlTemplatesController.Submit(System.Guid,SignFlow.Api.Controllers.V1.SubmitFromTemplateRequest,System.Threading.CancellationToken)">
             <summary>Submit a request from a template (any authenticated user)</summary>
+        </member>
+        <member name="T:SignFlow.Api.Controllers.V1.LifecycleController">
+            <summary>
+            A signed contract's life (M10): its term, the decision on it, its obligations and what happened to it. The dates are
+            entered by people; nothing here is filled in by the model (R-M12-9).
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.LifecycleController.Get(System.Guid,SignFlow.Application.Common.Interfaces.IQueryHandler{SignFlow.Application.Features.Lifecycle.GetContractLifecycleDetailQuery,SignFlow.Application.Features.Lifecycle.ContractLifecycleDetailDto},System.Threading.CancellationToken)">
+            <summary>The term, its computed deadlines, the obligations and the term's history</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.LifecycleController.SetTerm(System.Guid,SignFlow.Api.Controllers.V1.SetTermRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Lifecycle.SetContractTermCommand},System.Threading.CancellationToken)">
+            <summary>Record the term a person checked against the contract; re-arms the alerts</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.LifecycleController.Decide(System.Guid,SignFlow.Api.Controllers.V1.DecideTermRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Lifecycle.DecideTermCommand},System.Threading.CancellationToken)">
+            <summary>Record the decision on the term (renew, renegotiate, terminate with proof, let expire); stops the alerts</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.LifecycleController.AddObligation(System.Guid,SignFlow.Api.Controllers.V1.ObligationRequest,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Lifecycle.AddObligationCommand,System.Guid},System.Threading.CancellationToken)">
+            <summary>Add an obligation; one taken from Harvey's key data carries its quote and waits for confirmation</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.LifecycleController.Act(System.Guid,System.Guid,SignFlow.Application.Features.Lifecycle.ObligationAction,SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Lifecycle.ActOnObligationCommand},System.Threading.CancellationToken)">
+            <summary>Confirm, mark done (a recurring one moves to its next date), waive or delete an obligation</summary>
         </member>
         <member name="T:SignFlow.Api.Controllers.V1.NotificationsController">
             <summary>In-app notification center for the current user</summary>
