@@ -24,6 +24,10 @@ import { UnifiedTemplate } from '../../core/models/template-gallery.model';
           @if (!template().isActive) {
             <span class="tc-inactive-badge">{{ 'templates.inactive' | translate }}</span>
           }
+          @if (canManage()) {
+            <span class="tc-version">v{{ template().version }}</span>
+            <span class="tc-status" [attr.data-status]="template().status">{{ ('templates.status.' + template().status) | translate }}</span>
+          }
         </div>
         @if (template().description) {
           <p class="tc-desc">{{ template().description }}</p>
@@ -45,15 +49,40 @@ import { UnifiedTemplate } from '../../core/models/template-gallery.model';
         </div>
       </div>
       <div class="tc-actions">
-        @if (template().isActive && template().fieldCount > 0) {
+        @if (template().isActive && template().fieldCount > 0 && template().status === 'Approved') {
           <button type="button" class="tc-use-btn" (click)="use.emit(template())">
             <mat-icon>send</mat-icon> {{ 'templates.useTemplate' | translate }}
           </button>
         }
         @if (canManage()) {
-          <button type="button" class="tc-icon-btn" (click)="manage.emit(template())" [matTooltip]="'templates.manage' | translate">
-            <mat-icon>tune</mat-icon>
-          </button>
+          @switch (template().status) {
+            @case ('Draft') {
+              <button type="button" class="tc-text-btn" (click)="lifecycle.emit({ template: template(), action: 'submit' })">
+                <mat-icon>gavel</mat-icon> {{ 'templates.lifecycle.submit' | translate }}
+              </button>
+            }
+            @case ('InLegalReview') {
+              <button type="button" class="tc-text-btn" (click)="lifecycle.emit({ template: template(), action: 'approve' })"
+                      [matTooltip]="'templates.lifecycle.approveHint' | translate">
+                <mat-icon>verified</mat-icon> {{ 'templates.lifecycle.approve' | translate }}
+              </button>
+            }
+            @case ('Approved') {
+              <button type="button" class="tc-icon-btn" (click)="lifecycle.emit({ template: template(), action: 'next' })"
+                      [matTooltip]="'templates.lifecycle.next' | translate">
+                <mat-icon>edit_note</mat-icon>
+              </button>
+              <button type="button" class="tc-icon-btn" (click)="lifecycle.emit({ template: template(), action: 'retire' })"
+                      [matTooltip]="'templates.lifecycle.retire' | translate">
+                <mat-icon>archive</mat-icon>
+              </button>
+            }
+          }
+          @if (template().status === 'Draft' || template().status === 'InLegalReview') {
+            <button type="button" class="tc-icon-btn" (click)="manage.emit(template())" [matTooltip]="'templates.manage' | translate">
+              <mat-icon>tune</mat-icon>
+            </button>
+          }
           @if (template().kind === 'pdf') {
             <button type="button" class="tc-icon-btn tc-delete" (click)="remove.emit(template())" [matTooltip]="'common.delete' | translate">
               <mat-icon>delete_outline</mat-icon>
@@ -88,6 +117,14 @@ import { UnifiedTemplate } from '../../core/models/template-gallery.model';
     .tc-icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #5f6368; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .tc-icon-btn:hover { background: #f1f3f4; }
     .tc-delete:hover { background: #fce8e6; color: #c5221f; }
+    .tc-version { font-size: 11px; font-weight: 600; color: #4a5566; background: #eef1f5; padding: 2px 7px; border-radius: 10px; }
+    .tc-status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: #fef3c7; color: #92400e; }
+    .tc-status[data-status='InLegalReview'] { background: #e8f0fe; color: #1a56c4; }
+    .tc-status[data-status='Approved'] { background: #e6f4ea; color: #1e6b2e; }
+    .tc-status[data-status='Retired'] { background: #f1f3f4; color: #6b7280; }
+    .tc-text-btn { display: flex; align-items: center; gap: 4px; height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #c7d0dc; background: #fff; color: #1f1f1f; font-size: 12.5px; font-family: inherit; cursor: pointer; }
+    .tc-text-btn mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .tc-text-btn:hover { background: #f1f3f4; }
   `]
 })
 export class TemplateCardComponent {
@@ -96,4 +133,5 @@ export class TemplateCardComponent {
   readonly use = output<UnifiedTemplate>();
   readonly manage = output<UnifiedTemplate>();
   readonly remove = output<UnifiedTemplate>();
+  readonly lifecycle = output<{ template: UnifiedTemplate; action: 'submit' | 'approve' | 'retire' | 'next' }>();
 }

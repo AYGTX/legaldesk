@@ -165,8 +165,7 @@ public class PdfTemplatesController(
                 request.Approvers?.Select(a => new ApproverSelection(a.UserId, a.ExternalName, a.ExternalEmail)).ToList(),
                 request.Title,
                 request.Message,
-                request.ClauseIds,
-                request.StartImmediately), ct);
+                request.ClauseIds), ct);
         return CreatedAtAction(nameof(GetById), new { id }, new SubmitFromPdfTemplateResponse(documentId));
     }
 }
@@ -212,7 +211,6 @@ public record SubmitFromPdfTemplateRequest(
     List<ApproverSelectionRequest>? Approvers = null,
     string? Title = null,
     string? Message = null,
-    List<Guid>? ClauseIds = null,
-    bool StartImmediately = true);
+    List<Guid>? ClauseIds = null);
 
 public record SubmitFromPdfTemplateResponse(Guid DocumentId);

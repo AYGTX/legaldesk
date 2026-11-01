@@ -64,6 +64,7 @@ public class WorkflowPresetRoutingTests
         ScenarioFixture f, Guid? presetId, int signatures, WorkflowType type = WorkflowType.Sequential, int[]? stages = null)
     {
         var template = HtmlTemplate.Create("Demande", "<p>{{amount}}</p>", OwnerId, workflowType: type);
+        template.ImportApproved();
         template.SetWorkflowPreset(presetId);
         f.Db.HtmlTemplates.Add(template);
         f.Db.HtmlTemplateFields.Add(HtmlTemplateField.Create(template.Id, "amount", "Montant", HtmlTemplateFieldType.Number,
@@ -150,14 +151,17 @@ public class WorkflowPresetRoutingTests
             [WorkflowPresetStep.Create(id, 1, 1, "Finance", PresetApproverKind.Team, null, null, team.Id, null, null, null)]);
         var template = await AddTemplateAsync(f, preset.Id, signatures: 1);
 
-        var recipient = Assert.Single(await RecipientsAsync(f, await SubmitAsync(f, template, "1")));
+        var documentId = await SubmitAsync(f, template, "1");
+        var recipient = Assert.Single(await RecipientsAsync(f, documentId));
 
         Assert.True(recipient.IsPool);
         Assert.Equal(team.Id, recipient.PoolTeamId);
         Assert.Equal("Finance", recipient.Name);
         Assert.Equal(Recipient.PoolAddress, recipient.Email);
-        // The active member is told; the inactive one is not.
+        // Nobody is told before the pre-flight review (R-M6-6); once sent, the active member is, the inactive one is not.
         var emails = (NullEmailService)f.GetHandler<IEmailService>();
+        Assert.Empty(emails.Sent);
+        await f.GetHandler<IWorkflowEngine>().StartAsync(documentId);
         Assert.Contains(emails.Sent, m => m.To == cfo.Email);
         Assert.DoesNotContain(emails.Sent, m => m.To == former.Email || m.To == Recipient.PoolAddress);
     }
@@ -334,6 +338,8 @@ public class PdfAnnexRequestTests
         var path = await storage.UploadAsync(new MemoryStream(basePdf), "base.pdf", "application/pdf", "pdf-templates");
 
         var template = PdfTemplate.Create("Contrat", path, "base.pdf", basePdf.Length, 1, OwnerId, defaultApproverId: OwnerId);
+
+        template.ImportApproved();
         db.PdfTemplates.Add(template);
         db.PdfTemplateFields.AddRange(
             PdfTemplateField.Create(template.Id, "amount", "Montant", PdfFieldType.Number, PdfFieldFillRole.Requester, 1, 10, 10, 100, 20, false, 1),

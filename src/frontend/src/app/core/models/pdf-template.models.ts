@@ -1,3 +1,4 @@
+import { TemplateStatus } from './template-gallery.model';
 import { TemplatePreset } from './workflow-preset.models';
 import { WorkflowType } from './document.models';
 
@@ -21,6 +22,10 @@ export const PDF_AUTO_FILL_OPTIONS: { value: string; labelKey: string }[] = [
 ];
 
 export interface PdfTemplateDto {
+  /** Draft → in legal review → approved → retired (R-M6-5). */
+  status?: TemplateStatus;
+  version?: number;
+  parentTemplateId?: string | null;
   id: string;
   name: string;
   description?: string;
@@ -58,6 +63,10 @@ export interface PdfTemplateFieldDto {
 }
 
 export interface PdfTemplateDetailDto {
+  /** Draft → in legal review → approved → retired (R-M6-5). */
+  status?: TemplateStatus;
+  version?: number;
+  parentTemplateId?: string | null;
   id: string;
   name: string;
   description?: string;
@@ -123,7 +132,6 @@ export interface SubmitPdfTemplateRequest {
   /** Library clauses the requester adds; they travel as an annex after the template's own. */
   clauseIds?: string[];
   /** False keeps the request a draft until it has been reviewed and the owner sends it. */
-  startImmediately?: boolean;
 }
 
 /** A field proposed by the form detector; coordinates use the designer's model (top-left, 1.5x the PDF's points). */

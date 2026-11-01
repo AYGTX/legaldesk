@@ -10,7 +10,7 @@ namespace SignFlow.Domain.Entities;
 /// stored file is never regenerated, only copied per instance so the original stays pristine.
 /// This is the PDF analogue of <see cref="HtmlTemplate"/>.
 /// </summary>
-public class PdfTemplate : TenantEntity
+public class PdfTemplate : VersionedTemplate
 {
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
@@ -117,7 +117,7 @@ public class PdfTemplate : TenantEntity
         StoragePath = storagePath;
         FileSizeBytes = fileSizeBytes;
         PageCount = pageCount;
-        UpdatedAt = DateTime.UtcNow;
+        Edited();
     }
 
     /// <summary>Updates metadata/config. The stored PDF is replaced only through <see cref="ReplaceFile"/>.</summary>
@@ -137,6 +137,21 @@ public class PdfTemplate : TenantEntity
         WorkflowType = workflowType;
         HideRecipientIdentities = hideRecipientIdentities;
         RequestTypeId = requestTypeId;
-        UpdatedAt = DateTime.UtcNow;
+        Edited();
+    }
+
+    /// <summary>
+    /// The next version of an approved template (R-M6-5): a draft copy pointing at the same stored PDF, which is never
+    /// changed in place. The fields are copied by the caller.
+    /// </summary>
+    public PdfTemplate NextVersion(Guid createdById)
+    {
+        var next = Create(Name, StoragePath, FileName, FileSizeBytes, PageCount, createdById, RequestTypeId, Description,
+            DefaultApproverId, WorkflowType, HideRecipientIdentities);
+        next.WorkflowPresetId = WorkflowPresetId;
+        next.AnnexClauseIdsJson = AnnexClauseIdsJson;
+        next.IsActive = IsActive;
+        next.BecomeNextVersionOf(this);
+        return next;
     }
 }

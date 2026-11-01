@@ -34,6 +34,8 @@ public class TemplateFieldGapsTests
         });
 
         var template = HtmlTemplate.Create("Demande", "<p>{{kind}} / {{country}} / {{signed_on}} / {{subject}}</p>{{sig}}", OwnerId);
+
+        template.ImportApproved();
         db.HtmlTemplates.Add(template);
         db.HtmlTemplateFields.AddRange(
             HtmlTemplateField.Create(template.Id, "kind", "Type", HtmlTemplateFieldType.Dropdown, HtmlTemplateFieldRole.Initiator, true, 1, optionsJson: Choices),

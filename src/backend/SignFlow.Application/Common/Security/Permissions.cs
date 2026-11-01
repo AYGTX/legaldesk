@@ -19,6 +19,7 @@ public static class Permissions
     public const string EditClauses = "clauses.edit";
     public const string ApproveClauses = "clauses.approve";
     public const string ManageTemplates = "templates.manage";
+    public const string ApproveTemplates = "templates.approve";
     public const string ManageRequestTypes = "requestTypes.manage";
     public const string ViewWorkflowPresets = "presets.view";
     public const string ManageWorkflowPresets = "presets.manage";
@@ -40,6 +41,7 @@ public static class Permissions
         [EditClauses] = [Administrator, Manager],
         [ApproveClauses] = [Administrator, Manager],
         [ManageTemplates] = [Administrator, Manager],
+        [ApproveTemplates] = [Administrator, Manager],
         [ManageRequestTypes] = [Administrator],
         [ViewWorkflowPresets] = [Administrator, Manager],
         [ManageWorkflowPresets] = [Administrator],

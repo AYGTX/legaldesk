@@ -81,6 +81,9 @@ export interface DocumentDetail {
   versions?: DocumentVersionInfo[];
   /** Set for contracts built from a template ('Html' | 'Pdf'); their owner revises answers, never the file. */
   templateKind?: 'Html' | 'Pdf' | null;
+  /** The template and version the contract came from (R-M6-5). */
+  templateName?: string | null;
+  templateVersion?: number | null;
   templateRevisions?: TemplateRevision[];
 }
 

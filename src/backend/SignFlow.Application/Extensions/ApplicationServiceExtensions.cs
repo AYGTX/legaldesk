@@ -186,6 +186,12 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICommandHandler<SetRequestTypeStatusCommand>, SetRequestTypeStatusCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteRequestTypeCommand>, DeleteRequestTypeCommandHandler>();
 
+        // Template versions (R-M6-5)
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Templates.SubmitTemplateCommand, SignFlow.Application.Features.Templates.TemplateVersionDto>, SignFlow.Application.Features.Templates.SubmitTemplateCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Templates.ApproveTemplateCommand, SignFlow.Application.Features.Templates.TemplateVersionDto>, SignFlow.Application.Features.Templates.ApproveTemplateCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Templates.RetireTemplateCommand, SignFlow.Application.Features.Templates.TemplateVersionDto>, SignFlow.Application.Features.Templates.RetireTemplateCommandHandler>();
+        services.AddScoped<ICommandHandler<SignFlow.Application.Features.Templates.DraftNextTemplateVersionCommand, SignFlow.Application.Features.Templates.TemplateVersionDto>, SignFlow.Application.Features.Templates.DraftNextTemplateVersionCommandHandler>();
+
         // Clause library
         services.AddScoped<IQueryHandler<GetClausesQuery, List<ClauseDto>>, GetClausesQueryHandler>();
         services.AddScoped<IQueryHandler<GetApprovedClausesQuery, List<ApprovedClauseDto>>, GetApprovedClausesQueryHandler>();

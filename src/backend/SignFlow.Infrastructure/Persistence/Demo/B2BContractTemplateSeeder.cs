@@ -129,6 +129,10 @@ internal static class B2BContractTemplateSeeder
                          "reconduction tacite, garantie de bonne exécution, responsabilité illimitée (non standard).",
             workflowType: WorkflowType.Sequential,
             requestTypeId: requestType.Id);
+
+        // Seeded wording is the organisation's reviewed starting set: approved version 1 (R-M6-5).
+
+        template.ImportApproved();
         template.SetCreatedBy(owner.Id.ToString());
         context.HtmlTemplates.Add(template);
 

@@ -4,6 +4,17 @@ import { PdfTemplateDto } from './pdf-template.models';
 
 export type TemplateKind = 'html' | 'pdf';
 
+export type TemplateStatus = 'Draft' | 'InLegalReview' | 'Approved' | 'Retired';
+
+/** Where a template version stands after a lifecycle action. */
+export interface TemplateVersionResult {
+  id: string;
+  kind: 'Html' | 'Pdf';
+  version: number;
+  status: TemplateStatus;
+  parentTemplateId?: string | null;
+}
+
 /** Normalized view of an HtmlTemplateDto or PdfTemplateDto for the unified /templates gallery. */
 export interface UnifiedTemplate {
   id: string;
@@ -17,6 +28,8 @@ export interface UnifiedTemplate {
   workflowType: WorkflowType;
   createdByName: string;
   createdAt: string;
+  status: TemplateStatus;
+  version: number;
 }
 
 export function fromHtmlTemplate(t: HtmlTemplateDto): UnifiedTemplate {
@@ -30,7 +43,9 @@ export function fromHtmlTemplate(t: HtmlTemplateDto): UnifiedTemplate {
     defaultApproverName: t.defaultApproverName,
     workflowType: t.workflowType,
     createdByName: t.createdByName,
-    createdAt: t.createdAt
+    createdAt: t.createdAt,
+    status: t.status ?? 'Approved',
+    version: t.version ?? 1
   };
 }
 
@@ -46,6 +61,8 @@ export function fromPdfTemplate(t: PdfTemplateDto): UnifiedTemplate {
     defaultApproverName: t.defaultApproverName,
     workflowType: t.workflowType,
     createdByName: t.createdByName,
-    createdAt: t.createdAt
+    createdAt: t.createdAt,
+    status: t.status ?? 'Approved',
+    version: t.version ?? 1
   };
 }

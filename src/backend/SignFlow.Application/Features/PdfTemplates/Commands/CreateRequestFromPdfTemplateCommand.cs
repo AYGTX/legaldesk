@@ -29,11 +29,7 @@ public record CreateRequestFromPdfTemplateCommand(
     string? Title = null,
     string? Message = null,
     /// <summary>Library clauses the requester adds, appended as an annex after any the template always carries.</summary>
-    List<Guid>? ClauseIds = null,
-    /// <summary>
-    /// False keeps the request a draft: nobody is notified until the owner has run the pre-flight review and sends it.
-    /// </summary>
-    bool StartImmediately = true) : ICommand<Guid>;
+    List<Guid>? ClauseIds = null) : ICommand<Guid>;
 
 public class CreateRequestFromPdfTemplateCommandValidator : AbstractValidator<CreateRequestFromPdfTemplateCommand>
 {
@@ -74,6 +70,9 @@ public class CreateRequestFromPdfTemplateCommandHandler(
 
         if (!template.IsActive)
             throw new ConflictException("This template is no longer active.");
+        // Only a version legal approved makes contracts (R-M6-5).
+        if (template.Status != TemplateStatus.Approved)
+            throw new ConflictException("template.notApproved", "This template version has not been approved by legal yet.");
 
         var initiator = await db.Users.FindAsync([initiatorId], cancellationToken)
             ?? throw new ForbiddenAccessException();
@@ -189,7 +188,7 @@ public class CreateRequestFromPdfTemplateCommandHandler(
             description: template.Description,
             message: command.Message);
 
-        document.SetPdfTemplateSource(template.Id, JsonSerializer.Serialize(command.FilledValues));
+        document.SetPdfTemplateSource(template.Id, JsonSerializer.Serialize(command.FilledValues), template.Version);
         document.SetWorkflowType(workflowType);
         document.SetHideRecipientIdentities(template.HideRecipientIdentities);
         document.SetCreatedBy(initiatorId.ToString());
@@ -279,17 +278,15 @@ public class CreateRequestFromPdfTemplateCommandHandler(
 
         await db.SaveChangesAsync(cancellationToken);
 
-        if (command.StartImmediately)
-            await workflowEngine.StartAsync(document.Id, cancellationToken);
-
+        // Nobody is notified yet: every request made from a template is reviewed before its circuit starts (R-M6-6).
         await auditService.LogAsync(
             document.Id,
-            command.StartImmediately ? AuditAction.DocumentSent : AuditAction.DocumentCreated,
+            AuditAction.DocumentCreated,
             "system",
-            $"Request '{title}' created from PDF template '{template.Name}'"
+            $"Request '{title}' created from PDF template '{template.Name}' v{template.Version}"
                 + (routing is null ? "" : $" following the workflow '{routing.PresetName}'")
                 + (annexClauses.Count == 0 ? "" : $", with {annexClauses.Count} annexed clause(s): {string.Join("; ", annexClauses.Select(c => $"{c.Title} v{c.Approved!.Number}"))}")
-                + (command.StartImmediately ? $" and sent to {firstApproverEmail}" : ", waiting for the pre-flight review before it is sent"),
+                + ", waiting for the pre-flight review before it is sent",
             initiatorId,
             actorEmail: currentUser.UserEmail,
             cancellationToken: cancellationToken);

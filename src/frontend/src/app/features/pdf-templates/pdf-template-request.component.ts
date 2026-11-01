@@ -528,9 +528,7 @@ export class PdfTemplateRequestComponent implements OnInit, OnDestroy {
       approvers: approverSelections.length ? approverSelections : undefined,
       title: this.title.trim() || undefined,
       message: this.message.trim() || undefined,
-      clauseIds: this.extraClauses().length ? this.extraClauses().map(c => c.id) : undefined,
-      // Nobody is notified yet: the request opens on the review page, which sends it once it has been reviewed.
-      startImmediately: false
+      clauseIds: this.extraClauses().length ? this.extraClauses().map(c => c.id) : undefined
     }).subscribe({
       next: res => {
         this.submitting.set(false);

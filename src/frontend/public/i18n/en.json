@@ -974,7 +974,9 @@
       },
       "resendLink": "Send a new signing link by e-mail",
       "linkResent": "A new link was sent to {{name}}. Their previous link no longer works.",
-      "linkResendFailed": "The link could not be sent. Please try again."
+      "linkResendFailed": "The link could not be sent. Please try again.",
+      "fromTemplate": "Template {{name}} v{{version}}",
+      "templateTooltip": "The template and version this contract was made from"
     },
     "upload": {
       "title": "Upload Contract",
@@ -1622,7 +1624,28 @@
     "defaultApprover": "Default approver: {{name}}",
     "createdBy": "Created by {{name}}",
     "useTemplate": "Use template",
-    "manage": "Configure"
+    "manage": "Configure",
+    "status": {
+      "Draft": "Draft",
+      "InLegalReview": "In legal review",
+      "Approved": "Approved",
+      "Retired": "Retired"
+    },
+    "lifecycle": {
+      "submit": "Send to legal review",
+      "approve": "Approve",
+      "approveHint": "Harvey reviews the template first; a critical finding blocks the approval.",
+      "next": "Draft a new version (this one stays in use until the new one is approved)",
+      "retire": "Retire",
+      "confirmRetire": "Retire \"{{name}}\" v{{version}}? No new contract will be made from it; contracts already made keep naming it.",
+      "failed": "The template could not be updated.",
+      "done": {
+        "submit": "Sent to legal review.",
+        "approve": "Version {{version}} approved: requesters now use it.",
+        "retire": "Version retired.",
+        "next": "Draft of version {{version}} opened."
+      }
+    }
   },
   "createDocument": {
     "newDocument": "New Contract",
@@ -2726,6 +2749,14 @@
     "clause": {
       "ownWording": "You wrote this wording, so someone else must approve it.",
       "notDraft": "Only a draft wording can be approved."
+    },
+    "template": {
+      "notApproved": "This template version has not been approved by legal yet.",
+      "notEditable": "This version is approved: draft its next version to change it.",
+      "notDraft": "Only a draft is sent to legal review.",
+      "notInReview": "Send the template to legal review before approving it.",
+      "editable": "This version is still a draft: edit it directly.",
+      "criticalFindings": "Harvey found {{count}} critical issue(s) in this template. Fix them before approving it."
     }
   }
 }

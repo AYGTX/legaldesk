@@ -66,6 +66,12 @@ import { remainingTime, RemainingTime } from '../../core/utils/sla';
                     <mat-icon>{{ doc()!.requestTypeIcon || 'category' }}</mat-icon> {{ doc()!.requestTypeName }}
                   </span>
                 }
+                @if (doc()!.templateName) {
+                  <span class="meta-item" [matTooltip]="'documents.detail.templateTooltip' | translate">
+                    <mat-icon>library_books</mat-icon>
+                    {{ 'documents.detail.fromTemplate' | translate: { name: doc()!.templateName, version: doc()!.templateVersion ?? 1 } }}
+                  </span>
+                }
                 <span class="meta-item"><mat-icon>description</mat-icon> {{ (doc()!.pageCount === 1 ? 'documents.detail.pageCountSingular' : 'documents.detail.pageCountPlural') | translate: { count: doc()!.pageCount } }}</span>
                 <span class="meta-item"><mat-icon>schedule</mat-icon> {{ doc()!.createdAt | date:'MMM d, y' }}</span>
                 <span class="meta-item file-name" [matTooltip]="doc()!.fileName"><mat-icon>attach_file</mat-icon> <span class="file-text">{{ doc()!.fileName }}</span></span>

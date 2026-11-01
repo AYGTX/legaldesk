@@ -46,6 +46,8 @@ public class HtmlContractReviewTests
             """;
 
         var template = HtmlTemplate.Create("Contrat", html, OwnerId);
+
+        template.ImportApproved();
         db.HtmlTemplates.Add(template);
         db.HtmlTemplateFields.AddRange(
             HtmlTemplateField.Create(template.Id, "client", "Client", HtmlTemplateFieldType.Text, HtmlTemplateFieldRole.Initiator, true, 1),

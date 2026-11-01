@@ -59,6 +59,10 @@ public class UpdatePdfTemplateCommandHandler(
             .FirstOrDefaultAsync(t => t.Id == command.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(PdfTemplate), command.Id);
 
+        // An approved or retired version is never edited (R-M6-5): its next version is drafted instead.
+        if (!template.IsEditable)
+            throw new ConflictException("template.notEditable", "This version is approved: draft its next version to change it.");
+
         var approverIds = command.Fields
             .Where(f => f.PreAssignedApproverId.HasValue)
             .Select(f => f.PreAssignedApproverId!.Value)

@@ -1,3 +1,4 @@
+import { TemplateStatus } from './template-gallery.model';
 import { TemplatePreset } from './workflow-preset.models';
 import { WorkflowType } from './document.models';
 import { ReviewArticle, RiskSeverity } from './contract-intelligence.model';
@@ -23,6 +24,10 @@ export interface HtmlTemplateFieldDto {
 }
 
 export interface HtmlTemplateDto {
+  /** Draft → in legal review → approved → retired (R-M6-5). */
+  status?: TemplateStatus;
+  version?: number;
+  parentTemplateId?: string | null;
   id: string;
   name: string;
   description?: string;
@@ -38,6 +43,10 @@ export interface HtmlTemplateDto {
 }
 
 export interface HtmlTemplateDetailDto {
+  /** Draft → in legal review → approved → retired (R-M6-5). */
+  status?: TemplateStatus;
+  version?: number;
+  parentTemplateId?: string | null;
   id: string;
   name: string;
   description?: string;

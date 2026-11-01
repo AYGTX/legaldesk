@@ -100,6 +100,10 @@ public class PdfTemplateField : TenantEntity
             WorkflowStage = workflowStage
         };
 
+    public PdfTemplateField CopyTo(Guid templateId) =>
+        Create(templateId, FieldKey, Label, Type, FillRole, Page, X, Y, Width, Height, IsRequired, Order,
+            AutoFillFrom, DefaultValue, OptionsJson, PreAssignedApproverId, WorkflowStage);
+
     /// <summary>Maps this template field's type to the document-level <see cref="FieldType"/> used on instances.</summary>
     public FieldType ToSignatureFieldType() => Type switch
     {

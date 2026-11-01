@@ -62,7 +62,9 @@ public record DocumentDetailDto(
     int Version = 1,
     List<DocumentVersionDto>? Versions = null,
     string? TemplateKind = null,
-    List<TemplateRevisionDto>? TemplateRevisions = null);
+    List<TemplateRevisionDto>? TemplateRevisions = null,
+    string? TemplateName = null,
+    int? TemplateVersion = null);
 
 public record OwnerDto(Guid Id, string FullName, string Email, string? AvatarUrl);
 /// <summary>A participant of the circuit, with its settings (M4): stage rule, team or role pool, due date, reminders,
@@ -186,7 +188,12 @@ public class GetDocumentByIdQueryHandler(
                     v.CreatedAt))
                 .ToList(),
             templateKind,
-            templateRevisions);
+            templateRevisions,
+            // The template and version the contract came from (R-M6-5); the template may have moved on since.
+            document.HtmlTemplateId is { } h ? await db.HtmlTemplates.AsNoTracking().Where(t => t.Id == h).Select(t => t.Name).FirstOrDefaultAsync(cancellationToken)
+                : document.PdfTemplateId is { } p ? await db.PdfTemplates.AsNoTracking().Where(t => t.Id == p).Select(t => t.Name).FirstOrDefaultAsync(cancellationToken)
+                : null,
+            document.TemplateVersion);
     }
 
     /// <summary>

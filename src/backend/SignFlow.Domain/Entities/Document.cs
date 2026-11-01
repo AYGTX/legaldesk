@@ -286,9 +286,13 @@ public class Document : TenantEntity
         FilledValuesJson = filledValuesJson;
     }
 
-    public void SetHtmlSource(Guid htmlTemplateId, string filledValuesJson, string htmlContentSnapshot)
+    /// <summary>The version of the template this contract came from (R-M6-5); the template id names that exact version.</summary>
+    public int? TemplateVersion { get; private set; }
+
+    public void SetHtmlSource(Guid htmlTemplateId, string filledValuesJson, string htmlContentSnapshot, int? templateVersion = null)
     {
         HtmlTemplateId = htmlTemplateId;
+        TemplateVersion = templateVersion;
         FilledValuesJson = filledValuesJson;
         HtmlContentSnapshot = htmlContentSnapshot;
         UpdatedAt = DateTime.UtcNow;
@@ -298,9 +302,10 @@ public class Document : TenantEntity
     /// Links this document to the reusable PDF template it was instantiated from and snapshots the
     /// initiator-filled values. The base PDF itself is a per-instance copy of the template's stored file.
     /// </summary>
-    public void SetPdfTemplateSource(Guid pdfTemplateId, string filledValuesJson)
+    public void SetPdfTemplateSource(Guid pdfTemplateId, string filledValuesJson, int? templateVersion = null)
     {
         PdfTemplateId = pdfTemplateId;
+        TemplateVersion = templateVersion;
         FilledValuesJson = filledValuesJson;
         UpdatedAt = DateTime.UtcNow;
     }

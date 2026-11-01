@@ -508,11 +508,8 @@ export class NewRequestComponent implements OnInit {
     }).subscribe({
       next: res => {
         this.submitting.set(false);
-        this.step.set('done');
-        this.documentSvc.getDocument(res.documentId).subscribe({
-          next: doc => this.createdRecipients.set(doc.recipients),
-          error: () => {} // non-critical: the done screen still works without the link list
-        });
+        // Nobody is notified yet: the request opens on the review page, which sends it once it has been reviewed (R-M6-6).
+        this.router.navigate(['/contracts/review'], { queryParams: { documentId: res.documentId } });
       },
       error: (err: unknown) => {
         this.submitting.set(false);

@@ -692,6 +692,30 @@
         <member name="M:SignFlow.Api.Controllers.V1.TeamsController.DeleteHoliday(System.Guid,System.Threading.CancellationToken)">
             <summary>Remove a holiday</summary>
         </member>
+        <member name="T:SignFlow.Api.Controllers.V1.TemplateVersionsController">
+            <summary>
+            The life of a template version (R-M6-5): draft → legal review → approved → retired. Only approved versions make
+            contracts; an approved version is changed by drafting its next one. {kind} is html or pdf.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TemplateVersionsController.#ctor(SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Templates.SubmitTemplateCommand,SignFlow.Application.Features.Templates.TemplateVersionDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Templates.ApproveTemplateCommand,SignFlow.Application.Features.Templates.TemplateVersionDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Templates.RetireTemplateCommand,SignFlow.Application.Features.Templates.TemplateVersionDto},SignFlow.Application.Common.Interfaces.ICommandHandler{SignFlow.Application.Features.Templates.DraftNextTemplateVersionCommand,SignFlow.Application.Features.Templates.TemplateVersionDto})">
+            <summary>
+            The life of a template version (R-M6-5): draft → legal review → approved → retired. Only approved versions make
+            contracts; an approved version is changed by drafting its next one. {kind} is html or pdf.
+            </summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TemplateVersionsController.Submit(SignFlow.Application.Features.Templates.TemplateKind,System.Guid,System.Threading.CancellationToken)">
+            <summary>Send a draft to legal review</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TemplateVersionsController.Approve(SignFlow.Application.Features.Templates.TemplateKind,System.Guid,System.Threading.CancellationToken)">
+            <summary>Approve a version in legal review: Harvey reviews it first, and an open critical finding refuses it</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TemplateVersionsController.Retire(SignFlow.Application.Features.Templates.TemplateKind,System.Guid,System.Threading.CancellationToken)">
+            <summary>Retire a version: no new contract is made from it</summary>
+        </member>
+        <member name="M:SignFlow.Api.Controllers.V1.TemplateVersionsController.Next(SignFlow.Application.Features.Templates.TemplateKind,System.Guid,System.Threading.CancellationToken)">
+            <summary>Draft the next version of an approved template (or open the one already drafted)</summary>
+        </member>
         <member name="T:SignFlow.Api.Controllers.V1.VacationsController">
             <summary>Vacation scheduling — users on vacation cannot be added as recipients</summary>
         </member>

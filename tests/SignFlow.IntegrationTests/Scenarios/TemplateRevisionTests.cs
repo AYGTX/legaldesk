@@ -41,6 +41,8 @@ public class TemplateRevisionTests
 
         var template = HtmlTemplate.Create("Service agreement",
             "<p>Client {{client}} pays {{amount}} TND.</p>{{reviewerSignature}}", OwnerId);
+
+        template.ImportApproved();
         db.HtmlTemplates.Add(template);
         db.HtmlTemplateFields.AddRange(
             HtmlTemplateField.Create(template.Id, "client", "Client", HtmlTemplateFieldType.Text, HtmlTemplateFieldRole.Initiator, true, 1),
@@ -202,6 +204,8 @@ public class TemplateRevisionTests
         var db = (ApplicationDbContext)fixture.Db;
 
         var template = PdfTemplate.Create("Leave request", "pdf-templates/x.pdf", "x.pdf", 10, 1, OwnerId);
+
+        template.ImportApproved();
         db.PdfTemplates.Add(template);
         db.PdfTemplateFields.AddRange(
             PdfTemplateField.Create(template.Id, "days", "Days", PdfFieldType.Number, PdfFieldFillRole.Requester, 1, 100, 200, 80, 20, true, 1),

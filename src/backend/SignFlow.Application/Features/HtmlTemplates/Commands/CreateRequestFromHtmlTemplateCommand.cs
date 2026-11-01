@@ -66,6 +66,9 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
 
         if (!template.IsActive)
             throw new ConflictException("This template is no longer active.");
+        // Only a version legal approved makes contracts (R-M6-5).
+        if (template.Status != TemplateStatus.Approved)
+            throw new ConflictException("template.notApproved", "This template version has not been approved by legal yet.");
 
         var initiator = await db.Users.FindAsync([initiatorId], cancellationToken)
             ?? throw new ForbiddenAccessException();
@@ -187,7 +190,7 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
             description: template.Description,
             message: command.Message);
 
-        document.SetHtmlSource(template.Id, filledJson, template.HtmlContent);
+        document.SetHtmlSource(template.Id, filledJson, template.HtmlContent, template.Version);
         document.SetWorkflowType(workflowType);
         document.SetHideRecipientIdentities(template.HideRecipientIdentities);
         document.SetCreatedBy(initiatorId.ToString());
@@ -252,16 +255,15 @@ public class CreateRequestFromHtmlTemplateCommandHandler(
 
         await db.SaveChangesAsync(cancellationToken);
 
-        // Kick off the workflow — emails the first approver immediately
-        await workflowEngine.StartAsync(document.Id, cancellationToken);
-
+        // Nobody is notified yet: every request made from a template is reviewed before its circuit starts (R-M6-6).
+        // It opens on the review page, and is sent from there through the same gate as any contract.
         await auditService.LogAsync(
             document.Id,
-            AuditAction.DocumentSent,
+            AuditAction.DocumentCreated,
             "system",
-            $"Request '{title}' created from template '{template.Name}'"
+            $"Request '{title}' created from template '{template.Name}' v{template.Version}"
                 + (routing is null ? "" : $" following the workflow '{routing.PresetName}'")
-                + $" and sent to {firstApproverEmail}",
+                + ", waiting for the pre-flight review before it is sent",
             initiatorId,
             actorEmail: currentUser.UserEmail,
             cancellationToken: cancellationToken);

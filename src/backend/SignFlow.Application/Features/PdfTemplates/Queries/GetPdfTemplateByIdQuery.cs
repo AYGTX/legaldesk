@@ -49,7 +49,12 @@ public record PdfTemplateDetailDto(
     string? RequestTypeName,
     int? RequestTypeSlaHours,
     SignFlow.Application.Features.WorkflowPresets.TemplatePresetDto? WorkflowPreset = null,
-    List<AnnexClauseDto>? AnnexClauses = null);
+    List<AnnexClauseDto>? AnnexClauses = null,
+    TemplateStatus Status = TemplateStatus.Approved,
+    int Version = 1,
+    Guid? ParentTemplateId = null,
+    string? ApprovedByName = null,
+    DateTime? ApprovedAt = null);
 
 /// <summary>A clause carried onto every request made from the template, as an annex.</summary>
 public record AnnexClauseDto(Guid Id, string Title, int Version);
@@ -71,7 +76,8 @@ public class GetPdfTemplateByIdQueryHandler(
             ?? throw new NotFoundException(nameof(PdfTemplate), query.Id);
 
         // Non-admins can only view active templates (for creating requests).
-        if (!currentUser.Can(Permissions.ManageTemplates) && !template.IsActive)
+        // A requester sees an approved, active version only (R-M6-5).
+        if (!currentUser.Can(Permissions.ManageTemplates) && (!template.IsActive || template.Status != TemplateStatus.Approved))
             throw new ForbiddenAccessException();
 
         return new PdfTemplateDetailDto(
@@ -109,8 +115,13 @@ public class GetPdfTemplateByIdQueryHandler(
             template.RequestType?.Name,
             template.RequestType?.SlaHours,
             await SignFlow.Application.Features.WorkflowPresets.WorkflowPresetSummaries.LoadAsync(db, template.WorkflowPresetId, cancellationToken),
-            await LoadAnnexAsync(template.AnnexClauseIds, cancellationToken));
+            await LoadAnnexAsync(template.AnnexClauseIds, cancellationToken),
+            template.Status, template.Version, template.ParentTemplateId,
+            await ApproverNameAsync(db, template.ApprovedById, cancellationToken), template.ApprovedAt);
     }
+
+    internal static async Task<string?> ApproverNameAsync(IApplicationDbContext db, Guid? id, CancellationToken ct) =>
+        id is null ? null : await db.Users.AsNoTracking().Where(u => u.Id == id).Select(u => u.FirstName + " " + u.LastName).FirstOrDefaultAsync(ct);
 
     private async Task<List<AnnexClauseDto>> LoadAnnexAsync(IReadOnlyList<Guid> ids, CancellationToken ct)
     {

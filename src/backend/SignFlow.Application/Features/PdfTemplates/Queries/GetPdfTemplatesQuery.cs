@@ -25,7 +25,10 @@ public record PdfTemplateDto(
     WorkflowType WorkflowType,
     int FieldCount,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    TemplateStatus Status = TemplateStatus.Approved,
+    int Version = 1,
+    Guid? ParentTemplateId = null);
 
 public class GetPdfTemplatesQueryHandler(
     IApplicationDbContext db,
@@ -43,7 +46,7 @@ public class GetPdfTemplatesQueryHandler(
             .AsQueryable();
 
         if (!adminView || query.ActiveOnly == true)
-            q = q.Where(t => t.IsActive);
+            q = q.Where(t => t.IsActive && t.Status == TemplateStatus.Approved);
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -69,7 +72,10 @@ public class GetPdfTemplatesQueryHandler(
                 t.WorkflowType,
                 t.Fields.Count,
                 t.CreatedAt,
-                t.UpdatedAt))
+                t.UpdatedAt,
+                t.Status,
+                t.Version,
+                t.ParentTemplateId))
             .ToListAsync(cancellationToken);
 
         return PagedResult<PdfTemplateDto>.Create(items, total, query.PageNumber, query.PageSize);

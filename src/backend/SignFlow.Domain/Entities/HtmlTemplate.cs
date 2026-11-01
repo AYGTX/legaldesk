@@ -2,7 +2,7 @@ using SignFlow.Domain.Enums;
 
 namespace SignFlow.Domain.Entities;
 
-public class HtmlTemplate : TenantEntity
+public class HtmlTemplate : VersionedTemplate
 {
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
@@ -94,6 +94,19 @@ public class HtmlTemplate : TenantEntity
         WorkflowType = workflowType;
         HideRecipientIdentities = hideRecipientIdentities;
         RequestTypeId = requestTypeId;
-        UpdatedAt = DateTime.UtcNow;
+        Edited();
+    }
+
+    /// <summary>
+    /// The next version of an approved template (R-M6-5): a draft copy with the same wording, fields and routing. The
+    /// fields are copied by the caller, which owns the field rows.
+    /// </summary>
+    public HtmlTemplate NextVersion(Guid createdById)
+    {
+        var next = Create(Name, HtmlContent, createdById, Description, DefaultApproverId, WorkflowType, HideRecipientIdentities, RequestTypeId);
+        next.WorkflowPresetId = WorkflowPresetId;
+        next.IsActive = IsActive;
+        next.BecomeNextVersionOf(this);
+        return next;
     }
 }

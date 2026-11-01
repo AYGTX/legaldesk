@@ -42,7 +42,12 @@ public record HtmlTemplateDetailDto(
     Guid? RequestTypeId,
     string? RequestTypeName,
     int? RequestTypeSlaHours,
-    SignFlow.Application.Features.WorkflowPresets.TemplatePresetDto? WorkflowPreset = null);
+    SignFlow.Application.Features.WorkflowPresets.TemplatePresetDto? WorkflowPreset = null,
+    TemplateStatus Status = TemplateStatus.Approved,
+    int Version = 1,
+    Guid? ParentTemplateId = null,
+    string? ApprovedByName = null,
+    DateTime? ApprovedAt = null);
 
 public class GetHtmlTemplateByIdQueryHandler(
     IApplicationDbContext db,
@@ -61,7 +66,8 @@ public class GetHtmlTemplateByIdQueryHandler(
             ?? throw new NotFoundException(nameof(HtmlTemplate), query.Id);
 
         // Non-admins can only view active templates (for creating requests)
-        if (!currentUser.Can(Permissions.ManageTemplates) && !template.IsActive)
+        // A requester sees an approved, active version only (R-M6-5).
+        if (!currentUser.Can(Permissions.ManageTemplates) && (!template.IsActive || template.Status != TemplateStatus.Approved))
             throw new ForbiddenAccessException();
 
         return new HtmlTemplateDetailDto(
@@ -95,6 +101,9 @@ public class GetHtmlTemplateByIdQueryHandler(
             template.RequestTypeId,
             template.RequestType?.Name,
             template.RequestType?.SlaHours,
-            await SignFlow.Application.Features.WorkflowPresets.WorkflowPresetSummaries.LoadAsync(db, template.WorkflowPresetId, cancellationToken));
+            await SignFlow.Application.Features.WorkflowPresets.WorkflowPresetSummaries.LoadAsync(db, template.WorkflowPresetId, cancellationToken),
+            template.Status, template.Version, template.ParentTemplateId,
+            await SignFlow.Application.Features.PdfTemplates.Queries.GetPdfTemplateByIdQueryHandler.ApproverNameAsync(db, template.ApprovedById, cancellationToken),
+            template.ApprovedAt);
     }
 }

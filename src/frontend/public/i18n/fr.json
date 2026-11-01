@@ -974,7 +974,9 @@
       },
       "resendLink": "Envoyer un nouveau lien de signature par e-mail",
       "linkResent": "Un nouveau lien a été envoyé à {{name}}. Son ancien lien ne fonctionne plus.",
-      "linkResendFailed": "Le lien n'a pas pu être envoyé. Réessayez."
+      "linkResendFailed": "Le lien n'a pas pu être envoyé. Réessayez.",
+      "fromTemplate": "Modèle {{name}} v{{version}}",
+      "templateTooltip": "Le modèle et la version dont ce contrat est issu"
     },
     "upload": {
       "title": "Importer un contrat",
@@ -1622,7 +1624,28 @@
     "defaultApprover": "Approbateur par défaut : {{name}}",
     "createdBy": "Créé par {{name}}",
     "useTemplate": "Utiliser le modèle",
-    "manage": "Configurer"
+    "manage": "Configurer",
+    "status": {
+      "Draft": "Brouillon",
+      "InLegalReview": "En revue juridique",
+      "Approved": "Approuvé",
+      "Retired": "Retiré"
+    },
+    "lifecycle": {
+      "submit": "Envoyer en revue juridique",
+      "approve": "Approuver",
+      "approveHint": "Harvey revoit d'abord le modèle ; un constat critique bloque l'approbation.",
+      "next": "Rédiger une nouvelle version (celle-ci reste utilisée jusqu'à l'approbation de la nouvelle)",
+      "retire": "Retirer",
+      "confirmRetire": "Retirer « {{name}} » v{{version}} ? Aucun nouveau contrat n'en sera créé ; les contrats déjà créés continuent de le citer.",
+      "failed": "Le modèle n'a pas pu être mis à jour.",
+      "done": {
+        "submit": "Envoyé en revue juridique.",
+        "approve": "Version {{version}} approuvée : les demandeurs l’utilisent désormais.",
+        "retire": "Version retirée.",
+        "next": "Brouillon de la version {{version}} ouvert."
+      }
+    }
   },
   "createDocument": {
     "newDocument": "Nouveau contrat",
@@ -2726,6 +2749,14 @@
     "clause": {
       "ownWording": "Vous avez rédigé cette version : quelqu'un d'autre doit l'approuver.",
       "notDraft": "Seul un brouillon peut être approuvé."
+    },
+    "template": {
+      "notApproved": "Cette version du modèle n'a pas encore été approuvée par le service juridique.",
+      "notEditable": "Cette version est approuvée : rédigez sa version suivante pour la modifier.",
+      "notDraft": "Seul un brouillon est envoyé en revue juridique.",
+      "notInReview": "Envoyez le modèle en revue juridique avant de l'approuver.",
+      "editable": "Cette version est encore un brouillon : modifiez-la directement.",
+      "criticalFindings": "Harvey a relevé {{count}} problème(s) critique(s) dans ce modèle. Corrigez-les avant de l'approuver."
     }
   }
 }

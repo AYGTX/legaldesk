@@ -14,6 +14,8 @@ import { PdfTemplateService } from '../../core/services/pdf-template.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { TemplateCardComponent } from '../../shared/template-card/template-card.component';
 import { TemplateKind, UnifiedTemplate, fromHtmlTemplate, fromPdfTemplate } from '../../core/models/template-gallery.model';
+import { TemplateVersionService } from '../../core/services/template-version.service';
+import { problemText } from '../../core/utils/problem-text';
 
 @Component({
   selector: 'sf-templates',
@@ -76,7 +78,7 @@ import { TemplateKind, UnifiedTemplate, fromHtmlTemplate, fromPdfTemplate } from
       } @else {
         <div class="list-surface">
           @for (t of templates(); track t.kind + t.id) {
-            <sf-template-card [template]="t" [canManage]="canManage()" (use)="useTemplate($event)" (manage)="manageTemplate($event)" (remove)="deleteTemplate($event)" />
+            <sf-template-card [template]="t" [canManage]="canManage()" (use)="useTemplate($event)" (manage)="manageTemplate($event)" (remove)="deleteTemplate($event)" (lifecycle)="runLifecycle($event.template, $event.action)" />
           }
         </div>
       }
@@ -112,6 +114,7 @@ export class TemplatesComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly versions = inject(TemplateVersionService);
 
   private readonly allTemplates = signal<UnifiedTemplate[]>([]);
   readonly loading = signal(true);
@@ -198,6 +201,30 @@ export class TemplatesComponent implements OnInit {
         error: () => this.snack.open(this.translate.instant('pdfTemplates.list.deleteFailed'), 'OK', { duration: 3000 })
       });
     });
+  }
+
+  /** Send to legal review, approve (Harvey reviews first), retire, or draft the next version (R-M6-5). */
+  runLifecycle(t: UnifiedTemplate, action: 'submit' | 'approve' | 'retire' | 'next') {
+    const run = () => {
+      const call = action === 'submit' ? this.versions.submit(t.kind, t.id)
+        : action === 'approve' ? this.versions.approve(t.kind, t.id)
+        : action === 'retire' ? this.versions.retire(t.kind, t.id)
+        : this.versions.next(t.kind, t.id);
+      call.subscribe({
+        next: result => {
+          this.snack.open(this.translate.instant('templates.lifecycle.done.' + action, { version: result.version }), 'OK', { duration: 4000 });
+          if (action === 'next') this.manageTemplate({ ...t, id: result.id, status: result.status, version: result.version });
+          else this.load();
+        },
+        error: (err: unknown) => this.snack.open(problemText(this.translate, err, 'templates.lifecycle.failed'), 'OK', { duration: 7000 })
+      });
+    };
+    if (action !== 'retire') { run(); return; }
+    this.confirm.confirm({
+      message: this.translate.instant('templates.lifecycle.confirmRetire', { name: t.name, version: t.version }),
+      confirmLabel: this.translate.instant('templates.lifecycle.retire'),
+      danger: true
+    }).subscribe(ok => { if (ok) run(); });
   }
 
   manageTemplate(t: UnifiedTemplate) {

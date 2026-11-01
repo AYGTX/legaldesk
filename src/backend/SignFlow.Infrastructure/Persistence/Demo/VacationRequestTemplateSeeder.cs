@@ -137,6 +137,10 @@ internal static class VacationRequestTemplateSeeder
             requestTypeId: requestType.Id,
             description: "Formulaire de demande de congé : le demandeur renseigne la période, le responsable hiérarchique donne son avis et signe, puis les RH visent.",
             workflowType: WorkflowType.Sequential);
+
+        // Seeded wording is the organisation's reviewed starting set: approved version 1 (R-M6-5).
+
+        template.ImportApproved();
         template.SetCreatedBy(owner.Id.ToString());
         context.PdfTemplates.Add(template);
 

@@ -51,6 +51,8 @@ public class HtmlSignaturePlacementTests
         });
 
         var template = HtmlTemplate.Create("Contrat", Html, OwnerId);
+
+        template.ImportApproved();
         db.HtmlTemplates.Add(template);
         db.HtmlTemplateFields.AddRange(
             HtmlTemplateField.Create(template.Id, "providerSig", "Prestataire", HtmlTemplateFieldType.Signature, HtmlTemplateFieldRole.Approver, true, 1),

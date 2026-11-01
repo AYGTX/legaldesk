@@ -1088,6 +1088,9 @@ namespace SignFlow.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int?>("TemplateVersion")
+                        .HasColumnType("int");
+
                     b.Property<bool>("TermConfirmed")
                         .HasColumnType("bit");
 
@@ -1347,6 +1350,12 @@ namespace SignFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedById")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1384,7 +1393,19 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<Guid>("OrganisationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ParentTemplateId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RequestTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SubmittedById")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1393,6 +1414,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
 
                     b.Property<Guid?>("WorkflowPresetId")
                         .HasColumnType("uniqueidentifier");
@@ -1812,6 +1836,12 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("AnnexClauseIdsJson")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedById")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1856,13 +1886,25 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<int>("PageCount")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ParentTemplateId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RequestTypeId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("StoragePath")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SubmittedById")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1870,6 +1912,9 @@ namespace SignFlow.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
 
                     b.Property<Guid?>("WorkflowPresetId")
                         .HasColumnType("uniqueidentifier");

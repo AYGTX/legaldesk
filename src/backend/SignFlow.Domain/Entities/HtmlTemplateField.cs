@@ -79,6 +79,9 @@ public class HtmlTemplateField : TenantEntity
             DefaultValue = defaultValue
         };
 
+    public HtmlTemplateField CopyTo(Guid templateId) =>
+        Create(templateId, FieldKey, Label, Type, Role, IsRequired, Order, AutoFillFrom, OptionsJson, PreAssignedApproverId, WorkflowStage, DefaultValue);
+
     public void Update(
         string label,
         HtmlTemplateFieldType type,
